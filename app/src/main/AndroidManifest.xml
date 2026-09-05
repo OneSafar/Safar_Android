@@ -122,8 +122,12 @@
             android:foregroundServiceType="specialUse">
             <property
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="Digital wellbeing: maintains the explicitly enabled YouTube Study Mode V2 accessibility monitor while SAFAR is backgrounded." />
+                android:value="Digital wellbeing: maintains the explicitly enabled YouTube Focus accessibility monitor while SAFAR is backgrounded." />
         </service>
+
+        <receiver
+            android:name=".feature.youtubestudyv2.YoutubeStudyV2NotificationActionReceiver"
+            android:exported="false" />
 
         <!-- Supporting locale sync and persist for pre-Android 13 devices using AppCompat -->
         <service

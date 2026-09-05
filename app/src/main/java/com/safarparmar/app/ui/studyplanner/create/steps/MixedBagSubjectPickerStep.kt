@@ -204,7 +204,6 @@ private fun MixedBagOrderOption(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var showInfo by remember { mutableStateOf(false) }
 
     Row(
         modifier = modifier
@@ -224,23 +223,6 @@ private fun MixedBagOrderOption(
             fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
             color = if (selected) accent else scheme.onSurface,
             modifier = Modifier.weight(1f, fill = false),
-        )
-        IconButton(onClick = { showInfo = true }, modifier = Modifier.size(28.dp)) {
-            Icon(
-                imageVector = Icons.Default.Info,
-                contentDescription = "About $label",
-                tint = if (selected) accent else scheme.onSurfaceVariant,
-                modifier = Modifier.size(15.dp),
-            )
-        }
-    }
-
-    if (showInfo) {
-        PlannerDialog(
-            onDismissRequest = { showInfo = false },
-            title = label,
-            text = { PlannerDialogText(info) },
-            confirmButton = { PlannerDialogAction(text = "OK") { showInfo = false } },
         )
     }
 }

@@ -14,26 +14,16 @@ class YoutubeStudyV2Preferences @Inject constructor(
     private val preferences = context.getSharedPreferences(FILE_NAME, Context.MODE_PRIVATE)
     private val _enabled = MutableStateFlow(preferences.getBoolean(KEY_ENABLED, false))
     val enabled: StateFlow<Boolean> = _enabled
-    private val _setupStep = MutableStateFlow(preferences.getInt(KEY_SETUP_STEP, 1).coerceIn(1, 3))
+    private val _setupStep = MutableStateFlow(preferences.getInt(KEY_SETUP_STEP, 1).coerceIn(1, 2))
     val setupStep: StateFlow<Int> = _setupStep
     private val _setupCompleted = MutableStateFlow(preferences.getBoolean(KEY_SETUP_COMPLETED, false))
     val setupCompleted: StateFlow<Boolean> = _setupCompleted
-    private val defaultCategories = setOf("education", "science_tech")
-    private val _allowedCategories = MutableStateFlow(
-        preferences.getStringSet(KEY_ALLOWED_CATEGORIES, defaultCategories) ?: defaultCategories
-    )
-    val allowedCategories: StateFlow<Set<String>> = _allowedCategories
+    private val _bannerDismissed = MutableStateFlow(preferences.getBoolean(KEY_BANNER_DISMISSED, false))
+    val bannerDismissed: StateFlow<Boolean> = _bannerDismissed
 
-    fun setCategoryAllowed(categoryId: String, allowed: Boolean) {
-        val updated = _allowedCategories.value.toMutableSet()
-        if (allowed) updated.add(categoryId) else updated.remove(categoryId)
-        preferences.edit().putStringSet(KEY_ALLOWED_CATEGORIES, updated).apply()
-        _allowedCategories.value = updated
-    }
-
-    fun setAllowedCategories(categories: Set<String>) {
-        preferences.edit().putStringSet(KEY_ALLOWED_CATEGORIES, categories).apply()
-        _allowedCategories.value = categories
+    fun dismissBanner() {
+        preferences.edit().putBoolean(KEY_BANNER_DISMISSED, true).apply()
+        _bannerDismissed.value = true
     }
 
     fun setEnabled(value: Boolean) {
@@ -55,17 +45,17 @@ class YoutubeStudyV2Preferences @Inject constructor(
     fun isDisclosureAccepted(): Boolean = preferences.getBoolean(KEY_DISCLOSURE_ACCEPTED, false)
 
     fun setSetupStep(step: Int) {
-        val safeStep = step.coerceIn(1, 3)
+        val safeStep = step.coerceIn(1, 2)
         preferences.edit().putInt(KEY_SETUP_STEP, safeStep).apply()
         _setupStep.value = safeStep
     }
 
     fun completeSetup() {
         preferences.edit()
-            .putInt(KEY_SETUP_STEP, 3)
+            .putInt(KEY_SETUP_STEP, 2)
             .putBoolean(KEY_SETUP_COMPLETED, true)
             .apply()
-        _setupStep.value = 3
+        _setupStep.value = 2
         _setupCompleted.value = true
     }
 
@@ -76,8 +66,7 @@ class YoutubeStudyV2Preferences @Inject constructor(
         private const val KEY_DISCLOSURE_ACCEPTED = "accessibility_disclosure_accepted"
         private const val KEY_SETUP_STEP = "setup_step"
         private const val KEY_SETUP_COMPLETED = "setup_completed"
-        private const val KEY_ALLOWED_CATEGORIES = "allowed_categories"
-
+        private const val KEY_BANNER_DISMISSED = "banner_dismissed"
         fun isEnabled(context: Context): Boolean = context
             .getSharedPreferences(FILE_NAME, Context.MODE_PRIVATE)
             .getBoolean(KEY_ENABLED, false)

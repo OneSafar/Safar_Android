@@ -18,15 +18,13 @@ data class YoutubeStudyV2UiState(
     val reference: String = "",
     val resolving: Boolean = false,
     val allowed: List<YoutubeV2IdentityEntity> = emptyList(),
+    val classifications: Map<String, YoutubeChannelClassification> = emptyMap(),
     val available: List<ResolvedYoutubeChannelDto> = emptyList(),
-    val categories: List<YoutubeCategoryDto> = emptyList(),
-    val allowedCategories: Set<String> = setOf("education", "science_tech"),
-    val selectedCategory: String? = null,
     val availableExpanded: Boolean = false,
     val loadingAvailable: Boolean = false,
-    val loadingCategories: Boolean = false,
     val setupStep: Int = 1,
     val setupCompleted: Boolean = false,
+    val bannerDismissed: Boolean = false,
     val message: String? = null,
     val isError: Boolean = false,
 )
@@ -42,30 +40,74 @@ class YoutubeStudyV2ViewModel @Inject constructor(
         val enabled: Boolean,
         val step: Int,
         val completed: Boolean,
-        val allowedCategories: Set<String>,
+        val bannerDismissed: Boolean,
     )
     private val setup = combine(
         preferences.enabled,
         preferences.setupStep,
         preferences.setupCompleted,
-        preferences.allowedCategories,
-    ) { enabled, step, completed, allowedCategories ->
-        SetupState(enabled, step, completed, allowedCategories)
+        preferences.bannerDismissed,
+    ) { enabled, step, completed, bannerDismissed ->
+        SetupState(enabled, step, completed, bannerDismissed)
     }
-    val state = combine(local, setup, repository.allowedChannels) { ui, setupState, allowed ->
+    private val starterChannels = listOf(
+        ResolvedYoutubeChannelDto("starter:parmarssc", "@parmarssc", "SAFAR Parmar"),
+        ResolvedYoutubeChannelDto("starter:safarparmar", "@safarparmar", "Safar"),
+    )
+
+    val state = combine(local, setup, repository.allowedChannels, repository.visitedChannels, repository.classifications) { ui, setupState, allowed, visited, classifications ->
+        val classMap = classifications.associate { it.channelId to YoutubeChannelClassification.fromWire(it.classification) }
+
+        // Channels that were manually added via @handle (allowed table JOIN identity)
+        val allowedDtos = allowed.map { entity ->
+            ResolvedYoutubeChannelDto(
+                channelId = entity.channelId,
+                handle = entity.handle,
+                displayName = entity.displayName,
+                thumbnailUrl = entity.thumbnailUrl,
+            )
+        }
+
+        // Channels seen by the accessibility service that are classified
+        val visitedDtos = visited
+            .filter { entity ->
+                val classification = classMap[entity.channelId]
+                classification == YoutubeChannelClassification.PRODUCTIVE || classification == YoutubeChannelClassification.DISTRACTING
+            }
+            .map { entity ->
+                ResolvedYoutubeChannelDto(
+                    channelId = entity.channelId,
+                    handle = entity.handle,
+                    displayName = entity.displayName,
+                    thumbnailUrl = entity.thumbnailUrl,
+                )
+            }
+
+        // Merge: allowed channels always appear; add classified-visited on top; no duplicates
+        val mergedList = (allowedDtos + visitedDtos).distinctBy { it.channelId }
+
+        val mergedAvailable = if (!setupState.completed) {
+            (mergedList + starterChannels).distinctBy { it.handle.lowercase() }
+        } else {
+            mergedList.distinctBy { it.handle.lowercase() }
+        }
         ui.copy(
             enabled = setupState.enabled,
             setupStep = setupState.step,
             setupCompleted = setupState.completed,
-            allowedCategories = setupState.allowedCategories,
+            bannerDismissed = setupState.bannerDismissed,
             allowed = allowed,
+            available = mergedAvailable,
+            classifications = classMap,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), YoutubeStudyV2UiState())
 
     init {
         refreshPermission()
-        loadAvailable()
-        loadCategories()
+    }
+
+    fun dismissEkagraBanner() {
+        preferences.dismissBanner()
     }
 
     fun setReference(value: String) { local.value = local.value.copy(reference = value, message = null) }
@@ -81,14 +123,12 @@ class YoutubeStudyV2ViewModel @Inject constructor(
         preferences.acceptDisclosure()
     }
 
-    fun continueToReview() {
-        if (state.value.allowed.isNotEmpty() || state.value.allowedCategories.isNotEmpty()) {
-            preferences.setSetupStep(3)
-        }
+    fun goToStep2() {
+        preferences.setSetupStep(2)
     }
 
-    fun returnToChannelSelection() {
-        preferences.setSetupStep(2)
+    fun returnToStep1() {
+        preferences.setSetupStep(1)
     }
 
     fun finishSetup() {
@@ -121,9 +161,7 @@ class YoutubeStudyV2ViewModel @Inject constructor(
     }
 
     fun toggleAvailable() {
-        val expanded = !local.value.availableExpanded
-        local.value = local.value.copy(availableExpanded = expanded)
-        if (expanded && local.value.available.isEmpty()) loadAvailable()
+        local.value = local.value.copy(availableExpanded = !local.value.availableExpanded)
     }
 
     fun loadAvailable() {
@@ -166,60 +204,51 @@ class YoutubeStudyV2ViewModel @Inject constructor(
         }
     }
 
-    fun loadCategories() {
-        if (local.value.loadingCategories) return
-        local.value = local.value.copy(loadingCategories = true)
+    fun setProductive(channelId: String, productive: Boolean) {
+        viewModelScope.launch { repository.setProductive(channelId, productive) }
+    }
+
+    fun setClassification(channelId: String, classification: YoutubeChannelClassification) {
+        viewModelScope.launch { repository.setClassification(channelId, classification) }
+    }
+
+    fun setAvailableClassification(channel: ResolvedYoutubeChannelDto, classification: YoutubeChannelClassification) {
+        // Clear any stale message immediately so the old one never lingers
+        local.value = local.value.copy(message = null, isError = false)
         viewModelScope.launch {
-            repository.categories()
-                .onSuccess { categories ->
-                    local.value = local.value.copy(
-                        categories = categories,
-                        loadingCategories = false,
-                    )
-                }
-                .onFailure {
-                    // Fallback to local default categories
-                    val defaults = listOf(
-                        YoutubeCategoryDto("education", "Education & Academics", "Competitive exams, school, college, math, history", true),
-                        YoutubeCategoryDto("science_tech", "Science & Technology", "Coding, AI, engineering, space, physics", true),
-                        YoutubeCategoryDto("news_politics", "News & Analysis", "Current affairs, documentaries, news", false),
-                        YoutubeCategoryDto("howto", "Skills & How-To", "Design, art, productivity, skills", false),
-                        YoutubeCategoryDto("music", "Music & Audio", "Focus music, study beats, lofi", false),
-                        YoutubeCategoryDto("gaming", "Gaming & Esports", "Gaming streams, gameplay, esports", false),
-                        YoutubeCategoryDto("entertainment", "Entertainment & Vlogs", "Movies, vlogs, reactions, shows", false),
-                        YoutubeCategoryDto("comedy", "Comedy & Memes", "Sketches, comedy, memes", false),
-                        YoutubeCategoryDto("sports", "Sports", "Matches, highlights, athletics", false),
-                        YoutubeCategoryDto("lifestyle", "Lifestyle & Fitness", "Workouts, daily routines, fashion", false),
-                    )
-                    local.value = local.value.copy(
-                        categories = defaults,
-                        loadingCategories = false,
-                    )
-                }
+            repository.setAvailableClassification(channel, classification)
+            val label = when (classification) {
+                YoutubeChannelClassification.PRODUCTIVE -> "Productive"
+                YoutubeChannelClassification.DISTRACTING -> "Distracting"
+                else -> null
+            }
+            if (label != null) {
+                local.value = local.value.copy(
+                    message = "${channel.displayName} is now $label.",
+                    isError = false,
+                )
+            }
         }
     }
 
-    fun toggleCategory(categoryId: String) {
-        val currentAllowed = preferences.allowedCategories.value.contains(categoryId)
-        preferences.setCategoryAllowed(categoryId, !currentAllowed)
-    }
-
-    fun setSelectedCategory(category: String?) {
-        local.value = local.value.copy(selectedCategory = category)
-    }
-
-    fun setProductive(channelId: String, productive: Boolean) {
-        viewModelScope.launch { repository.setProductive(channelId, productive) }
+    fun deleteChannel(channelId: String) {
+        viewModelScope.launch {
+            repository.deleteChannel(channelId)
+        }
     }
 
     fun refreshPermission() {
         val accessibilityEnabled = YoutubeStudyV2HealthMonitor.isAccessibilityEnabled(context)
         local.value = local.value.copy(accessibilityEnabled = accessibilityEnabled)
-        if (!preferences.setupCompleted.value) {
-            when {
-                accessibilityEnabled && preferences.isDisclosureAccepted() && preferences.setupStep.value == 1 ->
-                    preferences.setSetupStep(2)
-                !accessibilityEnabled && preferences.setupStep.value > 1 -> preferences.setSetupStep(1)
+        if (accessibilityEnabled) {
+            preferences.acceptDisclosure()
+            if (!preferences.setupCompleted.value) {
+                preferences.completeSetup()
+                preferences.setEnabled(true)
+            }
+        } else {
+            if (!preferences.setupCompleted.value && preferences.setupStep.value > 1) {
+                preferences.setSetupStep(1)
             }
         }
     }

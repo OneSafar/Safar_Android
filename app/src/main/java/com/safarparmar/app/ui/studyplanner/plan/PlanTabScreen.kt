@@ -1,5 +1,11 @@
 package com.safarparmar.app.ui.studyplanner.plan
 
+import com.safarparmar.app.ui.studyplanner.logic.isVisibleToday
+import com.safarparmar.app.ui.studyplanner.logic.dailyAgendaSummary
+import com.safarparmar.app.ui.studyplanner.logic.completedReviewForDay
+import com.safarparmar.app.ui.studyplanner.logic.isCompletedToday
+import androidx.compose.material3.LinearProgressIndicator
+
 import com.safarparmar.app.ui.studyplanner.components.PlannerDialogTextAction
 import com.safarparmar.app.ui.studyplanner.components.PlannerDialogActionRow
 import com.safarparmar.app.ui.studyplanner.components.PlannerDialogAction
@@ -102,6 +108,7 @@ import com.safarparmar.app.ui.studyplanner.TopicSchedulingResult
 import com.safarparmar.app.ui.studyplanner.importexport.StudyPlannerExportUtils
 import com.safarparmar.app.ui.studyplanner.logic.TopicRef
 import com.safarparmar.app.ui.studyplanner.logic.flattenTopics
+import com.safarparmar.app.ui.studyplanner.logic.isMissed
 import com.safarparmar.app.ui.studyplanner.logic.isUnscheduled
 import com.safarparmar.app.ui.studyplanner.logic.readableDate
 import com.safarparmar.app.ui.studyplanner.logic.rollup
@@ -141,16 +148,14 @@ fun PlanTabScreen(
     
     val todayTopics = remember(refs, today) {
         refs.filter { ref ->
-            ref.topic.plannedDate?.take(10) == today ||
-                (ref.topic.status == TopicStatus.REVISION_NEEDED &&
-                    today in ref.topic.revisionReminderDates.map { it.take(10) })
+            ref.topic.isVisibleToday(today)
         }
     }
     val todayDoneCount = remember(todayTopics) {
-        todayTopics.count { it.topic.status == TopicStatus.DONE }
+        todayTopics.count { it.topic.isCompletedToday(today) }
     }
     val overdueTopics = remember(refs, today) {
-        refs.filter { (it.topic.plannedDate?.take(10) ?: "9999") < today && it.topic.status != TopicStatus.DONE }
+        refs.filter { it.topic.isMissed(today) }
     }
     val upcomingTopics = remember(refs, today) {
         refs
@@ -187,6 +192,7 @@ fun PlanTabScreen(
     )
 
     var showSettings by remember(plan.id) { mutableStateOf(false) }
+    var stopForToday by remember(plan.id) { mutableStateOf(false) }
     var returnToUnscheduledAfterSettings by remember(plan.id) { mutableStateOf(false) }
     var focusDailyGoalInSettings by remember(plan.id) { mutableStateOf(false) }
     var focusExamDateInSettings by remember(plan.id) { mutableStateOf(false) }
@@ -196,7 +202,6 @@ fun PlanTabScreen(
     var autoScheduleAfterSettings by remember(plan.id) { mutableStateOf(false) }
     var showReschedule by remember(plan.id) { mutableStateOf(false) }
     var resetConfirm by remember { mutableStateOf(false) }
-    var completionPromptTopic by remember { mutableStateOf<TopicRef?>(null) }
 
     // Editable Today's Study Plan state
     var replaceSheetTopic by remember { mutableStateOf<TopicRef?>(null) }
@@ -296,38 +301,6 @@ fun PlanTabScreen(
         )
     }
 
-    completionPromptTopic?.let { ref ->
-        PlannerDialog(
-            onDismissRequest = { completionPromptTopic = null },
-            title = "Mark this topic as?",
-            text = {
-                Text(
-                    text = ref.topic.name,
-                    maxLines = 3,
-                    overflow = TextOverflow.Ellipsis,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            },
-            dismissButton = {
-                PlannerDialogTextAction("Cancel") { completionPromptTopic = null }
-            },
-            confirmButton = {
-                PlannerDialogActionRow {
-                    PlannerDialogTextAction("To Revise") {
-                        // Open the revision scheduler instead of directly setting status
-                        revisionTopicRef = ref
-                        completionPromptTopic = null
-                    }
-                    PlannerDialogAction(text = "Done") {
-                        actions.updateTopic(ref.topic.id, status = TopicStatus.DONE)
-                        completionPromptTopic = null
-                    }
-                }
-            },
-        )
-    }
-
     revisionTopicRef?.let { ref ->
         RevisionScheduleSheet(
             topicName = ref.topic.name,
@@ -342,13 +315,16 @@ fun PlanTabScreen(
     }
 
     fun handleTopicDoneCheck(ref: TopicRef, checked: Boolean) {
-        if (checked && ref.topic.status != TopicStatus.DONE) {
+        val completedReview = ref.topic.completedReviewForDay(today)
+        if (!checked && completedReview != null) {
+            actions.uncompleteRevisionSession(ref.topic.id, completedReview)
+        } else if (checked && ref.topic.status != TopicStatus.DONE) {
             if (ref.topic.status == TopicStatus.REVISION_NEEDED) {
                 // Completing one revision must advance its cadence rather than mark
                 // the whole topic done and silently remove revisions 2 and 3.
                 actions.completeRevisionForDate(ref.topic.id, today)
             } else {
-                completionPromptTopic = ref
+                actions.updateTopic(ref.topic.id, status = TopicStatus.DONE)
             }
         } else if (!checked && ref.topic.status == TopicStatus.DONE) {
             actions.updateTopic(ref.topic.id, status = TopicStatus.TODO)
@@ -361,7 +337,7 @@ fun PlanTabScreen(
         // lockExisting=false is set only by the "Rebuild Plan" entry point (only shown
         // once a schedule already exists) — lockExisting=true is the first-ever build.
         val isRebuild = !lockExisting
-        val currentStyleLabel = if (preferredStudyStrategy == "sequential") "Deep Focus mode" else "Balanced mode"
+        val currentStyleLabel = if (preferredStudyStrategy == "sequential") "One subject at a time" else "Mix subjects"
         ModalBottomSheet(
             onDismissRequest = { pendingDistributeAction = null },
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
@@ -410,7 +386,7 @@ fun PlanTabScreen(
                 }
 
                 StudyStyleOption(
-                    title = "Balanced mode",
+                    title = "Mix subjects",
                     body = "Mix subjects daily.",
                     recommended = preferredStudyStrategy == "interleaved",
                     onClick = {
@@ -419,7 +395,7 @@ fun PlanTabScreen(
                     },
                 )
                 StudyStyleOption(
-                    title = "Deep Focus mode",
+                    title = "One subject at a time",
                     body = "Finish topics in the same order as your syllabus.",
                     recommended = preferredStudyStrategy == "sequential",
                     onClick = {
@@ -529,8 +505,11 @@ fun PlanTabScreen(
 
     val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
     val isLight = !isDark
-    val remainingToday = todayTopics.filter { it.topic.status != TopicStatus.DONE }
-    val todayCompleted = todayTopics.isNotEmpty() && remainingToday.isEmpty()
+    val remainingToday = todayTopics.filter { !it.topic.isCompletedToday(today) }
+    val agenda = dailyAgendaSummary(refs.map { it.topic }, today, today in plan.closedStudyDays)
+    val stoppedToday = agenda.stopped
+    val dailyTaskCount = agenda.total
+    val todayCompleted = agenda.isComplete
 
     Box(modifier = Modifier.fillMaxSize()) {
         if (!hasTopics) {
@@ -548,50 +527,28 @@ fun PlanTabScreen(
             item(key = "status", contentType = "status") {
                 PlanHomeHeader(
                     planTitle = plan.title,
+                    onExamsClick = { actions.setSection(PlannerSection.YOUR_EXAMS) },
                     onSettingsClick = { showSettings = true },
                 )
                 Spacer(Modifier.height(18.dp))
                 PlanHairline()
-                PlanHomeHero(plan = plan, progress = progress)
-                PlanHairline()
-                PlanHomeStatStrip(
-                    todayCount = todayTopics.size,
-                    overdueCount = overdueTopics.size,
-                    upcomingCount = upcomingTopics.size,
-                    completedCount = completedTopics.size,
-                    onTodayClick = { actions.setPlanTab(StudyPlannerTab.TODAY) },
-                    // Missed opens the missed-topics list in place; Upcoming is
-                    // date-shaped so it hands off to the Calendar month grid.
-                    onOverdueClick = { showMissedTopicsScreen = true },
-                    onUpcomingClick = { actions.setSection(PlannerSection.CALENDAR) },
-                    onDoneClick = { actions.setPlanTab(StudyPlannerTab.COMPLETED) },
+                Text(if (dailyTaskCount == 0) "Today" else "${todayDoneCount} of $dailyTaskCount tasks complete", style = MaterialTheme.typography.titleMedium)
+                Spacer(Modifier.height(8.dp))
+                LinearProgressIndicator(
+                    progress = { if (dailyTaskCount == 0) 0f else todayDoneCount.toFloat() / dailyTaskCount },
+                    modifier = Modifier.fillMaxWidth(),
                 )
-                PlanHairline()
+                Spacer(Modifier.height(8.dp))
+                if (stoppedToday) Text("Stopped for today", style = MaterialTheme.typography.bodyMedium)
+                val daysLeft = com.safarparmar.app.ui.studyplanner.logic.daysUntil(plan.examDate)
+                Text(if (daysLeft == null) "Set exam date" else if (daysLeft < 0) "Exam passed" else "$daysLeft days to exam", style = MaterialTheme.typography.bodySmall)
+                if (overdueTopics.isNotEmpty()) {
+                    TextButton(onClick = { showMissedTopicsScreen = true }) { Text("${overdueTopics.size} missed · Reschedule") }
+                }
                 if (unscheduledTopics.isNotEmpty()) {
-                    UnscheduledWarningBanner(
-                        count = unscheduledTopics.size,
-                        onClick = { showUnscheduledTopicsScreen = true }
-                    )
+                    TextButton(onClick = { showUnscheduledTopicsScreen = true }) { Text("${unscheduledTopics.size} need dates · Schedule") }
                 }
-            }
-
-            item(key = "daily_todo_collapsible", contentType = "daily_todo_collapsible") {
-                val todos = plan.dailyTodos.orEmpty()
-                val logs = plan.dailyTodoLogs?.get(today).orEmpty()
-                PlanHomeDailyTodoRow(
-                    doneCount = todos.count { it.id in logs },
-                    totalCount = todos.size,
-                    expanded = dailyTodoExpanded,
-                    onToggleExpanded = { dailyTodoExpanded = !dailyTodoExpanded },
-                ) {
-                    DailyTodoSection(plan = plan, actions = actions, todayStr = today)
-                }
-                PlanHairline()
-                PlanHomeTabs(
-                    activeTab = activeTab,
-                    onTabSelected = { actions.setPlanTab(it) },
-                    modifier = Modifier.padding(top = 22.dp),
-                )
+                PlanHomeTabs(activeTab = activeTab, onTabSelected = { actions.setPlanTab(it) }, modifier = Modifier.padding(top = 12.dp))
             }
 
             // Tab Content Items
@@ -600,7 +557,12 @@ fun PlanTabScreen(
                     if (todayTopics.isEmpty()) {
                         item(key = "today_empty") {
                             PlanHomeEmptyNote(
-                                "Nothing planned for today. Pull a topic in, or add a one-off.",
+                                when {
+                                    today in plan.closedStudyDays -> "Stopped for today. Unfinished work is in Missed."
+                                    refs.all { it.topic.status == TopicStatus.DONE } -> "Syllabus complete"
+                                    com.safarparmar.app.ui.studyplanner.logic.jsDayOfWeek(java.time.LocalDate.now()) in plan.offDays -> "Rest day"
+                                    else -> "No study topics scheduled today"
+                                },
                             )
                             PlanHomeAddActions(
                                 onAddFromSyllabus = { showPullTopicSheet = true },
@@ -611,67 +573,8 @@ fun PlanTabScreen(
                     } else {
                         if (todayCompleted) {
                             item(key = "today_conquered") {
-                                val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
-                                val conqueredShape = RoundedCornerShape(20.dp)
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .background(
-                                            brush = Brush.horizontalGradient(
-                                                colors = if (isDark) {
-                                                    listOf(Color(0xFF102A20), Color(0xFF153327))
-                                                } else {
-                                                    listOf(Color(0xFFDCFCE7), Color(0xFFA7F3D0))
-                                                }
-                                            ),
-                                            shape = conqueredShape
-                                        )
-                                        .border(
-                                            width = 0.5.dp,
-                                            brush = if (isDark) {
-                                                Brush.verticalGradient(colors = listOf(Color.White.copy(alpha = 0.2f), Color.White.copy(alpha = 0.02f)))
-                                            } else {
-                                                Brush.verticalGradient(colors = listOf(Color(0xFFDCFCE7), Color(0xFFA7F3D0)))
-                                            },
-                                            shape = conqueredShape
-                                        )
-                                ) {
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(20.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                                    ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(54.dp)
-                                                .background(
-                                                    color = if (isDark) Color(0xFF2D3732) else Color(0xFF4ADE80),
-                                                    shape = CircleShape
-                                                ),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Text("🎉", fontSize = 24.sp)
-                                        }
-                                        Column(
-                                            modifier = Modifier.weight(1f),
-                                            verticalArrangement = Arrangement.spacedBy(4.dp)
-                                        ) {
-                                            Text(
-                                                text = "Today's Queue Conquered!",
-                                                style = MaterialTheme.typography.titleMedium,
-                                                fontWeight = FontWeight.Black,
-                                                color = if (isDark) Color.White else Color(0xFF064E3B),
-                                            )
-                                            Text(
-                                                text = "Nice. Your completed tasks stay below so the checkmarks feel visible and satisfying.",
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = if (isDark) Color.White.copy(alpha = 0.85f) else Color(0xFF047857),
-                                            )
-                                        }
-                                    }
-                                }
+                                Text("Today complete", modifier = Modifier.padding(vertical = 12.dp),
+                                    style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
                             }
                         }
 
@@ -692,6 +595,8 @@ fun PlanTabScreen(
                             PlanHomeTaskRow(
                                 ref = ref,
                                 onDoneChange = { done -> handleTopicDoneCheck(ref, done) },
+                                onRevise = { revisionTopicRef = ref },
+                                enabled = !mutating,
                                 onReplace = { replaceSheetTopic = ref },
                                 onRemoveFromToday = { removeFromTodayConfirmTopic = ref },
                                 onEdit = { editTopicRef = ref },
@@ -711,7 +616,7 @@ fun PlanTabScreen(
                             if (bonusTopics.isNotEmpty()) {
                                 item(key = "bonus_header") {
                                     PlanHomeSectionHeader(
-                                        title = "Bonus, to get ahead",
+                                        title = "Study more · optional",
                                         trailing = "${bonusTopics.size} suggested",
                                         modifier = Modifier.padding(top = 26.dp, bottom = 10.dp),
                                     )
@@ -725,6 +630,8 @@ fun PlanTabScreen(
                                     PlanHomeTaskRow(
                                         ref = ref,
                                         onDoneChange = { done -> handleTopicDoneCheck(ref, done) },
+                                onRevise = { revisionTopicRef = ref },
+                                enabled = !mutating,
                                         onEdit = { editTopicRef = ref },
                                         onFocus = { onNavigate(Routes.ekagraForTopic(ref.topic.id, ref.topic.name, plan.id)) },
                                         // No Replace / Remove-from-today here: a bonus
@@ -777,6 +684,8 @@ fun PlanTabScreen(
                             PlanHomeTaskRow(
                                 ref = ref,
                                 onDoneChange = { done -> handleTopicDoneCheck(ref, done) },
+                                onRevise = { revisionTopicRef = ref },
+                                enabled = !mutating,
                                 // Completed topics only get Edit — the row itself
                                 // already hides Focus and Remove-from-today once a
                                 // topic is done, and Replace is meaningless here.
@@ -786,19 +695,39 @@ fun PlanTabScreen(
                     }
                 }
             }
+            item(key = "routine_and_summary") {
+                PlanHairline()
+                val todos = plan.dailyTodos.orEmpty()
+                val logs = plan.dailyTodoLogs?.get(today).orEmpty()
+                PlanHomeDailyTodoRow(
+                    doneCount = todos.count { it.id in logs }, totalCount = todos.size,
+                    expanded = dailyTodoExpanded, onToggleExpanded = { dailyTodoExpanded = !dailyTodoExpanded },
+                ) { DailyTodoSection(plan = plan, actions = actions, todayStr = today) }
+                if (upcomingTopics.isNotEmpty()) {
+                    TextButton(onClick = { actions.setSection(PlannerSection.CALENDAR) }) {
+                        Text("Next: ${readableDate(upcomingTopics.first().topic.plannedDate)} · ${upcomingTopics.first().topic.name}")
+                    }
+                }
+                TextButton(onClick = { actions.setSection(PlannerSection.INSIGHTS) }) {
+                    Text("Syllabus ${progress.completionPercent}% complete · View progress")
+                }
+                if (activeTab == StudyPlannerTab.TODAY && remainingToday.isNotEmpty()) {
+                    TextButton(enabled = !mutating, onClick = { stopForToday = true }) { Text("Stop for today") }
+                }
+            }
         }
       }
 
-      if (hasTopics && activeTab == StudyPlannerTab.TODAY && !todayCompleted && todayTopics.isNotEmpty()) {
-          DoneForTheDayBar(
-              onClick = {
-                  val incompleteTopics = todayTopics.filter { it.topic.status != TopicStatus.DONE }
-                  val topicIds = incompleteTopics.map { it.topic.id }
-                  if (topicIds.isNotEmpty()) {
-                      actions.finishDay(topicIds)
-                  }
-              },
-              modifier = Modifier.align(Alignment.BottomCenter)
+      if (stopForToday) {
+          PlannerDialog(
+              onDismissRequest = { stopForToday = false },
+              title = "Stop for today?",
+              text = { Text("${remainingToday.size} unfinished → Missed") },
+              dismissButton = { PlannerDialogTextAction("Keep studying") { stopForToday = false } },
+              confirmButton = { PlannerDialogAction("Move ${remainingToday.size} to missed") {
+                  stopForToday = false
+                  actions.finishDay(remainingToday.map { it.topic.id })
+              } },
           )
       }
         if (showUnscheduledTopicsScreen) {
@@ -831,6 +760,7 @@ fun PlanTabScreen(
                 plan = plan,
                 missedTopics = overdueTopics,
                 actions = actions,
+                isWorking = mutating,
                 onDismiss = { showMissedTopicsScreen = false }
             )
         }
@@ -1113,6 +1043,7 @@ internal fun MissedTopicsScreen(
     plan: StudyPlan,
     missedTopics: List<TopicRef>,
     actions: PlannerActions,
+    isWorking: Boolean = false,
     onDismiss: () -> Unit,
 ) {
     TopicSchedulingScreen(
@@ -1122,15 +1053,10 @@ internal fun MissedTopicsScreen(
         onDismiss = onDismiss,
         screenTitle = "Missed topics",
         searchPlaceholder = "Search topics...",
-        // Warm, not clinical. A student opening a list of their own failures
-        // needs a way forward first, and blame never.
-        subtitle = if (missedTopics.size == 1) {
-            "You missed 1 topic. Life happens — let's fit it back in."
-        } else {
-            "You missed ${missedTopics.size} topics. Life happens — let's fit them back in."
-        },
-        bulkActionLabel = "Give new dates to these topics",
-        bulkActionHint = "Today's topics will not change.",
+        subtitle = "${missedTopics.size} topics ready to reschedule",
+        bulkActionLabel = "Reschedule missed topics",
+        bulkActionHint = "Today's work stays in place",
+        isWorking = isWorking,
         onStudyMore = { onResult ->
             actions.rescheduleMissedTopics(
                 topicIds = missedTopics.map { it.topic.id },

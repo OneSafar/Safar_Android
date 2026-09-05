@@ -76,7 +76,7 @@ private fun stepTitle(step: CreatePlanStep): String = when (step) {
     CreatePlanStep.MixedBagSubjectPicker -> "Mixed Bag"
     CreatePlanStep.BuildingPreview -> "Building your plan"
     CreatePlanStep.Preview -> "Review your plan"
-    CreatePlanStep.DailyTopics -> "Daily topics"
+    CreatePlanStep.DailyTopics -> "Daily routine"
 }
 
 /**
@@ -99,8 +99,8 @@ fun CreatePlanScreen(
     var showCelebration by remember { mutableStateOf(false) }
 
     LaunchedEffect(startAtSavedSyllabi) {
-        if (startAtSavedSyllabi) {
-            viewModel.chooseSource(PlanSource.Saved)
+        if (state.step == CreatePlanStep.ChoosePath) {
+            viewModel.chooseSource(if (startAtSavedSyllabi) PlanSource.Saved else PlanSource.Template)
         }
     }
 
@@ -119,11 +119,11 @@ fun CreatePlanScreen(
             } else if (state.selectedTemplateId != null) {
                 viewModel.clearSelectedTemplate()
             } else {
-                viewModel.goToStep(CreatePlanStep.ChoosePath)
+                onBack()
             }
             CreatePlanStep.ManualTopicTree -> viewModel.returnToSavedSyllabi()
             CreatePlanStep.PasteSyllabus, CreatePlanStep.SavedSyllabusPicker ->
-                viewModel.goToStep(CreatePlanStep.ChoosePath)
+                onBack()
             CreatePlanStep.PlanSettings -> viewModel.goToStep(
                 when (state.source) {
                     PlanSource.Template -> CreatePlanStep.TemplatePicker
@@ -178,6 +178,13 @@ fun CreatePlanScreen(
                     navigationIcon = {
                         Box(modifier = Modifier.padding(start = 12.dp)) {
                             com.safarparmar.app.ui.ekagra.focusshield.StudyPlannerCircularBackButton(onClick = { handleBack() })
+                        }
+                    },
+                    actions = {
+                        if (state.step == CreatePlanStep.TemplatePicker || state.step == CreatePlanStep.SavedSyllabusPicker) {
+                            androidx.compose.material3.TextButton(onClick = {
+                                viewModel.chooseSource(if (state.step == CreatePlanStep.TemplatePicker) PlanSource.Saved else PlanSource.Template)
+                            }) { Text(if (state.step == CreatePlanStep.TemplatePicker) "My syllabus" else "Exam syllabi") }
                         }
                     },
                     colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.Transparent),
@@ -305,6 +312,8 @@ fun CreatePlanScreen(
                     error = state.previewError,
                     premiumRequired = state.premiumRequired,
                     onBuildPlan = viewModel::continueFromSettings,
+                    onCustomizeDifficulty = viewModel::openChapterRating,
+                    subjectNames = viewModel.currentSubjectNames(),
                     onOpenDeepFocusOrder = viewModel::openDeepFocusOrder,
                     onOpenMixedBagPicker = viewModel::openMixedBagPicker,
                     modifier = Modifier.padding(padding),
@@ -344,7 +353,7 @@ fun CreatePlanScreen(
                         preview = preview,
                         isConfirming = state.isConfirming,
                         error = state.error,
-                        onConfirm = { viewModel.goToStep(CreatePlanStep.DailyTopics) },
+                        onConfirm = viewModel::confirmPlan,
                         // Already stretched once — offering it again would do nothing.
                         onScheduleAnyway = if (state.allowOverload) null else viewModel::scheduleAnyway,
                         onAdjust = {

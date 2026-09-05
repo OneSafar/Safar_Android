@@ -945,7 +945,7 @@ private fun StudyPlansScreen(
                                 iconTint = Color(0xFFD97706),
                                 borderColor = if (isDark) Color(0xFFB45309).copy(alpha = 0.4f) else Color(0xFFFDE68A),
                                 isLight = !isDark,
-                                onInfoClick = { showDraftsInfo = true },
+                                onInfoClick = null,
                                 onClick = {
                                     onAdvanceTour()
                                     onNavigate("${Routes.CREATE_PLAN}?startAtSaved=true")
@@ -1692,10 +1692,9 @@ private fun PlannerHomeEmptyState(onCreatePlan: () -> Unit) {
 @Composable
 internal fun PlannerBottomBar(selected: PlannerSection, onSelect: (PlannerSection) -> Unit) {
     val sections = listOf(
-        PlannerSection.YOUR_EXAMS,
         PlannerSection.PLAN,
-        PlannerSection.SYLLABUS,
         PlannerSection.CALENDAR,
+        PlannerSection.SYLLABUS,
         PlannerSection.INSIGHTS,
     )
     val icons = mapOf(
@@ -1709,7 +1708,7 @@ internal fun PlannerBottomBar(selected: PlannerSection, onSelect: (PlannerSectio
     val isLight = scheme.background.isLightBackground()
     val haptic = LocalHapticFeedback.current
 
-    val selectedIndex = sections.indexOf(selected).coerceAtLeast(0)
+    val selectedIndex = sections.indexOf(if (selected == PlannerSection.REVISION) PlannerSection.CALENDAR else selected).coerceAtLeast(0)
     val animatedIndex by animateFloatAsState(
         targetValue = selectedIndex.toFloat(),
         animationSpec = spring(
@@ -1804,7 +1803,7 @@ internal fun PlannerBottomBar(selected: PlannerSection, onSelect: (PlannerSectio
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 sections.forEach { section ->
-                    val isSelected = selected == section
+                    val isSelected = selected == section || (selected == PlannerSection.REVISION && section == PlannerSection.CALENDAR)
 
                     val contentColor by animateColorAsState(
                         targetValue = if (isSelected) {

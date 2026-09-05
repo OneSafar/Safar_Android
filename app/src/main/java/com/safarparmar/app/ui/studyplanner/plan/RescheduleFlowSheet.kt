@@ -102,33 +102,32 @@ internal fun RescheduleFlowSheet(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
-                text = "Exam date updated — re-plan your syllabus",
+                text = "Update schedule",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.ExtraBold,
                 color = scheme.onSurface,
             )
             Text(
-                text = "Choose how SAFAR should place your topics into the new window. " +
-                    "Anything you've already completed and any dates you set by hand stay exactly where they are.",
+                text = "Completed work and pinned dates stay saved.",
                 style = MaterialTheme.typography.bodySmall,
                 color = scheme.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = 4.dp),
             )
 
             StudyStyleOption(
-                title = "Balanced",
+                title = "Mix subjects",
                 body = "Mix subjects evenly across each study day.",
                 selected = style == STYLE_BALANCED,
                 onClick = { style = STYLE_BALANCED },
             )
             StudyStyleOption(
-                title = "Mixed Bag",
-                body = "Rotate subjects, and optionally give your toughest ones a topic every day.",
+                title = "Mix + priorities",
+                body = "Choose which subjects to study first.",
                 selected = style == STYLE_MIXED_BAG,
                 onClick = { style = STYLE_MIXED_BAG },
             )
             StudyStyleOption(
-                title = "Deep Focus",
+                title = "One subject at a time",
                 body = "Finish topics in the exact order of your syllabus.",
                 selected = style == STYLE_DEEP_FOCUS,
                 onClick = { style = STYLE_DEEP_FOCUS },

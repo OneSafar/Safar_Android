@@ -123,7 +123,7 @@ data class StudyPlannerUiState(
     val selectedPlan: StudyPlan? = null,
     val calendar: CalendarMap = emptyMap(),
     val analytics: PlannerAnalytics? = null,
-    val section: PlannerSection = PlannerSection.YOUR_EXAMS,
+    val section: PlannerSection = PlannerSection.PLAN,
     val loading: Boolean = false,
     val mutating: Boolean = false,
     val error: String? = null,
@@ -468,7 +468,10 @@ class StudyPlannerViewModel @Inject constructor(
                     if (!initialLandingResolved) {
                         initialLandingResolved = true
                         if (_uiState.value.selectedPlan == null) {
-                            r.data.firstOrNull()?.let { openPlan(it.id) }
+                            val activeId = dataStore.plannerActivePlanId().first()
+                            val active = com.safarparmar.app.ui.studyplanner.logic.plannerLandingPlan(r.data, activeId)
+                            if (active != null) openPlan(active.id)
+                            else _uiState.update { it.copy(section = PlannerSection.YOUR_EXAMS) }
                         }
                     }
                 }
@@ -546,7 +549,7 @@ class StudyPlannerViewModel @Inject constructor(
                 selectedPlan = null,
                 calendar = emptyMap(),
                 analytics = null,
-                section = PlannerSection.PLAN,
+                section = PlannerSection.YOUR_EXAMS,
                 onboardingCompletedSteps = emptySet(),
                 backDestination = null,
                 pendingRatingChapterIds = emptySet(),
@@ -1548,7 +1551,7 @@ class StudyPlannerViewModel @Inject constructor(
                         it.copy(
                             selectedPlan = result.data.plan,
                             mutating = false,
-                            message = "Done for the day. Remaining topics moved to Missed.",
+                            message = "Stopped for today. Unfinished work moved to Missed.",
                             finishDayUndo = result.data.undoToken?.let(::FinishDayUndoState),
                             deleteUndoToken = null,
                             lastUndoableActionLabel = null,

@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
@@ -112,6 +113,7 @@ fun EkagraScreen(
     initialView: String? = null,
     viewModel: EkagraViewModel = hiltViewModel(),
     focusShieldViewModel: com.safarparmar.app.ui.ekagra.focusshield.FocusShieldViewModel = hiltViewModel(),
+    youtubeViewModel: com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ViewModel = hiltViewModel(),
 ) {
     val activeSession        by viewModel.activeSession.collectAsStateWithLifecycle()
     val ekagraAnalytics      by viewModel.ekagraAnalytics.collectAsStateWithLifecycle()
@@ -120,7 +122,19 @@ fun EkagraScreen(
     val context              = LocalContext.current
     val requestNotificationPermission = rememberNotificationPermissionRequester()
     val shieldState          by focusShieldViewModel.shieldState.collectAsStateWithLifecycle()
+    val youtubeState         by youtubeViewModel.state.collectAsStateWithLifecycle()
     val haptics              = LocalHapticFeedback.current
+    val lifecycleOwner       = LocalLifecycleOwner.current
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                youtubeViewModel.refreshPermission()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     // fallback flows when timerService is null
     val fallbackSecondsLeft      = remember { MutableStateFlow(25 * 60) }
@@ -1605,6 +1619,11 @@ fun EkagraScreen(
                                         myCircles = myCircles,
                                         selectedStudyCircle = selectedStudyCircle,
                                         onSelectStudyCircle = viewModel::selectStudyCircle,
+                                        showYoutubeBanner = !youtubeState.setupCompleted && !youtubeState.accessibilityEnabled && !youtubeState.bannerDismissed,
+                                        onEnableYoutubeFocus = {
+                                            youtubeViewModel.dismissEkagraBanner()
+                                            onNavigate(Routes.focusShieldTab(1))
+                                        },
                                     )
 
                                     EkagraNavTab.DURATION -> DurationTab(

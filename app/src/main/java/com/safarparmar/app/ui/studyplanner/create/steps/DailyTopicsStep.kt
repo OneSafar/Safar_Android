@@ -79,10 +79,10 @@ fun DailyTopicsStep(
             .padding(horizontal = 24.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(0.dp),
     ) {
-        PlanEyebrow("Daily topics")
+        PlanEyebrow("Daily routine")
         Spacer(Modifier.height(8.dp))
         Text(
-            text = "Add daily topics?",
+            text = "Add a daily routine",
             fontFamily = LoraFontFamily,
             fontSize = 26.sp,
             fontWeight = FontWeight.Normal,

@@ -1241,10 +1241,10 @@ fun DailyTodoSetupSheet(
                 .padding(horizontal = 20.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(0.dp),
         ) {
-            PlanEyebrow("Daily topics")
+            PlanEyebrow("Daily routine")
             Spacer(Modifier.height(8.dp))
             Text(
-                text = "Add daily topics?",
+                text = "Add a daily routine",
                 fontFamily = LoraFontFamily,
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Normal,

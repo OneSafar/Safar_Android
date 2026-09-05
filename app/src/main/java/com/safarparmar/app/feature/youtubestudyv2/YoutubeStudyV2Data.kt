@@ -21,7 +21,6 @@ data class YoutubeV2IdentityEntity(
     val handle: String,
     val displayName: String,
     val thumbnailUrl: String?,
-    val categories: String = "education",
     val resolvedAtMs: Long,
 )
 
@@ -42,6 +41,22 @@ data class YoutubeV2AllowlistEntity(
     val addedAtMs: Long,
 )
 
+enum class YoutubeChannelClassification(val wire: String) {
+    OTHERS("others"), PRODUCTIVE("productive"), DISTRACTING("distracting");
+
+    companion object {
+        fun fromWire(value: String?): YoutubeChannelClassification =
+            entries.firstOrNull { it.wire == value } ?: OTHERS
+    }
+}
+
+@Entity(tableName = "youtube_v2_classification")
+data class YoutubeV2ClassificationEntity(
+    @androidx.room.PrimaryKey val channelId: String,
+    val classification: String,
+    val updatedAtMs: Long,
+)
+
 @Dao
 interface YoutubeStudyV2Dao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -56,6 +71,21 @@ interface YoutubeStudyV2Dao {
     @Query("DELETE FROM youtube_v2_allowlist WHERE channelId = :channelId")
     suspend fun removeAllowed(channelId: String)
 
+    @Query("DELETE FROM youtube_v2_identity WHERE channelId = :channelId")
+    suspend fun deleteIdentity(channelId: String)
+
+    @Query("DELETE FROM youtube_v2_alias WHERE channelId = :channelId")
+    suspend fun deleteAliases(channelId: String)
+
+    @Query("DELETE FROM youtube_v2_classification WHERE channelId = :channelId")
+    suspend fun deleteClassification(channelId: String)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertClassification(entity: YoutubeV2ClassificationEntity)
+
+    @Query("SELECT * FROM youtube_v2_classification")
+    fun observeClassifications(): Flow<List<YoutubeV2ClassificationEntity>>
+
     @Query(
         """
         SELECT identity.* FROM youtube_v2_identity AS identity
@@ -64,6 +94,9 @@ interface YoutubeStudyV2Dao {
         """,
     )
     fun observeAllowed(): Flow<List<YoutubeV2IdentityEntity>>
+
+    @Query("SELECT * FROM youtube_v2_identity ORDER BY resolvedAtMs DESC")
+    fun observeIdentities(): Flow<List<YoutubeV2IdentityEntity>>
 
     @Query("SELECT * FROM youtube_v2_identity WHERE channelId = :channelId LIMIT 1")
     suspend fun identityForChannelId(channelId: String): YoutubeV2IdentityEntity?
@@ -95,8 +128,9 @@ interface YoutubeStudyV2Dao {
         YoutubeV2IdentityEntity::class,
         YoutubeV2AliasEntity::class,
         YoutubeV2AllowlistEntity::class,
+        YoutubeV2ClassificationEntity::class,
     ],
-    version = 4,
+    version = 7,
     exportSchema = false,
 )
 abstract class YoutubeStudyV2Database : RoomDatabase() {
@@ -106,25 +140,16 @@ abstract class YoutubeStudyV2Database : RoomDatabase() {
 }
 
 data class ResolveYoutubeChannelRequest(val reference: String)
+data class DiscoverYoutubeHandleRequest(val handle: String)
 
 data class ResolveYoutubeChannelResponse(val channel: ResolvedYoutubeChannelDto)
 data class AvailableYoutubeChannelsResponse(val channels: List<ResolvedYoutubeChannelDto>)
-
-data class YoutubeCategoryDto(
-    val id: String,
-    val name: String,
-    val description: String,
-    val defaultAllowed: Boolean,
-)
-
-data class AvailableYoutubeCategoriesResponse(val categories: List<YoutubeCategoryDto>)
 
 data class ResolvedYoutubeChannelDto(
     val channelId: String,
     val handle: String,
     val displayName: String,
     val thumbnailUrl: String? = null,
-    val categories: List<String> = emptyList(),
     val source: String? = null,
 )
 
@@ -137,11 +162,11 @@ interface YoutubeStudyV2Api {
     @GET("youtube-study-v2/available")
     suspend fun available(@RetrofitQuery("limit") limit: Int = 100): Response<AvailableYoutubeChannelsResponse>
 
-    @GET("youtube-study-v2/categories")
-    suspend fun categories(): Response<AvailableYoutubeCategoriesResponse>
-
     @POST("youtube-study-v2/resolve")
     suspend fun resolve(@Body request: ResolveYoutubeChannelRequest): Response<ResolveYoutubeChannelResponse>
+
+    @POST("youtube-study-v2/discover")
+    suspend fun discover(@Body request: DiscoverYoutubeHandleRequest): Response<ResolveYoutubeChannelResponse>
 }
 
 enum class YoutubeV2RuntimeDecision { ALLOW, BLOCK }
@@ -150,9 +175,10 @@ class YoutubeStudyV2Repository(
     private val database: YoutubeStudyV2Database,
     private val dao: YoutubeStudyV2Dao,
     private val api: YoutubeStudyV2Api,
-    private val preferences: YoutubeStudyV2Preferences,
 ) {
     val allowedChannels: Flow<List<YoutubeV2IdentityEntity>> = dao.observeAllowed()
+    val visitedChannels: Flow<List<YoutubeV2IdentityEntity>> = dao.observeIdentities()
+    val classifications: Flow<List<YoutubeV2ClassificationEntity>> = dao.observeClassifications()
 
     suspend fun resolveAndAllow(reference: String): Result<YoutubeV2Resolution> = runCatching {
         val response = api.resolve(ResolveYoutubeChannelRequest(reference.trim()))
@@ -165,21 +191,12 @@ class YoutubeStudyV2Repository(
         require(CHANNEL_ID.matches(dto.channelId)) { "The resolver returned an invalid Channel ID." }
         val handle = normalizeHandle(dto.handle)
         require(HANDLE.matches(handle)) { "The resolver returned an invalid channel handle." }
-        val entity = saveIdentity(dto, productive = true)
+        val entity = saveIdentity(dto)
+        setClassification(entity.channelId, YoutubeChannelClassification.PRODUCTIVE)
         YoutubeV2Resolution(
             channel = entity,
             source = dto.source?.lowercase()?.takeIf { it == "cache" || it == "youtube" } ?: "unknown",
         )
-    }
-
-    suspend fun categories(): Result<List<YoutubeCategoryDto>> = runCatching {
-        val response = api.categories()
-        if (!response.isSuccessful) {
-            val message = response.errorBody()?.string()?.let(::extractServerMessage)
-                ?: "Could not load categories (${response.code()})."
-            error(message)
-        }
-        response.body()?.categories ?: error("The server returned no categories.")
     }
 
     suspend fun availableChannels(): Result<List<ResolvedYoutubeChannelDto>> = runCatching {
@@ -195,8 +212,7 @@ class YoutubeStudyV2Repository(
                 runCatching {
                     val handle = normalizeHandle(dto.handle)
                     if (HANDLE.matches(handle)) {
-                        val isAllowed = dao.isAllowed(dto.channelId)
-                        saveIdentity(dto, productive = isAllowed)
+                        saveIdentity(dto)
                     }
                 }
             }
@@ -208,28 +224,63 @@ class YoutubeStudyV2Repository(
         dto: ResolvedYoutubeChannelDto,
         productive: Boolean,
     ): Result<YoutubeV2IdentityEntity> = runCatching {
-        saveIdentity(dto, productive = productive)
+        val entity = saveIdentity(dto)
+        setClassification(
+            entity.channelId,
+            if (productive) YoutubeChannelClassification.PRODUCTIVE else YoutubeChannelClassification.DISTRACTING,
+        )
+        entity
+    }
+
+    suspend fun setAvailableClassification(
+        dto: ResolvedYoutubeChannelDto,
+        classification: YoutubeChannelClassification,
+    ): Result<YoutubeV2IdentityEntity> = runCatching {
+        val entity = saveIdentity(dto)
+        setClassification(entity.channelId, classification)
+        entity
     }
 
     suspend fun setProductive(channelId: String, productive: Boolean) {
-        if (productive) dao.allow(YoutubeV2AllowlistEntity(channelId, System.currentTimeMillis()))
-        else dao.removeAllowed(channelId)
+        setClassification(
+            channelId,
+            if (productive) YoutubeChannelClassification.PRODUCTIVE else YoutubeChannelClassification.DISTRACTING,
+        )
+    }
+
+    suspend fun setClassification(channelId: String, classification: YoutubeChannelClassification) {
+        database.withTransaction {
+            dao.upsertClassification(
+                YoutubeV2ClassificationEntity(channelId, classification.wire, System.currentTimeMillis()),
+            )
+            if (classification == YoutubeChannelClassification.PRODUCTIVE) {
+                dao.allow(YoutubeV2AllowlistEntity(channelId, System.currentTimeMillis()))
+            } else {
+                dao.removeAllowed(channelId)
+            }
+        }
+    }
+
+    suspend fun deleteChannel(channelId: String) {
+        database.withTransaction {
+            dao.removeAllowed(channelId)
+            dao.deleteClassification(channelId)
+            dao.deleteAliases(channelId)
+            dao.deleteIdentity(channelId)
+        }
     }
 
     private suspend fun saveIdentity(
         dto: ResolvedYoutubeChannelDto,
-        productive: Boolean,
     ): YoutubeV2IdentityEntity {
         require(CHANNEL_ID.matches(dto.channelId)) { "The resolver returned an invalid Channel ID." }
         val handle = normalizeHandle(dto.handle)
         require(HANDLE.matches(handle)) { "The resolver returned an invalid channel handle." }
-        val categoriesStr = if (dto.categories.isNotEmpty()) dto.categories.joinToString(",") else "education"
         val entity = YoutubeV2IdentityEntity(
             channelId = dto.channelId,
             handle = handle,
             displayName = dto.displayName.trim(),
             thumbnailUrl = dto.thumbnailUrl,
-            categories = categoriesStr,
             resolvedAtMs = System.currentTimeMillis(),
         )
         database.withTransaction {
@@ -242,8 +293,6 @@ class YoutubeStudyV2Repository(
                     YoutubeV2AliasEntity("display", normalizeDisplay(entity.displayName), entity.channelId, entity.displayName),
                 ),
             )
-            if (productive) dao.allow(YoutubeV2AllowlistEntity(entity.channelId, System.currentTimeMillis()))
-            else dao.removeAllowed(entity.channelId)
         }
         return entity
     }
@@ -261,35 +310,99 @@ class YoutubeStudyV2Repository(
         // 1. Individually allowed channel
         if (channelId != null && dao.isAllowed(channelId)) return YoutubeV2RuntimeDecision.ALLOW
 
-        // 2. Allowed categories check from local Room DB
-        val allowedCategories = preferences.allowedCategories.value.map { it.trim().lowercase() }.toSet()
-        if (channelId != null) {
-            val identity = dao.identityForChannelId(channelId)
-            if (identity != null) {
-                val channelCategories = identity.categories.split(",").map { it.trim().lowercase() }.filter { it.isNotBlank() }
-                if (channelCategories.any { allowedCategories.contains(it) }) {
-                    return YoutubeV2RuntimeDecision.ALLOW
-                }
-            }
-        }
-
-        // 3. If unlisted channel and categories are active, resolve on the fly using YouTube Data API
-        if (channelId == null && normalizedHandle != null && allowedCategories.isNotEmpty()) {
-            val resolvedDto = runCatching {
-                val res = api.resolve(ResolveYoutubeChannelRequest(normalizedHandle))
-                if (res.isSuccessful) res.body()?.channel else null
-            }.getOrNull()
-
-            if (resolvedDto != null && CHANNEL_ID.matches(resolvedDto.channelId)) {
-                val savedEntity = saveIdentity(resolvedDto, productive = false)
-                val channelCategories = savedEntity.categories.split(",").map { it.trim().lowercase() }.filter { it.isNotBlank() }
-                if (channelCategories.any { allowedCategories.contains(it) }) {
-                    return YoutubeV2RuntimeDecision.ALLOW
-                }
-            }
-        }
-
         return YoutubeV2RuntimeDecision.BLOCK
+    }
+
+    /**
+     * Registers a newly observed exact handle in SAFAR's shared MongoDB-backed
+     * catalogue. This never changes the user's productive allowlist.
+     */
+    suspend fun registerDiscoveredHandle(
+        exactHandle: String?,
+        displayName: String? = null,
+    ): Result<YoutubeV2IdentityEntity?> = runCatching {
+        android.util.Log.d("YTCM", "📡 registerDiscoveredHandle: input=$exactHandle display=$displayName")
+        val validHandle = exactHandle
+            ?.let(::normalizeHandle)
+            ?.takeIf(HANDLE::matches)
+
+        if (validHandle != null) {
+            android.util.Log.d("YTCM", "📡 registerDiscoveredHandle: checking local DB for exact handle $validHandle")
+            dao.channelIdForHandle(validHandle)?.let { channelId ->
+                val cached = dao.identityForChannelId(channelId)
+                if (cached != null) {
+                    android.util.Log.d("YTCM", "✅ registerDiscoveredHandle: found in local DB $cached")
+                    return@runCatching cached
+                }
+            }
+
+            android.util.Log.d("YTCM", "🌐 registerDiscoveredHandle: calling api.discover for $validHandle")
+            val response = runCatching { api.discover(DiscoverYoutubeHandleRequest(validHandle)) }.getOrNull()
+            if (response != null && response.isSuccessful) {
+                val dto = response.body()?.channel
+                if (dto != null && CHANNEL_ID.matches(dto.channelId)) {
+                    android.util.Log.d("YTCM", "✅ registerDiscoveredHandle: api.discover resolved $dto")
+                    return@runCatching saveIdentity(dto)
+                }
+            }
+
+            // Local fallback for exact handle:
+            val fallbackChannelId = "handle:" + validHandle.removePrefix("@")
+            val fallbackEntity = YoutubeV2IdentityEntity(
+                channelId = fallbackChannelId,
+                handle = validHandle,
+                displayName = displayName?.trim().takeUnless { it.isNullOrBlank() } ?: validHandle,
+                thumbnailUrl = null,
+                resolvedAtMs = System.currentTimeMillis(),
+            )
+            database.withTransaction {
+                dao.upsertIdentity(fallbackEntity)
+                dao.upsertAliases(listOf(YoutubeV2AliasEntity("handle", validHandle, fallbackEntity.channelId, validHandle)))
+                if (!displayName.isNullOrBlank()) {
+                    dao.upsertAliases(listOf(YoutubeV2AliasEntity("display", normalizeDisplay(displayName), fallbackEntity.channelId, displayName.trim())))
+                }
+            }
+            android.util.Log.d("YTCM", "✅ registerDiscoveredHandle: created handle fallback entity $fallbackEntity")
+            return@runCatching fallbackEntity
+        }
+
+        // Exact handle is null — channel only exposed display name (e.g. Prime Video India, Netflix India)
+        if (!displayName.isNullOrBlank()) {
+            val normalized = normalizeDisplay(displayName)
+            val channelIds = dao.channelIdsForDisplay(normalized)
+            if (channelIds.size == 1) {
+                val cached = dao.identityForChannelId(channelIds.first())
+                if (cached != null) {
+                    android.util.Log.d("YTCM", "✅ registerDiscoveredHandle: found in local DB by display $cached")
+                    return@runCatching cached
+                }
+            }
+
+            // Directly create a local entity with the real display name without guessing arbitrary handles
+            val cleanSlug = normalized.replace(Regex("[^a-z0-9_]"), "_").take(40).trim('_')
+            val displayChannelId = "display:" + cleanSlug.ifBlank { "unknown" }
+            val displayHandle = "@" + cleanSlug.replace("_", "").take(30).ifBlank { "channel" }
+            val displayEntity = YoutubeV2IdentityEntity(
+                channelId = displayChannelId,
+                handle = displayHandle,
+                displayName = displayName.trim(),
+                thumbnailUrl = null,
+                resolvedAtMs = System.currentTimeMillis(),
+            )
+            database.withTransaction {
+                dao.upsertIdentity(displayEntity)
+                dao.upsertAliases(listOf(YoutubeV2AliasEntity("display", normalized, displayEntity.channelId, displayName.trim())))
+            }
+            android.util.Log.d("YTCM", "✅ registerDiscoveredHandle: created display-name entity $displayEntity")
+            return@runCatching displayEntity
+        }
+
+        android.util.Log.e("YTCM", "❌ registerDiscoveredHandle: handle and display both null or blank")
+        null
+    }.also { result ->
+        result.exceptionOrNull()?.let { e ->
+            android.util.Log.e("YTCM", "💥 registerDiscoveredHandle THREW exception: ${e.message}", e)
+        }
     }
 
     companion object {

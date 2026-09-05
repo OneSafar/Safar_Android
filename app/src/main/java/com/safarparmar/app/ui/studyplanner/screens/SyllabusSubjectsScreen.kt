@@ -115,6 +115,7 @@ fun SyllabusSubjectsScreen(
     var showNewDatesConfirm by rememberSaveable { mutableStateOf(false) }
     var showSaveForReuseConfirm by rememberSaveable { mutableStateOf(false) }
     var showChangeHelp by rememberSaveable { mutableStateOf(false) }
+    var orderChanged by rememberSaveable(planId) { mutableStateOf(false) }
     var showPlanSettings by rememberSaveable { mutableStateOf(false) }
     var showFullPlanTitle by rememberSaveable { mutableStateOf(false) }
 
@@ -289,6 +290,7 @@ fun SyllabusSubjectsScreen(
     }
 
     fun saveSubjectOrder() {
+        orderChanged = true
         actions.reorderSyllabus(subjectIds = localSubjects.map { it.id })
     }
 
@@ -306,6 +308,7 @@ fun SyllabusSubjectsScreen(
     }
 
     fun saveChapterOrder(subjectId: String) {
+        orderChanged = true
         val subject = localSubjects.find { it.id == subjectId } ?: return
         actions.reorderSyllabus(chapterIdsBySubjectId = mapOf(subjectId to subject.chapters.map { it.id }))
     }
@@ -338,6 +341,7 @@ fun SyllabusSubjectsScreen(
     }
 
     fun saveTopicOrder(chapterId: String) {
+        orderChanged = true
         val chapter = localSubjects.asSequence()
             .flatMap { it.chapters.asSequence() }
             .firstOrNull { it.id == chapterId } ?: return
@@ -544,6 +548,9 @@ fun SyllabusSubjectsScreen(
                                     onClick = { showChangePlan = true },
                                 )
                                 Spacer(Modifier.height(10.dp))
+                                if (orderChanged) {
+                                    TextButton(enabled = !state.mutating, onClick = { showNewDatesConfirm = true }) { Text("Order changed · Update schedule") }
+                                }
                                 if (state.pendingRatingChapterIds.isNotEmpty() && !state.ratingRebuildPromptDismissed) {
                                     SyllabusRatingRebuildBar(
                                         hasExamDate = !selectedPlan?.examDate.isNullOrBlank(),
@@ -859,6 +866,7 @@ fun SyllabusSubjectsScreen(
             confirmButton = {
                 PlannerDialogAction(text = "Make new dates") {
                     showNewDatesConfirm = false
+                    orderChanged = false
                     buildSchedule()
                 }
             },
@@ -868,16 +876,22 @@ fun SyllabusSubjectsScreen(
     if (showChangeHelp) {
         PlannerDialog(
             onDismissRequest = { showChangeHelp = false },
-            title = "Change order or topic size",
+            title = "Edit syllabus order",
             text = {
-                PlannerDialogText(
-                    "To change order, press and hold a subject, chapter, or topic, then move it. " +
-                        "To change topic size, open a subject and choose Easy, Normal, or Tough for a chapter."
-                )
+                LazyColumn {
+                    items(localSubjects, key = { it.id }) { subject ->
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            TextButton(onClick = { activeSubjectId = subject.id; showChangeHelp = false }, modifier = Modifier.weight(1f)) {
+                                Text(subject.name)
+                            }
+                            TextButton(onClick = { moveSubject(subject.id, -1); saveSubjectOrder() }) { Text("↑") }
+                            TextButton(onClick = { moveSubject(subject.id, 1); saveSubjectOrder() }) { Text("↓") }
+                        }
+                    }
+                }
             },
-            confirmButton = {
-                PlannerDialogAction(text = "Got it") { showChangeHelp = false }
-            },
+            dismissButton = { PlannerDialogTextAction("Close") { showChangeHelp = false } },
+            confirmButton = { PlannerDialogAction(text = "Update schedule") { showChangeHelp = false; showNewDatesConfirm = true } },
         )
     }
 
@@ -945,8 +959,8 @@ private fun SyllabusChangePlanSheet(
             )
             PlanHairline()
             SyllabusChangePlanRow(
-                title = "Change order or topic size",
-                description = "See how to move topics or mark work as easy or tough.",
+                title = "Edit order and difficulty",
+                description = "Subjects, chapters and topics",
                 onClick = onChangeOrderOrSize,
             )
             PlanHairline()

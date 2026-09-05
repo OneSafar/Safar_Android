@@ -64,7 +64,7 @@ object SafarNotificationChannels {
             },
             NotificationChannel(
                 YOUTUBE_STUDY_MODE,
-                "YouTube Study Mode",
+                "YouTube Focus",
                 NotificationManager.IMPORTANCE_DEFAULT,
             ).apply {
                 description = "Channel blocking and classification actions"
@@ -72,7 +72,7 @@ object SafarNotificationChannels {
             },
             NotificationChannel(
                 YOUTUBE_STUDY_V2_STATUS,
-                "YouTube Study Mode V2 status",
+                "YouTube Focus status",
                 NotificationManager.IMPORTANCE_LOW,
             ).apply {
                 description = "V2 monitoring status and accessibility-service health"

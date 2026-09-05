@@ -1,5 +1,9 @@
 package com.safarparmar.app.ui.studyplanner.screens
 
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.semantics
+
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -596,6 +600,12 @@ internal fun SyllabusMagazineSubjectRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .semantics {
+                if (canReorder) customActions = listOf(
+                    CustomAccessibilityAction("Move up") { onMoveUp(); onDragEnd(); true },
+                    CustomAccessibilityAction("Move down") { onMoveDown(); onDragEnd(); true },
+                )
+            }
             .zIndex(if (isDragging) 1f else 0f)
             .onGloballyPositioned { itemHeightPx = it.size.height }
             .graphicsLayer { translationY = if (isDragging) dragOffsetY else 0f }
@@ -698,7 +708,7 @@ internal fun SyllabusMagazineSubjectRow(
         Box {
             Box(
                 modifier = Modifier
-                    .size(28.dp)
+                    .size(48.dp)
                     .clip(CircleShape)
                     .clickable { showMenu = true },
                 contentAlignment = Alignment.Center,
@@ -711,6 +721,10 @@ internal fun SyllabusMagazineSubjectRow(
                 )
             }
             PlannerOverflowMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+                    if (canReorder) {
+                        PlannerOverflowMenuItem("Move up") { showMenu = false; onMoveUp(); onDragEnd() }
+                        PlannerOverflowMenuItem("Move down") { showMenu = false; onMoveDown(); onDragEnd() }
+                    }
                 PlannerOverflowMenuItem("Add chapter") { showMenu = false; onAddChapter() }
                 PlannerOverflowMenuItem("Rename") { showMenu = false; onRename() }
                 PlannerOverflowMenuItem("Mark all done") { showMenu = false; onMarkDone() }
@@ -880,6 +894,12 @@ internal fun SyllabusMagazineChapterRow(
     Column(
         modifier = modifier
             .fillMaxWidth()
+            .semantics {
+                if (canReorder) customActions = listOf(
+                    CustomAccessibilityAction("Move up") { onMoveUp(); onDragEnd(); true },
+                    CustomAccessibilityAction("Move down") { onMoveDown(); onDragEnd(); true },
+                )
+            }
             .zIndex(if (isDragging) 1f else 0f)
             .onGloballyPositioned { itemHeightPx = it.size.height }
             .graphicsLayer { translationY = if (isDragging) dragOffsetY else 0f }
@@ -957,7 +977,7 @@ internal fun SyllabusMagazineChapterRow(
             Box {
                 Box(
                     modifier = Modifier
-                        .size(28.dp)
+                        .size(48.dp)
                         .clip(CircleShape)
                         .clickable { showMenu = true },
                     contentAlignment = Alignment.Center,
@@ -970,6 +990,10 @@ internal fun SyllabusMagazineChapterRow(
                     )
                 }
                 PlannerOverflowMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+                    if (canReorder) {
+                        PlannerOverflowMenuItem("Move up") { showMenu = false; onMoveUp(); onDragEnd() }
+                        PlannerOverflowMenuItem("Move down") { showMenu = false; onMoveDown(); onDragEnd() }
+                    }
                     PlannerOverflowMenuItem("Rename") { showMenu = false; onRename() }
                     PlannerOverflowMenuItem("Mark all done") { showMenu = false; onMarkDone() }
                     PlannerOverflowMenuItem("Delete", destructive = true) { showMenu = false; onDelete() }
@@ -1036,6 +1060,12 @@ internal fun SyllabusMagazineTopicRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .semantics {
+                if (canReorder) customActions = listOf(
+                    CustomAccessibilityAction("Move up") { onMoveUp(); onDragEnd(); true },
+                    CustomAccessibilityAction("Move down") { onMoveDown(); onDragEnd(); true },
+                )
+            }
             .zIndex(if (isDragging) 1f else 0f)
             .onGloballyPositioned { itemHeightPx = it.size.height }
             .graphicsLayer { translationY = if (isDragging) dragOffsetY else 0f }
@@ -1162,7 +1192,7 @@ internal fun SyllabusMagazineTopicRow(
         Box {
             Box(
                 modifier = Modifier
-                    .size(28.dp)
+                    .size(48.dp)
                     .clip(CircleShape)
                     .clickable { showMenu = true },
                 contentAlignment = Alignment.Center,
@@ -1175,6 +1205,10 @@ internal fun SyllabusMagazineTopicRow(
                 )
             }
             PlannerOverflowMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+                    if (canReorder) {
+                        PlannerOverflowMenuItem("Move up") { showMenu = false; onMoveUp(); onDragEnd() }
+                        PlannerOverflowMenuItem("Move down") { showMenu = false; onMoveDown(); onDragEnd() }
+                    }
                 PlannerOverflowMenuItem("Rename") { showMenu = false; onRename() }
                 PlannerOverflowMenuItem("Change date") { showMenu = false; onChangeDate() }
                 if (!done) {

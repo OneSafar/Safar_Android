@@ -187,42 +187,22 @@ private fun SummaryPill(
     val shape = RoundedCornerShape(20.dp)
     val cardColor by animateColorAsState(
         targetValue = when {
-            isLight && isPressed -> accent.copy(alpha = 0.96f)
-            isLight -> accent.copy(alpha = 0.88f)
-            isPressed -> Color(0xFF48484F).copy(alpha = 0.92f)
-            else -> Color(0xFF3B3B42).copy(alpha = 0.86f)
+            isPressed -> accent.copy(alpha = 0.90f)
+            else -> accent
         },
         animationSpec = spring(dampingRatio = 0.82f, stiffness = 600f),
         label = "summaryChipColor",
     )
-    val elevation by animateDpAsState(
-        targetValue = if (isPressed) 2.dp else if (isLight) 10.dp else 5.dp,
-        animationSpec = spring(dampingRatio = 0.78f, stiffness = 520f),
-        label = "summaryChipElevation",
-    )
+    val borderColor = Color.White.copy(alpha = 0.35f)
     val textColor = Color.White
     val secondaryColor = Color.White.copy(alpha = 0.82f)
-    val rim = Brush.verticalGradient(
-        if (isLight) {
-            listOf(Color.White.copy(alpha = 0.90f), Color(0xFFB8C0CC).copy(alpha = 0.46f))
-        } else {
-            listOf(Color.White.copy(alpha = 0.28f), Color.White.copy(alpha = 0.035f))
-        },
-    )
 
     Box(
         modifier = modifier
             .height(72.dp)
-            .shadow(
-                elevation = elevation,
-                shape = shape,
-                clip = false,
-                ambientColor = Color.Black.copy(alpha = if (isLight) 0.25f else 0.30f),
-                spotColor = Color.Black.copy(alpha = if (isLight) 0.34f else 0.42f),
-            )
             .clip(shape)
             .background(cardColor)
-            .border(0.5.dp, rim, shape)
+            .border(1.dp, borderColor, shape)
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
@@ -296,28 +276,15 @@ private fun StudyGroupLivePill(
 
     val cardColor by animateColorAsState(
         targetValue = when {
-            isLight && isPressed -> accent.copy(alpha = 0.96f)
-            isLight -> accent.copy(alpha = 0.88f)
-            isPressed -> Color(0xFF48484F).copy(alpha = 0.92f)
-            else -> Color(0xFF3B3B42).copy(alpha = 0.86f)
+            isPressed -> accent.copy(alpha = 0.90f)
+            else -> accent
         },
         animationSpec = spring(dampingRatio = 0.82f, stiffness = 600f),
         label = "groupLiveCardColor",
     )
-    val elevation by animateDpAsState(
-        targetValue = if (isPressed) 2.dp else if (isLight) 10.dp else 5.dp,
-        animationSpec = spring(dampingRatio = 0.78f, stiffness = 520f),
-        label = "groupLiveCardElevation",
-    )
+    val borderColor = Color.White.copy(alpha = 0.35f)
     val textColor = Color.White
     val secondaryColor = Color.White.copy(alpha = 0.85f)
-    val rim = Brush.verticalGradient(
-        if (isLight) {
-            listOf(Color.White.copy(alpha = 0.90f), Color(0xFFB8C0CC).copy(alpha = 0.46f))
-        } else {
-            listOf(Color.White.copy(alpha = 0.28f), Color.White.copy(alpha = 0.035f))
-        },
-    )
 
     val activeCircle = selectedCircle ?: myCircles.firstOrNull()
     val groupName = activeCircle?.name ?: "Study Group"
@@ -331,16 +298,9 @@ private fun StudyGroupLivePill(
     Box(
         modifier = modifier
             .height(72.dp)
-            .shadow(
-                elevation = elevation,
-                shape = shape,
-                clip = false,
-                ambientColor = Color.Black.copy(alpha = if (isLight) 0.25f else 0.30f),
-                spotColor = Color.Black.copy(alpha = if (isLight) 0.34f else 0.42f),
-            )
             .clip(shape)
             .background(cardColor)
-            .border(0.5.dp, rim, shape)
+            .border(1.dp, borderColor, shape)
             .combinedClickable(
                 interactionSource = interactionSource,
                 indication = null,

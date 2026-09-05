@@ -201,6 +201,8 @@ internal fun TimerFocusTab(
     myCircles: List<com.safarparmar.app.data.remote.dto.StudyCircleSummaryDto> = emptyList(),
     selectedStudyCircle: com.safarparmar.app.data.remote.dto.StudyCircleSummaryDto? = null,
     onSelectStudyCircle: (com.safarparmar.app.data.remote.dto.StudyCircleSummaryDto) -> Unit = {},
+    showYoutubeBanner: Boolean = false,
+    onEnableYoutubeFocus: () -> Unit = {},
 ) {
     val scheme  = MaterialTheme.colorScheme
     val configuration   = LocalConfiguration.current
@@ -452,7 +454,7 @@ internal fun TimerFocusTab(
                        shrinkVertically(animationSpec = tween(500, easing = FastOutSlowInEasing))
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Spacer(Modifier.height(24.dp))
+                    Spacer(Modifier.height(20.dp))
 
                     Text(
                         text       = mottoText,
@@ -463,11 +465,112 @@ internal fun TimerFocusTab(
                         textAlign  = TextAlign.Center,
                     )
 
+                    Spacer(Modifier.height(if (showYoutubeBanner) 72.dp else 16.dp))
                 }
             }
         }
+      }
+
+      AnimatedVisibility(
+          visible = showYoutubeBanner && controlsVisible,
+          enter = fadeIn(animationSpec = tween(500, easing = FastOutSlowInEasing)),
+          exit = fadeOut(animationSpec = tween(500, easing = FastOutSlowInEasing)),
+          modifier = Modifier
+              .align(Alignment.BottomCenter)
+              .padding(start = 20.dp, end = 20.dp, bottom = 12.dp),
+      ) {
+          EkagraYouTubeStudyBanner(
+              ink = ink,
+              isDarkTheme = isDarkTheme,
+              onEnableClick = onEnableYoutubeFocus,
+          )
+      }
     }
 }
+
+// ─── Ekagra YouTube Study Banner ──────────────────────────────────────────────
+
+@Composable
+internal fun EkagraYouTubeStudyBanner(
+    ink: EkagraInk,
+    isDarkTheme: Boolean,
+    onEnableClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable { onEnableClick() },
+        shape = RoundedCornerShape(14.dp),
+        color = if (isDarkTheme) Color(0xFF1E293B).copy(alpha = 0.65f) else Color(0xFFF1F5F9),
+        border = BorderStroke(
+            1.dp,
+            if (isDarkTheme) Color.White.copy(alpha = 0.12f) else Color.Black.copy(alpha = 0.07f),
+        ),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(11.dp),
+        ) {
+            // Authentic YouTube Red Logo Badge
+            Box(
+                modifier = Modifier
+                    .size(28.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color(0xFFFF0000)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.PlayArrow,
+                    contentDescription = "YouTube",
+                    tint = Color.White,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
+
+            // Golden Ratio Typography & Visual Hierarchy
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(1.dp),
+            ) {
+                Text(
+                    text = "Studying on YouTube?",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = ink.primaryText,
+                    maxLines = 1,
+                )
+                Text(
+                    text = "Try YouTube Focus",
+                    fontSize = 10.5.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = ink.secondaryText,
+                    maxLines = 1,
+                )
+            }
+
+            // Clean "Enable" Action Button (No arrow icon)
+            Button(
+                onClick = onEnableClick,
+                modifier = Modifier.height(28.dp),
+                shape = RoundedCornerShape(8.dp),
+                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 0.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isDarkTheme) Color(0xFF38BDF8) else Color(0xFF0F172A),
+                    contentColor = Color.White,
+                ),
+            ) {
+                Text(
+                    text = "Enable",
+                    fontSize = 11.5.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+        }
+    }
 }
 
 // ─── Bottom navigation ─────────────────────────────────────────────────────────

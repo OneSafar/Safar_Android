@@ -92,7 +92,7 @@ class PlannerAlertsWorker(
                             val dedupeKey = PlannerAlertDedupe.examCountdownKey(plan.id, daysUntil)
                             if (!dataStore.hasPlannerAlertDedupeKey(dedupeKey)) {
                                 notificationManager.showStudyReminder(
-                                    title = "Exam approaching!",
+                                    title = "Exam countdown",
                                     body = "Your exam for ${plan.title} is in $daysUntil days.",
                                     deepLink = "safar://studyplanner",
                                     dedupeType = SafarNotificationManager.DedupeType.PLANNER_ALERT,
@@ -123,7 +123,7 @@ class PlannerAlertsWorker(
                             if (!dataStore.hasPlannerAlertDedupeKey(dedupeKey)) {
                                 notificationManager.showStudyReminder(
                                     title = plan.title,
-                                    body = "You're behind schedule, time to catch up!",
+                                    body = "Review your remaining work and adjust the schedule.",
                                     deepLink = "safar://studyplanner",
                                     dedupeType = SafarNotificationManager.DedupeType.PLANNER_ALERT,
                                 )

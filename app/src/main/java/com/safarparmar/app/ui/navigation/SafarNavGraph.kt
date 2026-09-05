@@ -99,7 +99,6 @@ fun SafarNavGraph(
         Routes.DASHBOARD,
         Routes.STUDY_PLANNER,
         Routes.FOCUS_SHIELD,
-        Routes.YOUTUBE_STUDY_MODE_V2,
         Routes.NISHTHA,
         Routes.EKAGRA,
         Routes.MEHFIL,
@@ -356,14 +355,27 @@ fun SafarNavGraph(
             FocusShieldStandaloneScreen(
                 currentRoute = currentRoute,
                 isDarkTheme = isDarkTheme,
+                initialTab = 0,
                 onNavigate = ::navigate,
                 onBack = ::safeBack,
                 onToggleDarkTheme = onToggleDarkTheme,
             )
         }
 
-        composable(Routes.YOUTUBE_STUDY_MODE_V2) {
-            YoutubeStudyV2Screen(onBack = ::safeBack)
+        composable(
+            route = Routes.FOCUS_SHIELD_ROUTE,
+            arguments = listOf(
+                navArgument("tab") { type = NavType.IntType; defaultValue = 0 },
+            ),
+        ) { entry ->
+            FocusShieldStandaloneScreen(
+                currentRoute = currentRoute,
+                isDarkTheme = isDarkTheme,
+                initialTab = entry.arguments?.getInt("tab") ?: 0,
+                onNavigate = ::navigate,
+                onBack = ::safeBack,
+                onToggleDarkTheme = onToggleDarkTheme,
+            )
         }
 
         composable(Routes.APP_PICKER) {

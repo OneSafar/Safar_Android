@@ -92,9 +92,9 @@ internal fun ChapterRatingStep(
                 PlanChoiceCard(
                     title = "Same every day",
                     lines = listOf(
-                        "Every day has exactly $n topics." to null,
-                        "Hard or easy, the number never changes." to null,
-                        "Choose this if you want a fixed routine." to null,
+                        "Target: $n topics per day" to null,
+                        "Equal topic sizes" to null,
+                        "Preview before saving" to null,
                     ),
                     onClick = onBuildEven,
                     modifier = Modifier.weight(1f),
@@ -111,7 +111,7 @@ internal fun ChapterRatingStep(
                         "  fewer in a day, so you get time for them." to null,
                         "Easy topics" to ChapterDifficulty.EASY,
                         "  more in a day, because they go fast." to null,
-                        "Every day feels the same amount of work." to null,
+                        "Preview the daily workload" to null,
                     ),
                     onClick = { goByDifficulty = true },
                     modifier = Modifier.weight(1f),
@@ -128,22 +128,7 @@ internal fun ChapterRatingStep(
             return@Column
         }
 
-        val requiredGoal = remember(ratings, outline) {
-            val totalPoints = outline.sumOf { subject ->
-                subject.chapters.sumOf { chapter ->
-                    val diffStr = ratings[subject.name to chapter.name] ?: ChapterDifficulty.NORMAL.wireValue
-                    val points = when (diffStr) {
-                        ChapterDifficulty.EASY.wireValue -> 1
-                        ChapterDifficulty.TOUGH.wireValue -> 4
-                        else -> 2
-                    }
-                    chapter.topicNames.size * points
-                }
-            }
-            val estDays = 60
-            val reqPoints = Math.ceil(totalPoints.toDouble() / estDays.toDouble()).toInt()
-            Math.ceil(reqPoints.toDouble() / 2.0).toInt().coerceAtLeast(1)
-        }
+
 
         LazyColumn(
             modifier = Modifier.weight(1f),
@@ -159,38 +144,7 @@ internal fun ChapterRatingStep(
                         .padding(bottom = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    if (requiredGoal > dailyGoal && dailyGoal > 0) {
-                        Surface(
-                            shape = RoundedCornerShape(14.dp),
-                            color = PlannerAccent.Amber.copy(alpha = 0.14f),
-                            border = BorderStroke(1.dp, PlannerAccent.Amber.copy(alpha = 0.4f)),
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(14.dp),
-                                verticalArrangement = Arrangement.spacedBy(6.dp),
-                            ) {
-                                Text(
-                                    text = "⚡ SMART EFFORT ADJUSTMENT",
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Black,
-                                    color = PlannerAccent.Amber,
-                                )
-                                Text(
-                                    text = "Daily goal set to $requiredGoal topics/day",
-                                    fontSize = 15.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = scheme.onSurface,
-                                )
-                                Text(
-                                    text = "Because of your Tough chapters, we automatically adjusted your daily effort from $dailyGoal to $requiredGoal topics/day so all topics finish before your exam.",
-                                    fontSize = 12.5.sp,
-                                    color = scheme.onSurfaceVariant,
-                                    lineHeight = 17.sp,
-                                )
-                            }
-                        }
-                    }
+
 
                     Text(
                         text = if (ratedCount > 0) {
@@ -313,52 +267,12 @@ internal fun ChapterRatingStep(
             modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            val requiredGoal = remember(ratings, outline) {
-                val totalPoints = outline.sumOf { subject ->
-                    subject.chapters.sumOf { chapter ->
-                        val diffStr = ratings[subject.name to chapter.name] ?: ChapterDifficulty.NORMAL.wireValue
-                        val points = when (diffStr) {
-                            ChapterDifficulty.EASY.wireValue -> 1
-                            ChapterDifficulty.TOUGH.wireValue -> 4
-                            else -> 2
-                        }
-                        chapter.topicNames.size * points
-                    }
-                }
-                val estDays = 60
-                val reqPoints = Math.ceil(totalPoints.toDouble() / estDays.toDouble()).toInt()
-                Math.ceil(reqPoints.toDouble() / 2.0).toInt().coerceAtLeast(1)
-            }
 
-            if (goByDifficulty == true && requiredGoal > dailyGoal && dailyGoal > 0) {
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = PlannerAccent.Amber.copy(alpha = 0.12f),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 10.dp),
-                ) {
-                    Column(
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-                        verticalArrangement = Arrangement.spacedBy(2.dp),
-                    ) {
-                        Text(
-                            text = "💡 Adjusted for your Tough chapters",
-                            fontSize = 12.5.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = scheme.onSurface,
-                        )
-                        Text(
-                            text = "To finish all topics before your exam, your daily goal is set to $requiredGoal topics/day.",
-                            fontSize = 12.sp,
-                            color = scheme.onSurfaceVariant,
-                        )
-                    }
-                }
-            }
+
+
 
             MacOSPrimaryActionButton(
-                text = "Build my plan",
+                text = "Preview my plan",
                 onClick = onContinue,
                 isLight = isLight,
                 customAccent = sourceAccent,

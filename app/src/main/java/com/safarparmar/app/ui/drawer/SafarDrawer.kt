@@ -106,11 +106,6 @@ val drawerSections = listOf(
                 Icons.Default.Leaderboard,
                 Routes.LEADERBOARD,
             ),
-            DrawerItem(
-                R.string.nav_youtube_study_mode,
-                Icons.Default.SmartDisplay,
-                Routes.YOUTUBE_STUDY_MODE_V2,
-            ),
             DrawerItem(R.string.module_courses, Icons.AutoMirrored.Filled.MenuBook, Routes.COURSES),
         ),
     ),

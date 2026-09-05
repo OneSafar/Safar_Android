@@ -38,7 +38,7 @@ class YoutubeStudyV2HealthMonitor @Inject constructor(
             NOTIFICATION_ID,
             NotificationCompat.Builder(context, SafarNotificationChannels.YOUTUBE_STUDY_V2_STATUS)
                 .setSmallIcon(R.drawable.ic_safar_notification_sparkle)
-                .setContentTitle("YouTube Study Mode is off")
+                .setContentTitle("YouTube Focus is off")
                 .setContentText("Turn on SAFAR in Accessibility settings.")
                 .setContentIntent(pendingIntent)
                 .setAutoCancel(true)

@@ -192,6 +192,8 @@ class KavachAnalyticsRepository @Inject constructor(
 
             val categories = categoryMap()
             val labels = dao.allClassifications().associate { it.packageName to it.appLabel }
+            val youtubeByDate = dao.youtubeAggregatesBetween(localDate, localDate)
+                .associateBy { it.localDate }
 
             val counts = DailyEventCounts(
                 blockedAttempts = events
@@ -271,6 +273,8 @@ class KavachAnalyticsRepository @Inject constructor(
             val coverage = dao.coverageBetween(startDate, endDate)
                 .associate { it.localDate to DataCoverage.fromWire(it.status) }
             val labels = dao.allClassifications().associate { it.packageName to it.appLabel }
+            val youtubeByDate = dao.youtubeAggregatesBetween(startDate, endDate)
+                .associateBy { it.localDate }
 
             var allDay = CategoryTotals()
             var duringKavach = CategoryTotals()
@@ -293,8 +297,30 @@ class KavachAnalyticsRepository @Inject constructor(
                 if (isSystemOrExcluded) return@forEach
 
                 val category = AppCategory.fromWire(row.category)
-                allDay = allDay.add(category, row.allDaySeconds)
-                duringKavach = duringKavach.add(category, row.kavachSeconds)
+                val youtube = youtubeByDate[row.localDate]
+                    ?.takeIf { pkg == YOUTUBE_PACKAGE }
+                val allDayContribution = youtube?.let {
+                    youtubeCategoryTotals(
+                        row.allDaySeconds,
+                        it.productiveSeconds,
+                        it.distractingSeconds,
+                        it.shortsSeconds,
+                        it.unidentifiedSeconds,
+                    )
+                }
+                val kavachContribution = youtube?.let {
+                    youtubeCategoryTotals(
+                        row.kavachSeconds,
+                        it.protectedProductiveSeconds,
+                        it.protectedDistractingSeconds,
+                        it.protectedShortsSeconds,
+                        it.protectedUnidentifiedSeconds,
+                    )
+                }
+                allDay = allDayContribution?.let(allDay::plus)
+                    ?: allDay.add(category, row.allDaySeconds)
+                duringKavach = kavachContribution?.let(duringKavach::plus)
+                    ?: duringKavach.add(category, row.kavachSeconds)
 
                 val existing = byPackage[row.packageName]
                 byPackage[row.packageName] = AppUsageRow(
@@ -304,8 +330,10 @@ class KavachAnalyticsRepository @Inject constructor(
                         ?: context.appLabelOrNull(row.packageName)
                         ?: row.packageName,
                     category = category,
-                    allDaySeconds = (existing?.allDaySeconds ?: 0) + row.allDaySeconds,
-                    kavachSeconds = (existing?.kavachSeconds ?: 0) + row.kavachSeconds,
+                    allDaySeconds = (existing?.allDaySeconds ?: 0) +
+                        (allDayContribution?.totalSeconds ?: row.allDaySeconds),
+                    kavachSeconds = (existing?.kavachSeconds ?: 0) +
+                        (kavachContribution?.totalSeconds ?: row.kavachSeconds),
                     blockedAttempts = (existing?.blockedAttempts ?: 0) + row.blockedAttempts,
                     quickUnlockCount = (existing?.quickUnlockCount ?: 0) + row.quickUnlockCount,
                 )
@@ -319,8 +347,10 @@ class KavachAnalyticsRepository @Inject constructor(
                     coverage = coverage[row.localDate] ?: DataCoverage.UNAVAILABLE,
                 )
                 byDate[row.localDate] = point.copy(
-                    allDay = point.allDay.add(category, row.allDaySeconds),
-                    duringKavach = point.duringKavach.add(category, row.kavachSeconds),
+                    allDay = allDayContribution?.let(point.allDay::plus)
+                        ?: point.allDay.add(category, row.allDaySeconds),
+                    duringKavach = kavachContribution?.let(point.duringKavach::plus)
+                        ?: point.duringKavach.add(category, row.kavachSeconds),
                     blockedAttempts = point.blockedAttempts + row.blockedAttempts,
                     quickUnlockCount = point.quickUnlockCount + row.quickUnlockCount,
                 )
@@ -673,6 +703,7 @@ class KavachAnalyticsRepository @Inject constructor(
         const val META_LIFETIME_ALL_DAY_SECONDS = "lifetime_all_day_seconds"
         const val META_LIFETIME_BLOCKED_ATTEMPTS = "lifetime_blocked_attempts"
         const val META_LIFETIME_QUICK_UNLOCKS = "lifetime_quick_unlocks"
+        private const val YOUTUBE_PACKAGE = "com.google.android.youtube"
         const val META_LIFETIME_SESSIONS = "lifetime_sessions"
         const val META_LIFETIME_COMPLETED_SESSIONS = "lifetime_completed_sessions"
 

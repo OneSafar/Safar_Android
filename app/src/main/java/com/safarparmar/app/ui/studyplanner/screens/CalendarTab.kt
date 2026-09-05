@@ -286,6 +286,12 @@ internal fun CalendarTab(plan: StudyPlan, state: StudyPlannerUiState, actions: P
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 32.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
+            item(key = "schedule_navigation") {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(selected = true, onClick = {}, label = { Text("Calendar") })
+                    FilterChip(selected = false, onClick = { actions.openRevisionTopics() }, label = { Text("Revision") })
+                }
+            }
             item {
                 CalendarPlainHeader(plan = plan, isLight = isLight)
             }

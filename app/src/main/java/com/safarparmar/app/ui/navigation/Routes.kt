@@ -36,6 +36,7 @@ object Routes {
     const val KAVACH_APP_CATEGORIES = "kavach/app_categories"
     const val LAUNCH_USAGE_QUESTIONNAIRE = "launch_usage_questionnaire"
     const val FOCUS_SHIELD = "focus_shield"
+    const val FOCUS_SHIELD_ROUTE = "focus_shield?tab={tab}"
     const val YOUTUBE_STUDY_MODE_V2 = "youtube_study_mode_v2"
     const val LIVE_SESSIONS_ROOT = "live/sessions"
     const val LIVE_SESSIONS = "live/sessions?courseId={courseId}"
@@ -45,6 +46,8 @@ object Routes {
 
     // Syllabus route — single unified accordion-tree screen (subjects/chapters/topics expand in place)
     const val ROUTE_SYLLABUS_SUBJECTS = "syllabus/subjects/{planId}"
+
+    fun focusShieldTab(tab: Int = 0): String = "focus_shield?tab=$tab"
 
     fun nishthaTab(tab: Int, section: String = "overview"): String =
         "nishtha?tab=$tab&section=${encodeParam(section)}"

@@ -18,8 +18,11 @@ import android.view.WindowManager
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.content.res.Configuration
+import android.text.TextUtils
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.widget.TextViewCompat
 
 /**
  * Draws a **bottom-sheet-style** overlay on top of any blocked app using
@@ -58,10 +61,19 @@ class KavachBlockOverlay(
     var isShowing: Boolean = false
         private set
 
+    data class ClassificationOption(
+        val label: String,
+        val backgroundColor: Int,
+        val strokeColor: Int,
+        val textColor: Int = Color.WHITE,
+        val onSelected: () -> Unit,
+    )
+
     private var overlayView: View? = null
     private val stateLock = Any()
     private var content = OverlayContent("This app is blocked", "KAVACH is protecting your focus.", "I'll Control Myself.", { goHome() }, emptyList())
     private var currentBlockedPackage: String? = null
+    private var currentQuickUnlockOrigin: String = FocusShieldRepository.ShieldPrefs.QUICK_UNLOCK_ORIGIN_KAVACH
 
     // ── Public API ─────────────────────────────────────────────────────
 
@@ -85,14 +97,27 @@ class KavachBlockOverlay(
             buttonText = "I'll Control Myself.",
             onAction = ::goHome,
             quickUnlockMinutes = if (allowQuickUnlock) listOf(5, 10, 15, 20) else emptyList(),
+            blockedPackage = blockedPackage,
+            quickUnlockOrigin = FocusShieldRepository.ShieldPrefs.QUICK_UNLOCK_ORIGIN_KAVACH,
         )
     }
 
-    fun showContent(title: String, subtitle: String, buttonText: String, onAction: () -> Unit, quickUnlockMinutes: List<Int> = emptyList()) {
+    fun showContent(
+        title: String,
+        subtitle: String,
+        buttonText: String,
+        onAction: () -> Unit,
+        quickUnlockMinutes: List<Int> = emptyList(),
+        blockedPackage: String? = null,
+        quickUnlockOrigin: String = FocusShieldRepository.ShieldPrefs.QUICK_UNLOCK_ORIGIN_KAVACH,
+        classificationOptions: List<ClassificationOption> = emptyList(),
+    ) {
         synchronized(stateLock) {
             if (isShowing) return
             if (!accessibilityOverlay && !FocusShieldPermissionHelper.hasOverlayPermission(context)) return
-            content = OverlayContent(title, subtitle, buttonText, onAction, quickUnlockMinutes)
+            content = OverlayContent(title, subtitle, buttonText, onAction, quickUnlockMinutes, classificationOptions)
+            currentBlockedPackage = blockedPackage
+            currentQuickUnlockOrigin = quickUnlockOrigin
             isShowing = true
         }
         mainHandler.post { showInternal() }
@@ -147,19 +172,28 @@ class KavachBlockOverlay(
     // ── View builder (bottom-sheet style) ──────────────────────────────
 
     private fun buildBottomSheetView(): View {
+        val baseConfig = context.resources.configuration
+        val uiContext = if (baseConfig.fontScale > 1.15f || baseConfig.fontScale < 0.85f) {
+            val clampedConfig = Configuration(baseConfig).apply {
+                fontScale = fontScale.coerceIn(0.85f, 1.15f)
+            }
+            context.createConfigurationContext(clampedConfig)
+        } else {
+            context
+        }
 
-        val density = context.resources.displayMetrics.density
+        val density = uiContext.resources.displayMetrics.density
         val dp = { value: Int -> (value * density + 0.5f).toInt() }
 
         // ── Root: full-screen dark scrim ──
-        val root = FrameLayout(context).apply {
+        val root = FrameLayout(uiContext).apply {
             setBackgroundColor(Color.argb(153, 0, 0, 0))   // 60% black scrim
             isClickable = true      // swallow touches on the scrim
             isFocusable = true
         }
 
         // ── Bottom sheet card ──
-        val sheet = LinearLayout(context).apply {
+        val sheet = LinearLayout(uiContext).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER_HORIZONTAL
             background = GradientDrawable().apply {
@@ -175,7 +209,7 @@ class KavachBlockOverlay(
         }
 
         // ── Drag handle ──
-        val handle = View(context).apply {
+        val handle = View(uiContext).apply {
             background = GradientDrawable().apply {
                 setColor(Color.argb(184, 255, 255, 255))   // ~72 % white
                 cornerRadius = dp(999).toFloat()
@@ -191,13 +225,13 @@ class KavachBlockOverlay(
         )
 
         // ── Shield circle ──
-        val shieldCircle = FrameLayout(context).apply {
+        val shieldCircle = FrameLayout(uiContext).apply {
             background = GradientDrawable().apply {
                 shape = GradientDrawable.OVAL
                 setColor(Color.argb(41, 255, 255, 255))   // 16 % white
             }
         }
-        val shieldEmoji = TextView(context).apply {
+        val shieldEmoji = TextView(uiContext).apply {
             text = "🛡️"
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 36f)
             gravity = Gravity.CENTER
@@ -218,7 +252,7 @@ class KavachBlockOverlay(
         )
 
         // ── Title ──
-        val title = TextView(context).apply {
+        val title = TextView(uiContext).apply {
             text = content.title
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 22f)
             setTextColor(Color.WHITE)
@@ -229,23 +263,94 @@ class KavachBlockOverlay(
         sheet.addView(title)
 
         // ── Subtitle ──
-        val subtitle = TextView(context).apply {
+        val subtitle = TextView(uiContext).apply {
             text = content.subtitle
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
             setTextColor(Color.argb(209, 255, 255, 255))  // ~82 % white
             gravity = Gravity.CENTER
-            setPadding(dp(8), 0, dp(8), dp(22))
+            setPadding(dp(8), 0, dp(8), if (content.classificationOptions.isNotEmpty()) dp(14) else dp(22))
         }
         sheet.addView(subtitle)
 
+        // ── Classification Chips (if present) ──
+        if (content.classificationOptions.isNotEmpty()) {
+            val chipsRow = LinearLayout(uiContext).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER
+            }
+            content.classificationOptions.forEach { option ->
+                val chip = TextView(uiContext).apply {
+                    text = option.label
+                    setTextColor(option.textColor)
+                    typeface = Typeface.DEFAULT_BOLD
+                    gravity = Gravity.CENTER
+                    maxLines = 1
+                    setSingleLine(true)
+                    ellipsize = TextUtils.TruncateAt.END
+                    setPadding(dp(4), 0, dp(4), 0)
+                    TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(
+                        this,
+                        9,   // min 9sp
+                        13,  // max 13sp
+                        1,   // 1sp steps
+                        TypedValue.COMPLEX_UNIT_SP,
+                    )
+                    background = GradientDrawable().apply {
+                        setColor(option.backgroundColor)
+                        setStroke(dp(1), option.strokeColor)
+                        cornerRadius = dp(999).toFloat()
+                    }
+                    isClickable = true
+                    isFocusable = true
+                    setOnClickListener {
+                        dismiss()
+                        option.onSelected()
+                    }
+                }
+                val weight = when {
+                    option.label.length <= 6 -> 0.85f
+                    option.label.length >= 10 -> 1.15f
+                    else -> 1.0f
+                }
+                chipsRow.addView(
+                    chip,
+                    LinearLayout.LayoutParams(
+                        0,
+                        dp(42),
+                        weight,
+                    ).apply {
+                        setMargins(dp(3), 0, dp(3), 0)
+                    },
+                )
+            }
+            sheet.addView(
+                chipsRow,
+                LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                ).apply {
+                    bottomMargin = dp(16)
+                },
+            )
+        }
+
         // ── "I'll Control Myself." button ──
-        val button = TextView(context).apply {
+        val button = TextView(uiContext).apply {
             text = content.buttonText
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+            maxLines = 1
+            setSingleLine(true)
+            ellipsize = TextUtils.TruncateAt.END
+            TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(
+                this,
+                12,
+                16,
+                1,
+                TypedValue.COMPLEX_UNIT_SP,
+            )
             setTextColor(Color.WHITE)
             typeface = Typeface.DEFAULT_BOLD
             gravity = Gravity.CENTER
-            setPadding(dp(48), dp(15), dp(48), dp(15))
+            setPadding(dp(24), 0, dp(24), 0)
             background = GradientDrawable().apply {
                 setColor(Color.TRANSPARENT)
                 setStroke(dp(1), Color.argb(140, 255, 255, 255))  // ~55 % white border
@@ -263,13 +368,13 @@ class KavachBlockOverlay(
             button,
             LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT,
+                dp(48),
             ),
         )
 
         // ── Quick Unlock ──
         if (content.quickUnlockMinutes.isNotEmpty()) {
-            val quickUnlockLabel = TextView(context).apply {
+            val quickUnlockLabel = TextView(uiContext).apply {
                 text = "Quick Unlock"
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
                 setTextColor(Color.WHITE)
@@ -277,18 +382,26 @@ class KavachBlockOverlay(
                 setPadding(0, dp(16), 0, dp(8))
             }
             sheet.addView(quickUnlockLabel)
-            
-            val quickUnlockRow = LinearLayout(context).apply {
+
+            val quickUnlockRow = LinearLayout(uiContext).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER
             }
             content.quickUnlockMinutes.forEach { minutes ->
-                val minButton = TextView(context).apply {
-                    text = "$minutes min"
-                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+                val minButton = TextView(uiContext).apply {
+                    text = "$minutes\nmin"
                     setTextColor(Color.WHITE)
                     gravity = Gravity.CENTER
-                    setPadding(dp(12), dp(8), dp(12), dp(8))
+                    maxLines = 2
+                    setLineSpacing(0f, 0.85f)
+                    TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(
+                        this,
+                        9,
+                        13,
+                        1,
+                        TypedValue.COMPLEX_UNIT_SP,
+                    )
+                    setPadding(dp(4), dp(4), dp(4), dp(4))
                     background = GradientDrawable().apply {
                         setColor(QUICK_UNLOCK_PURPLE)
                         cornerRadius = dp(999).toFloat()
@@ -297,7 +410,13 @@ class KavachBlockOverlay(
                     isFocusable = true
                     setOnClickListener {
                         val graceUntilMs = System.currentTimeMillis() + (minutes * 60 * 1000L)
-                        FocusShieldRepository.ShieldPrefs.applyEmergencyUnlock(context, graceUntilMs, minutes)
+                        FocusShieldRepository.ShieldPrefs.applyEmergencyUnlock(
+                            context,
+                            graceUntilMs,
+                            minutes,
+                            packageName = currentBlockedPackage,
+                            origin = currentQuickUnlockOrigin,
+                        )
                         runCatching {
                             val entryPoint = dagger.hilt.android.EntryPointAccessors.fromApplication(
                                 context.applicationContext, FocusShieldEntryPoint::class.java)
@@ -313,7 +432,7 @@ class KavachBlockOverlay(
                     minButton,
                     LinearLayout.LayoutParams(
                         0,
-                        LinearLayout.LayoutParams.WRAP_CONTENT,
+                        dp(54),
                         1f
                     ).apply {
                         setMargins(dp(4), 0, dp(4), 0)
@@ -386,5 +505,6 @@ class KavachBlockOverlay(
         val buttonText: String,
         val onAction: () -> Unit,
         val quickUnlockMinutes: List<Int> = emptyList(),
+        val classificationOptions: List<ClassificationOption> = emptyList(),
     )
 }

@@ -60,7 +60,7 @@
     <string name="nav_previous">Previous</string>
     <string name="nav_next">Next</string>
     <string name="nav_focus_shield">KAVACH</string>
-    <string name="nav_youtube_study_mode">YouTube Study Mode</string>
+    <string name="nav_youtube_study_mode">YouTube Focus</string>
     <string name="nav_live_classes">Live Classes</string>
     <string name="nav_live_sessions">Live Sessions</string>
     <string name="courses_live_sessions_description">Join live classes, see upcoming sessions, and revisit scheduled learning.</string>
@@ -439,8 +439,8 @@
     <!-- Notification action buttons -->
     <string name="notification_action_start_now">Start Now</string>
 
-    <string name="youtube_study_v2_accessibility_label">SAFAR YouTube Study Mode</string>
-    <string name="youtube_study_v2_accessibility_description">YouTube Study Mode reads only a tapped video watch screen, identifies its channel owner, and compares the resolved Channel ID with your productive channels. Home scrolling and previews are never blocked.</string>
+    <string name="youtube_study_v2_accessibility_label">SAFAR YouTube Focus</string>
+    <string name="youtube_study_v2_accessibility_description">YouTube Focus reads only a tapped video watch screen, identifies its channel owner, and compares the resolved Channel ID with your productive channels. Home scrolling and previews are never blocked.</string>
 
     <string name="module_courses">Courses</string>
 </resources>

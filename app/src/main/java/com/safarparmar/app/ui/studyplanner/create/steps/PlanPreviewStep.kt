@@ -169,6 +169,12 @@ fun PlanPreviewStep(
                     color = scheme.onSurface,
                 )
                 Spacer(Modifier.height(8.dp))
+                val lastDay = preview.calendarPreview.filterValues { it.isNotEmpty() }.keys.maxOrNull()
+                Text("Last scheduled: ${lastDay ?: "—"}", style = MaterialTheme.typography.bodyMedium)
+                Text("Exam: ${preview.examDate?.take(10) ?: "—"}", style = MaterialTheme.typography.bodyMedium)
+                if (lastDay != null && preview.examDate != null && lastDay > preview.examDate.take(10)) {
+                    Text("Scheduled work extends past the exam", color = scheme.error)
+                }
             }
 
             item {
@@ -402,10 +408,10 @@ fun PlanPreviewStep(
                     .padding(vertical = 12.dp),
                 contentAlignment = Alignment.Center,
             ) {
-                Text("Go Back", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = scheme.onSurface)
+                Text("Adjust plan", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = scheme.onSurface)
             }
             MacOSPrimaryActionButton(
-                text = "Looks Good",
+                text = "Use this plan",
                 onClick = onConfirm,
                 isLoading = isConfirming,
                 enabled = !isConfirming,

@@ -56,7 +56,24 @@ internal fun RevisionScreen(
             .filter { it.topic.status == TopicStatus.REVISION_NEEDED }
     }
     var editingRef by remember { mutableStateOf<TopicRef?>(null) }
+    var choosingTopic by remember { mutableStateOf(false) }
 
+    if (choosingTopic) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { choosingTopic = false },
+            title = { Text("Choose a topic to revise") },
+            text = {
+                LazyColumn {
+                    items(plan.flattenTopics(), key = { it.topic.id }) { ref ->
+                        androidx.compose.material3.TextButton(onClick = { editingRef = ref; choosingTopic = false }) {
+                            Text("${ref.topic.name} · ${ref.subject.name}")
+                        }
+                    }
+                }
+            },
+            confirmButton = { androidx.compose.material3.TextButton(onClick = { choosingTopic = false }) { Text("Cancel") } },
+        )
+    }
     Column(modifier = modifier.fillMaxSize()) {
         Row(
             modifier = Modifier
@@ -75,7 +92,7 @@ internal fun RevisionScreen(
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
-                    text = "Consolidate what you've learned",
+                    text = "Review dates and completed sessions",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -110,7 +127,7 @@ internal fun RevisionScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        Text("🧠", fontSize = 36.sp)
+                        androidx.compose.material3.Button(onClick = { choosingTopic = true }, enabled = plan.flattenTopics().isNotEmpty()) { Text("Schedule revision") }
                         Text(
                             text = "No Revision Scheduled",
                             style = MaterialTheme.typography.titleMedium,
@@ -118,7 +135,7 @@ internal fun RevisionScreen(
                             color = MaterialTheme.colorScheme.onSurface,
                         )
                         Text(
-                            text = "Topics marked for revision will show up here to help you consolidate your learning.",
+                            text = "Choose a topic and review dates",
                             style = MaterialTheme.typography.bodySmall,
                             textAlign = TextAlign.Center,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
