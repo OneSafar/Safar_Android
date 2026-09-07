@@ -242,70 +242,46 @@ private fun LiveClassPlayerChat(
     onSend: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val context = LocalContext.current
-    val activity = context as? Activity
-    var isPlaying by remember { mutableStateOf(false) }
     val embedUrl = remember(session.id) { resolveEmbedUrl(session) }
 
-    DisposableEffect(isPlaying) {
-        if (isPlaying) {
-            activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
-        } else {
-            activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
-        }
-        onDispose {
-            activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
-        }
-    }
-
-    Box(modifier = modifier) {
-        Column(
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surface),
+    ) {
+        // ── Video Player / Preview (16:9) ──
+        Box(
             modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surface),
+                .fillMaxWidth()
+                .padding(16.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(Color.Black)
+                .border(
+                    width = 1.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant,
+                    shape = RoundedCornerShape(12.dp)
+                )
         ) {
-            // ── Video Preview Cover (16:9 Black Screen / Thumbnail with Play Button) ──
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(Color.Black)
-                    .border(
-                        width = 1.dp,
-                        color = MaterialTheme.colorScheme.outlineVariant,
-                        shape = RoundedCornerShape(12.dp)
+            if (embedUrl != null) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(16f / 9f),
+                ) {
+                    YouTubePlayerWebView(
+                        embedUrl = embedUrl,
+                        modifier = Modifier.fillMaxSize(),
                     )
-            ) {
+                }
+            } else {
                 val videoId = extractVideoId(session)
                 val thumbnailUrl = videoId?.let { "https://img.youtube.com/vi/$it/hqdefault.jpg" }
 
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .aspectRatio(16f / 9f)
-                        // Straight to the dedicated fullscreen player. Setting
-                        // isPlaying swapped in an INLINE 16:9 WebView, which
-                        // rendered a blank white box in portrait and forced the
-                        // student to find YouTube's own fullscreen button before
-                        // they could see anything. Same behaviour as the sessions
-                        // list, which already launches this activity directly.
-                        .clickable {
-                            val url = embedUrl
-                            if (url != null) {
-                                VideoPlayerActivity.start(
-                                    context = context,
-                                    embedUrl = url,
-                                    videoTitle = session.title.orEmpty(),
-                                    // Passing the session in gives the player its own
-                                    // comments pane, so a student no longer has to leave
-                                    // the video to say anything.
-                                    sessionId = session.id,
-                                    sessionStatus = session.status,
-                                )
-                            }
-                        },
-                    contentAlignment = Alignment.Center
+                        .aspectRatio(16f / 9f),
+                    contentAlignment = Alignment.Center,
                 ) {
                     if (thumbnailUrl != null) {
                         AsyncImage(
@@ -333,130 +309,61 @@ private fun LiveClassPlayerChat(
                         )
                     }
 
-                    // Center Play Button Overlay
-                    Box(
-                        modifier = Modifier
-                            .size(64.dp)
-                            .clip(CircleShape)
-                            .background(Color.Black.copy(alpha = 0.7f))
-                            .border(2.dp, Color.White, CircleShape),
-                        contentAlignment = Alignment.Center
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Icon(
-                            imageVector = Icons.Default.PlayArrow,
-                            contentDescription = "Play Video in Landscape Fullscreen",
+                            imageVector = if (session.status == "ended") Icons.Default.Warning else Icons.Default.PlayArrow,
+                            contentDescription = null,
                             tint = Color.White,
-                            modifier = Modifier.size(36.dp)
+                            modifier = Modifier.size(36.dp),
+                        )
+                        Text(
+                            text = when (session.status) {
+                                "ended" -> "This session has ended."
+                                "scheduled" -> "This session hasn't started yet."
+                                "cancelled" -> "This session was cancelled."
+                                else -> "Waiting for the stream to begin…"
+                            },
+                            color = Color.White.copy(alpha = 0.85f),
+                            style = MaterialTheme.typography.bodySmall,
                         )
                     }
-
-                    // LIVE badge
-                    if (session.status == "live") {
-                        Row(
-                            modifier = Modifier
-                                .align(Alignment.BottomStart)
-                                .fillMaxWidth()
-                                .background(
-                                    Brush.verticalGradient(
-                                        colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.8f)),
-                                    ),
-                                )
-                                .padding(horizontal = 14.dp, vertical = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(8.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.error),
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Text(
-                                text = "LIVE",
-                                color = Color.White,
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Bold,
-                            )
-                            Spacer(Modifier.width(10.dp))
-                            Text(
-                                text = session.title,
-                                color = Color.White.copy(alpha = 0.9f),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                style = MaterialTheme.typography.labelMedium,
-                            )
-                        }
-                    }
                 }
             }
+        }
 
-            // Session Details below video card
-            Column(
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Text(
-                    text = session.title.ifBlank { "Live Session" },
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                if (!session.description.isNullOrBlank()) {
-                    Text(
-                        text = session.description,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-
-            // ── Live comments ─────────────────────────────────────────────────
-            // Only present while the session is actually broadcasting. Nothing is
-            // stored server-side, so once the host ends the session the transcript
-            // is gone for everyone — the UI must not imply otherwise.
-            LiveChatPanel(
-                chatState = chatState,
-                sessionStatus = session.status,
-                onSend = onSend,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
+        // Session Details below video card
+        Column(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Text(
+                text = session.title.ifBlank { "Live Session" },
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface
             )
-        }
-
-        // ── Full-screen Video Player Overlay (Landscape Mode) ────────────────
-        if (isPlaying && embedUrl != null) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black),
-                contentAlignment = Alignment.Center
-            ) {
-                YouTubePlayerWebView(
-                    embedUrl = embedUrl,
-                    modifier = Modifier.fillMaxSize()
+            if (!session.description.isNullOrBlank()) {
+                Text(
+                    text = session.description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-
-                // Floating back button — exits full-screen landscape back to portrait
-                IconButton(
-                    onClick = {
-                        isPlaying = false
-                        activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
-                    },
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(16.dp)
-                        .size(48.dp)
-                        .background(Color.Black.copy(alpha = 0.6f), CircleShape)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.ArrowBack,
-                        contentDescription = "Exit Fullscreen",
-                        tint = Color.White
-                    )
-                }
             }
         }
+
+        // ── Live comments ─────────────────────────────────────────────────
+        // Only present while the session is actually broadcasting.
+        LiveChatPanel(
+            chatState = chatState,
+            sessionStatus = session.status,
+            onSend = onSend,
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+        )
     }
 }
 
@@ -694,6 +601,9 @@ private fun LiveChatPanel(
 private fun resolveEmbedUrl(session: LiveSession): String? {
     session.youtubeEmbedUrl?.takeIf { it.isNotBlank() }?.let { return it }
     session.recordingVideoId?.takeIf { it.isNotBlank() }?.let { videoId ->
+        return "https://www.youtube.com/embed/$videoId"
+    }
+    session.youtubeVideoId?.takeIf { it.isNotBlank() }?.let { videoId ->
         return "https://www.youtube.com/embed/$videoId"
     }
     return null

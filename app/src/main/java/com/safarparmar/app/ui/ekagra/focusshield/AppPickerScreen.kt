@@ -56,8 +56,18 @@ fun AppPickerScreen(
     onBack: () -> Unit,
     viewModel: FocusShieldViewModel = hiltViewModel(),
 ) {
-    androidx.activity.compose.BackHandler {
+    val context = androidx.compose.ui.platform.LocalContext.current
+
+    fun finishAndReturn() {
+        val activated = viewModel.saveAndEnableShieldIfReady()
+        if (activated) {
+            android.widget.Toast.makeText(context, "KAVACH is active and ready to protect your focus!", android.widget.Toast.LENGTH_SHORT).show()
+        }
         onBack()
+    }
+
+    androidx.activity.compose.BackHandler {
+        finishAndReturn()
     }
 
     val state by viewModel.pickerState.collectAsStateWithLifecycle()
@@ -76,7 +86,7 @@ fun AppPickerScreen(
         containerColor = KavachDesign.Background,
         topBar = {
             KavachStitchBackHeader(
-                onBack = onBack,
+                onBack = ::finishAndReturn,
                 title = stringResource(R.string.kavach_shield_configuration_title),
             )
         },
@@ -90,7 +100,7 @@ fun AppPickerScreen(
             ) {
                 KavachStitchPrimaryButton(
                     text = stringResource(R.string.kavach_save_configuration),
-                    onClick = onBack,
+                    onClick = ::finishAndReturn,
                 )
             }
         },

@@ -116,6 +116,7 @@ fun FocusShieldSettingsContent(
     onToggleSchedule: (Boolean) -> Unit = {},
     onSetScheduleRange: (Int, Int) -> Unit = { _, _ -> },
     onRefreshPermissions: () -> Unit = {},
+    onSetPendingEnableAfterAppSelection: (Boolean) -> Unit = {},
     onMaybeLater: () -> Unit = {},
     onSave: () -> Unit = onMaybeLater,
     modifier: Modifier = Modifier,
@@ -126,17 +127,44 @@ fun FocusShieldSettingsContent(
     var hasNotifications by remember { mutableStateOf(state.hasNotifications) }
     var hasNotificationSuppressionAccess by remember { mutableStateOf(state.hasNotificationSuppressionAccess) }
     var hasUsageStats by remember { mutableStateOf(state.hasUsageStats) }
+    var hasBatterySaver by remember {
+        mutableStateOf(FocusShieldPermissionHelper.isIgnoringBatteryOptimizations(context))
+    }
     val scheme = MaterialTheme.colorScheme
     val ink = rememberEkagraInk(onCanvas = false)
     var pendingEnableFlow by remember { mutableStateOf(false) }
+    var pendingEnableAfterAppSelection by remember { mutableStateOf(false) }
+    var isAutoPermissionFlowActive by remember { mutableStateOf(false) }
+    var nextPermissionToAutoLaunch by remember { mutableStateOf<PermissionTarget?>(null) }
+    var hasPromptedNotification by remember { mutableStateOf(false) }
+    var hasPromptedNotificationAccess by remember { mutableStateOf(false) }
     var showLearnMore by remember { mutableStateOf(false) }
     var showPermissionCardSheet by remember { mutableStateOf(false) }
-    var guideTarget by remember { mutableStateOf<PermissionTarget?>(null) }
     var awaitingPermission by remember { mutableStateOf<PermissionTarget?>(null) }
     var grantedBannerText by remember { mutableStateOf<String?>(null) }
 
+    fun finishPermissionFlowAndCheckApps() {
+        isAutoPermissionFlowActive = false
+        showPermissionCardSheet = false
+        if (pendingEnableFlow) {
+            pendingEnableFlow = false
+            if (state.blockedPackages.isEmpty()) {
+                android.widget.Toast.makeText(context, "Select an app to block first", android.widget.Toast.LENGTH_SHORT).show()
+                pendingEnableAfterAppSelection = true
+                onSetPendingEnableAfterAppSelection(true)
+                onOpenAppPicker()
+            } else {
+                if (!state.isEnabled) {
+                    onToggleEnabled(true)
+                }
+                grantedBannerText = "KAVACH is active and ready to protect your focus!"
+            }
+        }
+    }
+
     val requestNotificationPermission = rememberNotificationPermissionRequester {
         hasNotifications = FocusShieldPermissionHelper.hasNotificationPermission(context)
+        onRefreshPermissions()
     }
 
     AwaitPermissionThenReturnToApp(
@@ -144,13 +172,14 @@ fun FocusShieldSettingsContent(
         onReturned = { awaitingPermission = null },
     )
 
-    val requiredPermissionsGranted = hasUsageStats && hasOverlay
-    val allPermissionsGranted = hasUsageStats && hasOverlay && hasNotifications && hasNotificationSuppressionAccess
-    val readyCount = listOf(hasUsageStats, hasOverlay, hasNotifications, hasNotificationSuppressionAccess).count { it }
+    val requiredPermissionsGranted = hasUsageStats && hasOverlay && hasBatterySaver
+    val allPermissionsGranted = hasUsageStats && hasOverlay && hasNotifications && hasNotificationSuppressionAccess && hasBatterySaver
+    val readyCount = listOf(hasUsageStats, hasOverlay, hasBatterySaver, hasNotifications, hasNotificationSuppressionAccess).count { it }
 
     val primaryCtaLabel = when {
-        !requiredPermissionsGranted && !hasUsageStats -> "Allow App Check"
-        !requiredPermissionsGranted && !hasOverlay -> "Allow Display Over Apps"
+        !hasUsageStats -> "Allow App Check"
+        !hasOverlay -> "Allow Display Over Apps"
+        !hasBatterySaver -> "Disable Battery Restriction"
         state.isEnabled -> "Turn off Kavach"
         else -> "Turn on Kavach"
     }
@@ -159,6 +188,60 @@ fun FocusShieldSettingsContent(
         if (grantedBannerText != null) {
             delay(3_000)
             grantedBannerText = null
+        }
+    }
+
+    LaunchedEffect(nextPermissionToAutoLaunch) {
+        val target = nextPermissionToAutoLaunch ?: return@LaunchedEffect
+        nextPermissionToAutoLaunch = null
+        delay(350)
+        val alreadyGranted = FocusShieldPermissionHelper.isPermissionGranted(context, target)
+        if (!alreadyGranted) {
+            awaitingPermission = if (target != PermissionTarget.NOTIFICATIONS) target else null
+            when (target) {
+                PermissionTarget.USAGE_STATS -> FocusShieldPermissionHelper.openUsageAccessSettings(context)
+                PermissionTarget.OVERLAY -> onOpenOverlaySettings()
+                PermissionTarget.BATTERY_SAVER -> FocusShieldPermissionHelper.openBatterySaverSettings(context)
+                PermissionTarget.NOTIFICATIONS -> requestNotificationPermission()
+                PermissionTarget.NOTIFICATION_ACCESS -> FocusShieldPermissionHelper.openNotificationListenerSettings(context)
+            }
+        } else {
+            // Already granted, advance to next in first 3 permissions
+            when (target) {
+                PermissionTarget.USAGE_STATS -> {
+                    if (!hasOverlay) nextPermissionToAutoLaunch = PermissionTarget.OVERLAY
+                    else if (!hasBatterySaver) nextPermissionToAutoLaunch = PermissionTarget.BATTERY_SAVER
+                    else finishPermissionFlowAndCheckApps()
+                }
+                PermissionTarget.OVERLAY -> {
+                    if (!hasBatterySaver) nextPermissionToAutoLaunch = PermissionTarget.BATTERY_SAVER
+                    else finishPermissionFlowAndCheckApps()
+                }
+                PermissionTarget.BATTERY_SAVER -> {
+                    finishPermissionFlowAndCheckApps()
+                }
+                PermissionTarget.NOTIFICATIONS,
+                PermissionTarget.NOTIFICATION_ACCESS -> {
+                    // Optional - do not chain redirects
+                }
+            }
+        }
+    }
+
+    LaunchedEffect(state.blockedPackages) {
+        if ((pendingEnableAfterAppSelection || pendingEnableFlow) && state.blockedPackages.isNotEmpty()) {
+            val requiredGranted = FocusShieldPermissionHelper.hasUsageStatsPermission(context) &&
+                FocusShieldPermissionHelper.hasOverlayPermission(context) &&
+                FocusShieldPermissionHelper.isIgnoringBatteryOptimizations(context)
+            if (requiredGranted) {
+                pendingEnableAfterAppSelection = false
+                pendingEnableFlow = false
+                onSetPendingEnableAfterAppSelection(false)
+                if (!state.isEnabled) {
+                    onToggleEnabled(true)
+                }
+                grantedBannerText = "KAVACH is active and ready to protect your focus!"
+            }
         }
     }
 
@@ -173,30 +256,73 @@ fun FocusShieldSettingsContent(
         hasNotifications = state.hasNotifications
         hasNotificationSuppressionAccess = state.hasNotificationSuppressionAccess
         hasUsageStats = state.hasUsageStats
+        hasBatterySaver = FocusShieldPermissionHelper.isIgnoringBatteryOptimizations(context)
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 val newUsage = FocusShieldPermissionHelper.hasUsageStatsPermission(context)
                 val newOverlay = FocusShieldPermissionHelper.hasOverlayPermission(context)
                 val newNotif = FocusShieldPermissionHelper.hasNotificationPermission(context)
                 val newNotificationAccess = FocusShieldPermissionHelper.hasNotificationListenerAccess(context)
+                val newBatterySaver = FocusShieldPermissionHelper.isIgnoringBatteryOptimizations(context)
 
-                val usageJustGranted = newUsage && !hasUsageStats
-                val overlayJustGranted = newOverlay && !hasOverlay
+                val prevTarget = awaitingPermission
+                awaitingPermission = null
 
                 hasUsageStats = newUsage
                 hasOverlay = newOverlay
                 hasNotifications = newNotif
                 hasNotificationSuppressionAccess = newNotificationAccess
+                hasBatterySaver = newBatterySaver
                 onRefreshPermissions()
 
-                if (newUsage && !newOverlay && (usageJustGranted || pendingEnableFlow)) {
-                    guideTarget = PermissionTarget.OVERLAY
-                } else if (newUsage && newOverlay && (overlayJustGranted || pendingEnableFlow || usageJustGranted)) {
-                    if (!state.isEnabled) {
-                        onToggleEnabled(true)
+                val requiredNow = newUsage && newOverlay && newBatterySaver
+                if (requiredNow && (pendingEnableAfterAppSelection || pendingEnableFlow)) {
+                    if (state.blockedPackages.isNotEmpty()) {
+                        pendingEnableAfterAppSelection = false
+                        pendingEnableFlow = false
+                        onSetPendingEnableAfterAppSelection(false)
+                        if (!state.isEnabled) {
+                            onToggleEnabled(true)
+                        }
+                        grantedBannerText = "KAVACH is active and ready to protect your focus!"
                     }
-                    grantedBannerText = "KAVACH is active and ready to protect your focus!"
-                    pendingEnableFlow = false
+                }
+
+                if (isAutoPermissionFlowActive && pendingEnableFlow) {
+                    // If user was prompted for a mandatory permission but backed out without granting
+                    if (prevTarget == PermissionTarget.USAGE_STATS && !newUsage) {
+                        isAutoPermissionFlowActive = false
+                        showPermissionCardSheet = true
+                        return@LifecycleEventObserver
+                    }
+                    if (prevTarget == PermissionTarget.OVERLAY && !newOverlay) {
+                        isAutoPermissionFlowActive = false
+                        showPermissionCardSheet = true
+                        return@LifecycleEventObserver
+                    }
+                    if (prevTarget == PermissionTarget.BATTERY_SAVER && !newBatterySaver) {
+                        isAutoPermissionFlowActive = false
+                        showPermissionCardSheet = true
+                        return@LifecycleEventObserver
+                    }
+
+                    // Progress automatically through the sequence once 1st permission is given
+                    when {
+                        !newUsage -> {
+                            isAutoPermissionFlowActive = false
+                            showPermissionCardSheet = true
+                        }
+                        !newOverlay -> {
+                            nextPermissionToAutoLaunch = PermissionTarget.OVERLAY
+                        }
+                        !newBatterySaver -> {
+                            nextPermissionToAutoLaunch = PermissionTarget.BATTERY_SAVER
+                        }
+                        else -> {
+                            // First three mandatory permissions granted! Do not auto-redirect for last two.
+                            finishPermissionFlowAndCheckApps()
+                        }
+                    }
                 }
             }
         }
@@ -208,11 +334,7 @@ fun FocusShieldSettingsContent(
         onToggleProfile(mode)
         if (state.isEnabled && !requiredPermissionsGranted) {
             pendingEnableFlow = true
-            if (!hasUsageStats) {
-                guideTarget = PermissionTarget.USAGE_STATS
-            } else if (!hasOverlay) {
-                guideTarget = PermissionTarget.OVERLAY
-            }
+            showPermissionCardSheet = true
         }
     }
 
@@ -242,17 +364,35 @@ fun FocusShieldSettingsContent(
                 isStrict = state.isStrictMode,
                 onToggle = { enabled ->
                     if (enabled) {
-                        if (!requiredPermissionsGranted) {
+                        // 1. Check mandatory permissions first (Usage, Overlay, BatterySaver)
+                        val requiredGranted = hasUsageStats && hasOverlay && hasBatterySaver
+                        if (!requiredGranted) {
+                            // First 3 permissions not given: do not turn on Kavach, do not ask to choose apps yet!
                             pendingEnableFlow = true
-                            if (!hasUsageStats) {
-                                guideTarget = PermissionTarget.USAGE_STATS
-                            } else if (!hasOverlay) {
-                                guideTarget = PermissionTarget.OVERLAY
-                            }
-                        } else {
-                            onToggleEnabled(true)
+                            isAutoPermissionFlowActive = false
+                            hasPromptedNotification = false
+                            hasPromptedNotificationAccess = false
+                            showPermissionCardSheet = true
+                            return@KavachMasterStatusCard
                         }
+
+                        // 2. Mandatory permissions granted. Now check apps to block
+                        if (state.blockedPackages.isEmpty()) {
+                            android.widget.Toast.makeText(context, "Select an app to block first", android.widget.Toast.LENGTH_SHORT).show()
+                            pendingEnableAfterAppSelection = true
+                            onSetPendingEnableAfterAppSelection(true)
+                            onOpenAppPicker()
+                            return@KavachMasterStatusCard
+                        }
+
+                        // 3. Both permissions and apps are selected -> turn on Kavach!
+                        onToggleEnabled(true)
+                        grantedBannerText = "KAVACH is active and ready to protect your focus!"
                     } else {
+                        pendingEnableFlow = false
+                        pendingEnableAfterAppSelection = false
+                        onSetPendingEnableAfterAppSelection(false)
+                        isAutoPermissionFlowActive = false
                         onToggleEnabled(false)
                     }
                 },
@@ -353,7 +493,13 @@ fun FocusShieldSettingsContent(
                 } else {
                     "${state.blockedPackages.size} apps selected"
                 },
-                onClick = onOpenAppPicker,
+                onClick = {
+                    if (!state.isEnabled && state.blockedPackages.isEmpty()) {
+                        pendingEnableAfterAppSelection = true
+                        onSetPendingEnableAfterAppSelection(true)
+                    }
+                    onOpenAppPicker()
+                },
                 trailingContent = {
                     if (state.blockedPackages.isNotEmpty()) {
                         AppIconsPreviewRow(
@@ -380,22 +526,10 @@ fun FocusShieldSettingsContent(
             KavachActionRow(
                 icon = Icons.Default.Lock,
                 title = "Permissions & access",
-                subtitle = "$readyCount of 4 ready",
-                subtitleColor = if (readyCount == 4) Color(0xFF10B981) else Color(0xFFD97706),
+                subtitle = "$readyCount of 5 ready",
+                subtitleColor = if (readyCount == 5) Color(0xFF10B981) else Color(0xFFD97706),
                 onClick = {
-                    if (!allPermissionsGranted) {
-                        if (!hasUsageStats) {
-                            guideTarget = PermissionTarget.USAGE_STATS
-                        } else if (!hasOverlay) {
-                            guideTarget = PermissionTarget.OVERLAY
-                        } else if (!hasNotifications) {
-                            guideTarget = PermissionTarget.NOTIFICATIONS
-                        } else if (!hasNotificationSuppressionAccess) {
-                            guideTarget = PermissionTarget.NOTIFICATION_ACCESS
-                        }
-                    } else {
-                        showPermissionCardSheet = true
-                    }
+                    showPermissionCardSheet = true
                 },
                 trailingContent = {
                     Row(
@@ -403,7 +537,7 @@ fun FocusShieldSettingsContent(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.padding(end = 4.dp),
                     ) {
-                        val perms = listOf(hasUsageStats, hasOverlay, hasNotifications, hasNotificationSuppressionAccess)
+                        val perms = listOf(hasUsageStats, hasOverlay, hasBatterySaver, hasNotifications, hasNotificationSuppressionAccess)
                         perms.forEach { granted ->
                             Box(
                                 modifier = Modifier
@@ -519,7 +653,13 @@ fun FocusShieldSettingsContent(
 
     if (showPermissionCardSheet) {
         ModalBottomSheet(
-            onDismissRequest = { showPermissionCardSheet = false },
+            onDismissRequest = {
+                showPermissionCardSheet = false
+                isAutoPermissionFlowActive = false
+                if (!requiredPermissionsGranted) {
+                    pendingEnableFlow = false
+                }
+            },
             containerColor = scheme.surface,
         ) {
             Column(
@@ -527,65 +667,72 @@ fun FocusShieldSettingsContent(
                     .fillMaxWidth()
                     .wrapContentWidth(Alignment.CenterHorizontally)
                     .widthIn(max = 600.dp)
-                    .padding(horizontal = 20.dp, vertical = 16.dp)
-                    .padding(bottom = 24.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                    .padding(horizontal = 24.dp)
+                    .padding(top = 4.dp, bottom = 28.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
+                val hasBatterySaver = FocusShieldPermissionHelper.isIgnoringBatteryOptimizations(context)
                 KavachPermissionDisclosureCard(
                     hasUsageStats = hasUsageStats,
                     hasOverlay = hasOverlay,
                     hasNotifications = hasNotifications,
                     hasNotificationSuppressionAccess = hasNotificationSuppressionAccess,
+                    hasBatterySaver = hasBatterySaver,
                     onOpenUsageAccess = {
-                        showPermissionCardSheet = false
-                        guideTarget = PermissionTarget.USAGE_STATS
+                        isAutoPermissionFlowActive = true
+                        awaitingPermission = PermissionTarget.USAGE_STATS
+                        FocusShieldPermissionHelper.openUsageAccessSettings(context)
                     },
                     onOpenOverlay = {
-                        showPermissionCardSheet = false
-                        guideTarget = PermissionTarget.OVERLAY
+                        isAutoPermissionFlowActive = true
+                        awaitingPermission = PermissionTarget.OVERLAY
+                        onOpenOverlaySettings()
                     },
                     onOpenNotifications = {
-                        showPermissionCardSheet = false
-                        guideTarget = PermissionTarget.NOTIFICATIONS
+                        requestNotificationPermission()
                     },
                     onOpenNotificationAccess = {
-                        showPermissionCardSheet = false
-                        guideTarget = PermissionTarget.NOTIFICATION_ACCESS
+                        awaitingPermission = PermissionTarget.NOTIFICATION_ACCESS
+                        FocusShieldPermissionHelper.openNotificationListenerSettings(context)
+                    },
+                    onOpenBatterySaver = {
+                        isAutoPermissionFlowActive = true
+                        awaitingPermission = PermissionTarget.BATTERY_SAVER
+                        FocusShieldPermissionHelper.openBatterySaverSettings(context)
                     },
                 )
+
+                Spacer(Modifier.height(4.dp))
+
+                val allRequiredGranted = hasUsageStats && hasOverlay && hasBatterySaver
+                Button(
+                    onClick = {
+                        if (allRequiredGranted && pendingEnableFlow) {
+                            finishPermissionFlowAndCheckApps()
+                        } else {
+                            showPermissionCardSheet = false
+                            isAutoPermissionFlowActive = false
+                            pendingEnableFlow = false
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (allRequiredGranted) KavachDesign.Primary else scheme.surfaceContainerHighest,
+                        contentColor = if (allRequiredGranted) Color.White else scheme.onSurface,
+                    ),
+                    elevation = ButtonDefaults.buttonElevation(0.dp, 0.dp, 0.dp, 0.dp),
+                ) {
+                    Text(
+                        text = if (allRequiredGranted) "Done" else "Close",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
             }
         }
-    }
-
-    guideTarget?.let { target ->
-        PermissionGuideSheet(
-            permission = target,
-            onDismiss = {
-                guideTarget = null
-                when (target) {
-                    PermissionTarget.USAGE_STATS,
-                    PermissionTarget.OVERLAY -> pendingEnableFlow = false
-                    PermissionTarget.NOTIFICATIONS -> Unit
-                    PermissionTarget.NOTIFICATION_ACCESS -> Unit
-                }
-            },
-            onOpenSettings = {
-                guideTarget = null
-                if (target != PermissionTarget.NOTIFICATIONS) {
-                    awaitingPermission = target
-                }
-                when (target) {
-                    PermissionTarget.USAGE_STATS ->
-                        FocusShieldPermissionHelper.openUsageAccessSettings(context)
-                    PermissionTarget.OVERLAY ->
-                        onOpenOverlaySettings()
-                    PermissionTarget.NOTIFICATIONS ->
-                        requestNotificationPermission()
-                    PermissionTarget.NOTIFICATION_ACCESS ->
-                        FocusShieldPermissionHelper.openNotificationListenerSettings(context)
-                }
-            },
-        )
     }
 }
 

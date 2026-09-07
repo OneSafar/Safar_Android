@@ -38,6 +38,7 @@ class SafarApplication : Application() {
     @Inject lateinit var kavachAnalyticsRecorder: KavachAnalyticsRecorder
     @Inject lateinit var focusShieldRepository: com.safarparmar.app.ui.ekagra.focusshield.FocusShieldRepository
     @Inject lateinit var youtubeInsightsRepository: YoutubeInsightsRepository
+    @Inject lateinit var referralManager: com.safarparmar.app.data.repository.ReferralManager
     @Inject @IoDispatcher lateinit var ioDispatcher: CoroutineDispatcher
 
     private val appExceptionHandler = CoroutineExceptionHandler { _, throwable ->
@@ -53,6 +54,7 @@ class SafarApplication : Application() {
         configureCrashReporting()
         SafarNotificationChannels.createAll(this)
         fetchAndStoreFcmToken()
+        referralManager.checkAndCaptureInstallReferrer()
         if (EkagraPendingSessionSaveStore.getAll(this).isNotEmpty()) {
             EkagraSessionSaveWorker.enqueue(this)
         }

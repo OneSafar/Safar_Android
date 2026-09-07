@@ -65,6 +65,9 @@ class MainActivity : AppCompatActivity(), PaymentResultWithDataListener {
     @Inject
     lateinit var youtubeStudyV2HealthMonitor: com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2HealthMonitor
 
+    @Inject
+    lateinit var referralManager: com.safarparmar.app.data.repository.ReferralManager
+
     private var timerService by mutableStateOf<TimerService?>(null)
     var navigateToEkagra by mutableStateOf(false)
         private set
@@ -104,6 +107,7 @@ class MainActivity : AppCompatActivity(), PaymentResultWithDataListener {
             navigateToEkagra = true
         }
         consumeNotificationIntent(intent)
+        handleIncomingReferral(intent)
 
         enableEdgeToEdge()
         setContent {
@@ -213,6 +217,14 @@ class MainActivity : AppCompatActivity(), PaymentResultWithDataListener {
             navigateToEkagra = true
         }
         consumeNotificationIntent(intent)
+        handleIncomingReferral(intent)
+    }
+
+    private fun handleIncomingReferral(intent: Intent?) {
+        val data = intent?.data ?: return
+        if (data.scheme == "safar" && (data.host == "referral" || data.path?.contains("referral") == true || data.getQueryParameter("ref") != null || data.getQueryParameter("utm_source") != null)) {
+            referralManager.handleDeepLink(data)
+        }
     }
 
     private fun consumeNotificationIntent(intent: Intent?) {

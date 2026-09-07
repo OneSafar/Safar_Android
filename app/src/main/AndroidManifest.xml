@@ -17,6 +17,7 @@
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.KILL_BACKGROUND_PROCESSES" />
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <!-- Allow PackageManager to resolve launchable apps for the app picker. -->
     <queries>
         <intent>
@@ -58,6 +59,16 @@
                 <data android:scheme="safar" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".feature.youtubestudyv2.YoutubeFocusTutorialActivity"
+            android:exported="false"
+            android:supportsPictureInPicture="true"
+            android:resizeableActivity="true"
+            android:taskAffinity="${applicationId}.youtubeTutorial"
+            android:excludeFromRecents="true"
+            android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation"
+            android:theme="@style/Theme.Safar" />
 
         <!-- Dedicated full-screen video player Activity.
              Plain Android Activity (no Compose) so the WebView's SurfaceView
@@ -122,11 +133,15 @@
             android:foregroundServiceType="specialUse">
             <property
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="Digital wellbeing: maintains the explicitly enabled YouTube Study Mode V2 accessibility monitor while SAFAR is backgrounded." />
+                android:value="Digital wellbeing: maintains the explicitly enabled YouTube Focus accessibility monitor while SAFAR is backgrounded." />
         </service>
 
         <receiver
             android:name=".feature.youtubestudyv2.YoutubeStudyV2NotificationActionReceiver"
+            android:exported="false" />
+
+        <receiver
+            android:name=".ui.ekagra.focusshield.QuickUnlockActionReceiver"
             android:exported="false" />
 
         <!-- Supporting locale sync and persist for pre-Android 13 devices using AppCompat -->
@@ -162,6 +177,14 @@
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
                 <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".data.repository.TestReferrerReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.safarparmar.app.TEST_REFERRER" />
             </intent-filter>
         </receiver>
 

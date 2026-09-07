@@ -134,9 +134,10 @@ private val FinishLineRed = Color(0xFFEF5350)
 private val RevisionDoneTeal = Color(0xFF26A69A)
 private val RevisionPendingOrange = Color(0xFFFFB300)
 private val RevisionSpikeGold = Color(0xFFE8C547)
-// Manual (custom-date) revision uses a distinct violet ring so it reads
-// differently from spaced revision — matching the Revision screen's cards.
-private val RevisionCustomViolet = Color(0xFF8B5CF6)
+// Manual (custom-date) revision uses a distinct violet ring and indigo spike so it reads
+// differently from spaced revision — matching the Web visualizer and cards.
+private val RevisionCustomViolet = Color(0xFF7C3AED)
+private val RevisionCustomSpike = Color(0xFF6366F1)
 
 private fun formatShortMonthDay(iso: String?): String? {
     val date = parsePlannerDate(iso?.take(10)) ?: return null
@@ -1285,16 +1286,18 @@ internal fun InsightsRevisionPulseCard(
         plan.flattenTopics()
             .filter { it.topic.status == TopicStatus.REVISION_NEEDED }
             .map { ref ->
+                val isCustom = ref.topic.revisionScheduleType == "custom"
                 val completed = ref.topic.revisionCompletedDates.orEmpty().map { d -> d.take(10) }
                     .filter { d -> d.isNotBlank() }.toSet()
                 val remaining = ref.topic.revisionReminderDates.map { d -> d.take(10) }
                     .filter { d -> d.isNotBlank() }.toSet()
-                val total = (completed + remaining).size.coerceAtLeast(1)
+                // Custom revision has strictly 1 revision session (1 big ring)
+                val total = if (isCustom) 1 else (completed + remaining).size.coerceAtLeast(1)
                 RevisionTowerUi(
                     ref = ref,
                     total = total,
                     done = completed.size.coerceIn(0, total),
-                    isCustom = ref.topic.revisionScheduleType == "custom",
+                    isCustom = isCustom,
                 )
             }
             // Most-progressed towers first so the "almost there" ones lead the eye.
@@ -1434,6 +1437,7 @@ internal fun InsightsRevisionPulseCard(
                                     .width(96.dp)
                                     .height(112.dp),
                                 doneColor = detailAccent,
+                                isCustom = tower.isCustom,
                             )
                         }
                     }
@@ -1527,11 +1531,17 @@ private fun RevisionSpikeRingColumn(
 ) {
     val spikeColor = when {
         selected -> RevisionPendingOrange
+        tower.isCustom -> RevisionCustomSpike
         else -> RevisionSpikeGold
     }
     // Completed rings: violet for manual (custom-date) revision, teal for spaced.
     val ringDoneColor = if (tower.isCustom) RevisionCustomViolet else RevisionDoneTeal
-    val baseColor = spikeColor.copy(alpha = if (isLight) 0.85f else 0.95f)
+    val baseColor = if (tower.isCustom) RevisionCustomSpike.copy(alpha = if (isLight) 0.85f else 0.95f) else spikeColor.copy(alpha = if (isLight) 0.85f else 0.95f)
+    val pendingColor = if (tower.isCustom) {
+        RevisionCustomViolet.copy(alpha = if (isLight) 0.40f else 0.50f)
+    } else {
+        RevisionPendingOrange.copy(alpha = if (isLight) 0.45f else 0.55f)
+    }
     val selBg = if (selected) {
         RevisionPendingOrange.copy(alpha = if (isLight) 0.08f else 0.12f)
     } else {
@@ -1559,8 +1569,9 @@ private fun RevisionSpikeRingColumn(
                 spikeColor = spikeColor,
                 baseColor = baseColor,
                 doneColor = ringDoneColor,
-                pendingColor = RevisionPendingOrange.copy(alpha = if (isLight) 0.45f else 0.55f),
+                pendingColor = pendingColor,
                 animateDrop = true,
+                isCustom = tower.isCustom,
             )
         }
 
@@ -1581,23 +1592,27 @@ private fun RevisionSpikeRingMini(
     isLight: Boolean,
     modifier: Modifier = Modifier,
     doneColor: Color = RevisionDoneTeal,
+    isCustom: Boolean = false,
 ) {
+    val spikeColor = if (isCustom) RevisionCustomSpike else RevisionSpikeGold
+    val pendingColor = if (isCustom) RevisionCustomViolet.copy(alpha = if (isLight) 0.40f else 0.50f) else RevisionPendingOrange.copy(alpha = if (isLight) 0.40f else 0.50f)
     Canvas(modifier = modifier) {
         drawSpikePillRings(
             total = total,
             done = done,
             drawProgress = 1f,
-            spikeColor = RevisionSpikeGold,
-            baseColor = RevisionSpikeGold.copy(alpha = 0.9f),
+            spikeColor = spikeColor,
+            baseColor = spikeColor.copy(alpha = 0.9f),
             doneColor = doneColor,
-            pendingColor = RevisionPendingOrange.copy(alpha = if (isLight) 0.40f else 0.50f),
+            pendingColor = pendingColor,
             animateDrop = false,
+            isCustom = isCustom,
         )
     }
 }
 
 /**
- * Reference layout: gold triangular spike + filled pill rings (bottom widest),
+ * Reference layout: gold/indigo triangular spike + filled pill rings (bottom widest),
  * spike visible above and between rings.
  */
 private fun DrawScope.drawSpikePillRings(
@@ -1609,6 +1624,7 @@ private fun DrawScope.drawSpikePillRings(
     doneColor: Color,
     pendingColor: Color,
     animateDrop: Boolean,
+    isCustom: Boolean = false,
 ) {
     val w = size.width
     val h = size.height
@@ -1618,7 +1634,7 @@ private fun DrawScope.drawSpikePillRings(
     val tipY = 2.dp.toPx().coerceAtMost(h * 0.05f)
     val spikeFootHalf = 3.5.dp.toPx()
 
-    // Gold spike — triangle behind the rings
+    // Gold / Indigo spike — triangle behind the rings
     val spikePath = Path().apply {
         moveTo(cx, tipY)
         lineTo(cx - spikeFootHalf, baseY)
@@ -1639,19 +1655,27 @@ private fun DrawScope.drawSpikePillRings(
     val stackBottom = baseY - 1.5.dp.toPx()
     val stackTop = tipY + h * 0.16f
     val slotH = ((stackBottom - stackTop) / slots).coerceAtLeast(7.dp.toPx())
-    val pillH = (slotH * 0.74f).coerceIn(9.dp.toPx(), 17.dp.toPx())
+    val pillH = if (isCustom || slots == 1) {
+        ((stackBottom - stackTop) * 0.42f).coerceIn(14.dp.toPx(), 22.dp.toPx())
+    } else {
+        (slotH * 0.74f).coerceIn(9.dp.toPx(), 17.dp.toPx())
+    }
     val maxPillW = w * 0.90f
-    val minPillW = (w * 0.46f).coerceAtMost(maxPillW)
+    val minPillW = if (isCustom || slots == 1) maxPillW else (w * 0.46f).coerceAtMost(maxPillW)
 
     fun pillWidth(slotIndex: Int): Float {
-        if (slots <= 1) return maxPillW
+        if (slots <= 1 || isCustom) return maxPillW
         val rise = slotIndex.toFloat() / (slots - 1).coerceAtLeast(1)
         return maxPillW - (maxPillW - minPillW) * rise
     }
 
     // Pending rings — outline pills above the done stack
     for (i in done until slots) {
-        val cy = stackBottom - (i + 0.5f) * slotH
+        val cy = if (isCustom || slots == 1) {
+            stackBottom - (stackBottom - stackTop) * 0.35f
+        } else {
+            stackBottom - (i + 0.5f) * slotH
+        }
         val pillW = pillWidth(i)
         drawRoundRect(
             color = pendingColor,
@@ -1668,7 +1692,11 @@ private fun DrawScope.drawSpikePillRings(
         val ringProgress = if (animateDrop) (dropped - i).coerceIn(0f, 1f) else 1f
         if (ringProgress <= 0f) continue
 
-        val restY = stackBottom - (i + 0.5f) * slotH
+        val restY = if (isCustom || slots == 1) {
+            stackBottom - (stackBottom - stackTop) * 0.35f
+        } else {
+            stackBottom - (i + 0.5f) * slotH
+        }
         val fromY = stackTop - pillH
         val cy = if (animateDrop) fromY + (restY - fromY) * ringProgress else restY
         val pillW = pillWidth(i)

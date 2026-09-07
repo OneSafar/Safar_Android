@@ -1,46 +1,37 @@
 package com.safarparmar.app.feature.live.presentation
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.safarparmar.app.feature.live.model.LiveSession
@@ -53,42 +44,64 @@ fun LiveSessionsScreen(
     onBack: () -> Unit,
     onOpenSession: (String) -> Unit,
     showTopBar: Boolean = true,
+    isDarkTheme: Boolean = isSystemInDarkTheme(),
     viewModel: LiveSessionViewModel = hiltViewModel(),
 ) {
-    var selectedFilter by remember { mutableStateOf(LiveSessionFilter.LIVE) }
-    var searchQuery by remember { mutableStateOf("") }
-    var selectedSessionId by remember { mutableStateOf<String?>(null) }
-    val context = LocalContext.current
+    val isDark = isDarkTheme
 
+    var selectedFilter by rememberSaveable { mutableStateOf(LiveSessionFilter.LIVE) }
+    var searchQuery by rememberSaveable { mutableStateOf("") }
+    var isReminderSet by rememberSaveable { mutableStateOf(false) }
+
+    val context = LocalContext.current
     val uiState by viewModel.liveSessionsState.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
-    val backendStatus = selectedFilter.backendStatus
-
-    LaunchedEffect(courseId, selectedFilter) {
-        viewModel.loadSessions(courseId, backendStatus)
+    // Load all sessions so tab switching between Live and Completed is instantaneous
+    LaunchedEffect(courseId) {
+        viewModel.loadSessions(courseId, status = null)
     }
 
+    val allSessions = uiState.sessions
 
-    val filteredSessions = remember(uiState.sessions, searchQuery) {
+    val activeLiveSessions = remember(allSessions) {
+        allSessions.filter { it.status.equals("live", ignoreCase = true) }
+    }
+    val scheduledSessions = remember(allSessions) {
+        allSessions.filter { it.status.equals("scheduled", ignoreCase = true) }
+    }
+    val completedSessions = remember(allSessions) {
+        allSessions.filter {
+            it.status.equals("ended", ignoreCase = true) || it.status.equals("cancelled", ignoreCase = true)
+        }
+    }
+
+    val liveSession = activeLiveSessions.firstOrNull()
+    val nextScheduledSession = scheduledSessions.firstOrNull()
+
+    val filteredCompletedSessions = remember(completedSessions, searchQuery) {
         val q = searchQuery.trim().lowercase()
-        if (q.isEmpty()) uiState.sessions
-        else uiState.sessions.filter { it.title.lowercase().contains(q) }
+        if (q.isEmpty()) completedSessions
+        else completedSessions.filter { it.title.lowercase().contains(q) }
     }
 
-    val featuredSession = remember(filteredSessions, selectedSessionId) {
-        val activeOrScheduled = filteredSessions.filter { it.status == "live" || it.status == "scheduled" }
-        selectedSessionId?.let { id -> activeOrScheduled.find { it.id == id } }
-            ?: activeOrScheduled.firstOrNull { it.status == "live" }
-            ?: activeOrScheduled.firstOrNull()
-    }
+    val onSessionClick: (LiveSession) -> Unit = { session ->
+        val embedUrl = session.youtubeEmbedUrl?.takeIf { it.isNotBlank() }
+            ?: session.recordingVideoId?.takeIf { it.isNotBlank() }?.let { "https://www.youtube.com/embed/$it" }
+            ?: session.youtubeVideoId?.takeIf { it.isNotBlank() }?.let { "https://www.youtube.com/embed/$it" }
 
-    val upNextSessions = remember(filteredSessions, featuredSession) {
-        featuredSession?.let { featured ->
-            filteredSessions.filter { it.id != featured.id }
-        } ?: filteredSessions
+        if (embedUrl != null) {
+            VideoPlayerActivity.start(
+                context = context,
+                embedUrl = embedUrl,
+                videoTitle = session.title,
+            )
+        } else {
+            onOpenSession(session.id)
+        }
     }
-
 
     Scaffold(
         topBar = {
@@ -96,142 +109,138 @@ fun LiveSessionsScreen(
                 LiveClassroomTopBar(onBack = onBack)
             }
         },
-
-        containerColor = MaterialTheme.colorScheme.background,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        containerColor = LiveThemeColors.background(isDark),
     ) { padding ->
         LazyColumn(
             state = listState,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-
-
+            // 1. Search Bar ("Search sessions")
             item(key = "search") {
-                LiveClassroomSearchBar(
+                LiveSessionSearchBar(
                     query = searchQuery,
                     onQueryChange = { searchQuery = it },
+                    isDarkTheme = isDark,
                 )
             }
 
-            item(key = "filters") {
-                LiveClassroomFilterChips(
+            // 2. Segmented Tabs: [ Live ] [ Completed ]
+            item(key = "tabs") {
+                LiveSessionSegmentedTabs(
                     selected = selectedFilter,
                     onSelected = { selectedFilter = it },
+                    isDarkTheme = isDark,
                 )
             }
 
-            if (uiState.isLoading) {
+            // Loading state
+            if (uiState.isLoading && allSessions.isEmpty()) {
                 item(key = "loading") {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 24.dp),
+                            .padding(vertical = 36.dp),
                         contentAlignment = Alignment.Center,
                     ) {
-                        CircularProgressIndicator()
-                    }
-                }
-            }
-
-            if (!uiState.isLoading && featuredSession != null) {
-                item(key = "hero_${featuredSession.id}") {
-                    LiveHeroSessionCard(
-                        session = featuredSession,
-                        onPlay = { onOpenSession(featuredSession.id) },
-                        onJoinChat = { onOpenSession(featuredSession.id) },
-                        onShare = { /* share intent can be wired later */ },
-                    )
-                }
-            }
-
-            if (!uiState.isLoading && filteredSessions.isEmpty()) {
-                item(key = "empty") {
-                    LiveClassroomEmptyState(
-                        title = if (selectedFilter == LiveSessionFilter.COMPLETED) {
-                            "No sessions currently."
-                        } else {
-                            "Parmar sir is not live currently."
-                        },
-                        subtitle = if (selectedFilter == LiveSessionFilter.COMPLETED) {
-                            null
-                        } else {
-                            "Please check back later."
-                        },
-                        showClearFilters = searchQuery.isNotBlank(),
-                        onClearFilters = {
-                            searchQuery = ""
-                            selectedFilter = LiveSessionFilter.LIVE
-                        },
-                    )
-                }
-            } else if (!uiState.isLoading && upNextSessions.isNotEmpty()) {
-                item(key = "up_next_header") {
-                    val headerText = if (selectedFilter == LiveSessionFilter.COMPLETED) "Completed Sessions" else "Up Next"
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            text = headerText,
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.SemiBold,
+                        CircularProgressIndicator(
+                            color = LiveThemeColors.primary(isDark),
                         )
-                        if (selectedFilter != LiveSessionFilter.COMPLETED) {
-                            Text(
-                                text = "View all",
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                        }
                     }
                 }
+            }
 
-                item(key = "up_next_divider") {
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                }
-
-                items(upNextSessions, key = { "up_next_${it.id}" }) { session ->
-                    val isCompleted = session.status == "ended" || session.status == "cancelled"
-                    if (isCompleted) {
-                        CompletedSessionCard(
-                            session = session,
-                            onClick = {
-                                // Resolve the best YouTube embed URL from data already in the list.
-                                // Priority: youtubeEmbedUrl > recordingVideoId > youtubeVideoId
-                                val embedUrl = session.youtubeEmbedUrl?.takeIf { it.isNotBlank() }
-                                    ?: session.recordingVideoId?.takeIf { it.isNotBlank() }
-                                        ?.let { "https://www.youtube.com/embed/$it" }
-                                    ?: session.youtubeVideoId?.takeIf { it.isNotBlank() }
-                                        ?.let { "https://www.youtube.com/embed/$it" }
-
-                                if (embedUrl != null) {
-                                    // Open the in-app fullscreen WebView player directly.
-                                    // Skips the intermediate CompletedSessionPlayback screen entirely.
-                                    VideoPlayerActivity.start(
-                                        context = context,
-                                        embedUrl = embedUrl,
-                                        videoTitle = session.title,
+            // 3. Tab: LIVE
+            if (selectedFilter == LiveSessionFilter.LIVE) {
+                // If a session is actively broadcasting
+                if (liveSession != null) {
+                    item(key = "live_hero_${liveSession.id}") {
+                        LiveHeroSessionCard(
+                            session = liveSession,
+                            onPlay = { onOpenSession(liveSession.id) },
+                            onJoinChat = { onOpenSession(liveSession.id) },
+                            isDarkTheme = isDark,
+                        )
+                    }
+                } else if (!uiState.isLoading) {
+                    // Parmar Sir isn't live right now card
+                    item(key = "not_live_card") {
+                        TeacherNotLiveCard(
+                            nextSession = nextScheduledSession,
+                            isReminderSet = isReminderSet,
+                            onToggleReminder = {
+                                isReminderSet = !isReminderSet
+                                scope.launch {
+                                    snackbarHostState.showSnackbar(
+                                        if (isReminderSet) {
+                                            "Reminder set! We'll notify you when Parmar sir goes live."
+                                        } else {
+                                            "Reminder cancelled."
+                                        },
                                     )
-                                } else {
-                                    // No video URL — fall back to the session screen
-                                    onOpenSession(session.id)
                                 }
                             },
-                        )
-                    } else {
-                        LiveUpNextListItem(
-                            session = session,
-                            selected = session.id == featuredSession?.id,
-                            onClick = { selectedSessionId = session.id },
+                            isDarkTheme = isDark,
                         )
                     }
+                }
+
+                // 4. Section: "Missed a session? Catch up below"
+                if (filteredCompletedSessions.isNotEmpty()) {
+                    item(key = "missed_header") {
+                        Text(
+                            text = "Missed a session? Catch up below",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = LiveThemeColors.textPrimary(isDark),
+                            modifier = Modifier.padding(top = 8.dp, bottom = 2.dp),
+                        )
+                    }
+
+                    items(filteredCompletedSessions, key = { "catch_up_${it.id}" }) { session ->
+                        CompletedSessionCatchUpCard(
+                            session = session,
+                            onClick = { onSessionClick(session) },
+                            isDarkTheme = isDark,
+                        )
+                    }
+                }
+            } else {
+                // 5. Tab: COMPLETED
+                item(key = "completed_header") {
+                    Text(
+                        text = "Completed sessions",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = LiveThemeColors.textPrimary(isDark),
+                        modifier = Modifier.padding(top = 4.dp, bottom = 2.dp),
+                    )
+                }
+
+                if (filteredCompletedSessions.isEmpty() && !uiState.isLoading) {
+                    item(key = "empty_completed") {
+                        LiveClassroomEmptyState(
+                            title = if (searchQuery.isNotBlank()) "No sessions found" else "No completed sessions yet",
+                            subtitle = if (searchQuery.isNotBlank()) "Try a different search keyword" else "Sessions will appear here once ended.",
+                            showClearFilters = searchQuery.isNotBlank(),
+                            onClearFilters = { searchQuery = "" },
+                            isDarkTheme = isDark,
+                        )
+                    }
+                } else {
+                    items(filteredCompletedSessions, key = { "completed_${it.id}" }) { session ->
+                        CompletedSessionCatchUpCard(
+                            session = session,
+                            onClick = { onSessionClick(session) },
+                            isDarkTheme = isDark,
+                        )
+                    }
+                }
             }
         }
     }
-}
 }

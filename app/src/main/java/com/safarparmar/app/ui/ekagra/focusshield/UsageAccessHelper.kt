@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
+import android.os.PowerManager
 import android.os.Process
 import android.provider.Settings
 import android.service.notification.NotificationListenerService
@@ -55,11 +56,11 @@ object FocusShieldPermissionHelper {
         }
     }
 
-    /** KAVACH itself no longer needs accessibility; YouTube Study Mode still does. */
+    /** KAVACH itself no longer needs accessibility; YouTube Focus still does. */
     fun isAccessibilityFeatureEnabled(): Boolean = false
 
     /**
-     * Checks the dedicated YouTube Study Mode service, not merely whether some
+     * Checks the dedicated YouTube Focus service, not merely whether some
      * unrelated accessibility service is enabled. AccessibilityManager is the
      * authoritative API; the secure-setting fallback covers OEMs that return a
      * stale/empty enabled-service list immediately after Settings closes.
@@ -162,12 +163,59 @@ object FocusShieldPermissionHelper {
         }
     }
 
+    fun isIgnoringBatteryOptimizations(context: Context): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return true
+        val powerManager = context.getSystemService(Context.POWER_SERVICE) as? PowerManager ?: return false
+        return powerManager.isIgnoringBatteryOptimizations(context.packageName)
+    }
+
+    fun openBatterySaverSettings(context: Context) {
+        val packageName = context.packageName
+        val intents = listOf(
+            // 1. Direct system prompt to ignore battery optimizations (Stock / Pixel / Samsung etc.)
+            Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                data = Uri.parse("package:$packageName")
+            },
+            // 2. Xiaomi / MIUI Powerkeeper "No restrictions" screen
+            Intent().apply {
+                component = ComponentName(
+                    "com.miui.powerkeeper",
+                    "com.miui.powerkeeper.ui.HiddenAppsConfigActivity",
+                )
+                putExtra("package_name", packageName)
+                putExtra("package_label", runCatching {
+                    context.applicationInfo.loadLabel(context.packageManager).toString()
+                }.getOrDefault("SAFAR"))
+            },
+            // 3. Android 12+ per-app battery usage detail
+            Intent("android.settings.APP_BATTERY_USAGE_SETTINGS").apply {
+                data = Uri.parse("package:$packageName")
+            },
+            // 4. System-wide ignore battery optimizations settings list
+            Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS),
+            // 5. Standard App Info Details (where Battery / Battery Saver is accessible)
+            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                data = Uri.parse("package:$packageName")
+            },
+        )
+
+        for (intent in intents) {
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            val resolved = intent.resolveActivity(context.packageManager) != null
+            if (resolved) {
+                val opened = runCatching { context.startActivity(intent) }.isSuccess
+                if (opened) return
+            }
+        }
+    }
+
     /** Whether [target] is currently granted on this device. */
     fun isPermissionGranted(context: Context, target: PermissionTarget): Boolean = when (target) {
         PermissionTarget.USAGE_STATS -> hasUsageStatsPermission(context)
         PermissionTarget.OVERLAY -> hasOverlayPermission(context)
         PermissionTarget.NOTIFICATIONS -> hasNotificationPermission(context)
         PermissionTarget.NOTIFICATION_ACCESS -> hasNotificationListenerAccess(context)
+        PermissionTarget.BATTERY_SAVER -> isIgnoringBatteryOptimizations(context)
     }
 
     fun openSettingsFor(context: Context, target: PermissionTarget) {
@@ -175,6 +223,7 @@ object FocusShieldPermissionHelper {
             PermissionTarget.USAGE_STATS -> openUsageAccessSettings(context)
             PermissionTarget.OVERLAY -> openOverlaySettings(context)
             PermissionTarget.NOTIFICATION_ACCESS -> openNotificationListenerSettings(context)
+            PermissionTarget.BATTERY_SAVER -> openBatterySaverSettings(context)
             PermissionTarget.NOTIFICATIONS -> Unit // runtime dialog, not a Settings page
         }
     }

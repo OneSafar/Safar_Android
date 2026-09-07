@@ -121,7 +121,7 @@
     <string name="kavach_setup_heading">लगभग तैयार!</string>
     <string name="kavach_setup_intro">बस दो आसान कदम और कवच आपकी एकाग्रता की रक्षा के लिए तैयार है।</string>
     <string name="kavach_permissions_ready">कवच तैयार है। ब्लॉक करना शुरू करने के लिए एकाग्र शुरू करें।</string>
-    <string name="kavach_permissions_needed">भटकाव से बचने के लिए दो आसान अनुमतियां दें।</string>
+    <string name="kavach_permissions_needed">कवच शुरू करने के लिए आवश्यक अनुमतियां दें।</string>
     <string name="kavach_info_content_description">कवच के बारे में</string>
     <string name="kavach_consent_title">ध्यान भटकाने वाले ऐप्स ब्लॉक करें</string>
     <string name="kavach_consent_description">कवच एकाग्र फोकस टाइमर के दौरान आपके चुने हुए ऐप्स को ब्लॉक करके आपको केंद्रित रखता है।</string>

@@ -41,6 +41,7 @@ enum class PermissionTarget {
     OVERLAY,
     NOTIFICATIONS,
     NOTIFICATION_ACCESS,
+    BATTERY_SAVER,
 }
 
 @Composable
@@ -49,10 +50,12 @@ fun KavachPermissionSetupScreen(
     overlayGranted: Boolean,
     notificationsGranted: Boolean,
     notificationAccessGranted: Boolean,
+    batterySaverGranted: Boolean = false,
     onRequestUsageStats: () -> Unit,
     onRequestOverlay: () -> Unit,
     onRequestNotifications: () -> Unit,
     onRequestNotificationAccess: () -> Unit,
+    onRequestBatterySaver: () -> Unit = {},
     onContinue: () -> Unit,
     onBack: (() -> Unit)? = null,
 ) {
@@ -117,6 +120,14 @@ fun KavachPermissionSetupScreen(
                 isGranted = notificationAccessGranted,
                 icon = Icons.Default.NotificationsActive,
                 onClick = onRequestNotificationAccess,
+            )
+
+            PermissionCard(
+                title = "Background Running (Battery Saver)",
+                description = "Set to 'No restrictions' so Android doesn't kill the focus shield.",
+                isGranted = batterySaverGranted,
+                icon = Icons.Default.Security,
+                onClick = onRequestBatterySaver,
             )
 
             Spacer(Modifier.height(12.dp))
@@ -225,6 +236,7 @@ fun PermissionGuideSheet(
         PermissionTarget.OVERLAY -> "Allow show on top"
         PermissionTarget.NOTIFICATIONS -> "Allow notifications"
         PermissionTarget.NOTIFICATION_ACCESS -> "Allow notification shield"
+        PermissionTarget.BATTERY_SAVER -> "Allow background running"
     }
 
     val primaryButtonText = when (permission) {
@@ -232,6 +244,7 @@ fun PermissionGuideSheet(
         PermissionTarget.OVERLAY -> "Allow"
         PermissionTarget.NOTIFICATIONS -> "Allow Notifications"
         PermissionTarget.NOTIFICATION_ACCESS -> "Agree & enable Notification Shield"
+        PermissionTarget.BATTERY_SAVER -> "Open Battery Settings"
     }
 
     val bulletPoints = when (permission) {
@@ -258,6 +271,12 @@ fun PermissionGuideSheet(
             "This works only while your study timer is on.",
             "SAFAR does not save notification text.",
             "You can turn this off anytime in phone Settings."
+        )
+        PermissionTarget.BATTERY_SAVER -> listOf(
+            "Tap Battery Saver (or App battery usage) in Settings.",
+            "Select \"No restrictions\" (or \"Unrestricted\").",
+            "This stops Android from terminating focus protection in the background.",
+            "Essential for Xiaomi, Oppo, Vivo, Samsung, and OnePlus phones."
         )
     }
 

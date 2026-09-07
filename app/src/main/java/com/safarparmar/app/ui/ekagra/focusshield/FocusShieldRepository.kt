@@ -52,7 +52,14 @@ class FocusShieldRepository @Inject constructor(
         val packages: Set<String>,
     )
 
-    val isEnabled: StateFlow<Boolean> = dataStore.focusShieldEnabled
+    @Volatile
+    var pendingEnableAfterAppSelection: Boolean = false
+
+    private val _inMemoryEnabled = MutableStateFlow<Boolean?>(null)
+    val isEnabled: StateFlow<Boolean> = combine(
+        dataStore.focusShieldEnabled,
+        _inMemoryEnabled,
+    ) { fromDs, override -> override ?: fromDs }
         .stateIn(scope, SharingStarted.Eagerly, false)
 
     /**
@@ -69,7 +76,11 @@ class FocusShieldRepository @Inject constructor(
     val appUsageMode: StateFlow<String?> = dataStore.appUsageMode
         .stateIn(scope, SharingStarted.Eagerly, null)
 
-    val blockedPackages: StateFlow<Set<String>> = dataStore.focusShieldBlockedPackages
+    private val _inMemoryBlockedPackages = MutableStateFlow<Set<String>?>(null)
+    val blockedPackages: StateFlow<Set<String>> = combine(
+        dataStore.focusShieldBlockedPackages,
+        _inMemoryBlockedPackages,
+    ) { fromDs, override -> override ?: fromDs }
         .stateIn(scope, SharingStarted.Eagerly, emptySet())
 
     val scheduleEnabled: StateFlow<Boolean> = dataStore.focusShieldScheduleEnabled
@@ -223,6 +234,16 @@ class FocusShieldRepository @Inject constructor(
     /** Settles any quick unlock whose window has expired. Cheap; safe to call often. */
     fun settleExpiredQuickUnlocks() = analyticsRecorder.settleExpiredUnlocks()
 
+    /** Cancels the current Study Mode break without changing protection or channel choices. */
+    fun endYoutubeQuickUnlock(expectedGraceUntilMs: Long) {
+        if (expectedGraceUntilMs <= 0L ||
+            ShieldPrefs.getGraceUntilMs(appContext) != expectedGraceUntilMs ||
+            ShieldPrefs.quickUnlockOrigin(appContext) != ShieldPrefs.QUICK_UNLOCK_ORIGIN_YOUTUBE_STUDY
+        ) return
+        ShieldPrefs.clearQuickUnlock(appContext)
+        analyticsRecorder.quickUnlockEnded()
+    }
+
     /** Returning to a timer-linked focus session immediately restores protection. */
     fun endQuickUnlockForEkagraResume() {
         if (isAlwaysOnMode.value || !ShieldPrefs.isInGracePeriod(appContext)) return
@@ -265,12 +286,14 @@ class FocusShieldRepository @Inject constructor(
     }
 
     fun setEnabled(enabled: Boolean) {
+        val currentPackages = blockedPackages.value
+        val warning = if (enabled) activationWarning(currentPackages) else null
+        if (warning != null) {
+            reportProtectionFailure(warning)
+            return
+        }
+        _inMemoryEnabled.value = enabled
         scope.launch {
-            val warning = if (enabled) activationWarning(blockedPackages.value) else null
-            if (warning != null) {
-                reportProtectionFailure(warning)
-                return@launch
-            }
             dataStore.setFocusShieldEnabled(enabled)
             if (!enabled) {
                 // Turning Kavach off takes Beast Mode and active Quick Unlock with it
@@ -286,8 +309,8 @@ class FocusShieldRepository @Inject constructor(
                 }
                 // Normal mode is now ready; actual protection starts with Ekagra.
                 if (dataStore.focusShieldAlwaysOnMode.first()) startKavachService()
-                if (blockedPackages.value.isNotEmpty()) {
-                    homeRepository.trackKavachEvent("enabled", blockedPackages.value.size)
+                if (currentPackages.isNotEmpty()) {
+                    homeRepository.trackKavachEvent("enabled", currentPackages.size)
                 }
             }
         }
@@ -378,6 +401,7 @@ class FocusShieldRepository @Inject constructor(
     }
 
     fun setBlockedPackages(packages: Set<String>) {
+        _inMemoryBlockedPackages.value = packages
         scope.launch {
             dataStore.setFocusShieldBlockedPackages(packages)
             if (isEnabled.value && packages.isNotEmpty() && (isAlwaysOnMode.value || _sessionActive.value)) {

@@ -18,6 +18,14 @@ class YoutubeStudyV2Preferences @Inject constructor(
     val setupStep: StateFlow<Int> = _setupStep
     private val _setupCompleted = MutableStateFlow(preferences.getBoolean(KEY_SETUP_COMPLETED, false))
     val setupCompleted: StateFlow<Boolean> = _setupCompleted
+    private val _bannerDismissed = MutableStateFlow(preferences.getBoolean(KEY_BANNER_DISMISSED, false))
+    val bannerDismissed: StateFlow<Boolean> = _bannerDismissed
+
+    fun dismissBanner() {
+        preferences.edit().putBoolean(KEY_BANNER_DISMISSED, true).apply()
+        _bannerDismissed.value = true
+    }
+
     fun setEnabled(value: Boolean) {
         preferences.edit().putBoolean(KEY_ENABLED, value).apply()
         _enabled.value = value
@@ -58,6 +66,7 @@ class YoutubeStudyV2Preferences @Inject constructor(
         private const val KEY_DISCLOSURE_ACCEPTED = "accessibility_disclosure_accepted"
         private const val KEY_SETUP_STEP = "setup_step"
         private const val KEY_SETUP_COMPLETED = "setup_completed"
+        private const val KEY_BANNER_DISMISSED = "banner_dismissed"
         fun isEnabled(context: Context): Boolean = context
             .getSharedPreferences(FILE_NAME, Context.MODE_PRIVATE)
             .getBoolean(KEY_ENABLED, false)

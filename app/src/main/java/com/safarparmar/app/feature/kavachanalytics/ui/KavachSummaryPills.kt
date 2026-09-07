@@ -109,6 +109,7 @@ fun TealLivePulseDot(
 fun KavachSummaryPills(
     modifier: Modifier = Modifier,
     ink: com.safarparmar.app.ui.ekagra.EkagraInk? = null,
+    isDarkTheme: Boolean = !MaterialTheme.colorScheme.background.isLightBackground(),
     themeAccent: Color = MaterialTheme.colorScheme.primary,
     onOpenAnalytics: () -> Unit = {},
     myCircles: List<StudyCircleSummaryDto> = emptyList(),
@@ -119,7 +120,6 @@ fun KavachSummaryPills(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val lifecycleOwner = LocalLifecycleOwner.current
-    val isLight = MaterialTheme.colorScheme.background.isLightBackground()
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -151,7 +151,7 @@ fun KavachSummaryPills(
             accent = themeAccent,
             iconColor = Color(0xFFEF4444),
             ink = ink,
-            isLight = isLight,
+            isDark = isDarkTheme,
             modifier = Modifier.weight(1f),
             onClick = onOpenAnalytics,
         )
@@ -164,7 +164,7 @@ fun KavachSummaryPills(
             onNavigate = onNavigate,
             accent = themeAccent,
             ink = ink,
-            isLight = isLight,
+            isDark = isDarkTheme,
             modifier = Modifier.weight(1f),
         )
     }
@@ -178,51 +178,48 @@ private fun SummaryPill(
     accent: Color,
     iconColor: Color,
     ink: com.safarparmar.app.ui.ekagra.EkagraInk?,
-    isLight: Boolean,
+    isDark: Boolean,
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val shape = RoundedCornerShape(20.dp)
+
+    val normalCardBg = if (isDark) {
+        Color(0xFF1E293B).copy(alpha = 0.70f)
+    } else {
+        Color(0xFFF1F5F9).copy(alpha = 0.95f)
+    }
+    val pressedCardBg = if (isDark) {
+        Color(0xFF2B3A4F).copy(alpha = 0.85f)
+    } else {
+        Color(0xFFE2E8F0).copy(alpha = 0.95f)
+    }
+
     val cardColor by animateColorAsState(
-        targetValue = when {
-            isLight && isPressed -> accent.copy(alpha = 0.96f)
-            isLight -> accent.copy(alpha = 0.88f)
-            isPressed -> Color(0xFF48484F).copy(alpha = 0.92f)
-            else -> Color(0xFF3B3B42).copy(alpha = 0.86f)
-        },
+        targetValue = if (isPressed) pressedCardBg else normalCardBg,
         animationSpec = spring(dampingRatio = 0.82f, stiffness = 600f),
         label = "summaryChipColor",
     )
-    val elevation by animateDpAsState(
-        targetValue = if (isPressed) 2.dp else if (isLight) 10.dp else 5.dp,
-        animationSpec = spring(dampingRatio = 0.78f, stiffness = 520f),
-        label = "summaryChipElevation",
-    )
-    val textColor = Color.White
-    val secondaryColor = Color.White.copy(alpha = 0.82f)
-    val rim = Brush.verticalGradient(
-        if (isLight) {
-            listOf(Color.White.copy(alpha = 0.90f), Color(0xFFB8C0CC).copy(alpha = 0.46f))
-        } else {
-            listOf(Color.White.copy(alpha = 0.28f), Color.White.copy(alpha = 0.035f))
-        },
-    )
+
+    val normalBorder = if (isDark) {
+        Color.White.copy(alpha = 0.14f)
+    } else {
+        Color(0xFF0F172A).copy(alpha = 0.08f)
+    }
+    val pressedBorder = accent.copy(alpha = if (isDark) 0.50f else 0.40f)
+    val borderColor = if (isPressed) pressedBorder else normalBorder
+
+    val textColor = if (isDark) Color.White else Color(0xFF0F172A)
+    val secondaryColor = if (isDark) Color.White.copy(alpha = 0.75f) else Color(0xFF475569)
 
     Box(
         modifier = modifier
             .height(72.dp)
-            .shadow(
-                elevation = elevation,
-                shape = shape,
-                clip = false,
-                ambientColor = Color.Black.copy(alpha = if (isLight) 0.25f else 0.30f),
-                spotColor = Color.Black.copy(alpha = if (isLight) 0.34f else 0.42f),
-            )
             .clip(shape)
             .background(cardColor)
-            .border(0.5.dp, rim, shape)
+            .border(1.dp, borderColor, shape)
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
@@ -286,7 +283,7 @@ private fun StudyGroupLivePill(
     onNavigate: (String) -> Unit,
     accent: Color,
     ink: com.safarparmar.app.ui.ekagra.EkagraInk?,
-    isLight: Boolean,
+    isDark: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -294,30 +291,33 @@ private fun StudyGroupLivePill(
     var showDropdown by remember { mutableStateOf(false) }
     val shape = RoundedCornerShape(20.dp)
 
+    val normalCardBg = if (isDark) {
+        Color(0xFF1E293B).copy(alpha = 0.70f)
+    } else {
+        Color(0xFFF1F5F9).copy(alpha = 0.95f)
+    }
+    val pressedCardBg = if (isDark) {
+        Color(0xFF2B3A4F).copy(alpha = 0.85f)
+    } else {
+        Color(0xFFE2E8F0).copy(alpha = 0.95f)
+    }
+
     val cardColor by animateColorAsState(
-        targetValue = when {
-            isLight && isPressed -> accent.copy(alpha = 0.96f)
-            isLight -> accent.copy(alpha = 0.88f)
-            isPressed -> Color(0xFF48484F).copy(alpha = 0.92f)
-            else -> Color(0xFF3B3B42).copy(alpha = 0.86f)
-        },
+        targetValue = if (isPressed) pressedCardBg else normalCardBg,
         animationSpec = spring(dampingRatio = 0.82f, stiffness = 600f),
         label = "groupLiveCardColor",
     )
-    val elevation by animateDpAsState(
-        targetValue = if (isPressed) 2.dp else if (isLight) 10.dp else 5.dp,
-        animationSpec = spring(dampingRatio = 0.78f, stiffness = 520f),
-        label = "groupLiveCardElevation",
-    )
-    val textColor = Color.White
-    val secondaryColor = Color.White.copy(alpha = 0.85f)
-    val rim = Brush.verticalGradient(
-        if (isLight) {
-            listOf(Color.White.copy(alpha = 0.90f), Color(0xFFB8C0CC).copy(alpha = 0.46f))
-        } else {
-            listOf(Color.White.copy(alpha = 0.28f), Color.White.copy(alpha = 0.035f))
-        },
-    )
+
+    val normalBorder = if (isDark) {
+        Color.White.copy(alpha = 0.14f)
+    } else {
+        Color(0xFF0F172A).copy(alpha = 0.08f)
+    }
+    val pressedBorder = accent.copy(alpha = if (isDark) 0.50f else 0.40f)
+    val borderColor = if (isPressed) pressedBorder else normalBorder
+
+    val textColor = if (isDark) Color.White else Color(0xFF0F172A)
+    val secondaryColor = if (isDark) Color.White.copy(alpha = 0.75f) else Color(0xFF475569)
 
     val activeCircle = selectedCircle ?: myCircles.firstOrNull()
     val groupName = activeCircle?.name ?: "Study Group"
@@ -331,16 +331,9 @@ private fun StudyGroupLivePill(
     Box(
         modifier = modifier
             .height(72.dp)
-            .shadow(
-                elevation = elevation,
-                shape = shape,
-                clip = false,
-                ambientColor = Color.Black.copy(alpha = if (isLight) 0.25f else 0.30f),
-                spotColor = Color.Black.copy(alpha = if (isLight) 0.34f else 0.42f),
-            )
             .clip(shape)
             .background(cardColor)
-            .border(0.5.dp, rim, shape)
+            .border(1.dp, borderColor, shape)
             .combinedClickable(
                 interactionSource = interactionSource,
                 indication = null,

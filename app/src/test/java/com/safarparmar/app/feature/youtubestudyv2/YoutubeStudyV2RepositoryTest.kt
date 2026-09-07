@@ -14,6 +14,17 @@ class YoutubeStudyV2RepositoryTest {
     private val repository = YoutubeStudyV2Repository(database, dao, api)
 
     @Test
+    fun `same channel is blocked after local allowlist changes`() = runTest {
+        val channelId = "UCsbT4wZ_FUUpJGtVa4mooow"
+        coEvery { dao.channelIdForHandle("@parmarssc") } returns channelId
+        coEvery { dao.isAllowed(channelId) } returns true
+        assertEquals(YoutubeV2RuntimeDecision.ALLOW, repository.decide("@parmarssc", null))
+        coEvery { dao.isAllowed(channelId) } returns false
+        assertEquals(YoutubeV2RuntimeDecision.BLOCK, repository.decide("@parmarssc", null))
+        coVerify(exactly = 0) { api.resolve(any()) }
+    }
+
+    @Test
     fun `unknown runtime handle blocks immediately without waiting for API discovery`() = runTest {
         coEvery { dao.channelIdForHandle("@unknownchannel") } returns null
 

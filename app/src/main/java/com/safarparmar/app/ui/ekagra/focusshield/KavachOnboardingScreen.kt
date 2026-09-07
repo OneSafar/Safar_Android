@@ -133,6 +133,9 @@ fun KavachOnboardingScreen(
     var hasOverlay by remember { mutableStateOf(shieldState.hasOverlayPermission) }
     var hasNotifications by remember { mutableStateOf(shieldState.hasNotifications) }
     var hasNotificationSuppressionAccess by remember { mutableStateOf(shieldState.hasNotificationSuppressionAccess) }
+    var hasBatterySaver by remember {
+        mutableStateOf(FocusShieldPermissionHelper.isIgnoringBatteryOptimizations(context))
+    }
     var selectedPermission by remember { mutableStateOf<PermissionTarget?>(null) }
     var awaitingPermission by remember { mutableStateOf<PermissionTarget?>(null) }
     val scope = rememberCoroutineScope()
@@ -160,6 +163,7 @@ fun KavachOnboardingScreen(
                 hasOverlay = FocusShieldPermissionHelper.hasOverlayPermission(context)
                 hasNotifications = FocusShieldPermissionHelper.hasNotificationPermission(context)
                 hasNotificationSuppressionAccess = FocusShieldPermissionHelper.hasNotificationListenerAccess(context)
+                hasBatterySaver = FocusShieldPermissionHelper.isIgnoringBatteryOptimizations(context)
                 viewModel.refreshPermissions()
                 // If we already returned and the watched permission is granted, stop polling.
                 val watching = awaitingPermission
@@ -172,32 +176,50 @@ fun KavachOnboardingScreen(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    // Ask for Notification Shield during the initial Kavach setup as well, so students can
-    // choose a mode with the full protection set already configured.
-    LaunchedEffect(hasUsageStats, hasOverlay, hasNotificationSuppressionAccess) {
-        if (hasUsageStats && hasOverlay && hasNotificationSuppressionAccess) {
+    // Ask for permissions during initial Kavach setup
+    LaunchedEffect(hasUsageStats, hasOverlay, hasNotificationSuppressionAccess, hasBatterySaver) {
+        if (hasUsageStats && hasOverlay && hasNotificationSuppressionAccess && hasBatterySaver) {
             viewModel.setEnabled(true)
             onFinished()
         }
     }
 
-    val totalSteps = 3
+    val totalSteps = 5
     var grantedCount = 0
     if (hasUsageStats) grantedCount++
     if (hasOverlay) grantedCount++
+    if (hasNotifications) grantedCount++
     if (hasNotificationSuppressionAccess) grantedCount++
+    if (hasBatterySaver) grantedCount++
     val progress = (grantedCount.toFloat() / totalSteps).coerceAtMost(1f)
     val animatedProgress by animateFloatAsState(targetValue = progress, label = "kavachPermissionProgress")
 
-    // Order: Usage → Background → Display over other apps → Notification Shield.
-    // Background is a one-tap system dialog; once prompted we advance even if the user denied it.
-    var backgroundPrompted by remember { mutableStateOf(false) }
+    var notificationsPrompted by remember { mutableStateOf(false) }
     val isUsageNext = !hasUsageStats
-    val isBackgroundNext = hasUsageStats && !hasNotifications && !backgroundPrompted
-    val backgroundDone = hasNotifications || backgroundPrompted
-    val isOverlayNext = hasUsageStats && backgroundDone && !hasOverlay
-    val requiredGranted = hasUsageStats && hasOverlay
-    val isNotificationAccessNext = requiredGranted && !hasNotificationSuppressionAccess
+    val isOverlayNext = hasUsageStats && !hasOverlay
+    val isBatterySaverNext = hasUsageStats && hasOverlay && !hasBatterySaver
+    val isNotificationsNext = hasUsageStats && hasOverlay && hasBatterySaver && !hasNotifications && !notificationsPrompted
+    val isNotificationAccessNext = hasUsageStats && hasOverlay && hasBatterySaver && !hasNotificationSuppressionAccess
+
+    fun launchPermissionDirectly(target: PermissionTarget) {
+        if (target != PermissionTarget.NOTIFICATIONS) {
+            awaitingPermission = target
+        }
+        when (target) {
+            PermissionTarget.USAGE_STATS ->
+                FocusShieldPermissionHelper.openUsageAccessSettings(context)
+            PermissionTarget.OVERLAY ->
+                FocusShieldPermissionHelper.openOverlaySettings(context)
+            PermissionTarget.NOTIFICATIONS -> {
+                notificationsPrompted = true
+                requestNotificationPermission()
+            }
+            PermissionTarget.NOTIFICATION_ACCESS ->
+                FocusShieldPermissionHelper.openNotificationListenerSettings(context)
+            PermissionTarget.BATTERY_SAVER ->
+                FocusShieldPermissionHelper.openBatterySaverSettings(context)
+        }
+    }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -295,23 +317,7 @@ fun KavachOnboardingScreen(
                     granted = hasUsageStats,
                     isNext = isUsageNext,
                     colors = colors,
-                    onClick = { if (isUsageNext) selectedPermission = PermissionTarget.USAGE_STATS },
-                )
-
-                HorizontalDivider(color = colors.divider)
-
-                KavachRegainPermissionRow(
-                    title = "Background permission",
-                    subtitle = "Keeps KAVACH status and timer alerts working.",
-                    granted = hasNotifications,
-                    isNext = isBackgroundNext,
-                    colors = colors,
-                    onClick = {
-                        if (isBackgroundNext) {
-                            backgroundPrompted = true
-                            requestNotificationPermission()
-                        }
-                    },
+                    onClick = { launchPermissionDirectly(PermissionTarget.USAGE_STATS) },
                 )
 
                 HorizontalDivider(color = colors.divider)
@@ -322,7 +328,29 @@ fun KavachOnboardingScreen(
                     granted = hasOverlay,
                     isNext = isOverlayNext,
                     colors = colors,
-                    onClick = { if (isOverlayNext) selectedPermission = PermissionTarget.OVERLAY },
+                    onClick = { launchPermissionDirectly(PermissionTarget.OVERLAY) },
+                )
+
+                HorizontalDivider(color = colors.divider)
+
+                KavachRegainPermissionRow(
+                    title = "Background permission",
+                    subtitle = "Removes battery restrictions to keep Kavach running in background.",
+                    granted = hasBatterySaver,
+                    isNext = isBatterySaverNext,
+                    colors = colors,
+                    onClick = { launchPermissionDirectly(PermissionTarget.BATTERY_SAVER) },
+                )
+
+                HorizontalDivider(color = colors.divider)
+
+                KavachRegainPermissionRow(
+                    title = "Notifications",
+                    subtitle = "Keeps KAVACH status and timer alerts working.",
+                    granted = hasNotifications,
+                    isNext = isNotificationsNext,
+                    colors = colors,
+                    onClick = { launchPermissionDirectly(PermissionTarget.NOTIFICATIONS) },
                 )
 
                 HorizontalDivider(color = colors.divider)
@@ -333,9 +361,7 @@ fun KavachOnboardingScreen(
                     granted = hasNotificationSuppressionAccess,
                     isNext = isNotificationAccessNext,
                     colors = colors,
-                    onClick = {
-                        if (isNotificationAccessNext) selectedPermission = PermissionTarget.NOTIFICATION_ACCESS
-                    },
+                    onClick = { launchPermissionDirectly(PermissionTarget.NOTIFICATION_ACCESS) },
                 )
             }
 
@@ -349,7 +375,17 @@ fun KavachOnboardingScreen(
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(16.dp))
                         .background(colors.helpBg)
-                        .clickable { selectedPermission = PermissionTarget.USAGE_STATS }
+                        .clickable {
+                            val nextTarget = when {
+                                !hasUsageStats -> PermissionTarget.USAGE_STATS
+                                !hasOverlay -> PermissionTarget.OVERLAY
+                                !hasBatterySaver -> PermissionTarget.BATTERY_SAVER
+                                !hasNotifications -> PermissionTarget.NOTIFICATIONS
+                                !hasNotificationSuppressionAccess -> PermissionTarget.NOTIFICATION_ACCESS
+                                else -> PermissionTarget.USAGE_STATS
+                            }
+                            selectedPermission = nextTarget
+                        }
                         .padding(horizontal = 16.dp, vertical = 16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -397,6 +433,8 @@ fun KavachOnboardingScreen(
                             PermissionTarget.NOTIFICATIONS -> requestNotificationPermission()
                             PermissionTarget.NOTIFICATION_ACCESS ->
                                 FocusShieldPermissionHelper.openNotificationListenerSettings(context)
+                            PermissionTarget.BATTERY_SAVER ->
+                                FocusShieldPermissionHelper.openBatterySaverSettings(context)
                         }
                     }
                 },
@@ -415,12 +453,12 @@ private fun KavachRegainPermissionRow(
     colors: KavachPermissionColors,
     onClick: () -> Unit,
 ) {
-    val titleColor = if (granted || isNext) colors.primaryText else colors.secondaryText.copy(alpha = 0.4f)
+    val titleColor = if (granted || isNext) colors.primaryText else colors.secondaryText
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(enabled = isNext && !granted, onClick = onClick)
+            .clickable(enabled = !granted, onClick = onClick)
             .padding(vertical = 20.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -431,13 +469,15 @@ private fun KavachRegainPermissionRow(
                 fontWeight = FontWeight.Bold,
                 color = titleColor,
             )
-            if (isNext && !granted) {
+            if (!granted) {
                 Spacer(Modifier.height(6.dp))
                 Text(
                     text = subtitle,
                     fontSize = 14.sp,
                     color = colors.secondaryText,
                     lineHeight = 20.sp,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                 )
             }
         }
@@ -450,15 +490,15 @@ private fun KavachRegainPermissionRow(
                 tint = colors.helpText,
                 modifier = Modifier.size(24.dp),
             )
-        } else if (isNext) {
+        } else {
             Surface(
                 onClick = onClick,
                 shape = RoundedCornerShape(99.dp),
-                color = colors.cta,
+                color = if (isNext) colors.cta else colors.cta.copy(alpha = 0.85f),
                 modifier = Modifier.height(36.dp),
             ) {
                 Box(
-                    modifier = Modifier.padding(horizontal = 24.dp),
+                    modifier = Modifier.padding(horizontal = 20.dp),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
@@ -490,6 +530,7 @@ private fun KavachRegainExplanationSheet(
         PermissionTarget.OVERLAY -> "Allow show on top"
         PermissionTarget.NOTIFICATIONS -> "Allow notifications"
         PermissionTarget.NOTIFICATION_ACCESS -> "Allow notification shield"
+        PermissionTarget.BATTERY_SAVER -> "Allow background running"
     }
 
     val bullets = when (permission) {
@@ -514,6 +555,12 @@ private fun KavachRegainExplanationSheet(
             "This works only while your study timer is on.",
             "SAFAR does not save notification text.",
             "You can turn this off anytime in phone Settings.",
+        )
+        PermissionTarget.BATTERY_SAVER -> listOf(
+            "Tap Battery Saver in Settings.",
+            "Select 'No restrictions' (or 'Unrestricted').",
+            "This prevents Android from killing focus protection in the background.",
+            "Especially important for Xiaomi, Oppo, Vivo, Samsung, and OnePlus.",
         )
     }
 

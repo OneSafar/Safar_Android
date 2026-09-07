@@ -2,7 +2,19 @@ package com.safarparmar.app.data.remote.dto
 
 import com.google.gson.annotations.SerializedName
 
-data class SignupRequest(val name: String, val email: String, val password: String, val examType: String?, val preparationStage: String?, val gender: String?, val profileImage: String?)
+data class SignupRequest(
+    val name: String,
+    val email: String,
+    val password: String,
+    val examType: String?,
+    val preparationStage: String?,
+    val gender: String?,
+    val profileImage: String?,
+    val deviceId: String? = null,
+    val referralSource: String? = null,
+    val utmMedium: String? = null,
+    val utmCampaign: String? = null
+)
 data class LoginRequest(val email: String, val password: String)
 data class ForgotPasswordRequest(val email: String)
 data class ForgotPasswordResponse(val message: String?, val resetToken: String? = null, val success: Boolean = true)
@@ -51,5 +63,9 @@ data class LoginHistoryItemDto(val timestamp: String? = null)
 
 data class GoogleLoginRequest(
     val token: String,
-    val platform: String = "android"
+    val platform: String = "android",
+    val deviceId: String? = null,
+    val referralSource: String? = null,
+    val utmMedium: String? = null,
+    val utmCampaign: String? = null
 )

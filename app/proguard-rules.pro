@@ -10,6 +10,9 @@
 -keep class com.safarparmar.app.feature.**.data.local.** { *; }
 -keep class com.safarparmar.app.feature.**.data.remote.** { *; }
 -keep class com.safarparmar.app.feature.**.domain.model.** { *; }
+-keep class com.safarparmar.app.feature.youtubestudyv2.** { *; }
+-keep class com.safarparmar.app.feature.kavachanalytics.** { *; }
+-keep class com.safarparmar.app.ui.ekagra.focusshield.QuickUnlockActionReceiver { *; }
 
 # Gson serialization & annotations
 -keepattributes *Annotation*,Signature,InnerClasses,EnclosingMethod

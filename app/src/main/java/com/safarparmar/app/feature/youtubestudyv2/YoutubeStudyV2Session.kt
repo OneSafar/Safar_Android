@@ -1,6 +1,6 @@
 package com.safarparmar.app.feature.youtubestudyv2
 
-/** Pure tap-gated watch session. Home previews and autoplay never create one. */
+/** Normal entry is tap-gated; a fully identified watch page can restore a session. */
 class YoutubeStudyV2Session {
     enum class State { BROWSING, VIDEO_TAPPED, MONITORING }
 
@@ -30,7 +30,12 @@ class YoutubeStudyV2Session {
             onBrowsing()
             return false
         }
-        if (state == State.BROWSING) return false
+        if (state == State.BROWSING) {
+            if (!observation.canResumeWatchSession || observation.kind != YoutubeV2ContentKind.VIDEO ||
+                observation.title.isNullOrBlank() || !observation.hasOwnerEvidence ||
+                observation.adPlaying
+            ) return false
+        }
         // Once a user explicitly enters a watch session, YouTube autoplay/next
         // may change the title and owner without another accessibility click.
         // Keep monitoring that watch session and re-evaluate the new stable key.

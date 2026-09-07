@@ -132,6 +132,10 @@ fun EkagraKavachInlineCard(
 
     fun onKavachToggle(enabled: Boolean) {
         if (enabled) {
+            if (shieldState.blockedPackages.isEmpty()) {
+                android.widget.Toast.makeText(context, "Select an app to block first", android.widget.Toast.LENGTH_SHORT).show()
+                return
+            }
             if (requiredPermissionsGranted) onToggleEnabled(true) else onSetupPermissions()
         } else {
             onToggleEnabled(false)

@@ -127,6 +127,15 @@ class SafarDataStore @Inject constructor(
         val PREMIUM_FEATURE_NISHTHA_ANALYTICS = booleanPreferencesKey("premium_feature_nishtha_analytics")
         val PREMIUM_FEATURE_FOCUS_ANALYTICS = booleanPreferencesKey("premium_feature_focus_analytics")
 
+        // Referral & Attribution
+        val REFERRAL_UTM_SOURCE   = stringPreferencesKey("referral_utm_source")
+        val REFERRAL_UTM_MEDIUM   = stringPreferencesKey("referral_utm_medium")
+        val REFERRAL_UTM_CAMPAIGN = stringPreferencesKey("referral_utm_campaign")
+        val REFERRAL_RAW          = stringPreferencesKey("referral_raw")
+        val REFERRAL_SYNCED       = booleanPreferencesKey("referral_synced")
+        val REFERRAL_SYNCED_USER = stringPreferencesKey("referral_synced_user")
+        val DEVICE_INSTALL_ID     = stringPreferencesKey("device_install_id")
+
         // Focus Shield
         val FOCUS_SHIELD_ENABLED          = booleanPreferencesKey("focus_shield_enabled")
         val FOCUS_SHIELD_STRICT_MODE      = booleanPreferencesKey("focus_shield_strict_mode")
@@ -293,6 +302,59 @@ class SafarDataStore @Inject constructor(
     val selectedStudyCircleId: Flow<String?> = context.dataStore.data
         .catch { emit(emptyPreferences()) }
         .map { it[Keys.SELECTED_STUDY_CIRCLE_ID] }
+
+    // ── Referral & Attribution Flows ──────────────────────────────────────────
+
+    val referralUtmSource: Flow<String?> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[Keys.REFERRAL_UTM_SOURCE] }
+
+    val referralUtmMedium: Flow<String?> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[Keys.REFERRAL_UTM_MEDIUM] }
+
+    val referralUtmCampaign: Flow<String?> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[Keys.REFERRAL_UTM_CAMPAIGN] }
+
+    val referralRaw: Flow<String?> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[Keys.REFERRAL_RAW] }
+
+    val referralSynced: Flow<Boolean> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[Keys.REFERRAL_SYNCED] ?: false }
+
+    val referralSyncedUser: Flow<String?> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[Keys.REFERRAL_SYNCED_USER] }
+
+    suspend fun saveReferralInfo(source: String?, medium: String?, campaign: String?, raw: String?) {
+        context.dataStore.edit { prefs ->
+            if (source != null) prefs[Keys.REFERRAL_UTM_SOURCE] = source
+            if (medium != null) prefs[Keys.REFERRAL_UTM_MEDIUM] = medium
+            if (campaign != null) prefs[Keys.REFERRAL_UTM_CAMPAIGN] = campaign
+            if (raw != null) prefs[Keys.REFERRAL_RAW] = raw
+            prefs[Keys.REFERRAL_SYNCED] = false
+        }
+    }
+
+    suspend fun setReferralSynced(synced: Boolean, userId: String? = null) {
+        context.dataStore.edit { prefs ->
+            prefs[Keys.REFERRAL_SYNCED] = synced
+            if (synced) prefs[Keys.REFERRAL_SYNCED_USER] = userId ?: ""
+        }
+    }
+
+    suspend fun getOrCreateDeviceInstallId(): String {
+        // Read and create in one transaction: auth and install capture run concurrently.
+        val prefs = context.dataStore.edit { current ->
+            if (current[Keys.DEVICE_INSTALL_ID].isNullOrBlank()) {
+                current[Keys.DEVICE_INSTALL_ID] = java.util.UUID.randomUUID().toString()
+            }
+        }
+        return requireNotNull(prefs[Keys.DEVICE_INSTALL_ID])
+    }
 
     // ── Focus Shield Flows ────────────────────────────────────────────────────
 

@@ -14,20 +14,12 @@ import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.FrameLayout
-import android.widget.LinearLayout
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
-import androidx.lifecycle.lifecycleScope
-import com.safarparmar.app.data.remote.socket.MehfilSocketManager
-import com.safarparmar.app.feature.live.data.LiveSocketConnector
 import dagger.hilt.android.AndroidEntryPoint
-import javax.inject.Inject
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 /**
  * A dedicated, plain Android Activity (no Compose) for full-screen video playback.
@@ -49,24 +41,10 @@ import kotlinx.coroutines.launch
 @AndroidEntryPoint
 class VideoPlayerActivity : ComponentActivity() {
 
-    @Inject lateinit var socketManager: MehfilSocketManager
-    @Inject lateinit var socketConnector: LiveSocketConnector
-
     private var webView: WebView? = null
     private var customView: View? = null
     private var customViewCallback: WebChromeClient.CustomViewCallback? = null
     private lateinit var rootLayout: FrameLayout
-
-    /** Holds the video and the chat pane as siblings; never composited over each other. */
-    private lateinit var contentRow: LinearLayout
-    private var chatPane: LiveChatPaneView? = null
-
-    private var sessionId: String = ""
-    private var sessionStatus: String = ""
-    private var currentUserName: String = "Student"
-    private var currentUserId: String = ""
-    private var cooldownSeconds: Int = DEFAULT_LIVE_CHAT_COOLDOWN_SECONDS
-    private var cooldownJob: Job? = null
 
     companion object {
         private const val EXTRA_EMBED_URL = "extra_embed_url"
@@ -123,17 +101,7 @@ class VideoPlayerActivity : ComponentActivity() {
             },
         )
 
-        // A live session is a 16:9 landscape video, and this screen exists only to
-        // play it. Locking a phone to PORTRAIT letterboxed that video into a thin
-        // strip with black above and below — so "fullscreen" still meant the
-        // student had to rotate or hunt for YouTube's own fullscreen button.
-        // Opening in landscape makes the video fill the screen immediately, which
-        // is the whole point of this activity.
-        //
-        // SENSOR_LANDSCAPE (not plain LANDSCAPE) so both landscape orientations
-        // work and the phone is not forced to one physical direction. Tablets keep
-        // full sensor freedom — their screen is large enough that portrait is still
-        // a perfectly good viewing position.
+        // Dedicated fullscreen video player in landscape
         val isTablet = resources.configuration.smallestScreenWidthDp >= 600
         requestedOrientation = if (isTablet) {
             ActivityInfo.SCREEN_ORIENTATION_SENSOR
@@ -150,9 +118,6 @@ class VideoPlayerActivity : ComponentActivity() {
 
         // ── WebView ─────────────────────────────────────────────────────────────
         val wv = WebView(this).apply {
-            // Do NOT set LAYER_TYPE_HARDWARE — see YouTubePlayerWebView.kt for explanation.
-            // Default LAYER_TYPE_NONE lets SurfaceFlinger composite video correctly.
-
             val cookieManager = CookieManager.getInstance()
             cookieManager.setAcceptCookie(true)
             cookieManager.setAcceptThirdPartyCookies(this, true)
@@ -219,9 +184,7 @@ class VideoPlayerActivity : ComponentActivity() {
                             ViewGroup.LayoutParams.MATCH_PARENT,
                         ),
                     )
-                    // Hide the whole row, not just the WebView: YouTube's own
-                    // fullscreen should be exactly that, with no chat beside it.
-                    contentRow.visibility = View.GONE
+                    this@apply.visibility = View.GONE
                     hideSystemBars()
                 }
 
@@ -230,7 +193,7 @@ class VideoPlayerActivity : ComponentActivity() {
                     rootLayout.removeView(cv)
                     customView = null
                     customViewCallback = null
-                    contentRow.visibility = View.VISIBLE
+                    this@apply.visibility = View.VISIBLE
                     hideSystemBars()
                 }
 
@@ -243,187 +206,16 @@ class VideoPlayerActivity : ComponentActivity() {
 
         webView = wv
 
-        // Video and chat sit side by side inside contentRow. YouTube's own
-        // fullscreen (customView) is still added straight to rootLayout, so it
-        // covers both and gives a genuinely uninterrupted picture.
-        contentRow = LinearLayout(this).apply {
-            orientation = if (isLandscape()) LinearLayout.HORIZONTAL else LinearLayout.VERTICAL
-            setBackgroundColor(Color.BLACK)
-        }
+        // 100% pure video display in landscape. No chat sidebar or overlay inside the player.
         rootLayout.addView(
-            contentRow,
+            wv,
             FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT,
             ),
         )
 
-        sessionId = intent.getStringExtra(EXTRA_SESSION_ID).orEmpty()
-        sessionStatus = intent.getStringExtra(EXTRA_SESSION_STATUS).orEmpty()
-
-        addVideoAndChat(wv)
-
         wv.loadUrl(sanitizedUrl, mapOf("Referer" to "https://safar.parmarssc.in/"))
-
-        if (sessionId.isNotBlank()) startLiveChat()
-    }
-
-    private fun isLandscape(): Boolean =
-        resources.configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
-
-    /**
-     * Video takes the majority of the space; chat gets a readable column beside it
-     * in landscape, or a strip below it in portrait.
-     */
-    private fun addVideoAndChat(wv: WebView) {
-        contentRow.removeAllViews()
-        val landscape = isLandscape()
-        contentRow.orientation = if (landscape) LinearLayout.HORIZONTAL else LinearLayout.VERTICAL
-
-        if (sessionId.isBlank()) {
-            contentRow.addView(
-                wv,
-                LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                ),
-            )
-            return
-        }
-
-        val pane = chatPane ?: LiveChatPaneView(this).also { created ->
-            created.onSend = ::sendComment
-            chatPane = created
-        }
-        (pane.parent as? ViewGroup)?.removeView(pane)
-        (wv.parent as? ViewGroup)?.removeView(wv)
-
-        if (landscape) {
-            contentRow.addView(wv, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 0.62f))
-            contentRow.addView(pane, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 0.38f))
-        } else {
-            contentRow.addView(wv, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 0.45f))
-            contentRow.addView(pane, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 0.55f))
-        }
-    }
-
-    override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
-        super.onConfigurationChanged(newConfig)
-        webView?.let { addVideoAndChat(it) }
-    }
-
-    // ── Live chat ────────────────────────────────────────────────────────────────
-
-    private fun startLiveChat() {
-        val pane = chatPane ?: return
-        pane.setChatOpen(false, "Connecting to live comments…")
-
-        lifecycleScope.launch {
-            currentUserName = socketConnector.currentUserName()
-            currentUserId = socketConnector.currentUserId()
-            when (val result = socketConnector.ensureConnected()) {
-                is LiveSocketConnector.Result.SignInRequired ->
-                    pane.setChatOpen(false, result.message)
-                is LiveSocketConnector.Result.Connecting -> Unit
-            }
-        }
-
-        // Join as soon as the socket is up, and re-join after any reconnect.
-        lifecycleScope.launch {
-            socketManager.connected.collect { isConnected ->
-                if (isConnected && sessionId.isNotBlank()) {
-                    socketManager.emitLiveJoin(sessionId)
-                }
-            }
-        }
-
-        lifecycleScope.launch {
-            socketManager.liveMessage.collect { msg ->
-                pane.addMessage(
-                    author = msg.name,
-                    text = msg.text,
-                    isMine = msg.userId.isNotBlank() && msg.userId == currentUserId,
-                    isHost = msg.isHost,
-                )
-            }
-        }
-
-        lifecycleScope.launch {
-            socketManager.liveChatState.collect { state ->
-                if (state.sessionId != sessionId) return@collect
-                if (state.cooldownSeconds > 0) cooldownSeconds = state.cooldownSeconds
-                if (!state.isChatOpen) cooldownJob?.cancel()
-                pane.setChatOpen(state.isChatOpen, closedReasonFor(sessionStatus))
-            }
-        }
-
-        lifecycleScope.launch {
-            socketManager.liveViewerCount.collect { viewers ->
-                if (viewers.sessionId != sessionId) return@collect
-                pane.setViewerCount(viewers.count, isLive = sessionStatus == "live")
-            }
-        }
-
-        lifecycleScope.launch {
-            socketManager.liveStatusChanged.collect { change ->
-                if (change.sessionId != sessionId) return@collect
-                sessionStatus = change.status
-                if (!change.status.equals("live", ignoreCase = true)) {
-                    cooldownJob?.cancel()
-                    pane.setChatOpen(false, closedReasonFor(change.status))
-                }
-            }
-        }
-
-        lifecycleScope.launch {
-            socketManager.liveError.collect { error ->
-                when (error.code) {
-                    "RATE_LIMITED" -> startCooldown(
-                        ((error.retryAfterMs + 999L) / 1000L).toInt().coerceAtLeast(1),
-                    )
-                    "CHAT_CLOSED" -> pane.setChatOpen(false, closedReasonFor(sessionStatus))
-                    else -> android.util.Log.w("VideoPlayerActivity", "live:error ${error.message}")
-                }
-            }
-        }
-    }
-
-    private fun sendComment(text: String) {
-        if (sessionId.isBlank()) return
-        if (!socketManager.isConnected()) {
-            lifecycleScope.launch { socketConnector.ensureConnected() }
-            return
-        }
-        socketManager.emitLiveMessage(
-            sessionId = sessionId,
-            name = currentUserName,
-            text = text.take(500),
-        )
-        // Padded by a second: the server's window opens when it receives the
-        // message, so a timer started here would otherwise expire slightly early
-        // and the next send would race it.
-        startCooldown(cooldownSeconds + 1)
-    }
-
-    private fun startCooldown(seconds: Int) {
-        val pane = chatPane ?: return
-        cooldownJob?.cancel()
-        cooldownJob = lifecycleScope.launch {
-            var remaining = seconds.coerceAtLeast(1)
-            pane.setCooldown(remaining)
-            while (remaining > 0) {
-                delay(1_000L)
-                remaining -= 1
-                pane.setCooldown(remaining)
-            }
-        }
-    }
-
-    private fun closedReasonFor(status: String): String = when (status.lowercase()) {
-        "scheduled" -> "Comments open when the session goes live."
-        "ended" -> "This session has ended, so comments are closed."
-        "cancelled" -> "This session was cancelled."
-        else -> "Comments are turned off for this session."
     }
 
     // ── Lifecycle ────────────────────────────────────────────────────────────────
@@ -440,10 +232,6 @@ class VideoPlayerActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
-        cooldownJob?.cancel()
-        if (sessionId.isNotBlank()) {
-            runCatching { socketManager.emitLiveLeave(sessionId) }
-        }
         webView?.apply {
             stopLoading()
             loadUrl("about:blank")

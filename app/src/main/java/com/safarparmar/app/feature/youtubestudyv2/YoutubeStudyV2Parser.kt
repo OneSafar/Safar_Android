@@ -40,6 +40,7 @@ data class YoutubeV2Observation(
     val exactHandle: String? = null,
     val displayName: String? = null,
     val adPlaying: Boolean = false,
+    val canResumeWatchSession: Boolean = false,
 ) {
     val hasOwnerEvidence: Boolean
         get() = !exactHandle.isNullOrBlank() || !displayName.isNullOrBlank()
@@ -99,6 +100,11 @@ object YoutubeStudyV2Parser {
             ?.let { cleanText(it.text ?: it.contentDescription) }
 
         val owner = findOwnerRow(snapshot, visible, playbackRegion.bottom, title)
+        val feedSelected = visible.any { index ->
+            val node = nodes[index]
+            node.selected && listOf("pivot_home", "pivot_subscriptions", "pivot_library")
+                .any(node.viewId.orEmpty().lowercase()::contains)
+        }
         return YoutubeV2Observation(
             kind = kind,
             watchScreenConfirmed = true,
@@ -106,6 +112,7 @@ object YoutubeStudyV2Parser {
             exactHandle = owner?.handle,
             displayName = owner?.displayName,
             adPlaying = isAdPlayback(nodes, visible, playbackRegion),
+            canResumeWatchSession = !feedSelected && owner != null && !title.isNullOrBlank(),
         )
     }
 

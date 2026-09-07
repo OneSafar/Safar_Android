@@ -1,4 +1,5 @@
 package com.safarparmar.app.ui.ekagra
+import androidx.compose.ui.draw.drawBehind
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.*
@@ -34,6 +35,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
@@ -112,6 +114,7 @@ fun EkagraScreen(
     initialView: String? = null,
     viewModel: EkagraViewModel = hiltViewModel(),
     focusShieldViewModel: com.safarparmar.app.ui.ekagra.focusshield.FocusShieldViewModel = hiltViewModel(),
+    youtubeViewModel: com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ViewModel = hiltViewModel(),
 ) {
     val activeSession        by viewModel.activeSession.collectAsStateWithLifecycle()
     val ekagraAnalytics      by viewModel.ekagraAnalytics.collectAsStateWithLifecycle()
@@ -120,7 +123,19 @@ fun EkagraScreen(
     val context              = LocalContext.current
     val requestNotificationPermission = rememberNotificationPermissionRequester()
     val shieldState          by focusShieldViewModel.shieldState.collectAsStateWithLifecycle()
+    val youtubeState         by youtubeViewModel.state.collectAsStateWithLifecycle()
     val haptics              = LocalHapticFeedback.current
+    val lifecycleOwner       = LocalLifecycleOwner.current
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                youtubeViewModel.refreshPermission()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     // fallback flows when timerService is null
     val fallbackSecondsLeft      = remember { MutableStateFlow(25 * 60) }
@@ -1418,22 +1433,18 @@ fun EkagraScreen(
                                         label = "gradientAngle"
                                     )
 
-                                    val configuration = LocalConfiguration.current
-                                    val density = LocalDensity.current
-                                    val screenWidthPx = with(density) { configuration.screenWidthDp.dp.toPx() }
-                                    val screenHeightPx = with(density) { configuration.screenHeightDp.dp.toPx() }
-
-                                    val dynamicGradient = remember(topColor, bottomColor, angle, screenWidthPx, screenHeightPx) {
+                                    // Read animation state while drawing, not while composing
+                                    // the whole timer screen on every background frame.
+                                    Box(modifier = Modifier.fillMaxSize().drawBehind {
                                         val radians = (angle * Math.PI / 180f).toFloat()
-                                        val centerX = screenWidthPx * (0.5f + 0.25f * kotlin.math.cos(radians))
-                                        val centerY = screenHeightPx * (0.5f + 0.25f * kotlin.math.sin(radians))
-                                        androidx.compose.ui.graphics.Brush.radialGradient(
+                                        val centerX = size.width * (0.5f + 0.25f * kotlin.math.cos(radians))
+                                        val centerY = size.height * (0.5f + 0.25f * kotlin.math.sin(radians))
+                                        drawRect(androidx.compose.ui.graphics.Brush.radialGradient(
                                             colors = listOf(topColor, bottomColor),
-                                            radius = maxOf(screenWidthPx, screenHeightPx) * 1.5f,
-                                            center = androidx.compose.ui.geometry.Offset(centerX, centerY)
-                                        )
-                                    }
-                                    Box(modifier = Modifier.fillMaxSize().background(dynamicGradient))
+                                            radius = maxOf(size.width, size.height).coerceAtLeast(1f) * 1.5f,
+                                            center = androidx.compose.ui.geometry.Offset(centerX, centerY),
+                                        ))
+                                    })
                                 } else {
                                     // Unreachable while the video themes are hidden — every
                                     // selectable theme now has a gradient. Kept so restoring
@@ -1605,6 +1616,11 @@ fun EkagraScreen(
                                         myCircles = myCircles,
                                         selectedStudyCircle = selectedStudyCircle,
                                         onSelectStudyCircle = viewModel::selectStudyCircle,
+                                        showYoutubeBanner = !youtubeState.setupCompleted && !youtubeState.accessibilityEnabled && !youtubeState.bannerDismissed,
+                                        onEnableYoutubeFocus = {
+                                            youtubeViewModel.dismissEkagraBanner()
+                                            onNavigate(Routes.focusShieldTab(1))
+                                        },
                                     )
 
                                     EkagraNavTab.DURATION -> DurationTab(

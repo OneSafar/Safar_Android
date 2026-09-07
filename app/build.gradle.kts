@@ -93,8 +93,8 @@ android {
         applicationId = "com.safarparmar.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 41
-        versionName = "1.6.41"
+        versionCode = 47
+        versionName = "1.6.47"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"$googleWebClientId\"")
         ndk {
@@ -253,6 +253,9 @@ dependencies {
     
     //payments
     implementation("com.razorpay:checkout:1.6.39")
+
+    // Google Play Install Referrer
+    implementation("com.android.installreferrer:installreferrer:2.2")
 
     //credentials / google sign in
     implementation(libs.androidx.credentials)

@@ -14,9 +14,11 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -1207,6 +1209,7 @@ fun DailyTodoSetupSheet(
 ) {
     var taskName by remember { mutableStateOf("") }
     var pendingTodos by remember(plan.id) { mutableStateOf(plan.dailyTodos.orEmpty()) }
+    var todoToEditInSheet by remember { mutableStateOf<com.safarparmar.app.domain.model.studyplanner.DailyTodo?>(null) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     fun addTask() {
@@ -1337,6 +1340,7 @@ fun DailyTodoSetupSheet(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .glassSurface(shape = RoundedCornerShape(14.dp), isDarkTheme = isDark)
+                                .clickable { todoToEditInSheet = todo }
                                 .padding(start = 16.dp, end = 8.dp, top = 10.dp, bottom = 10.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -1348,6 +1352,23 @@ fun DailyTodoSetupSheet(
                                 modifier = Modifier.weight(1f),
                                 color = ink,
                             )
+                            GlassButton(
+                                onClick = { todoToEditInSheet = todo },
+                                accentColor = muted,
+                                shape = RoundedCornerShape(12.dp),
+                                isDarkTheme = isDark,
+                                contentPadding = PaddingValues(8.dp),
+                                tintTopAlpha = if (isDark) 0.28f else 0.22f,
+                                tintBottomAlpha = if (isDark) 0.14f else 0.10f,
+                                greyShadeAlpha = 0.08f,
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = "Rename ${todo.name}",
+                                    tint = ink,
+                                    modifier = Modifier.size(16.dp),
+                                )
+                            }
                             GlassButton(
                                 onClick = { pendingTodos = pendingTodos - todo },
                                 accentColor = muted,
@@ -1368,6 +1389,21 @@ fun DailyTodoSetupSheet(
                         }
                     }
                 }
+            }
+
+            todoToEditInSheet?.let { todo ->
+                com.safarparmar.app.ui.studyplanner.components.TextInputDialog(
+                    title = "Rename daily topic",
+                    label = "Topic name",
+                    initialValue = todo.name,
+                    confirmLabel = "Save",
+                    emptyHint = "Topic name cannot be empty",
+                    onDismiss = { todoToEditInSheet = null },
+                    onConfirm = { newName ->
+                        pendingTodos = pendingTodos.map { if (it.id == todo.id) it.copy(name = newName) else it }
+                        todoToEditInSheet = null
+                    }
+                )
             }
 
             Spacer(Modifier.height(12.dp))
@@ -1427,6 +1463,7 @@ fun DailyTodoSetupSheet(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun DailyTodoSection(
     plan: com.safarparmar.app.domain.model.studyplanner.StudyPlan,
@@ -1437,6 +1474,8 @@ fun DailyTodoSection(
     val scheme = MaterialTheme.colorScheme
     val isDark = !scheme.background.isLightBackground()
     var newTaskName by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("") }
+    var todoToEdit by remember { mutableStateOf<com.safarparmar.app.domain.model.studyplanner.DailyTodo?>(null) }
+    var todoToDelete by remember { mutableStateOf<com.safarparmar.app.domain.model.studyplanner.DailyTodo?>(null) }
     
     val todos = plan.dailyTodos.orEmpty()
     val logs = plan.dailyTodoLogs?.get(todayStr).orEmpty()
@@ -1591,18 +1630,24 @@ fun DailyTodoSection(
                 Column(modifier = Modifier.fillMaxWidth()) {
                     todos.forEachIndexed { index, todo ->
                         val isDone = todo.id in logs
+                        var showMenu by remember { mutableStateOf(false) }
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable {
-                                    val newLogsForToday = if (isDone) logs - todo.id else logs + todo.id
-                                    actions.updatePlan(
-                                        com.safarparmar.app.data.remote.api.UpdatePlanRequest(
-                                            dailyTodoLogs = plan.dailyTodoLogs.orEmpty() + (todayStr to newLogsForToday)
+                                .combinedClickable(
+                                    onClick = {
+                                        val newLogsForToday = if (isDone) logs - todo.id else logs + todo.id
+                                        actions.updatePlan(
+                                            com.safarparmar.app.data.remote.api.UpdatePlanRequest(
+                                                dailyTodoLogs = plan.dailyTodoLogs.orEmpty() + (todayStr to newLogsForToday)
+                                            )
                                         )
-                                    )
-                                }
-                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                                    },
+                                    onLongClick = {
+                                        todoToEdit = todo
+                                    }
+                                )
+                                .padding(start = 16.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
@@ -1614,11 +1659,54 @@ fun DailyTodoSection(
                                 textDecoration = if (isDone) androidx.compose.ui.text.style.TextDecoration.LineThrough else null,
                                 modifier = Modifier.weight(1f)
                             )
-                            AnimatedCheckCircle(
-                                isDone = isDone,
-                                scheme = scheme,
-                                modifier = Modifier.padding(start = 12.dp)
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(2.dp),
+                            ) {
+                                Box {
+                                    IconButton(
+                                        onClick = { showMenu = true },
+                                        modifier = Modifier.size(36.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.MoreVert,
+                                            contentDescription = "Options for ${todo.name}",
+                                            tint = scheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+                                    DropdownMenu(
+                                        expanded = showMenu,
+                                        onDismissRequest = { showMenu = false }
+                                    ) {
+                                        DropdownMenuItem(
+                                            text = { Text("Rename") },
+                                            leadingIcon = {
+                                                Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
+                                            },
+                                            onClick = {
+                                                showMenu = false
+                                                todoToEdit = todo
+                                            }
+                                        )
+                                        DropdownMenuItem(
+                                            text = { Text("Delete", color = scheme.error) },
+                                            leadingIcon = {
+                                                Icon(Icons.Default.Delete, contentDescription = null, tint = scheme.error, modifier = Modifier.size(18.dp))
+                                            },
+                                            onClick = {
+                                                showMenu = false
+                                                todoToDelete = todo
+                                            }
+                                        )
+                                    }
+                                }
+                                AnimatedCheckCircle(
+                                    isDone = isDone,
+                                    scheme = scheme,
+                                    modifier = Modifier.padding(end = 8.dp)
+                                )
+                            }
                         }
                         if (index < todos.lastIndex) {
                             androidx.compose.material3.HorizontalDivider(
@@ -1631,5 +1719,44 @@ fun DailyTodoSection(
                 }
             }
         }
+    }
+
+    todoToEdit?.let { todo ->
+        com.safarparmar.app.ui.studyplanner.components.TextInputDialog(
+            title = "Rename daily topic",
+            label = "Topic name",
+            initialValue = todo.name,
+            confirmLabel = "Save",
+            emptyHint = "Topic name cannot be empty",
+            onDismiss = { todoToEdit = null },
+            onConfirm = { newName ->
+                val updatedTodos = todos.map { if (it.id == todo.id) it.copy(name = newName) else it }
+                actions.updatePlan(
+                    com.safarparmar.app.data.remote.api.UpdatePlanRequest(
+                        dailyTodos = updatedTodos
+                    )
+                )
+                todoToEdit = null
+            }
+        )
+    }
+
+    todoToDelete?.let { todo ->
+        PlanConfirmDialog(
+            title = "Delete daily topic?",
+            body = "Are you sure you want to remove \"${todo.name}\" from your daily to-do list?",
+            onDismiss = { todoToDelete = null },
+            onConfirm = {
+                val updatedTodos = todos.filter { it.id != todo.id }
+                val updatedLogs = plan.dailyTodoLogs?.mapValues { entry -> entry.value.filter { id -> id != todo.id } }
+                actions.updatePlan(
+                    com.safarparmar.app.data.remote.api.UpdatePlanRequest(
+                        dailyTodos = updatedTodos,
+                        dailyTodoLogs = updatedLogs
+                    )
+                )
+                todoToDelete = null
+            }
+        )
     }
 }

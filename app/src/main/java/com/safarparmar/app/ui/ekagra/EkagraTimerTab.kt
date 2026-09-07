@@ -201,6 +201,8 @@ internal fun TimerFocusTab(
     myCircles: List<com.safarparmar.app.data.remote.dto.StudyCircleSummaryDto> = emptyList(),
     selectedStudyCircle: com.safarparmar.app.data.remote.dto.StudyCircleSummaryDto? = null,
     onSelectStudyCircle: (com.safarparmar.app.data.remote.dto.StudyCircleSummaryDto) -> Unit = {},
+    showYoutubeBanner: Boolean = false,
+    onEnableYoutubeFocus: () -> Unit = {},
 ) {
     val scheme  = MaterialTheme.colorScheme
     val configuration   = LocalConfiguration.current
@@ -225,6 +227,7 @@ internal fun TimerFocusTab(
         ) {
             com.safarparmar.app.feature.kavachanalytics.ui.KavachSummaryPills(
                 ink = ink,
+                isDarkTheme = isDarkTheme,
                 themeAccent = themeAccent,
                 onOpenAnalytics = onOpenAnalytics,
                 myCircles = myCircles,
@@ -463,18 +466,27 @@ internal fun TimerFocusTab(
                         textAlign  = TextAlign.Center,
                     )
 
-                    Spacer(Modifier.height(14.dp))
-
-                    EkagraYouTubeStudyBanner(
-                        ink = ink,
-                        isDarkTheme = isDarkTheme,
-                        onEnableClick = { onNavigate(Routes.focusShieldTab(1)) },
-                    )
+                    Spacer(Modifier.height(if (showYoutubeBanner) 72.dp else 16.dp))
                 }
             }
         }
+      }
+
+      AnimatedVisibility(
+          visible = showYoutubeBanner && controlsVisible,
+          enter = fadeIn(animationSpec = tween(500, easing = FastOutSlowInEasing)),
+          exit = fadeOut(animationSpec = tween(500, easing = FastOutSlowInEasing)),
+          modifier = Modifier
+              .align(Alignment.BottomCenter)
+              .padding(start = 20.dp, end = 20.dp, bottom = 12.dp),
+      ) {
+          EkagraYouTubeStudyBanner(
+              ink = ink,
+              isDarkTheme = isDarkTheme,
+              onEnableClick = onEnableYoutubeFocus,
+          )
+      }
     }
-}
 }
 
 // ─── Ekagra YouTube Study Banner ──────────────────────────────────────────────
@@ -533,7 +545,7 @@ internal fun EkagraYouTubeStudyBanner(
                     maxLines = 1,
                 )
                 Text(
-                    text = "Try our new YouTube study mode",
+                    text = "Try YouTube Focus",
                     fontSize = 10.5.sp,
                     fontWeight = FontWeight.Medium,
                     color = ink.secondaryText,

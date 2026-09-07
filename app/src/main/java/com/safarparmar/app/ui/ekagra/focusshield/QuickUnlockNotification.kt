@@ -4,6 +4,8 @@ import android.Manifest
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.app.NotificationCompat
@@ -16,6 +18,8 @@ import kotlin.math.ceil
 
 object QuickUnlockNotification {
     private const val NOTIFICATION_ID = 1005
+    internal const val ACTION_END_UNLOCK = "com.safarparmar.app.action.END_YOUTUBE_QUICK_UNLOCK"
+    internal const val EXTRA_GRACE_UNTIL = "grace_until_ms"
 
     fun show(
         context: Context,
@@ -67,6 +71,23 @@ object QuickUnlockNotification {
             .setUsesChronometer(true)
             .setChronometerCountDown(true)
             .setTimeoutAfter(remainingMs)
+            .apply {
+                if (isYoutubeStudyUnlock) {
+                    val endIntent = Intent(context, QuickUnlockActionReceiver::class.java)
+                        .setAction(ACTION_END_UNLOCK)
+                        // Each unlock has its own action: an old notification cannot end a new unlock.
+                        .setData(Uri.parse("safar://end-youtube-unlock/$graceUntilMs"))
+                        .putExtra(EXTRA_GRACE_UNTIL, graceUntilMs)
+                    addAction(
+                        0,
+                        "End unlock",
+                        PendingIntent.getBroadcast(
+                            context, NOTIFICATION_ID, endIntent,
+                            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+                        ),
+                    )
+                }
+            }
             .build()
 
         context.getSystemService(NotificationManager::class.java)

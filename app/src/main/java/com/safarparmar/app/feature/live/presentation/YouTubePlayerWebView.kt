@@ -12,6 +12,7 @@ import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.FrameLayout
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -46,6 +47,10 @@ fun YouTubePlayerWebView(
     var isFullscreen by remember { mutableStateOf(false) }
     var fullscreenView by remember { mutableStateOf<View?>(null) }
     var fullscreenCallback by remember { mutableStateOf<WebChromeClient.CustomViewCallback?>(null) }
+
+    BackHandler(enabled = isFullscreen) {
+        fullscreenCallback?.onCustomViewHidden()
+    }
 
     DisposableEffect(Unit) {
         onDispose {

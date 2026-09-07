@@ -3,6 +3,7 @@ package com.safarparmar.app.ui.ekagra.focusshield
 import android.app.Application
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import android.widget.Toast
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -182,9 +183,40 @@ class FocusShieldViewModel @Inject constructor(
         )
     }
 
-    // ── Shield settings actions ──────────────────────────────────────────────
+    fun setPendingEnableAfterAppSelection(pending: Boolean) {
+        repo.pendingEnableAfterAppSelection = pending
+    }
 
-    fun setEnabled(enabled: Boolean) = repo.setEnabled(enabled)
+    fun isPendingEnableAfterAppSelection(): Boolean = repo.pendingEnableAfterAppSelection
+
+    fun saveAndEnableShieldIfReady(): Boolean {
+        val selectedPackages = _pickerState.value.allApps
+            .filter { it.isBlocked }
+            .map { it.packageName }
+            .toSet()
+            .ifEmpty { repo.blockedPackages.value }
+
+        if (selectedPackages.isNotEmpty()) {
+            repo.setBlockedPackages(selectedPackages)
+            val hasUsage = FocusShieldPermissionHelper.hasUsageStatsPermission(app)
+            val hasOverlay = FocusShieldPermissionHelper.hasOverlayPermission(app)
+            val hasBatterySaver = FocusShieldPermissionHelper.isIgnoringBatteryOptimizations(app)
+            if (hasUsage && hasOverlay && hasBatterySaver) {
+                repo.pendingEnableAfterAppSelection = false
+                repo.setEnabled(true)
+                return true
+            }
+        }
+        return false
+    }
+
+    fun setEnabled(enabled: Boolean) {
+        if (enabled && repo.blockedPackages.value.isEmpty()) {
+            Toast.makeText(app, "Select an app to block first", Toast.LENGTH_SHORT).show()
+            return
+        }
+        repo.setEnabled(enabled)
+    }
     fun clearActivationMessage() = repo.clearActivationMessage()
     fun setKavachProfile(mode: String) = repo.setKavachProfile(mode)
     fun setStrictMode(enabled: Boolean) = repo.setStrictMode(enabled)

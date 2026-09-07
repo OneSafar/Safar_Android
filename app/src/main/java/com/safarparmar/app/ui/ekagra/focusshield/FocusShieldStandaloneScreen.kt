@@ -4,7 +4,6 @@ import android.content.Intent
 import android.provider.Settings
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -76,7 +75,7 @@ fun FocusShieldStandaloneScreen(
     val scheme = MaterialTheme.colorScheme
     val context = LocalContext.current
     val owner = LocalLifecycleOwner.current
-    val isLight = !isSystemInDarkTheme()
+    val isLight = !isDarkTheme
     val scope = rememberCoroutineScope()
     val pagerState = rememberPagerState(initialPage = initialTab.coerceIn(0, 1)) { 2 }
 
@@ -191,7 +190,7 @@ fun FocusShieldStandaloneScreen(
                             modifier = Modifier.size(17.dp),
                         )
                         Text(
-                            text = "YouTube Mode",
+                            text = "YouTube Focus",
                             fontSize = 14.sp,
                             fontWeight = if (ytActive) FontWeight.Bold else FontWeight.Medium,
                             color = if (ytActive) primaryText(isLight) else secondaryText(isLight),
@@ -245,6 +244,7 @@ fun FocusShieldStandaloneScreen(
                             onGoToEkagra = { onNavigate(Routes.EKAGRA) },
                             onOpenOverlaySettings = viewModel::openOverlaySettings,
                             onRefreshPermissions = viewModel::refreshPermissions,
+                            onSetPendingEnableAfterAppSelection = viewModel::setPendingEnableAfterAppSelection,
                             onMaybeLater = onBack,
                             onSave = onBack,
                         )
@@ -254,10 +254,10 @@ fun FocusShieldStandaloneScreen(
                             state = youtubeState,
                             isLight = isLight,
                             onAgree = {
-                                youtubeViewModel.acceptDisclosure()
                                 if (youtubeState.accessibilityEnabled) youtubeViewModel.goToStep2()
                                 else openAccessibilitySettings()
                             },
+                            onAcceptDisclosure = youtubeViewModel::acceptDisclosure,
                             onNotNow = {
                                 scope.launch { pagerState.animateScrollToPage(0) }
                             },
