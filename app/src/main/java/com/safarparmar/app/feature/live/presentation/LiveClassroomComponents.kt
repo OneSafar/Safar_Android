@@ -79,6 +79,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.safarparmar.app.feature.live.model.LiveSession
 import java.time.Duration
+import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -165,15 +166,15 @@ fun formatLiveScheduledAt(value: String?): String {
 }
 
 /** Formats the next session teaser subtitle matching the design: "Next session: today, 6:00 PM · Quant". */
-fun formatNextSessionSubtitle(scheduledStartAt: String?, title: String?): String {
+fun formatNextSessionSubtitle(scheduledStartAt: String?, title: String?, clock: Clock = Clock.systemDefaultZone()): String {
     if (scheduledStartAt.isNullOrBlank()) {
         return "Next session will be announced soon"
     }
     return try {
         val instant = Instant.parse(scheduledStartAt)
-        val sessionZone = ZoneId.systemDefault()
+        val sessionZone = clock.zone
         val sessionDate = instant.atZone(sessionZone).toLocalDate()
-        val today = LocalDate.now(sessionZone)
+        val today = LocalDate.now(clock)
         val timeFormatter = DateTimeFormatter.ofPattern("h:mm a")
         val formattedTime = timeFormatter.format(instant.atZone(sessionZone))
 
@@ -191,13 +192,13 @@ fun formatNextSessionSubtitle(scheduledStartAt: String?, title: String?): String
 }
 
 /** Formats relative date & duration: "Yesterday · 48 min", "2 days ago · 52 min", "Today · 30 min". */
-fun formatRelativeDateAndDuration(scheduledStartAt: String?, scheduledEndAt: String? = null): String {
+fun formatRelativeDateAndDuration(scheduledStartAt: String?, scheduledEndAt: String? = null, clock: Clock = Clock.systemDefaultZone()): String {
     if (scheduledStartAt.isNullOrBlank()) return "Completed"
     return try {
         val startInstant = Instant.parse(scheduledStartAt)
-        val sessionZone = ZoneId.systemDefault()
+        val sessionZone = clock.zone
         val startDate = startInstant.atZone(sessionZone).toLocalDate()
-        val today = LocalDate.now(sessionZone)
+        val today = LocalDate.now(clock)
         val daysBetween = ChronoUnit.DAYS.between(startDate, today)
 
         val dateLabel = when {

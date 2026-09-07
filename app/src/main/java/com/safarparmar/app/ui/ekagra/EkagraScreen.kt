@@ -148,6 +148,16 @@ fun EkagraScreen(
     val timerRunning      by (timerService?.isRunning          ?: fallbackTimerRunning).collectAsStateWithLifecycle()
     val timerMode         by (timerService?.timerMode          ?: fallbackTimerMode).collectAsStateWithLifecycle()
     val isMuted           by (timerService?.isMuted            ?: MutableStateFlow(false)).collectAsStateWithLifecycle()
+    val presenceDeadline by (timerService?.presenceDeadline ?: remember { MutableStateFlow(0L) }).collectAsStateWithLifecycle()
+    val presenceEnded by (timerService?.presenceEnded ?: remember { MutableStateFlow(0) }).collectAsStateWithLifecycle()
+    if (presenceDeadline > 0L) {
+        AlertDialog(
+            onDismissRequest = {},
+            title = { Text("Are you still there?") },
+            text = { Text("Still studying? Confirm within 5 minutes. Otherwise, your timer will stop and your elapsed study time will be saved automatically.") },
+            confirmButton = { TextButton(onClick = { timerService?.confirmPresence() }) { Text("Yes, I’m still here") } },
+        )
+    }
     val blockedHitCount   by focusShieldViewModel.blockedHitCount.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -566,6 +576,16 @@ fun EkagraScreen(
             timerService?.reset()
             associatedGoalId = null; associatedGoalTitle = null
             associatedTopicId = null; associatedTopicTitle = null; associatedPlanId = null
+        }
+    }
+
+    LaunchedEffect(presenceEnded) {
+        if (presenceEnded > 0) {
+            timerService?.acknowledgePresenceEnded()
+            activeSession?.id?.let { viewModel.discardSession(it) }
+            associatedGoalId = null; associatedGoalTitle = null
+            associatedTopicId = null; associatedTopicTitle = null; associatedPlanId = null
+            viewModel.loadEkagraAnalytics()
         }
     }
 

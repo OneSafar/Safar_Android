@@ -75,6 +75,7 @@ class TimerService : Service() {
         const val FOCUS_SHIELD_BLOCKED_NOTIFICATION_ID = 1003
         const val FOCUS_SHIELD_ACTIVE_NOTIFICATION_ID = 1004
         const val ACTION_PLAY_PAUSE = "com.safar.ekagra.ACTION_PLAY_PAUSE"
+        const val ACTION_CONFIRM_PRESENCE = "com.safar.ekagra.ACTION_CONFIRM_PRESENCE"
         const val ACTION_PAUSE = "com.safar.ekagra.ACTION_PAUSE"
         const val ACTION_RESET      = "com.safar.ekagra.ACTION_RESET"
         const val ACTION_FOCUS_SHIELD_BLOCKED = "com.safar.ekagra.ACTION_FOCUS_SHIELD_BLOCKED"
@@ -170,6 +171,13 @@ class TimerService : Service() {
     private val timerStateWrites = Channel<TimerStateWrite>(Channel.CONFLATED)
     private var persistenceWriterJob: Job? = null
     private var lastPeriodicStateWriteElapsedMs = 0L
+    private var presenceSeconds = 0
+    private val _presenceDeadline = MutableStateFlow(0L)
+    val presenceDeadline: StateFlow<Long> = _presenceDeadline
+    private val _presenceEnded = MutableStateFlow(0)
+    val presenceEnded: StateFlow<Int> = _presenceEnded
+    private var presenceJob: Job? = null
+    private var presencePlayer: MediaPlayer? = null
     private var tickJob: Job? = null
     private var focusPresenceJob: Job? = null
     private var lastTickElapsedMs: Long = 0L
@@ -191,6 +199,8 @@ class TimerService : Service() {
             val mode: String,
             val isRunning: Boolean,
             val savedAtMs: Long,
+            val presenceSeconds: Int,
+            val presenceDeadline: Long,
             val suspendedTotal: Int,
             val suspendedRemaining: Int,
             val standardBreakSeconds: Int,
@@ -459,6 +469,8 @@ class TimerService : Service() {
                         .putInt(KEY_REMAINING_SECONDS, write.remaining)
                         .putBoolean(KEY_IS_RUNNING, write.isRunning)
                         .putLong(KEY_SAVED_AT_MS, write.savedAtMs)
+                        .putInt("presence_seconds", write.presenceSeconds)
+                        .putLong("presence_deadline", write.presenceDeadline)
                         .putInt(KEY_SUSPENDED_TOTAL_SECONDS, write.suspendedTotal)
                         .putInt(KEY_SUSPENDED_REMAINING_SECONDS, write.suspendedRemaining)
                         .putInt(KEY_STANDARD_BREAK_SECONDS, write.standardBreakSeconds)
@@ -524,6 +536,7 @@ class TimerService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
+            ACTION_CONFIRM_PRESENCE -> confirmPresence()
             ACTION_PLAY_PAUSE -> togglePlayPause()
             ACTION_PAUSE -> if (_isRunning.value) pause()
             ACTION_RESET      -> reset()
@@ -537,6 +550,9 @@ class TimerService : Service() {
     }
 
     override fun onDestroy() {
+        presenceJob?.cancel()
+        presencePlayer?.release()
+        presencePlayer = null
         (application as? Application)?.unregisterActivityLifecycleCallbacks(activityLifecycleCallbacks)
         TimerBubbleOverlay.hide()
         releaseMusic()
@@ -577,6 +593,7 @@ class TimerService : Service() {
     }
 
     fun setDuration(mode: TimerMode, seconds: Int, breakSeconds: Int = 5 * 60) {
+        clearPresence()
         // Reconfiguring the timer abandons whatever was running — an explicit choice.
         endKavachAnalyticsSession(KavachSessionOutcome.ENDED_EARLY)
         _timerMode.value    = mode
@@ -677,6 +694,7 @@ class TimerService : Service() {
     )
 
     fun startBreak(mode: TimerMode, seconds: Int): Boolean {
+        if (_presenceDeadline.value > 0L) return false
         if (mode == TimerMode.FOCUS || mode == TimerMode.POMODORO || seconds <= 0) return false
 
         val focusState = when {
@@ -748,13 +766,23 @@ class TimerService : Service() {
             while (_isRunning.value && (_timerMode.value == TimerMode.STOPWATCH || _secondsLeft.value > 0)) {
                 delay(1000L)
                 val now = SystemClock.elapsedRealtime()
-                val elapsedSeconds = ((now - lastTickElapsedMs) / 1000L).toInt().coerceAtLeast(1)
+                var elapsedSeconds = ((now - lastTickElapsedMs) / 1000L).toInt().coerceAtLeast(1)
                 lastTickElapsedMs = now
+                var expired = false
+                if (_timerMode.value != TimerMode.BREAK) {
+                    val result = advancePresence(presenceSeconds, _presenceDeadline.value, elapsedSeconds,
+                        System.currentTimeMillis(), if (_timerMode.value == TimerMode.STOPWATCH) Int.MAX_VALUE else _secondsLeft.value)
+                    elapsedSeconds = result.creditedSeconds
+                    presenceSeconds += elapsedSeconds
+                    expired = result.expired
+                    if (result.deadline != _presenceDeadline.value) requestPresence(result.deadline, !expired)
+                }
                 if (_timerMode.value == TimerMode.STOPWATCH) {
                     _secondsLeft.value = _secondsLeft.value + elapsedSeconds
                 } else {
                     _secondsLeft.value = (_secondsLeft.value - elapsedSeconds).coerceAtLeast(0)
                 }
+                if (expired) { endForMissedPresence(); return@launch }
                 persistTimerState(periodic = true)
                 updateNotification()
                 // Refresh the floating pill each tick (no-op when SAFAR is foregrounded).
@@ -805,6 +833,7 @@ class TimerService : Service() {
                     if (completedMode == TimerMode.POMODORO) {
                         _pomodorosCompleted.value += 1
                         if (_pomodorosCompleted.value >= _targetPomodoroLoops.value) {
+                            clearPresence()
                             // Save once for the whole logical Pomodoro series. Saving each
                             // focus loop independently creates duplicate history rows and
                             // makes an interrupted later loop lose earlier completed time.
@@ -837,6 +866,7 @@ class TimerService : Service() {
                         start() // Pomodoro always auto-starts break
                         return@launch
                     } else {
+                        clearPresence()
                         enqueueCompletedFocusSessionSave(
                             totalSeconds = completedProgress.plannedSeconds,
                             actualSeconds = completedProgress.actualSeconds,
@@ -914,6 +944,7 @@ class TimerService : Service() {
     }
 
     fun reset() {
+        clearPresence()
         // The student pressed Reset/End: an explicit early finish, counted once.
         endKavachAnalyticsSession(KavachSessionOutcome.ENDED_EARLY)
         _isRunning.value   = false
@@ -1014,14 +1045,15 @@ class TimerService : Service() {
         totalSeconds: Int,
         actualSeconds: Int,
         mode: TimerMode,
+        endedAtOverride: String? = null,
     ) {
         val total = totalSeconds.coerceAtLeast(1)
         val actual = actualSeconds.coerceIn(0, total)
         if (actual == 0) return
-        val endedAt = Instant.now().toString()
+        val endedAt = endedAtOverride ?: Instant.now().toString()
         val metadata = autoSaveMetadata ?: AutoSaveMetadata(
             clientSessionId = "ekagra-${UUID.randomUUID()}",
-            startedAt = Instant.now().minusSeconds(actual.toLong()).toString(),
+            startedAt = Instant.parse(endedAt).minusSeconds(actual.toLong()).toString(),
             taskTitle = null,
             goalId = null,
             goalTitle = null,
@@ -1133,6 +1165,8 @@ class TimerService : Service() {
                 mode = _timerMode.value.name,
                 isRunning = _isRunning.value,
                 savedAtMs = System.currentTimeMillis(),
+                presenceSeconds = presenceSeconds,
+                presenceDeadline = _presenceDeadline.value,
                 suspendedTotal = suspended?.totalSeconds ?: 0,
                 suspendedRemaining = suspended?.remainingSeconds ?: 0,
                 standardBreakSeconds = standardBreakSeconds,
@@ -1156,12 +1190,21 @@ class TimerService : Service() {
         val savedRemaining = prefs.getInt(KEY_REMAINING_SECONDS, total).coerceIn(0, total)
         val wasRunning = prefs.getBoolean(KEY_IS_RUNNING, false)
         val savedAtMs = prefs.getLong(KEY_SAVED_AT_MS, System.currentTimeMillis())
-        val elapsedWhileRunning = if (wasRunning) {
+        var elapsedWhileRunning = if (wasRunning) {
             ((System.currentTimeMillis() - savedAtMs) / 1000L).toInt().coerceAtLeast(0)
         } else {
             0
         }
-        val remaining = (savedRemaining - elapsedWhileRunning).coerceIn(0, total)
+        presenceSeconds = prefs.getInt("presence_seconds", if (mode == TimerMode.STOPWATCH) savedRemaining else total - savedRemaining)
+        _presenceDeadline.value = prefs.getLong("presence_deadline", 0L)
+        val presence = if (mode != TimerMode.BREAK) advancePresence(presenceSeconds, _presenceDeadline.value,
+            elapsedWhileRunning, System.currentTimeMillis(), if (mode == TimerMode.STOPWATCH) Int.MAX_VALUE else savedRemaining) else null
+        if (presence != null) {
+            elapsedWhileRunning = presence.creditedSeconds
+            presenceSeconds += elapsedWhileRunning
+            _presenceDeadline.value = presence.deadline
+        }
+        val remaining = if (mode == TimerMode.STOPWATCH) savedRemaining + elapsedWhileRunning else (savedRemaining - elapsedWhileRunning).coerceIn(0, total)
         val suspendedTotal = prefs.getInt(KEY_SUSPENDED_TOTAL_SECONDS, 0)
         val suspendedRemaining = prefs.getInt(KEY_SUSPENDED_REMAINING_SECONDS, 0)
         standardBreakSeconds = prefs.getInt(KEY_STANDARD_BREAK_SECONDS, 5 * 60)
@@ -1184,6 +1227,11 @@ class TimerService : Service() {
             null
         }
 
+        if (presence?.expired == true) {
+            endForMissedPresence()
+            return
+        }
+        if (_presenceDeadline.value > 0) requestPresence(_presenceDeadline.value, true)
         if (remaining <= 0) {
             if (wasRunning) {
                 if (_targetPomodoroLoops.value > 0) {
@@ -1217,6 +1265,77 @@ class TimerService : Service() {
     }
 
     // ── Notification ──────────────────────────────────────────────────────────
+    private fun clearPresence() {
+        presenceSeconds = 0
+        _presenceDeadline.value = 0L
+        presenceJob?.cancel()
+        presenceJob = null
+        presencePlayer?.release()
+        presencePlayer = null
+    }
+
+    private fun requestPresence(deadline: Long, playSound: Boolean) {
+        _presenceDeadline.value = deadline
+        if (deadline == 0L) return
+        if (playSound) {
+            runCatching {
+                presencePlayer?.release()
+                presencePlayer = MediaPlayer.create(this, R.raw.presence_chime)?.apply {
+                    setVolume(0.6f, 0.6f)
+                    setOnCompletionListener { player ->
+                        if (presencePlayer === player) presencePlayer = null
+                        player.release()
+                    }
+                    start()
+                }
+            }
+        }
+        persistTimerState()
+        updateNotification()
+        presenceJob?.cancel()
+        presenceJob = scope.launch {
+            delay((deadline - System.currentTimeMillis()).coerceAtLeast(0))
+            if (_presenceDeadline.value == deadline) {
+                // Account for time since the last tick, bounded by the original deadline.
+                if (_isRunning.value && _timerMode.value != TimerMode.BREAK) {
+                    val seconds = ((SystemClock.elapsedRealtime() - lastTickElapsedMs) / 1000L).toInt().coerceAtLeast(0)
+                    val result = advancePresence(presenceSeconds, deadline, seconds, System.currentTimeMillis(),
+                        if (_timerMode.value == TimerMode.STOPWATCH) Int.MAX_VALUE else _secondsLeft.value)
+                    if (_timerMode.value == TimerMode.STOPWATCH) _secondsLeft.value += result.creditedSeconds
+                    else _secondsLeft.value -= result.creditedSeconds
+                }
+                endForMissedPresence()
+            }
+        }
+    }
+
+    fun acknowledgePresenceEnded() { _presenceEnded.value = 0 }
+
+    fun confirmPresence() {
+        val deadline = _presenceDeadline.value
+        if (deadline == 0L) return
+        if (System.currentTimeMillis() >= deadline) return // Deadline job handles the bounded save.
+        clearPresence()
+        persistTimerState()
+        updateNotification()
+    }
+
+    private fun endForMissedPresence() {
+        val deadline = _presenceDeadline.value.takeIf { it > 0 } ?: System.currentTimeMillis()
+        val progress = focusProgressSnapshot()
+        if (!sessionSaveQueuedThisRun) enqueueCompletedFocusSessionSave(
+            totalSeconds = progress.plannedSeconds,
+            actualSeconds = progress.actualSeconds,
+            mode = if (_targetPomodoroLoops.value > 0) TimerMode.POMODORO else _timerMode.value,
+            endedAtOverride = Instant.ofEpochMilli(deadline).toString(),
+        )
+        reset()
+        autoSaveMetadata = null
+        _presenceEnded.value += 1
+        stopForegroundCompat()
+        getSystemService(NotificationManager::class.java).cancel(NOTIFICATION_ID)
+    }
+
     private fun buildNotification(): Notification {
         val openIntent = PendingIntent.getActivity(
             this, 0,
@@ -1245,6 +1364,18 @@ class TimerService : Service() {
             else -> "Timer paused"
         }
 
+        if (_presenceDeadline.value > 0) {
+            val confirmIntent = PendingIntent.getService(this, 3,
+                Intent(this, TimerService::class.java).apply { action = ACTION_CONFIRM_PRESENCE },
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+            return NotificationCompat.Builder(this, CHANNEL_ID)
+                .setContentTitle("Are you still there?")
+                .setContentText("Confirm within 5 minutes or your timer will stop and save your study time.")
+                .setSmallIcon(SafarNotificationManager.SafarNotificationStyle.smallIconRes(this))
+                .setContentIntent(openIntent).setOngoing(true).setOnlyAlertOnce(true)
+                .addAction(android.R.drawable.ic_media_play, "Yes, I’m still here", confirmIntent)
+                .build()
+        }
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("$mode \u00b7 $time")
             .setContentText(personalizeNotificationBody(notificationText))
