@@ -153,9 +153,39 @@ fun EkagraScreen(
     if (presenceDeadline > 0L) {
         AlertDialog(
             onDismissRequest = {},
-            title = { Text("Are you still there?") },
-            text = { Text("Still studying? Confirm within 5 minutes. Otherwise, your timer will stop and your elapsed study time will be saved automatically.") },
-            confirmButton = { TextButton(onClick = { timerService?.confirmPresence() }) { Text("Yes, I’m still here") } },
+            shape = RoundedCornerShape(24.dp),
+            title = {
+                Text(
+                    text = "Are you still studying?",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 20.sp
+                )
+            },
+            text = {
+                Text(
+                    text = "Let us know if you're still focusing! If you're away, we'll automatically save your progress in 5 minutes.",
+                    fontSize = 14.sp,
+                    lineHeight = 20.sp
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = { timerService?.confirmPresence() },
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("Yes", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        timerService?.confirmPresence()
+                        timerService?.reset()
+                    }
+                ) {
+                    Text("No", fontWeight = FontWeight.Medium)
+                }
+            }
         )
     }
     val blockedHitCount   by focusShieldViewModel.blockedHitCount.collectAsStateWithLifecycle()

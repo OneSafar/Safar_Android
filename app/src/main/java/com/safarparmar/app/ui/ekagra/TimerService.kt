@@ -1369,11 +1369,11 @@ class TimerService : Service() {
                 Intent(this, TimerService::class.java).apply { action = ACTION_CONFIRM_PRESENCE },
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
             return NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentTitle("Are you still there?")
-                .setContentText("Confirm within 5 minutes or your timer will stop and save your study time.")
+                .setContentTitle("Are you still studying?")
+                .setContentText("Tap to keep your timer going! We'll save your study time in 5 minutes if away.")
                 .setSmallIcon(SafarNotificationManager.SafarNotificationStyle.smallIconRes(this))
                 .setContentIntent(openIntent).setOngoing(true).setOnlyAlertOnce(true)
-                .addAction(android.R.drawable.ic_media_play, "Yes, I’m still here", confirmIntent)
+                .addAction(android.R.drawable.ic_media_play, "Yes", confirmIntent)
                 .build()
         }
         return NotificationCompat.Builder(this, CHANNEL_ID)
