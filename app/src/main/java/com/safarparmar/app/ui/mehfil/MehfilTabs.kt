@@ -880,13 +880,17 @@ private fun PostCard(
 @Composable
 internal fun SavedTab(
     uiState: MehfilUiState,
+    onLoadPage: (Int) -> Unit,
     onLikePost: (MehfilPost) -> Unit,
     onCommentClick: (MehfilPost) -> Unit,
     onUnsavePost: (String) -> Unit,
     onConnect: (MehfilPost) -> Unit,
 ) {
     when {
-        uiState.isLoadingSaved -> LoadingPostList()
+        uiState.isLoadingSaved && uiState.savedPosts.isEmpty() -> LoadingPostList()
+        uiState.savedPosts.isEmpty() && uiState.savedError != null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            androidx.compose.material3.TextButton(onClick = { onLoadPage(1) }) { Text("${uiState.savedError} Tap to retry.") }
+        }
         uiState.savedPosts.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Icon(painter = painterResource(id = R.drawable.ic_bookmarks_simple), contentDescription = null, modifier = Modifier.size(48.dp), tint = MehfilFlatColors.Muted)
@@ -907,6 +911,9 @@ internal fun SavedTab(
                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
+                if (uiState.savedFirstPage > 1) item(key = "saved_previous") {
+                    androidx.compose.material3.TextButton(onClick = { onLoadPage(uiState.savedFirstPage - 1) }, enabled = !uiState.isLoadingSaved) { Text("Earlier saved posts") }
+                }
                 items(uiState.savedPosts, key = { it.id }) { post ->
                     PostCard(
                         post = post,
@@ -919,6 +926,16 @@ internal fun SavedTab(
                         onSave = { onUnsavePost(post.id) },
                         onConnect = { onConnect(post) },
                     )
+                }
+                item(key = "saved_more") {
+                    Column {
+                        uiState.savedError?.let { Text(it, color = MehfilFlatColors.Muted) }
+                        if (uiState.savedHasMore || uiState.savedError != null) {
+                            androidx.compose.material3.TextButton(onClick = { onLoadPage(if (uiState.savedError != null) uiState.savedRequestedPage else uiState.savedLastPage + 1) }, enabled = !uiState.isLoadingSaved) {
+                                Text(if (uiState.isLoadingSaved) "Loading…" else if (uiState.savedError != null) "Retry" else "More saved posts")
+                            }
+                        }
+                    }
                 }
             }
         }

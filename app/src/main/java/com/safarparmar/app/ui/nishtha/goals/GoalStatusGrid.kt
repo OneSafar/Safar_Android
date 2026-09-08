@@ -12,6 +12,7 @@ import androidx.compose.ui.unit.dp
 import com.safarparmar.app.domain.model.Goal
 import com.safarparmar.app.ui.studyplanner.plan.PlanHairline
 import com.safarparmar.app.util.IstDateUtils
+import com.safarparmar.app.util.isVisibleInGoals
 import com.safarparmar.app.util.isGoalCompleted
 import com.safarparmar.app.util.isMissedGoal
 import com.safarparmar.app.util.isTodayGoal
@@ -20,7 +21,7 @@ import com.safarparmar.app.util.isUpcomingGoal
 @Composable
 internal fun StatusGrid(goals: List<Goal>, ekagraAnalytics: com.safarparmar.app.domain.model.EkagraAnalyticsStats) {
     val todayKey = IstDateUtils.todayKey()
-    val standardGoals = goals.filter { it.source != "ekagra" }
+    val standardGoals = goals.filter { it.isVisibleInGoals() }
     val pending = standardGoals.filter { it.isTodayGoal(todayKey) }
     val scheduled = standardGoals.filter { it.isUpcomingGoal(todayKey) }
     val missed = standardGoals.filter { it.isMissedGoal(todayKey) }

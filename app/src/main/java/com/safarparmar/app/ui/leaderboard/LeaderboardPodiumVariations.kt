@@ -1,5 +1,6 @@
 package com.safarparmar.app.ui.leaderboard
 
+import com.safarparmar.app.performance.decorativeFloat
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
@@ -199,7 +200,7 @@ private fun ArchitecturalPodiumColumn(
     )
 
     val floatTransition = rememberInfiniteTransition(label = "archFloat$place")
-    val floatOffset by floatTransition.animateFloat(
+    val floatOffset by floatTransition.decorativeFloat(
         initialValue = 0f, targetValue = -4f,
         animationSpec = infiniteRepeatable(tween(2250, easing = FastOutSlowInEasing, delayMillis = place * 150), RepeatMode.Reverse),
         label = "floatOffset",

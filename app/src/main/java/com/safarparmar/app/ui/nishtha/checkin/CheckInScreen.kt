@@ -187,6 +187,7 @@ fun SlimSlider(
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun CheckInScreen(viewModel: NishthaViewModel = hiltViewModel()) {
+    androidx.compose.runtime.LaunchedEffect(viewModel) { viewModel.loadTab(com.safarparmar.app.ui.nishtha.NishthaTab.CHECK_IN) }
     val isLight = MaterialTheme.colorScheme.background.isLightBackground()
     CompositionLocalProvider(LocalPlannerIsDarkTheme provides !isLight) {
         CheckInScreenContent(viewModel = viewModel, isLight = isLight)

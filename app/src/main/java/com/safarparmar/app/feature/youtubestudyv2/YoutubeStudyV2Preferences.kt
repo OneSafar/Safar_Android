@@ -12,7 +12,7 @@ class YoutubeStudyV2Preferences @Inject constructor(
     @ApplicationContext context: Context,
 ) {
     private val preferences = context.getSharedPreferences(FILE_NAME, Context.MODE_PRIVATE)
-    private val _enabled = MutableStateFlow(preferences.getBoolean(KEY_ENABLED, false))
+    private val _enabled = MutableStateFlow(preferences.getBoolean(KEY_ENABLED, false) && isDisclosureAccepted())
     val enabled: StateFlow<Boolean> = _enabled
     private val _setupStep = MutableStateFlow(preferences.getInt(KEY_SETUP_STEP, 1).coerceIn(1, 2))
     val setupStep: StateFlow<Int> = _setupStep
@@ -26,23 +26,39 @@ class YoutubeStudyV2Preferences @Inject constructor(
         _bannerDismissed.value = true
     }
 
-    fun setEnabled(value: Boolean) {
+    fun setEnabled(requested: Boolean) {
+        val value = requested && isDisclosureAccepted()
         preferences.edit().putBoolean(KEY_ENABLED, value).apply()
         _enabled.value = value
-        if (!value) preferences.edit().remove(KEY_ACCESSIBILITY_HEARTBEAT).apply()
+        if (!value) {
+            preferences.edit().remove(KEY_ACCESSIBILITY_HEARTBEAT).apply()
+            lastPersistedHeartbeatMs = 0L
+        }
     }
 
+    private var lastPersistedHeartbeatMs = 0L
+
+    @Synchronized
     fun recordAccessibilityHeartbeat(nowMs: Long = System.currentTimeMillis()) {
+        // Content events can arrive many times per second. Five-second writes
+        // remain well within the health monitor's 90-second freshness window.
+        if (lastPersistedHeartbeatMs != 0L && nowMs >= lastPersistedHeartbeatMs &&
+            nowMs - lastPersistedHeartbeatMs < 5_000L
+        ) return
         preferences.edit().putLong(KEY_ACCESSIBILITY_HEARTBEAT, nowMs).apply()
+        lastPersistedHeartbeatMs = nowMs
     }
 
     fun lastAccessibilityHeartbeatMs(): Long = preferences.getLong(KEY_ACCESSIBILITY_HEARTBEAT, 0L)
 
     fun acceptDisclosure() {
-        preferences.edit().putBoolean(KEY_DISCLOSURE_ACCEPTED, true).apply()
+        preferences.edit()
+            .putInt(KEY_DISCLOSURE_VERSION, DISCLOSURE_VERSION)
+            .putLong("accessibility_disclosure_accepted_at_ms", System.currentTimeMillis())
+            .apply()
     }
 
-    fun isDisclosureAccepted(): Boolean = preferences.getBoolean(KEY_DISCLOSURE_ACCEPTED, false)
+    fun isDisclosureAccepted(): Boolean = preferences.getInt(KEY_DISCLOSURE_VERSION, 0) == DISCLOSURE_VERSION
 
     fun setSetupStep(step: Int) {
         val safeStep = step.coerceIn(1, 2)
@@ -63,12 +79,15 @@ class YoutubeStudyV2Preferences @Inject constructor(
         private const val FILE_NAME = "youtube_study_v2"
         private const val KEY_ENABLED = "enabled"
         private const val KEY_ACCESSIBILITY_HEARTBEAT = "accessibility_heartbeat_ms"
-        private const val KEY_DISCLOSURE_ACCEPTED = "accessibility_disclosure_accepted"
+        private const val KEY_DISCLOSURE_VERSION = "accessibility_disclosure_version"
+        private const val DISCLOSURE_VERSION = 2
         private const val KEY_SETUP_STEP = "setup_step"
         private const val KEY_SETUP_COMPLETED = "setup_completed"
         private const val KEY_BANNER_DISMISSED = "banner_dismissed"
-        fun isEnabled(context: Context): Boolean = context
-            .getSharedPreferences(FILE_NAME, Context.MODE_PRIVATE)
-            .getBoolean(KEY_ENABLED, false)
+        fun isEnabled(context: Context): Boolean {
+            val storage = context.getSharedPreferences(FILE_NAME, Context.MODE_PRIVATE)
+            return storage.getBoolean(KEY_ENABLED, false) &&
+                storage.getInt(KEY_DISCLOSURE_VERSION, 0) == DISCLOSURE_VERSION
+        }
     }
 }

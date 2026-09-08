@@ -1,5 +1,6 @@
 package com.safarparmar.app.ui.leaderboard
 
+import com.safarparmar.app.performance.decorativeFloat
 import androidx.compose.animation.core.EaseOutBack
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
@@ -357,7 +358,7 @@ private fun PodiumColumn(
 
     // ── Gentle float for the avatar (infinite, staggered per column) ───────
     val floatTransition = rememberInfiniteTransition(label = "podiumFloat$place")
-    val floatOffset by floatTransition.animateFloat(
+    val floatOffset by floatTransition.decorativeFloat(
         initialValue = 0f,
         targetValue = -4f,
         animationSpec = infiniteRepeatable(
@@ -369,7 +370,7 @@ private fun PodiumColumn(
 
     // ── Gold-only glow pulse on the avatar ring ─────────────────────────────
     val glowAlpha by if (place == 1) {
-        floatTransition.animateFloat(
+        floatTransition.decorativeFloat(
             initialValue = 0.35f,
             targetValue = 0.75f,
             animationSpec = infiniteRepeatable(
@@ -844,7 +845,7 @@ private fun LeaderboardLoadingSkeleton() {
     val shimmerColor = PlannerFlatColors.BorderSoft
 
     val transition = rememberInfiniteTransition(label = "leaderboardSkeleton")
-    val alpha by transition.animateFloat(
+    val alpha by transition.decorativeFloat(
         initialValue = 0.35f,
         targetValue = 0.75f,
         animationSpec = infiniteRepeatable(

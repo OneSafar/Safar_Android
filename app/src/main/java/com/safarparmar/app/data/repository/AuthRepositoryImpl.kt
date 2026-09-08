@@ -32,6 +32,7 @@ class AuthRepositoryImpl @Inject constructor(
     private val authApi: AuthApi,
     private val notificationApi: NotificationApi,
     private val dataStore: SafarDataStore,
+    private val snapshots: ReadSnapshotStore,
     private val cookieStore: PersistentCookieStore,
     private val notificationTokenRegistrar: NotificationTokenRegistrar,
     private val referralManager: ReferralManager,
@@ -185,6 +186,7 @@ class AuthRepositoryImpl @Inject constructor(
             runCatching { safeApiCall { notificationApi.revokeDeviceToken(DeviceTokenRevokeRequest(token)) } }
         }
         dataStore.setLoggedIn(false)
+        snapshots.clear()
         dataStore.clearSession()
         cookieStore.removeAll()
         return Resource.Success(Unit)
@@ -203,6 +205,7 @@ class AuthRepositoryImpl @Inject constructor(
                     runCatching { safeApiCall { notificationApi.revokeDeviceToken(DeviceTokenRevokeRequest(token)) } }
                 }
                 dataStore.setLoggedIn(false)
+                snapshots.clear()
                 dataStore.clearSession()
                 cookieStore.removeAll()
                 Resource.Success(Unit)

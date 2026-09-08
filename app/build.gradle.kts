@@ -96,6 +96,10 @@ android {
         versionCode = 47
         versionName = "1.6.47"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        // Compile-time override for manual comparison; normal builds select by device capabilities.
+        val effects = providers.gradleProperty("safarEffects").getOrElse("auto")
+        require(effects in setOf("auto", "constrained", "full")) { "safarEffects must be auto, constrained, or full" }
+        buildConfigField("String", "PERFORMANCE_EFFECTS", "\"$effects\"")
         buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"$googleWebClientId\"")
         ndk {
             debugSymbolLevel = "FULL"

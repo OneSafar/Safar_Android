@@ -323,10 +323,8 @@ class KavachAlwaysOnService : Service() {
         }
 
         if (isHomePackage(foregroundPackage)) {
-            // Blocking deliberately sends the app Home. Keep the result sheet over the
-            // launcher until the student dismisses it or chooses Quick Unlock. This is
-            // required for both Normal and Beast under either activation option.
-            // Reset visit bookkeeping only, so a later app-open is counted independently.
+            // The student left the blocked app; do not cover their launcher.
+            blockOverlay.dismiss()
             lastBlockedPackage = null
             countedAttemptPackage = null
             return poller.onSample(foregroundPackage, isBlockedApp = false)
@@ -405,35 +403,17 @@ class KavachAlwaysOnService : Service() {
             packageManager.getApplicationLabel(packageManager.getApplicationInfo(blockedPackage, 0)).toString()
         }.getOrDefault("This app")
 
-        // Force the blocked app to close / navigate to device home screen immediately for both modes.
-        goHome()
-        runCatching {
-            val am = getSystemService(Context.ACTIVITY_SERVICE) as? android.app.ActivityManager
-            am?.killBackgroundProcesses(blockedPackage)
-        }
-
         val expiredMinutes = if (!isStrictMode) {
             FocusShieldRepository.ShieldPrefs.consumeQuickUnlockJustExpired(this)
         } else 0
 
-        // Draw the result sheet over Home and leave it there until the student acts.
+        // Block interaction in place, preserving the app screen for the next unlock.
         blockOverlay.show(
             appName = appName,
             allowQuickUnlock = !isStrictMode,
             blockedPackage = blockedPackage,
             expiredMinutes = expiredMinutes,
         )
-    }
-
-    private fun goHome() {
-        val homeIntent = Intent(Intent.ACTION_MAIN).apply {
-            addCategory(Intent.CATEGORY_HOME)
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        }
-        packageManager.resolveActivity(homeIntent, 0)?.activityInfo?.let { info ->
-            homeIntent.component = android.content.ComponentName(info.packageName, info.name)
-        }
-        runCatching { startActivity(homeIntent) }
     }
 
     private fun currentForegroundPackage(): String? {

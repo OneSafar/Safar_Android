@@ -1,7 +1,5 @@
 package com.safarparmar.app.ui.nishtha.goals
 
-import android.widget.Toast
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -20,8 +18,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarToday
@@ -37,16 +33,13 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -58,13 +51,13 @@ import com.safarparmar.app.ui.studyplanner.plan.PlanHairline
 import com.safarparmar.app.ui.theme.LoraFontFamily
 import com.safarparmar.app.util.IstDateUtils
 import com.safarparmar.app.util.assignedDateKey
+import com.safarparmar.app.util.isVisibleInGoals
 import com.safarparmar.app.util.isGoalCompleted
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -73,41 +66,28 @@ internal fun HistoryTab(
     isSaving: Boolean,
     onReopen: (Goal) -> Unit,
 ) {
-    val completed = goals.filter { it.source != "ekagra" && it.isGoalCompleted() }
     val today = LocalDate.now(IstDateUtils.zone)
     var selectedDate by remember { mutableStateOf(today) }
     var showHistoryDatePicker by remember { mutableStateOf(false) }
     val historyDatePickerState = rememberDatePickerState(
         initialSelectedDateMillis = selectedDate.atStartOfDay(java.time.ZoneOffset.UTC).toInstant().toEpochMilli(),
     )
-    val filtered = completed.filter { goal ->
-        goal.assignedDateKey() == selectedDate.toString()
-    }
-
     val ekagraViewModel = hiltViewModel<EkagraViewModel>()
     val linkedSessions by ekagraViewModel.linkedSessions.collectAsStateWithLifecycle()
-    LaunchedEffect(Unit) { ekagraViewModel.loadLinkedSessions() }
-    val linkedSessionsForDate = remember(linkedSessions, selectedDate, goals) {
-        linkedSessions.filter { session ->
-            // Keep a late session beside the goal's assigned-day outcome. If the
-            // goal was deleted, fall back to the truthful session activity date.
-            val assignedDay = goals.firstOrNull { it.id == session.goalId }?.assignedDateKey()
-            val activityDay = (session.endedAt ?: session.startedAt)?.let { ts ->
-                runCatching { Instant.parse(ts).atZone(IstDateUtils.zone).toLocalDate().toString() }.getOrNull()
-            }
-            (assignedDay ?: activityDay) == selectedDate.toString()
+    LaunchedEffect(goals) { ekagraViewModel.loadLinkedSessions() }
+    val sessionsByGoal = remember(linkedSessions) {
+        linkedSessions.distinctBy { it.id }.groupBy { it.goalId }
+    }
+    // A linked session is durable evidence that this is a real goal completed
+    // through Ekagra. Keep it in Goal History even when an older API response
+    // labels its source as `ekagra` without the newer completedViaFocus flag.
+    val completed = remember(goals, sessionsByGoal) {
+        goals.filter { goal ->
+            goal.isGoalCompleted() && (goal.isVisibleInGoals() || sessionsByGoal.containsKey(goal.id))
         }
     }
-
-    val listState = rememberLazyListState()
-    val coroutineScope = rememberCoroutineScope()
-    var highlightedGoalId by remember { mutableStateOf<String?>(null) }
-    val context = LocalContext.current
-    LaunchedEffect(highlightedGoalId) {
-        if (highlightedGoalId != null) {
-            kotlinx.coroutines.delay(1600)
-            highlightedGoalId = null
-        }
+    val filtered = completed.filter { goal ->
+        goal.assignedDateKey() == selectedDate.toString()
     }
 
     if (showHistoryDatePicker) {
@@ -143,13 +123,13 @@ internal fun HistoryTab(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(
-                "Archive",
+                "Goal history",
                 fontFamily = LoraFontFamily,
                 fontSize = 20.sp,
                 color = GoalsFlatColors.Scheduled,
             )
             Text(
-                "Review what was completed on a specific day.",
+                "Each goal appears once, with the focus sessions that contributed to it.",
                 fontSize = 12.sp,
                 color = GoalsFlatColors.Muted,
             )
@@ -197,7 +177,7 @@ internal fun HistoryTab(
         }
         PlanHairline(modifier = Modifier.padding(horizontal = 20.dp))
 
-        if (filtered.isEmpty() && linkedSessionsForDate.isEmpty()) {
+        if (filtered.isEmpty()) {
             Box(
                 Modifier
                     .padding(horizontal = 20.dp)
@@ -208,36 +188,25 @@ internal fun HistoryTab(
                     .background(GoalsFlatColors.Primary.copy(alpha = 0.03f)),
                 contentAlignment = Alignment.Center,
             ) {
-                Text("Nothing found for this date.", color = GoalsFlatColors.Muted)
+                Text("No completed goals for this date.", color = GoalsFlatColors.Muted)
             }
             return
         }
 
-        Box(
-            modifier = Modifier
-                .padding(horizontal = 20.dp)
-                .fillMaxWidth()
-                .heightIn(max = 336.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .border(1.5.dp, GoalsFlatColors.Primary, RoundedCornerShape(16.dp))
-                .background(GoalsFlatColors.Primary.copy(alpha = 0.03f)),
+        LazyColumn(
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            LazyColumn(
-                state = listState,
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(0.dp),
-            ) {
-            itemsIndexed(filtered, key = { _, goal -> goal.id }) { index, goal ->
-                val isHighlighted = highlightedGoalId == goal.id
-                val highlightColor by animateColorAsState(
-                    targetValue = if (isHighlighted) GoalsFlatColors.Scheduled.copy(alpha = 0.12f) else Color.Transparent,
-                    label = "goalHighlight",
-                )
-                Box(
-                    Modifier
+            items(filtered, key = { it.id }) { goal ->
+                val sessions = sessionsByGoal[goal.id].orEmpty()
+                Column(
+                    modifier = Modifier
                         .fillMaxWidth()
-                        .background(highlightColor),
+                        .clip(RoundedCornerShape(16.dp))
+                        .border(1.dp, GoalsFlatColors.Hairline, RoundedCornerShape(16.dp))
+                        .background(GoalsFlatColors.Primary.copy(alpha = 0.03f))
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
                 ) {
                     GoalItem(
                         goal = goal,
@@ -245,107 +214,86 @@ internal fun HistoryTab(
                         onReopen = if (isSaving) null else ({ onReopen(goal) }),
                         onEdit = {},
                         onDelete = {},
+                        completedViaEkagra = goal.completedViaFocus || sessions.isNotEmpty(),
                     )
-                }
-                if (index < filtered.lastIndex) PlanHairline(alpha = 0.5f)
-            }
-            if (linkedSessionsForDate.isNotEmpty()) {
-                item(key = "linked_sessions_header") {
-                    Spacer(Modifier.height(12.dp))
-                    PlanHairline()
-                    Text(
-                        "LINKED EKAGRA SESSIONS",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 2.sp,
-                        color = GoalsFlatColors.Ekagra,
-                        modifier = Modifier.padding(top = 14.dp, bottom = 8.dp),
-                    )
-                }
-                itemsIndexed(linkedSessionsForDate, key = { _, s -> "linked_${s.id}" }) { index, session ->
-                    LinkedEkagraSessionRow(
-                        session = session,
-                        onViewGoal = {
-                            if (!session.goalExists) {
-                                Toast.makeText(context, "This goal has been deleted.", Toast.LENGTH_SHORT).show()
-                                return@LinkedEkagraSessionRow
-                            }
-                            val targetIndex = filtered.indexOfFirst { it.id == session.goalId }
-                            if (targetIndex == -1) {
-                                Toast.makeText(context, "Goal not found for the selected date.", Toast.LENGTH_SHORT).show()
-                                return@LinkedEkagraSessionRow
-                            }
-                            highlightedGoalId = session.goalId
-                            coroutineScope.launch { listState.animateScrollToItem(targetIndex) }
-                        },
-                    )
-                    if (index < linkedSessionsForDate.lastIndex) PlanHairline(alpha = 0.45f)
+                    if (sessions.isNotEmpty()) {
+                        GoalFocusContribution(sessions)
+                    }
                 }
             }
         }
     }
 }
-}
 
+/** Session details belong to the goal above; never repeat its title or completion badge. */
 @Composable
-private fun LinkedEkagraSessionRow(
-    session: GoalLinkedSession,
-    onViewGoal: () -> Unit,
-) {
-    val start = session.startedAt?.let { runCatching { Instant.parse(it) }.getOrNull() }
-    val end = session.endedAt?.let { runCatching { Instant.parse(it) }.getOrNull() }
-    val timeFormatter = DateTimeFormatter.ofPattern("h:mm a", Locale.getDefault()).withZone(IstDateUtils.zone)
-    val timeRange = if (start != null && end != null) {
-        "${timeFormatter.format(start)} – ${timeFormatter.format(end)}"
-    } else {
-        null
-    }
-
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .padding(vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+private fun GoalFocusContribution(sessions: List<GoalLinkedSession>) {
+    var expanded by remember { mutableStateOf(false) }
+    val totalSeconds = sessions.sumOf { linkedFocusSeconds(it) }
+    val summary = "${sessions.size} focus ${if (sessions.size == 1) "session" else "sessions"} · ${focusContributionDuration(totalSeconds)}"
+    PlanHairline(alpha = 0.5f)
+    Column(Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 8.dp)) {
+        if (sessions.size > 1) {
+            TextButton(
+                onClick = { expanded = !expanded },
+                contentPadding = PaddingValues(0.dp),
             ) {
                 Text(
-                    session.goalTitle ?: if (session.goalExists) "Untitled goal" else "Deleted goal",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = GoalsFlatColors.Text,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false),
+                    "$summary · ${if (expanded) "Hide" else "Details"}",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = GoalsFlatColors.Muted,
                 )
-                FlatBadge("Ekagra", GoalsFlatColors.Ekagra)
             }
-            Text(
-                buildString {
-                    if (session.timerMode?.equals("stopwatch", ignoreCase = true) == true) append("Stopwatch · ")
-                    val mins = session.durationSeconds / 60
-                    val secs = session.durationSeconds % 60
-                    append(if (secs > 0) "${mins}m ${secs}s" else "${mins}m")
-                    if (timeRange != null) append(" · $timeRange")
-                },
-                fontSize = 12.sp,
-                color = GoalsFlatColors.Muted,
-            )
+        } else {
+            Text(summary, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = GoalsFlatColors.Muted)
+        }
+        if (sessions.size == 1 || expanded) {
+            sessions.sortedBy { it.startedAt }.forEach { session ->
+                val start = session.startedAt?.let { runCatching { Instant.parse(it) }.getOrNull() }
+                val end = session.endedAt?.let { runCatching { Instant.parse(it) }.getOrNull() }
+                val dateTime = DateTimeFormatter.ofPattern("MMM d, h:mm a", Locale.getDefault()).withZone(IstDateUtils.zone)
+                val time = DateTimeFormatter.ofPattern("h:mm a", Locale.getDefault()).withZone(IstDateUtils.zone)
+                val timing = when {
+                    start != null && end != null -> {
+                        val endFormat = if (start.atZone(IstDateUtils.zone).toLocalDate() == end.atZone(IstDateUtils.zone).toLocalDate()) time else dateTime
+                        "${dateTime.format(start)} – ${endFormat.format(end)}"
+                    }
+                    start != null -> dateTime.format(start)
+                    end != null -> dateTime.format(end)
+                    else -> "Time unavailable"
+                }
+                Text(
+                    buildString {
+                        append(timing)
+                        if (sessions.size > 1) append(" · ${focusContributionDuration(linkedFocusSeconds(session))}")
+                        if (session.timerMode.equals("stopwatch", ignoreCase = true)) append(" · Stopwatch")
+                    },
+                    fontSize = 12.sp,
+                    lineHeight = 18.sp,
+                    color = GoalsFlatColors.Muted,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+            }
         }
         Text(
-            "View Goal",
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Bold,
-            color = GoalsFlatColors.Scheduled,
-            modifier = Modifier
-                .clickable(onClick = onViewGoal)
-                .padding(horizontal = 8.dp, vertical = 4.dp),
+            "Study time credited to this goal · also in Ekagra history",
+            fontSize = 11.sp,
+            lineHeight = 16.sp,
+            color = GoalsFlatColors.Muted,
+            modifier = Modifier.padding(top = 6.dp),
         )
     }
+}
+
+private fun linkedFocusSeconds(session: GoalLinkedSession): Long =
+    if (session.durationSeconds > 0) session.durationSeconds.toLong()
+    else session.durationMinutes.coerceAtLeast(0) * 60L
+
+private fun focusContributionDuration(seconds: Long): String = when {
+    seconds < 60 -> "$seconds sec"
+    seconds % 60 == 0L -> "${seconds / 60} min"
+    else -> "${seconds / 60} min ${seconds % 60} sec"
 }
 
 @Composable

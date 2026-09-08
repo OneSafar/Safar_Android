@@ -100,6 +100,7 @@ private object StreaksPalette {
 
 @Composable
 fun StreaksScreen(viewModel: NishthaViewModel = hiltViewModel()) {
+    androidx.compose.runtime.LaunchedEffect(viewModel) { viewModel.loadTab(com.safarparmar.app.ui.nishtha.NishthaTab.STREAKS) }
     val isLight = MaterialTheme.colorScheme.background.isLightBackground()
     CompositionLocalProvider(LocalPlannerIsDarkTheme provides !isLight) {
         StreaksScreenContent(viewModel = viewModel, isLight = isLight)

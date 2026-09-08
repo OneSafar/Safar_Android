@@ -1,5 +1,6 @@
 package com.safarparmar.app.feature.kavachanalytics.ui
 
+import com.safarparmar.app.performance.decorativeFloat
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.LinearEasing
@@ -63,7 +64,7 @@ fun TealLivePulseDot(
     size: Int = 18,
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "tealLiveDotPulse")
-    val pulseProgress by infiniteTransition.animateFloat(
+    val pulseProgress by infiniteTransition.decorativeFloat(
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(

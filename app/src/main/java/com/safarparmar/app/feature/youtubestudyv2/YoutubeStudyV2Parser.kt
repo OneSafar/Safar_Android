@@ -31,7 +31,7 @@ data class YoutubeV2Snapshot(
     val nodes: List<YoutubeV2Node>,
 )
 
-enum class YoutubeV2ContentKind { VIDEO, SHORTS, NON_PLAYBACK }
+enum class YoutubeV2ContentKind { VIDEO, SHORTS, MINI_PLAYER, NON_PLAYBACK }
 
 data class YoutubeV2Observation(
     val kind: YoutubeV2ContentKind,
@@ -65,12 +65,23 @@ object YoutubeStudyV2Parser {
     private val handleRegex = Regex("@[\\p{L}\\p{N}_.-]{3,30}")
     private val leadingHandleRegex = Regex("^\\s*(@[\\p{L}\\p{N}_.-]{3,30})(?=\\s|$)")
 
+    internal fun isMiniPlayerId(viewId: String?): Boolean =
+        miniPlayerIds.any(viewId.orEmpty().lowercase()::contains)
+
+    internal fun isMiniPlayerCloseControl(viewId: String?, label: String?): Boolean {
+        val id = viewId.orEmpty().lowercase()
+        return id.contains("close") || id.contains("dismiss") ||
+            label?.trim()?.lowercase() in setOf("close", "close player", "dismiss", "बंद करें")
+    }
+
     fun parse(snapshot: YoutubeV2Snapshot): YoutubeV2Observation {
         if (snapshot.packageName != YOUTUBE_PACKAGE) return YoutubeV2Observation(YoutubeV2ContentKind.NON_PLAYBACK)
         val nodes = snapshot.nodes
         val visible = nodes.indices.filter { nodes[it].visibleToUser }
-        if (visible.any { index -> miniPlayerIds.any(nodes[index].viewId.orEmpty().lowercase()::contains) }) {
-            return YoutubeV2Observation(YoutubeV2ContentKind.NON_PLAYBACK)
+        if (visible.any { index -> isMiniPlayerId(nodes[index].viewId) }) {
+            // A floating player is real playback, not an idle feed. Do not use
+            // channel names from recommendations underneath it as owner evidence.
+            return YoutubeV2Observation(YoutubeV2ContentKind.MINI_PLAYER)
         }
 
         val watchMarker = visible.asSequence().map(nodes::get).filter { node ->

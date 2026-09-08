@@ -13,7 +13,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import android.graphics.Bitmap
 import android.graphics.drawable.BitmapDrawable
-import coil.ImageLoader
+import coil.imageLoader
 import coil.request.ImageRequest
 import com.safarparmar.app.R
 import com.safarparmar.app.data.local.SafarDataStore
@@ -71,9 +71,10 @@ class SafarNotificationManager(
         if (imageUrl.isNullOrBlank()) return null
         return withContext(Dispatchers.IO) {
             try {
-                val loader = ImageLoader(context)
+                val loader = context.imageLoader
                 val request = ImageRequest.Builder(context)
                     .data(imageUrl)
+                    .size(512, 288)
                     .allowHardware(false)
                     .build()
                 val result = loader.execute(request)

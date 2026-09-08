@@ -13,20 +13,23 @@ import javax.inject.Singleton
 @Singleton
 class HomeRepositoryImpl @Inject constructor(
     private val homeApi: HomeApi,
+    private val snapshots: ReadSnapshotStore,
     private val authApi: AuthApi
 ) : HomeRepository {
 
+    override fun invalidateReadSnapshots() = snapshots.clear()
+
     override suspend fun getStreaks(): Resource<Streaks> =
-        safeApiCall { homeApi.getStreaks() }.map { it.toDomain() }
+        snapshots.read("home.streaks") { safeApiCall { homeApi.getStreaks() }.map { it.toDomain() } }
 
     override suspend fun restoreCheckInStreak(): Resource<Streaks> =
         safeApiCall { homeApi.restoreCheckInStreak() }.map { it.toDomain() }
 
     override suspend fun getMoods(): Resource<List<Mood>> =
-        safeApiCall { homeApi.getMoods() }.map { list -> list.map { it.toDomain() } }
+        snapshots.read("home.moods") { safeApiCall { homeApi.getMoods() }.map { list -> list.map { it.toDomain() } } }
 
     override suspend fun getGoals(): Resource<List<Goal>> =
-        safeApiCall { homeApi.getGoals() }.map { list -> list.map { it.toDomain() } }
+        snapshots.read("home.goals") { safeApiCall { homeApi.getGoals() }.map { list -> list.map { it.toDomain() } } }
 
     override suspend fun addGoal(
         title: String,

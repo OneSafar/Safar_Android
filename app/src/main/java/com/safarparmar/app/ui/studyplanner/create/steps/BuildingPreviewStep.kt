@@ -1,5 +1,6 @@
 package com.safarparmar.app.ui.studyplanner.create.steps
 
+import com.safarparmar.app.performance.decorativeFloat
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -52,7 +53,7 @@ fun BuildingPreviewStep(modifier: Modifier = Modifier) {
     }
 
     val transition = rememberInfiniteTransition(label = "buildingPulse")
-    val pulse by transition.animateFloat(
+    val pulse by transition.decorativeFloat(
         initialValue = 0.85f,
         targetValue = 1.05f,
         animationSpec = infiniteRepeatable(tween(1100, easing = LinearEasing), RepeatMode.Reverse),

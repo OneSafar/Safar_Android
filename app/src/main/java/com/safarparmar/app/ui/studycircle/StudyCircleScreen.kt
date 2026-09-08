@@ -1,5 +1,7 @@
 package com.safarparmar.app.ui.studycircle
 
+import androidx.lifecycle.repeatOnLifecycle
+import com.safarparmar.app.performance.decorativeFloat
 import android.widget.Toast
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
@@ -107,7 +109,7 @@ fun LivePulsingAvatarRing(
 
     val liveColor = DeepGreen
     val infiniteTransition = rememberInfiniteTransition(label = "avatarLiveRing")
-    val pulseProgress by infiniteTransition.animateFloat(
+    val pulseProgress by infiniteTransition.decorativeFloat(
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
@@ -149,7 +151,7 @@ fun LivePulsingAvatarRing(
 fun LivePulseDot(modifier: Modifier = Modifier, size: Int = 8) {
     val liveColor = DeepGreen
     val infiniteTransition = rememberInfiniteTransition(label = "liveDotPulse")
-    val pulseProgress by infiniteTransition.animateFloat(
+    val pulseProgress by infiniteTransition.decorativeFloat(
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
@@ -1500,7 +1502,12 @@ fun StudyCircleDetailScreen(
     var showConnectRequestsSheet by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(circleId) { viewModel.loadDetail(circleId) }
-    LaunchedEffect(circleId) { while (true) { delay(30_000); viewModel.loadDetail(circleId, refresh = true) } }
+    val detailLifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
+    LaunchedEffect(circleId, detailLifecycle) {
+        detailLifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.RESUMED) {
+            while (true) { delay(30_000); viewModel.loadDetail(circleId, refresh = true) }
+        }
+    }
     LaunchedEffect(message) {
         message?.let { Toast.makeText(context, it, Toast.LENGTH_SHORT).show(); viewModel.consumeMessage() }
     }

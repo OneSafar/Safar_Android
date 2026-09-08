@@ -168,10 +168,9 @@ fun SafarTheme(
             shapes = SafarShapes,
             typography  = SafarTypography,
         ) {
-            ProvideTextStyle(
-                value = SafarTypography.bodyMedium,
-                content = content
-            )
+            com.safarparmar.app.performance.ProvideMotionPolicy {
+                ProvideTextStyle(value = SafarTypography.bodyMedium, content = content)
+            }
         }
     }
 }

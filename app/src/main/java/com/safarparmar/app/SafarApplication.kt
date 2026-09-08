@@ -30,8 +30,25 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltAndroidApp
-class SafarApplication : Application() {
+class SafarApplication : Application(), coil.ImageLoaderFactory {
 
+    override fun newImageLoader(): coil.ImageLoader {
+        val constrained = com.safarparmar.app.performance.isConstrainedDevice(this)
+        val maxBytes = minOf(
+            if (constrained) 16L * 1024 * 1024 else 32L * 1024 * 1024,
+            (Runtime.getRuntime().maxMemory() * if (constrained) 0.10 else 0.15).toLong(),
+        )
+        return coil.ImageLoader.Builder(this)
+            .memoryCache { coil.memory.MemoryCache.Builder(this).maxSizeBytes(maxBytes.toInt()).build() }
+            .components {
+                if (android.os.Build.VERSION.SDK_INT >= 28) add(coil.decode.ImageDecoderDecoder.Factory())
+                else add(coil.decode.GifDecoder.Factory())
+            }
+            .build()
+    }
+
+
+    @Inject lateinit var readSnapshots: com.safarparmar.app.data.repository.ReadSnapshotStore
     @Inject lateinit var dataStore: SafarDataStore
     @Inject lateinit var notificationTokenRegistrar: NotificationTokenRegistrar
     @Inject lateinit var kavachAnalyticsRepository: KavachAnalyticsRepository
@@ -55,8 +72,10 @@ class SafarApplication : Application() {
         SafarNotificationChannels.createAll(this)
         fetchAndStoreFcmToken()
         referralManager.checkAndCaptureInstallReferrer()
-        if (EkagraPendingSessionSaveStore.getAll(this).isNotEmpty()) {
-            EkagraSessionSaveWorker.enqueue(this)
+        appScope.launch {
+            if (EkagraPendingSessionSaveStore.getAll(this@SafarApplication).isNotEmpty()) {
+                EkagraSessionSaveWorker.enqueue(this@SafarApplication)
+            }
         }
         KavachUsageCollectionWorker.schedule(this)
         appScope.launch {
@@ -106,6 +125,11 @@ class SafarApplication : Application() {
         }
     }
 
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        if (level >= android.content.ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW) readSnapshots.clear()
+    }
+
     private fun configureDebugStrictMode() {
         if (!BuildConfig.DEBUG) return
         StrictMode.setThreadPolicy(
@@ -129,6 +153,7 @@ class SafarApplication : Application() {
         crashlytics.setCrashlyticsCollectionEnabled(!BuildConfig.DEBUG)
         appScope.launch {
             dataStore.userId.collect { userId ->
+                readSnapshots.clear()
                 crashlytics.setUserId(userId.orEmpty())
             }
         }

@@ -59,6 +59,7 @@ fun NishthaAnalyticsScreen(
     onNavigate: (String) -> Unit = {},
     initialSection: String = "overview",
 ) {
+    LaunchedEffect(viewModel) { viewModel.loadTab(com.safarparmar.app.ui.nishtha.NishthaTab.ANALYTICS) }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val report = uiState.monthlyReport
     val achievements = uiState.achievements

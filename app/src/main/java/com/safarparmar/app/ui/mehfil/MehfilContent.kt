@@ -106,6 +106,7 @@ internal fun MehfilContent(
     onGuidelinesClick: () -> Unit,
     onCreatePostClick: () -> Unit,
     onLoadPosts: (Boolean) -> Unit,
+    onLoadSavedPage: (Int) -> Unit,
     onJoinRoom: (String) -> Unit,
     onReactSandesh: (String) -> Unit,
     onLikePost: (MehfilPost) -> Unit,
@@ -236,6 +237,7 @@ internal fun MehfilContent(
                                 )
                                 MehfilTab.SAVED -> SavedTab(
                                     uiState = uiState,
+                                    onLoadPage = onLoadSavedPage,
                                     onLikePost = onLikePost,
                                     onCommentClick = onCommentClick,
                                     onUnsavePost = onUnsavePost,

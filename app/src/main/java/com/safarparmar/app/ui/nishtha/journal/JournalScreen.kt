@@ -96,6 +96,7 @@ private val journalPrompts = listOf(
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun JournalScreen(viewModel: NishthaViewModel = hiltViewModel(), openSheetOnLoad: Boolean = false) {
+    androidx.compose.runtime.LaunchedEffect(viewModel) { viewModel.loadTab(com.safarparmar.app.ui.nishtha.NishthaTab.JOURNAL) }
     val isLight = MaterialTheme.colorScheme.background.isLightBackground()
     CompositionLocalProvider(LocalPlannerIsDarkTheme provides !isLight) {
         JournalScreenContent(

@@ -1370,7 +1370,7 @@ class TimerService : Service() {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
             return NotificationCompat.Builder(this, CHANNEL_ID)
                 .setContentTitle("Are you still studying?")
-                .setContentText("Tap to keep your timer going! We'll save your study time in 5 minutes if away.")
+                .setContentText("Tap to keep your timer going! We'll save your study time in 2 minutes if away.")
                 .setSmallIcon(SafarNotificationManager.SafarNotificationStyle.smallIconRes(this))
                 .setContentIntent(openIntent).setOngoing(true).setOnlyAlertOnce(true)
                 .addAction(android.R.drawable.ic_media_play, "Yes", confirmIntent)

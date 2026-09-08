@@ -1,5 +1,7 @@
 package com.safarparmar.app.ui.premium
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+
 import android.app.Activity
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
@@ -115,8 +117,8 @@ fun PremiumPaywallScreen(
     onBack: () -> Unit = {},
     viewModel: PremiumViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
-    val premiumStatus by viewModel.premiumStatus.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val premiumStatus by viewModel.premiumStatus.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val activity = context as? Activity

@@ -170,7 +170,9 @@ fun HomeScreen(
 
     var currentPage by remember { mutableIntStateOf((0 until slides.size).random()) }
 
-    LaunchedEffect(currentPage) {
+    val animateCarousel = com.safarparmar.app.performance.decorativeMotionEnabled()
+    LaunchedEffect(currentPage, animateCarousel) {
+        if (!animateCarousel) return@LaunchedEffect
         delay(4000L)
         var next = currentPage
         while (next == currentPage) {

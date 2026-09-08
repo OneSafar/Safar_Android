@@ -10,6 +10,7 @@ import android.os.Looper
 import android.os.SystemClock
 import android.view.KeyEvent
 import android.view.accessibility.AccessibilityEvent
+import android.view.accessibility.AccessibilityWindowInfo
 import android.view.accessibility.AccessibilityNodeInfo
 import com.safarparmar.app.feature.youtubeinsights.YoutubeInsightsRepository
 import com.safarparmar.app.ui.ekagra.focusshield.KavachBlockOverlay
@@ -58,10 +59,20 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
     private var lastWatchedExactHandle: String? = null
     private var lastWatchedClassification: YoutubeChannelClassification? = null
 
+    private var lastPipAnalyticsAtMs = 0L
+
+    private val pipMonitor = object : Runnable {
+        override fun run() {
+            if (preferences.enabled.value) enforceFloatingPlayback()
+            handler.postDelayed(this, PIP_CHECK_MS)
+        }
+    }
+
     private val quickUnlockExpireRunnable = Runnable {
         scheduledQuickUnlockUntilMs = null
         quickUnlockWasActive = false
         if (!preferences.enabled.value) return@Runnable
+        if (enforceFloatingPlayback()) return@Runnable
         if (isYoutubeVisible()) {
             handleQuickUnlockExpired()
         }
@@ -104,6 +115,7 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
                 stopAnalytics()
                 return
             }
+            if (enforceFloatingPlayback()) return
             val youtubeVisible = isYoutubeVisible()
             val unlockActive = isYoutubeQuickUnlockActive()
             val justExpiredMinutes = FocusShieldRepository.ShieldPrefs.consumeQuickUnlockJustExpired(this@YoutubeStudyV2AccessibilityService)
@@ -157,7 +169,12 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
         super.onServiceConnected()
         classificationObserver?.cancel()
         classificationObserver = scope.launch(Dispatchers.Main.immediate) {
-            repository.classifications.collect {
+            repository.classifications.collect { classifications ->
+                lastWatchedChannelId?.let { channelId ->
+                    lastWatchedClassification = YoutubeChannelClassification.fromWire(
+                        classifications.firstOrNull { it.channelId == channelId }?.classification,
+                    )
+                }
                 // Invalidate both cached and in-flight decisions after a saved rule
                 // change. The next stable read uses the updated local allowlist.
                 evaluationGeneration++
@@ -170,6 +187,8 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
             preferences.recordAccessibilityHeartbeat()
             YoutubeStudyV2GuardService.start(this)
         }
+        handler.removeCallbacks(pipMonitor)
+        handler.post(pipMonitor)
         handler.removeCallbacks(heartbeat)
         handler.post(heartbeat)
         handler.removeCallbacks(analyticsHeartbeat)
@@ -182,6 +201,8 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
             YoutubeStudyV2GuardService.stop(this)
             return
         }
+        // PiP belongs to a separate window even while another app has focus.
+        if (enforceFloatingPlayback()) return
         if (event?.packageName?.toString() != YoutubeStudyV2Parser.YOUTUBE_PACKAGE) {
             stopAnalytics()
             return
@@ -229,6 +250,7 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
         scheduledReadAtMs = Long.MAX_VALUE
         handler.removeCallbacks(heartbeat)
         handler.removeCallbacks(analyticsHeartbeat)
+        handler.removeCallbacks(pipMonitor)
         handler.removeCallbacks(quickUnlockExpireRunnable)
         scheduledQuickUnlockUntilMs = null
         evaluationGeneration++
@@ -252,8 +274,15 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
     }
 
     private fun captureFirstRead() {
-        if (!preferences.enabled.value || !isYoutubeVisible()) return stopAnalytics()
+        if (!preferences.enabled.value) return stopAnalytics()
+        if (enforceFloatingPlayback()) return
+        if (!isYoutubeVisible()) return stopAnalytics()
         val observation = readObservation()
+        if (observation.watchScreenConfirmed && lastEvaluatedKey != observation.stableKey) {
+            // Autoplay can change the video without a tap. Until the new owner
+            // is evaluated, do not carry a productive decision into PiP.
+            lastWatchedClassification = null
+        }
         if (observation.kind == YoutubeV2ContentKind.SHORTS && observation.watchScreenConfirmed) {
             blockShorts()
             return
@@ -350,6 +379,7 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
             val discovered = if (!unlockActive && evaluation.channelId == null) {
                 repository.registerDiscoveredHandle(observation.exactHandle, observation.displayName).getOrNull()
             } else null
+            if (generation != evaluationGeneration || observation.stableKey != lastEvaluatedKey) return@launch
             val targetChannelId = discovered?.channelId ?: evaluation.channelId
             val displayName = discovered?.displayName ?: observation.displayName ?: "This channel"
             val isUnclassifiedOrOthers = evaluation.classification == YoutubeChannelClassification.OTHERS
@@ -515,18 +545,12 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
     }
 
     private fun closePlayingVideo() {
+        if (enforceFloatingPlayback()) return
+        if (!isYoutubeVisible()) return
         pauseMedia()
         navigateToYoutubeHome()
-        handler.postDelayed({
-            pauseMedia()
-            val root = rootInActiveWindow
-            if (root != null && root.packageName?.toString() == YoutubeStudyV2Parser.YOUTUBE_PACKAGE) {
-                val obs = readObservation()
-                if (obs.watchScreenConfirmed || obs.kind == YoutubeV2ContentKind.SHORTS) {
-                    performGlobalAction(GLOBAL_ACTION_BACK)
-                }
-            }
-        }, 250L)
+        // Never send a delayed global Back: the student may already be working
+        // in another app, and Back can close that app or its current screen.
     }
 
     private fun handleQuickUnlockExpired(passedExpiredMinutes: Int = 0) {
@@ -665,14 +689,109 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
         youtubeInsightsRepository.finishViewing()
     }
 
-    private fun isYoutubeVisible(): Boolean =
+    private fun screenIsInteractive(): Boolean =
         getSystemService(android.os.PowerManager::class.java).isInteractive &&
-            !getSystemService(android.app.KeyguardManager::class.java).isKeyguardLocked &&
-            rootInActiveWindow?.packageName?.toString() == YoutubeStudyV2Parser.YOUTUBE_PACKAGE
+            !getSystemService(android.app.KeyguardManager::class.java).isKeyguardLocked
+
+    private fun youtubePipWindow(): AccessibilityWindowInfo? =
+        windows.firstOrNull { window ->
+            window.isInPictureInPictureMode &&
+                window.root?.packageName?.toString() == YoutubeStudyV2Parser.YOUTUBE_PACKAGE
+        }
+
+    /** Both Android PiP and YouTube's in-app mini-player can outlive the watch page. */
+    private fun enforceFloatingPlayback(): Boolean = enforceYoutubePip() || enforceYoutubeMiniPlayer()
+
+    private fun enforceYoutubeMiniPlayer(): Boolean {
+        if (!screenIsInteractive()) return false
+        val root = rootInActiveWindow ?: return false
+        if (root.packageName?.toString() != YoutubeStudyV2Parser.YOUTUBE_PACKAGE) return false
+        val queue = ArrayDeque<AccessibilityNodeInfo>()
+        val miniNodes = mutableListOf<AccessibilityNodeInfo>()
+        queue.add(root)
+        var inspected = 0
+        while (queue.isNotEmpty() && inspected++ < MAX_NODES) {
+            val node = queue.removeFirst()
+            if (node.isVisibleToUser && YoutubeStudyV2Parser.isMiniPlayerId(node.viewIdResourceName)) {
+                miniNodes.add(node)
+                // The close-control search owns this subtree. Do not collect
+                // its descendants again and rescan them on every heartbeat.
+                continue
+            }
+            for (index in 0 until node.childCount) node.getChild(index)?.let(queue::addLast)
+        }
+        if (miniNodes.isEmpty()) return false
+        if (shouldBlockYoutubePip(isYoutubeQuickUnlockActive(), lastWatchedClassification)) {
+            stopAnalytics()
+            pauseMedia()
+            // Some builds expose only individually named controls, with no
+            // named container. Keep looking past play/expand for the close control.
+            miniNodes.firstOrNull { closeMiniPlayer(it) }
+        } else {
+            recordFloatingPlayback()
+        }
+        return true
+    }
+
+    private fun closeMiniPlayer(container: AccessibilityNodeInfo): Boolean {
+        // Search only inside the mini-player; never click a feed item's close
+        // button or send Back/Home to whatever app the student is working in.
+        val queue = ArrayDeque<AccessibilityNodeInfo>()
+        queue.add(container)
+        var inspected = 0
+        while (queue.isNotEmpty() && inspected++ < MAX_NODES) {
+            val node = queue.removeFirst()
+            if (node.isVisibleToUser && node.isClickable &&
+                YoutubeStudyV2Parser.isMiniPlayerCloseControl(
+                    node.viewIdResourceName,
+                    (node.contentDescription ?: node.text)?.toString(),
+                ) && node.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+            ) return true
+            for (index in 0 until node.childCount) node.getChild(index)?.let(queue::addLast)
+        }
+        return container.performAction(AccessibilityNodeInfo.ACTION_DISMISS)
+    }
+
+    private fun recordFloatingPlayback() {
+        syncQuickUnlockTimer()
+        val now = SystemClock.elapsedRealtime()
+        if (!analyticsOpen || now - lastPipAnalyticsAtMs >= ANALYTICS_HEARTBEAT_MS) {
+            lastPipAnalyticsAtMs = now
+            recordAnalytics(
+                lastWatchedChannelId,
+                if (isKavachYoutubeUnlock() || lastWatchedClassification != YoutubeChannelClassification.PRODUCTIVE)
+                    YoutubeInsightsRepository.CATEGORY_DISTRACTING
+                else YoutubeInsightsRepository.CATEGORY_PRODUCTIVE,
+                analyticsShorts,
+            )
+        }
+    }
+
+    /** Returns true while PiP owns playback, so the normal watch parser stays idle. */
+    private fun enforceYoutubePip(): Boolean {
+        if (!screenIsInteractive()) return false
+        val pip = youtubePipWindow() ?: return false
+        if (shouldBlockYoutubePip(isYoutubeQuickUnlockActive(), lastWatchedClassification)) {
+            stopAnalytics()
+            pauseMedia()
+            // Android exposes PiP dismissal on the window root. This targets
+            // YouTube only; global Back/Home would act on the foreground app.
+            pip.root?.performAction(AccessibilityNodeInfo.ACTION_DISMISS)
+        } else {
+            recordFloatingPlayback()
+        }
+        return true
+    }
+
+    private fun isYoutubeVisible(): Boolean =
+        screenIsInteractive() &&
+            (rootInActiveWindow?.packageName?.toString() == YoutubeStudyV2Parser.YOUTUBE_PACKAGE ||
+                youtubePipWindow() != null)
 
     /** Prefer YouTube's Home tab; Back is the safe fallback for direct/deep links. */
     private fun navigateToYoutubeHome() {
         val root = rootInActiveWindow
+        if (root?.packageName?.toString() != YoutubeStudyV2Parser.YOUTUBE_PACKAGE) return
         val queue = ArrayDeque<AccessibilityNodeInfo>()
         root?.let(queue::add)
         while (queue.isNotEmpty()) {
@@ -763,6 +882,11 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
     }
 
     private fun beginVideoTap(clickAtMs: Long) {
+        // An earlier productive video cannot authorize a new, unidentified PiP.
+        lastWatchedChannelId = null
+        lastWatchedDisplayName = null
+        lastWatchedExactHandle = null
+        lastWatchedClassification = null
         recordAnalytics(null, YoutubeInsightsRepository.CATEGORY_UNIDENTIFIED, false)
         evaluationGeneration++
         session.onVideoTap(clickAtMs)
@@ -775,6 +899,7 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
     }
 
     companion object {
+        private const val PIP_CHECK_MS = 250L
         private const val DEBOUNCE_MS = 120L
         private const val STABILITY_GAP_MS = 120L
         private const val CLICK_TRANSITION_MS = 120L

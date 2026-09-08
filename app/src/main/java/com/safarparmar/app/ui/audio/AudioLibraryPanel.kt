@@ -1,5 +1,6 @@
 package com.safarparmar.app.ui.audio
 
+import com.safarparmar.app.performance.decorativeFloat
 import android.media.AudioAttributes
 import android.media.MediaPlayer
 import android.net.Uri
@@ -341,7 +342,7 @@ fun EqualizerAnimation(color: Color) {
     ) {
         listOf(300, 400, 500, 350).forEachIndexed { index, delayMillis ->
             val infiniteTransition = rememberInfiniteTransition(label = "eq_$index")
-            val height by infiniteTransition.animateFloat(
+            val height by infiniteTransition.decorativeFloat(
                 initialValue = 0.3f,
                 targetValue = 1f,
                 animationSpec = infiniteRepeatable(

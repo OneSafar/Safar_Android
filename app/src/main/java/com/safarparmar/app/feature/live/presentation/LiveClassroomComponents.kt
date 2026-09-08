@@ -1,5 +1,6 @@
 package com.safarparmar.app.feature.live.presentation
 
+import com.safarparmar.app.performance.decorativeFloat
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -580,7 +581,7 @@ fun TeacherNotLiveCard(
 fun LiveStatusBadge(status: String, modifier: Modifier = Modifier) {
     val isLive = status == "live"
     val infiniteTransition = rememberInfiniteTransition(label = "livePulse")
-    val pulseScale by infiniteTransition.animateFloat(
+    val pulseScale by infiniteTransition.decorativeFloat(
         initialValue = 0.92f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(

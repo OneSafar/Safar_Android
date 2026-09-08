@@ -440,7 +440,7 @@
     <string name="notification_action_start_now">Start Now</string>
 
     <string name="youtube_study_v2_accessibility_label">SAFAR YouTube Focus</string>
-    <string name="youtube_study_v2_accessibility_description">YouTube Focus reads only a tapped video watch screen, identifies its channel owner, and compares the resolved Channel ID with your productive channels. Home scrolling and previews are never blocked.</string>
+    <string name="youtube_study_v2_accessibility_description">Optional YouTube Focus reads visible YouTube text, including names, @handles and user-generated content, to identify videos and Shorts, measure viewing time and apply your blocking settings. Detected handles and daily viewing totals are sent to SAFAR for channel identification and analytics. Review the full disclosure in SAFAR before enabling this service.</string>
 
     <string name="module_courses">Courses</string>
 </resources>

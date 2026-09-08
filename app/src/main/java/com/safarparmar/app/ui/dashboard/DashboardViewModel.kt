@@ -9,7 +9,12 @@ import com.safarparmar.app.domain.repository.StudyPlannerRepository
 import com.safarparmar.app.util.Resource
 import com.safarparmar.app.util.assignedDateKey
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.async
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.supervisorScope
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
@@ -47,11 +52,13 @@ class DashboardViewModel @Inject constructor(
         }
     }
 
+    private var loadJob: Job? = null
+
     init { loadAll() }
 
     fun onEvent(event: DashboardEvent) {
         when (event) {
-            is DashboardEvent.Refresh    -> loadAll()
+            is DashboardEvent.Refresh    -> { homeRepository.invalidateReadSnapshots(); loadAll() }
             is DashboardEvent.ClearError -> _uiState.update { it.copy(error = null) }
         }
     }
@@ -82,100 +89,97 @@ class DashboardViewModel @Inject constructor(
     }
 
     private fun loadAll() {
-        viewModelScope.launch(exceptionHandler) {
-            _uiState.update { it.copy(isLoading = true, error = null) }
-
-            val streaksD      = async { homeRepository.getStreaks() }
-            val moodsD        = async { homeRepository.getMoods() }
-            val goalsD        = async { homeRepository.getGoals() }
-            val reportD       = async { homeRepository.getMonthlyReport() }
-            val titleD        = async { homeRepository.getActiveTitle() }
-            val achievementsD = async { homeRepository.getAchievements() }
-            val historyD      = async { homeRepository.getLoginHistory() }
-            val studyPlanD    = async { loadStudyPlanCard() }
-
-            val userName      = runCatching { dataStore.userName.first() }.getOrDefault("")
-            val userAvatar    = runCatching { dataStore.userAvatar.first() }.getOrDefault(null)
-            val welcomeSeen   = runCatching { dataStore.isWelcomeSeen.first() }.getOrDefault(false)
-
-            val streaks      = (streaksD.await()      as? Resource.Success)?.data ?: Streaks()
-            val moods        = (moodsD.await()        as? Resource.Success)?.data ?: emptyList()
-            val goals        = (goalsD.await()        as? Resource.Success)?.data ?: emptyList()
-            val report       = (reportD.await()       as? Resource.Success)?.data
-            val title        = (titleD.await()        as? Resource.Success)?.data
-            val achievements = (achievementsD.await() as? Resource.Success)?.data ?: emptyList()
-            val loginHistory = (historyD.await()      as? Resource.Success)?.data ?: emptyList()
-            val studyPlan    = studyPlanD.await()
-
-            val today          = com.safarparmar.app.util.IstDateUtils.todayKey()
-            val todayGoals     = goals.filter { it.source != "ekagra" && it.assignedDateKey() == today }
-            val completedGoals = goals.filter { it.completed }.takeLast(5)
-            val todayMood      = moods.firstOrNull { it.timestamp.startsWith(today) }
-            
-            // Align and pad moods for the current week (Monday to Sunday)
-            val todayDate      = LocalDate.now()
-            val dayOfWeekVal   = todayDate.dayOfWeek.value // 1 (Mon) to 7 (Sun)
-            val mondayDate     = todayDate.minusDays((dayOfWeekVal - 1).toLong())
-            val weeklyMoods    = (0..6).map { i ->
-                val dateStr = mondayDate.plusDays(i.toLong()).toString()
-                moods.firstOrNull { it.timestamp.startsWith(dateStr) } ?: Mood(intensity = 0, mood = "", timestamp = dateStr)
-            }
-
-            // Trigger local notifications for newly earned achievements
-            val notifiedAchievements = dataStore.notifiedAchievements.first()
-            val notificationsEnabled = dataStore.notificationsEnabled.first() && dataStore.achievementsEnabled.first()
-            val newlyEarned = achievements.filter { it.earned && !notifiedAchievements.contains(it.id) }
-            
-            if (newlyEarned.isNotEmpty()) {
-                if (notificationsEnabled) {
-                    val notificationManager = SafarNotificationManager(context)
-                    newlyEarned.forEach { achievement ->
-                        notificationManager.show(
-                            title = "Achievement Unlocked! 🏆",
-                            body = "You unlocked: ${achievement.name}",
-                            channelId = SafarNotificationChannels.ACHIEVEMENTS,
-                            deepLink = "safar://achievements",
-                            // Congratulations should be addressed to someone.
-                            personalize = true,
-                        )
+        // Do not restart an in-flight refresh or cancel achievement delivery.
+        if (loadJob?.isActive == true) return
+        loadJob = viewModelScope.launch(exceptionHandler) {
+            _uiState.update { it.copy(isLoading = true, error = null, sectionErrors = emptyMap()) }
+            try {
+                supervisorScope {
+                    launch {
+                        val userName = dataStore.userName.first().orEmpty()
+                        val avatar = dataStore.userAvatar.first()
+                        val welcomeSeen = dataStore.isWelcomeSeen.first()
+                        _uiState.update { it.copy(userName = userName, userAvatar = avatar, profileReady = true, showWelcomeOverlay = !welcomeSeen) }
+                    }
+                    launch { loadSection(DashboardSection.STREAKS, { homeRepository.getStreaks() }) { state, data -> state.copy(streaks = data) } }
+                    launch { loadSection(DashboardSection.GOALS, { homeRepository.getGoals() }) { state, goals ->
+                        val today = com.safarparmar.app.util.IstDateUtils.todayKey()
+                        state.copy(todayGoals = goals.filter { it.source != "ekagra" && it.assignedDateKey() == today }, completedGoals = goals.filter { it.completed }.takeLast(5))
+                    } }
+                    launch { loadSection(DashboardSection.MOODS, { homeRepository.getMoods() }) { state, moods ->
+                        val today = com.safarparmar.app.util.IstDateUtils.todayKey()
+                        val date = LocalDate.now()
+                        val monday = date.minusDays((date.dayOfWeek.value - 1).toLong())
+                        state.copy(todayMood = moods.firstOrNull { it.timestamp.startsWith(today) }, weeklyMoods = (0..6).map { index ->
+                            val key = monday.plusDays(index.toLong()).toString()
+                            moods.firstOrNull { it.timestamp.startsWith(key) } ?: Mood(intensity = 0, mood = "", timestamp = key)
+                        })
+                    } }
+                    launch { loadSection(DashboardSection.REPORT, { homeRepository.getMonthlyReport() }) { state, data -> state.copy(monthlyReport = data) } }
+                    launch { loadSection(DashboardSection.TITLE, { homeRepository.getActiveTitle() }) { state, title ->
+                        state.copy(activeTitle = title.title, activeTitleId = title.selectedId, activeTitleImageUrl = title.selectedId.takeIf(String::isNotEmpty)?.let(AchievementImages::urlFor))
+                    } }
+                    launch {
+                        loadSection(DashboardSection.ACHIEVEMENTS, { homeRepository.getAchievements() }) { state, data ->
+                            state.copy(allAchievements = data, earnedAchievements = data.filter { it.earned })
+                        }
+                        if (DashboardSection.ACHIEVEMENTS !in _uiState.value.sectionErrors) deliverAchievements()
+                    }
+                    launch { loadSection(DashboardSection.HISTORY, { homeRepository.getLoginHistory() }) { state, data -> state.copy(loginHistory = data) } }
+                    launch {
+                        loadSection(DashboardSection.PLAN, {
+                            val plan = loadStudyPlanCard()
+                            if (plan.errorMessage != null && plan.planId == null) Resource.Error(plan.errorMessage) else Resource.Success(plan)
+                        }) { state, data -> state.copy(studyPlan = data) }
                     }
                 }
-                viewModelScope.launch {
-                    newlyEarned.forEach { dataStore.addNotifiedAchievement(it.id) }
+            } finally {
+                _uiState.update { it.copy(isLoading = false, profileReady = true) }
+            }
+        }
+    }
+
+    private suspend fun <T> loadSection(
+        section: DashboardSection,
+        request: suspend () -> Resource<T>,
+        apply: (DashboardUiState, T) -> DashboardUiState,
+    ) {
+        try {
+            when (val result = request()) {
+                is Resource.Success -> _uiState.update { state ->
+                    apply(state, result.data).copy(loadedSections = state.loadedSections + section, sectionErrors = state.sectionErrors - section)
                 }
+                is Resource.Error -> _uiState.update { it.copy(sectionErrors = it.sectionErrors + (section to result.message)) }
+                is Resource.Loading -> Unit
             }
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (exception: Exception) {
+            _uiState.update { it.copy(sectionErrors = it.sectionErrors + (section to (exception.localizedMessage ?: "Could not load this section."))) }
+        }
+    }
 
-            val titleId = title?.selectedId ?: ""
-            val activeTitleImgUrl = titleId.takeIf { it.isNotEmpty() }
-                ?.let { id -> AchievementImages.urlFor(id) }
-
-            _uiState.update {
-                it.copy(
-                    isLoading          = false,
-                    userName           = userName ?: "",
-                    userAvatar         = userAvatar,
-                    activeTitle        = title?.title ?: "",
-                    activeTitleId      = titleId,
-                    activeTitleImageUrl = activeTitleImgUrl,
-                    streaks            = streaks,
-                    todayMood          = todayMood,
-                    todayGoals         = todayGoals,
-                    completedGoals     = completedGoals,
-                    monthlyReport      = report,
-                    weeklyMoods        = weeklyMoods,
-                    earnedAchievements = achievements.filter { a -> a.earned },
-                    allAchievements    = achievements,
-                    loginHistory          = loginHistory,
-                    studyPlan             = studyPlan,
-                    showWelcomeOverlay    = !welcomeSeen,
-                    celebrationAchievements = newlyEarned
-                )
-            }
+    private suspend fun deliverAchievements() {
+        val notified = dataStore.notifiedAchievements.first()
+        val newlyEarned = _uiState.value.allAchievements.filter { it.earned && it.id !in notified }
+        if (newlyEarned.isEmpty()) return
+        _uiState.update { it.copy(celebrationAchievements = newlyEarned) }
+        val enabled = dataStore.notificationsEnabled.first() && dataStore.achievementsEnabled.first()
+        for (achievement in newlyEarned) {
+            if (enabled) SafarNotificationManager(context).show(
+                title = "Achievement Unlocked! 🏆",
+                body = "You unlocked: ${achievement.name}",
+                channelId = SafarNotificationChannels.ACHIEVEMENTS,
+                deepLink = "safar://achievements",
+                personalize = true,
+            )
+            dataStore.addNotifiedAchievement(achievement.id)
         }
     }
 
     private suspend fun loadStudyPlanCard(): DashboardStudyPlanState {
         return try {
+            coroutineScope {
             val activePlanId = dataStore.plannerActivePlanId().first()
             when (val plansResult = studyPlannerRepository.listPlans()) {
                 is Resource.Success -> {
@@ -187,23 +191,25 @@ class DashboardViewModel @Inject constructor(
                         // on them yields "0 of 0". Hydrate the full plan (like the planner's
                         // openPlan does) before computing progress; fall back to the summary
                         // if the detail fetch fails so the card still renders.
-                        val activePlan = when (val planResult = studyPlannerRepository.getPlan(summaryPlan.id)) {
-                            is Resource.Success -> planResult.data
-                            else -> summaryPlan
-                        }
-                        val calendarResult = studyPlannerRepository.getCalendar(activePlan.id)
+                        // getPlan can roll overdue topics forward on the server. Read the
+                        // calendar afterwards so it reflects that rollover.
+                        val activePlan = (studyPlannerRepository.getPlan(summaryPlan.id) as? Resource.Success)?.data ?: summaryPlan
+                        val calendarResult = studyPlannerRepository.getCalendar(summaryPlan.id)
                         val calendar = when (calendarResult) {
                             is Resource.Success -> calendarResult.data
                             is Resource.Error -> emptyMap()
                             is Resource.Loading -> emptyMap()
                         }
                         val calendarError = (calendarResult as? Resource.Error)?.message
-                        buildDashboardStudyPlanState(activePlan, calendar, errorMessage = calendarError)
+                        withContext(Dispatchers.Default) { buildDashboardStudyPlanState(activePlan, calendar, errorMessage = calendarError) }
                     }
                 }
                 is Resource.Error -> DashboardStudyPlanState(errorMessage = plansResult.message)
                 is Resource.Loading -> DashboardStudyPlanState()
             }
+            }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             DashboardStudyPlanState(errorMessage = e.localizedMessage ?: "Could not load exam planner.")
         }

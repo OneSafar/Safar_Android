@@ -87,14 +87,14 @@ class KavachBlockOverlay(
         currentBlockedPackage = blockedPackage
         val title = if (expiredMinutes > 0) "Quick Unlock Expired" else "$appName is blocked"
         val subtitle = when {
-            expiredMinutes > 0 -> "You have been distracted for over $expiredMinutes minutes."
+            expiredMinutes > 0 -> "Your $expiredMinutes-minute break ended. Your screen is preserved. Unlock again to continue, or return Home."
             allowQuickUnlock -> "KAVACH is protecting your focus. Need a quick break?"
             else -> "Always On protection is active. Open KAVACH to turn it off."
         }
         showContent(
             title = title,
             subtitle = subtitle,
-            buttonText = "I'll Control Myself.",
+            buttonText = "Return Home",
             onAction = ::goHome,
             quickUnlockMinutes = if (allowQuickUnlock) listOf(5, 10, 15, 20) else emptyList(),
             blockedPackage = blockedPackage,
@@ -434,9 +434,6 @@ class KavachBlockOverlay(
                         val quickUnlockCb = content.onQuickUnlock
                         dismiss()
                         quickUnlockCb?.invoke(minutes)
-                        if (!accessibilityOverlay) {
-                            goHome()
-                        }
                     }
                 }
                 quickUnlockRow.addView(

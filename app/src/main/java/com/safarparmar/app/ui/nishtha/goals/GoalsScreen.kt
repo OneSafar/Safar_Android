@@ -95,6 +95,7 @@ import com.safarparmar.app.ui.theme.LoraFontFamily
 import com.safarparmar.app.ui.theme.isLightBackground
 import com.safarparmar.app.util.IstDateUtils
 import com.safarparmar.app.util.assignedDateKey
+import com.safarparmar.app.util.isVisibleInGoals
 import com.safarparmar.app.util.isGoalCompleted
 import com.safarparmar.app.util.isHiddenFromActiveGoals
 import com.safarparmar.app.util.isTodayGoal
@@ -124,12 +125,12 @@ private fun GoalsScreenContent(
 
     // Automatically refresh goals when this screen comes into focus
     LaunchedEffect(Unit) {
-        viewModel.onEvent(NishthaEvent.LoadGoals)
+        viewModel.loadTab(com.safarparmar.app.ui.nishtha.NishthaTab.GOALS)
     }
 
     val context = LocalContext.current
     var selectedTab by remember { mutableStateOf(0) }
-    val tabs = listOf("Today", "Upcoming", "Missed", "Completed")
+    val tabs = listOf("Today", "Upcoming", "Missed", "History")
     var showAddSheet by remember { mutableStateOf(false) }
     var showStatusSheet by remember { mutableStateOf(false) }
     var showDeletedSheet by remember { mutableStateOf(false) }
@@ -1057,7 +1058,7 @@ private fun GoalsScreenContent(
     }
 
     val todayKey = IstDateUtils.todayKey()
-    val standardGoals = uiState.goals.filter { it.source != "ekagra" }
+    val standardGoals = uiState.goals.filter { it.isVisibleInGoals() }
     // "Done today" counts EVERY completed goal, however it was finished. Counting
     // only manual completions meant a goal finished through a linked Ekagra
     // session was excluded here AND from pendingToday (it is completed), so it

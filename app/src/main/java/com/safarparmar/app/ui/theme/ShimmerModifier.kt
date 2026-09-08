@@ -1,15 +1,8 @@
 package com.safarparmar.app.ui.theme
 
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -31,32 +24,14 @@ fun Modifier.shimmer(
     shimmerWidth: Float = 600f,
     angle: Float = 25f
 ): Modifier = composed {
-    val transition = rememberInfiniteTransition(label = "button_shimmer")
-    
-    // We animate from a negative offset (left of button) to a large positive offset (right of button)
-    val translateAnim by transition.animateFloat(
-        initialValue = -shimmerWidth,
-        targetValue = 1200f + shimmerWidth, // Assumes max button width around 1000f; works for most screen widths
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "shimmer_translation"
-    )
-
-    val shimmerBrush = Brush.linearGradient(
-        colors = listOf(
-            Color.White.copy(alpha = 0.0f),
-            Color.White.copy(alpha = 0.25f), // Subtle white highlight
-            Color.White.copy(alpha = 0.0f),
-        ),
-        start = Offset(translateAnim, 0f),
-        end = Offset(translateAnim + shimmerWidth, shimmerWidth * tan(Math.toRadians(angle.toDouble())).toFloat())
-    )
-
+    if (!com.safarparmar.app.performance.decorativeMotionEnabled()) return@composed this
+    val phase = com.safarparmar.app.performance.rememberDecorationPhase(durationMillis)
+    val colors = androidx.compose.runtime.remember { listOf(Color.Transparent, Color.White.copy(alpha = 0.25f), Color.Transparent) }
+    val slope = androidx.compose.runtime.remember(angle) { tan(Math.toRadians(angle.toDouble())).toFloat() }
     this.drawWithContent {
         drawContent()
-        drawRect(brush = shimmerBrush)
+        val x = -shimmerWidth + phase() * (size.width + 2 * shimmerWidth)
+        drawRect(Brush.linearGradient(colors, Offset(x, 0f), Offset(x + shimmerWidth, shimmerWidth * slope)))
     }
 }
 
@@ -77,28 +52,20 @@ fun RainbowShimmerText(
     fontWeight: FontWeight = FontWeight.Normal,
     style: TextStyle = LocalTextStyle.current,
 ) {
-    val transition = rememberInfiniteTransition(label = "rainbow_text_shimmer")
-    val translateAnim = transition.animateFloat(
-        initialValue = -360f,
-        targetValue = 800f + 360f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2800, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart,
-        ),
-        label = "rainbow_text_shimmer_translation",
-    )
-    
+    val enabled = com.safarparmar.app.performance.decorativeMotionEnabled()
+    val phase = com.safarparmar.app.performance.rememberDecorationPhase(2800)
+
     Text(
         text = text,
-        modifier = modifier
+        modifier = if (!enabled) modifier else modifier
             .graphicsLayer(alpha = 0.99f)
             .drawWithContent {
                 drawContent()
                 drawRect(
                     brush = Brush.linearGradient(
                         colors = RainbowShimmerColors,
-                        start = Offset(translateAnim.value, 0f),
-                        end = Offset(translateAnim.value + 360f, 0f),
+                        start = Offset(-360f + phase() * (size.width + 720f), 0f),
+                        end = Offset(phase() * (size.width + 720f), 0f),
                     ),
                     blendMode = androidx.compose.ui.graphics.BlendMode.SrcIn
                 )
@@ -119,28 +86,13 @@ fun Modifier.rainbowShimmer(
     shimmerWidth: Float = 480f,
     angle: Float = 20f,
 ): Modifier = composed {
-    val transition = rememberInfiniteTransition(label = "rainbow_shimmer")
-    val translateAnim by transition.animateFloat(
-        initialValue = -shimmerWidth,
-        targetValue = 1200f + shimmerWidth,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart,
-        ),
-        label = "rainbow_shimmer_translation",
-    )
-
-    val rainbowBrush = Brush.linearGradient(
-        colors = RainbowShimmerColors.map { it.copy(alpha = 0.4f) },
-        start = Offset(translateAnim, 0f),
-        end = Offset(
-            translateAnim + shimmerWidth,
-            shimmerWidth * tan(Math.toRadians(angle.toDouble())).toFloat(),
-        ),
-    )
-
+    if (!com.safarparmar.app.performance.decorativeMotionEnabled()) return@composed this
+    val phase = com.safarparmar.app.performance.rememberDecorationPhase(durationMillis)
+    val colors = androidx.compose.runtime.remember { RainbowShimmerColors.map { it.copy(alpha = 0.4f) } }
+    val slope = androidx.compose.runtime.remember(angle) { tan(Math.toRadians(angle.toDouble())).toFloat() }
     this.drawWithContent {
         drawContent()
-        drawRect(brush = rainbowBrush)
+        val x = -shimmerWidth + phase() * (size.width + 2 * shimmerWidth)
+        drawRect(Brush.linearGradient(colors, Offset(x, 0f), Offset(x + shimmerWidth, shimmerWidth * slope)))
     }
 }

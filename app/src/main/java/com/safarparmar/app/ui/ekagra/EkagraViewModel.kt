@@ -541,8 +541,10 @@ class EkagraViewModel @Inject constructor(
                             studiedSeconds = studiedSeconds,
                             completedViaFocus = true,
                         )
+                        homeRepo.invalidateReadSnapshots()
                         com.safarparmar.app.ui.nishtha.goals.GoalEventBus.postGoalUpdated(goalId)
                     } else if (!goalId.isNullOrBlank()) {
+                        homeRepo.invalidateReadSnapshots()
                         com.safarparmar.app.ui.nishtha.goals.GoalEventBus.postGoalUpdated(goalId)
                     }
                     if (markTopicDone && !topicId.isNullOrBlank() && !planId.isNullOrBlank()) {
@@ -571,6 +573,7 @@ class EkagraViewModel @Inject constructor(
             when (repo.linkSessionToGoal(sessionId, goal.id, markGoalComplete)) {
                 is Resource.Success -> {
                     com.safarparmar.app.ui.nishtha.goals.GoalEventBus.postGoalUpdated(goal.id)
+                    homeRepo.invalidateReadSnapshots()
                     loadStats()
                     refreshEkagra()
                     loadTasks()
@@ -693,6 +696,12 @@ class EkagraViewModel @Inject constructor(
                         val updatedFocus = curr.focusSessions.map { if (it.id == sessionId) it.copy(id = savedId) else it }
                         val updatedRecent = curr.recentSessions.map { if (it.id == sessionId) it.copy(id = savedId) else it }
                         _ekagraAnalytics.value = curr.copy(focusSessions = updatedFocus, recentSessions = updatedRecent)
+                    }
+                    // Fresh goal-linked saves must refresh Goals just like linking
+                    // an existing session does, including the keep-open choice.
+                    if (!goalId.isNullOrBlank()) {
+                        homeRepo.invalidateReadSnapshots()
+                        com.safarparmar.app.ui.nishtha.goals.GoalEventBus.postGoalUpdated(goalId)
                     }
                     // Tell the Study Planner (if open in another ViewModel) to reload
                     // this plan so the just-completed topic flips to done live, rather

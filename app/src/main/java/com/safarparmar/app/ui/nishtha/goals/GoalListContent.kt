@@ -61,6 +61,7 @@ import com.safarparmar.app.ui.studyplanner.plan.PlanHairline
 import com.safarparmar.app.ui.theme.LoraFontFamily
 import com.safarparmar.app.util.IstDateUtils
 import com.safarparmar.app.util.assignedDateKey
+import com.safarparmar.app.util.isVisibleInGoals
 import com.safarparmar.app.util.isGoalCompleted
 import com.safarparmar.app.util.isMissedGoal
 import com.safarparmar.app.util.isTodayGoal
@@ -81,7 +82,7 @@ internal fun GoalsTab(
     onDelete: (Goal) -> Unit,
 ) {
     val todayKey = IstDateUtils.todayKey()
-    val standardGoals = goals.filter { it.source != "ekagra" }
+    val standardGoals = goals.filter { it.isVisibleInGoals() }
     val pending = standardGoals.filter { it.isTodayGoal(todayKey) }
         .sortedBy { it.startedAt ?: it.createdAt ?: it.scheduledDate ?: "" }
     val scheduled = standardGoals.filter { it.isUpcomingGoal(todayKey) }
@@ -390,6 +391,7 @@ internal fun GoalItem(
     onReopen: (() -> Unit)? = null,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
+    completedViaEkagra: Boolean = goal.completedViaFocus,
 ) {
     var showMenu by remember { mutableStateOf(false) }
     val progress = goal.progressPercent()
@@ -452,6 +454,9 @@ internal fun GoalItem(
                         ""
                     }
                     FlatBadge("✓ Done$studiedText", GoalsFlatColors.Done)
+                    if (completedViaEkagra) {
+                        FlatBadge("Completed via Ekagra", GoalsFlatColors.Ekagra)
+                    }
                 } else {
                     FlatBadge(goal.goalKindLabel(), badgeColor)
                     if (goal.isMissedGoal()) {

@@ -1,5 +1,6 @@
 package com.safarparmar.app.ui.dhyan
 
+import com.safarparmar.app.performance.decorativeFloat
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.*
@@ -141,12 +142,12 @@ fun WavyPathViz(breathPhase: BreathPhase, isActive: Boolean) {
     )
 
     val infinite = rememberInfiniteTransition(label = "inf")
-    val ringAlpha by infinite.animateFloat(
+    val ringAlpha by infinite.decorativeFloat(
         initialValue = 0.15f, targetValue = 0.05f,
         animationSpec = infiniteRepeatable(tween(3000, easing = EaseInOut), RepeatMode.Reverse),
         label = "ringA"
     )
-    val orbGlow by infinite.animateFloat(
+    val orbGlow by infinite.decorativeFloat(
         initialValue = 0.3f, targetValue = 0.6f,
         animationSpec = infiniteRepeatable(tween(3000, easing = EaseInOut), RepeatMode.Reverse),
         label = "orbG"
@@ -244,7 +245,7 @@ fun WavyPathViz(breathPhase: BreathPhase, isActive: Boolean) {
             }
 
             // 6 floating particles
-            if (isMoving) {
+            if (isMoving && com.safarparmar.app.performance.decorativeMotionEnabled()) {
                 val xOffsets = listOf(-50f, -30f, -10f, 10f, 30f, 50f)
                 xOffsets.forEachIndexed { i, xOff ->
                     BreathParticle(
@@ -288,14 +289,14 @@ private fun BreathParticle(
     xOffset: Float, delayMs: Int, durationMs: Int
 ) {
     val inf = rememberInfiniteTransition(label = "p$xOffset")
-    val y by inf.animateFloat(
+    val y by inf.decorativeFloat(
         initialValue = startY, targetValue = endY,
         animationSpec = infiniteRepeatable(
             tween(durationMs, delayMillis = delayMs, easing = FastOutSlowInEasing),
             RepeatMode.Restart
         ), label = "py"
     )
-    val alpha by inf.animateFloat(
+    val alpha by inf.decorativeFloat(
         initialValue = 0f, targetValue = 0f,
         animationSpec = infiniteRepeatable(
             keyframes {
@@ -304,7 +305,7 @@ private fun BreathParticle(
             }, RepeatMode.Restart
         ), label = "pa"
     )
-    val sc by inf.animateFloat(
+    val sc by inf.decorativeFloat(
         initialValue = 0.5f, targetValue = 0.3f,
         animationSpec = infiniteRepeatable(
             keyframes {
@@ -394,8 +395,8 @@ fun BoxTraceViz(breathPhase: BreathPhase, isActive: Boolean, cycle: BreathCycle)
     }
 
     val inf = rememberInfiniteTransition(label = "ping")
-    val pingScale by inf.animateFloat(1f, 1.8f, infiniteRepeatable(tween(800), RepeatMode.Restart), label = "ps")
-    val pingAlpha by inf.animateFloat(0.5f, 0f, infiniteRepeatable(tween(800), RepeatMode.Restart), label = "pa")
+    val pingScale by inf.decorativeFloat(1f, 1.8f, infiniteRepeatable(tween(800), RepeatMode.Restart), label = "ps")
+    val pingAlpha by inf.decorativeFloat(0.5f, 0f, infiniteRepeatable(tween(800), RepeatMode.Restart), label = "pa")
 
     Box(modifier = Modifier.size(200.dp), contentAlignment = Alignment.Center) {
         Canvas(modifier = Modifier.fillMaxSize()) {
@@ -515,9 +516,9 @@ fun NostrilViz() {
     )
 
     val inf = rememberInfiniteTransition(label = "nInf")
-    val holdScale by inf.animateFloat(1f, 1.15f, infiniteRepeatable(tween(1000, easing = EaseInOut), RepeatMode.Reverse), label = "hs")
-    val holdGlow by inf.animateFloat(0.3f, 0.6f, infiniteRepeatable(tween(1000, easing = EaseInOut), RepeatMode.Reverse), label = "hg")
-    val iconRot by inf.animateFloat(0f, 360f, infiniteRepeatable(tween(20000, easing = LinearEasing)), label = "ir")
+    val holdScale by inf.decorativeFloat(1f, 1.15f, infiniteRepeatable(tween(1000, easing = EaseInOut), RepeatMode.Reverse), label = "hs")
+    val holdGlow by inf.decorativeFloat(0.3f, 0.6f, infiniteRepeatable(tween(1000, easing = EaseInOut), RepeatMode.Reverse), label = "hg")
+    val iconRot by inf.decorativeFloat(0f, 360f, infiniteRepeatable(tween(20000, easing = LinearEasing)), label = "ir")
 
     val isHold = current.action == "hold"
 

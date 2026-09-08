@@ -31,7 +31,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
+import com.safarparmar.app.performance.adaptiveBlur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
@@ -173,7 +173,7 @@ private fun GlowOrb(
 ) {
     Box(
         modifier = modifier
-            .blur(blurRadius)
+            .adaptiveBlur(blurRadius)
             .background(color.copy(alpha = alpha), CircleShape),
     )
 }

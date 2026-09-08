@@ -2,8 +2,13 @@ package com.safarparmar.app.ui.dashboard
 
 import com.safarparmar.app.domain.model.*
 
+enum class DashboardSection { STREAKS, MOODS, GOALS, REPORT, TITLE, ACHIEVEMENTS, HISTORY, PLAN }
+
 data class DashboardUiState(
     val isLoading: Boolean = true,
+    val profileReady: Boolean = false,
+    val loadedSections: Set<DashboardSection> = emptySet(),
+    val sectionErrors: Map<DashboardSection, String> = emptyMap(),
     val userName: String = "",
     val userAvatar: String? = null,
     val activeTitle: String = "",

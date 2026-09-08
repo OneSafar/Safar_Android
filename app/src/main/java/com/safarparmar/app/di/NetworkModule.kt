@@ -71,12 +71,20 @@ object NetworkModule {
         maintenanceInterceptor: MaintenanceInterceptor,
         cookieManager: CookieManager,
         cache: Cache,
+        snapshots: com.safarparmar.app.data.repository.ReadSnapshotStore,
     ): OkHttpClient {
         val builder = OkHttpClient.Builder()
             .cookieJar(JavaNetCookieJar(cookieManager))
             .cache(cache)
             .addInterceptor(maintenanceInterceptor)
             .addInterceptor(authInterceptor)
+            .addInterceptor { chain ->
+                val changesData = chain.request().method !in setOf("GET", "HEAD", "OPTIONS")
+                if (changesData) snapshots.clear()
+                try { chain.proceed(chain.request()) } finally {
+                    if (changesData) snapshots.clear()
+                }
+            }
             // Per-call timeout override: any request that sets the X-Timeout-Seconds header
             // (stripped before sending) gets its connect/read/write timeouts bumped to that
             // value. Used for slow AI calls such as the Study Planner syllabus import, where

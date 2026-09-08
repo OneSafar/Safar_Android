@@ -437,7 +437,7 @@
     <string name="notification_action_start_now">अभी शुरू करें</string>
 
     <string name="youtube_study_v2_accessibility_label">SAFAR YouTube स्टडी मोड</string>
-    <string name="youtube_study_v2_accessibility_description">YouTube स्टडी मोड केवल टैप करके खोली गई वीडियो स्क्रीन पढ़ता है, चैनल मालिक को पहचानता है और Channel ID को productive चैनलों से मिलाता है। होम स्क्रॉल और previews कभी ब्लॉक नहीं होते।</string>
+    <string name="youtube_study_v2_accessibility_description">YouTube Focus, Accessibility से YouTube पर दिखने वाले नाम, @handles और उपयोगकर्ताओं की बनाई सामग्री पढ़ता है। इसका उपयोग वीडियो और Shorts पहचानने, देखने का समय मापने और आपकी ब्लॉकिंग सेटिंग लागू करने के लिए होता है। चैनल handles और दैनिक देखने का कुल समय SAFAR सर्वर पर भेजा जाता है। सेवा चालू करने से पहले SAFAR में पूरा विवरण पढ़ें और सहमति दें।</string>
 
     <string name="module_courses">कोर्सेस</string>
 </resources>

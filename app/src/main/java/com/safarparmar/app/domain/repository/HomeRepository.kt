@@ -4,6 +4,8 @@ import com.safarparmar.app.domain.model.*
 import com.safarparmar.app.util.Resource
 
 interface HomeRepository {
+    fun invalidateReadSnapshots() {}
+
     suspend fun getStreaks(): Resource<Streaks>
     suspend fun restoreCheckInStreak(): Resource<Streaks>
     suspend fun getMoods(): Resource<List<Mood>>

@@ -69,6 +69,7 @@ fun SafarNavGraph(
     isDarkTheme       : Boolean = false,
     onToggleDarkTheme : () -> Unit = {},
 ) {
+    val motion = com.safarparmar.app.performance.LocalMotionPolicy.current
     val navController = rememberNavController()
     val currentEntry by navController.currentBackStackEntryAsState()
     val currentRoute = currentEntry?.destination?.route ?: Routes.SPLASH
@@ -201,16 +202,16 @@ fun SafarNavGraph(
         navController = navController,
         startDestination = Routes.SPLASH,
         enterTransition = {
-            slideInHorizontally(animationSpec = tween(240)) { it / 5 } + fadeIn(animationSpec = tween(180))
+            if (motion.constrained) fadeIn(tween(motion.navigationMillis)) else slideInHorizontally(tween(motion.navigationMillis)) { it / 12 } + fadeIn(tween(motion.navigationMillis))
         },
         exitTransition = {
-            slideOutHorizontally(animationSpec = tween(220)) { -it / 8 } + fadeOut(animationSpec = tween(160))
+            if (motion.constrained) fadeOut(tween(motion.navigationMillis)) else slideOutHorizontally(tween(motion.navigationMillis)) { -it / 16 } + fadeOut(tween(motion.navigationMillis))
         },
         popEnterTransition = {
-            slideInHorizontally(animationSpec = tween(240)) { -it / 5 } + fadeIn(animationSpec = tween(180))
+            if (motion.constrained) fadeIn(tween(motion.navigationMillis)) else slideInHorizontally(tween(motion.navigationMillis)) { -it / 12 } + fadeIn(tween(motion.navigationMillis))
         },
         popExitTransition = {
-            slideOutHorizontally(animationSpec = tween(220)) { it / 8 } + fadeOut(animationSpec = tween(160))
+            if (motion.constrained) fadeOut(tween(motion.navigationMillis)) else slideOutHorizontally(tween(motion.navigationMillis)) { it / 16 } + fadeOut(tween(motion.navigationMillis))
         },
     ) {
 

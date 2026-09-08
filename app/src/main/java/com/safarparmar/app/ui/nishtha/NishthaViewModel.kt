@@ -47,25 +47,30 @@ class NishthaViewModel @Inject constructor(
     // a wasted network call on every launch.
     init {
         observeGoalEvents()
-        loadMoods()
-        loadJournals()
-        loadGoals()
-        loadGoalRolloverPrompts()
-        loadEkagraAnalytics()
-        loadStreaks()
-        loadLoginHistory()
-        loadAchievements()
+    }
+
+    /** Fetch only data consumed by the visible tab, including its detail sheets. */
+    fun loadTab(tab: NishthaTab) {
+        when (tab) {
+            NishthaTab.CHECK_IN -> loadMoods()
+            NishthaTab.JOURNAL -> loadJournals()
+            NishthaTab.GOALS -> { loadGoals(); loadGoalRolloverPrompts() }
+            NishthaTab.STREAKS -> { loadStreaks(); loadLoginHistory(); loadGoals() }
+            NishthaTab.ANALYTICS -> { loadGoals(); loadEkagraAnalytics(); loadAchievements() }
+        }
     }
 
     private fun observeGoalEvents() {
         viewModelScope.launch {
             com.safarparmar.app.ui.nishtha.goals.GoalEventBus.goalUpdatedFromEkagra.collect {
+                homeRepository.invalidateReadSnapshots()
                 loadGoals()
             }
         }
     }
 
     fun onEvent(event: NishthaEvent) {
+        if (event == NishthaEvent.LoadGoals || event == NishthaEvent.LoadStreaks) homeRepository.invalidateReadSnapshots()
         when (event) {
             is NishthaEvent.LoadMoods           -> loadMoods()
             is NishthaEvent.CreateMood          -> createMood(event.mood, event.intensity, event.notes)

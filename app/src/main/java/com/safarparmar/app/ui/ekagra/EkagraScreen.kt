@@ -1,6 +1,7 @@
 package com.safarparmar.app.ui.ekagra
 import androidx.compose.ui.draw.drawBehind
 
+import com.safarparmar.app.performance.decorativeFloat
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
@@ -15,7 +16,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.blur
+import com.safarparmar.app.performance.adaptiveBlur
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
@@ -94,6 +95,7 @@ private data class PendingSaveConfirmation(
     val label: String,
     val completesTarget: Boolean,
     val keepsGoalOpen: Boolean = false,
+    val linksTopic: Boolean = false,
     val commit: () -> Unit,
 )
 
@@ -151,8 +153,13 @@ fun EkagraScreen(
     val presenceDeadline by (timerService?.presenceDeadline ?: remember { MutableStateFlow(0L) }).collectAsStateWithLifecycle()
     val presenceEnded by (timerService?.presenceEnded ?: remember { MutableStateFlow(0) }).collectAsStateWithLifecycle()
     if (presenceDeadline > 0L) {
+        val presenceDialogContainer = if (isDarkTheme) MaterialTheme.colorScheme.surface else Color.White
+        val presenceDialogContent = if (isDarkTheme) MaterialTheme.colorScheme.onSurface else Color(0xFF171717)
         AlertDialog(
             onDismissRequest = {},
+            containerColor = presenceDialogContainer,
+            titleContentColor = presenceDialogContent,
+            textContentColor = presenceDialogContent,
             shape = RoundedCornerShape(24.dp),
             title = {
                 Text(
@@ -163,7 +170,7 @@ fun EkagraScreen(
             },
             text = {
                 Text(
-                    text = "Let us know if you're still focusing! If you're away, we'll automatically save your progress in 5 minutes.",
+                    text = "Let us know if you're still focusing! If you're away, we'll automatically save your progress in 2 minutes.",
                     fontSize = 14.sp,
                     lineHeight = 20.sp
                 )
@@ -1121,6 +1128,7 @@ fun EkagraScreen(
                             onSaveTopic   = { markDone ->
                                 pendingSaveConfirmation = PendingSaveConfirmation(
                                     label = pending?.topicTitle ?: "this topic",
+                                    linksTopic = true,
                                     completesTarget = markDone,
                                     commit = { saveTopicLinkedSession(markDone) },
                                 )
@@ -1148,6 +1156,7 @@ fun EkagraScreen(
                                 label = confirmation.label,
                                 completesTarget = confirmation.completesTarget,
                                 keepsGoalOpen = confirmation.keepsGoalOpen,
+                                linksTopic = confirmation.linksTopic,
                                 accentColor = selectedTheme?.accent ?: themeColorScheme.primary,
                                 onConfirm = {
                                     pendingSaveConfirmation = null
@@ -1473,7 +1482,7 @@ fun EkagraScreen(
                                     )
 
                                     val infiniteTransition = rememberInfiniteTransition(label = "gradientAnimation")
-                                    val angle by infiniteTransition.animateFloat(
+                                    val angle by infiniteTransition.decorativeFloat(
                                         initialValue = 0f,
                                         targetValue = 360f,
                                         animationSpec = infiniteRepeatable(
@@ -1506,7 +1515,7 @@ fun EkagraScreen(
                                         modifier = Modifier
                                             .fillMaxSize()
                                             .scale(1.06f)
-                                            .blur(10.dp),
+                                            .adaptiveBlur(10.dp),
                                     )
                                 }
                                 val scrimAlpha by animateFloatAsState(
@@ -1666,9 +1675,12 @@ fun EkagraScreen(
                                         myCircles = myCircles,
                                         selectedStudyCircle = selectedStudyCircle,
                                         onSelectStudyCircle = viewModel::selectStudyCircle,
-                                        showYoutubeBanner = !youtubeState.setupCompleted && !youtubeState.accessibilityEnabled && !youtubeState.bannerDismissed,
+                                        // Keep the entry point visible when the user returns with
+                                        // "Not now". Opening setup is not the same as dismissing it.
+                                        // Ignore the legacy bannerDismissed preference, which older
+                                        // builds set as soon as Enable was tapped.
+                                        showYoutubeBanner = !youtubeState.setupCompleted && !youtubeState.accessibilityEnabled,
                                         onEnableYoutubeFocus = {
-                                            youtubeViewModel.dismissEkagraBanner()
                                             onNavigate(Routes.focusShieldTab(1))
                                         },
                                     )

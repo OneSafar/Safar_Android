@@ -1,5 +1,6 @@
 package com.safarparmar.app.ui.ekagra.focusshield
 
+import com.safarparmar.app.performance.decorativeFloat
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -56,7 +57,7 @@ fun KavachActiveSessionScreen(
     val minutes = secondsLeft / 60
     val seconds = secondsLeft % 60
     val pulseTransition = rememberInfiniteTransition(label = "kavach_pulse")
-    val pulseAlpha by pulseTransition.animateFloat(
+    val pulseAlpha by pulseTransition.decorativeFloat(
         initialValue = 0.45f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(

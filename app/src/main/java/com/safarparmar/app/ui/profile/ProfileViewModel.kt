@@ -97,6 +97,7 @@ class ProfileViewModel @Inject constructor(
     }
 
     private fun uploadAvatar(uri: Uri) {
+        if (_uiState.value.isAvatarUploading) return
         viewModelScope.launch {
             _uiState.update { it.copy(isAvatarUploading = true, error = null, avatarUploadSuccess = false) }
             val avatarPart = withContext(Dispatchers.IO) {
@@ -134,21 +135,25 @@ class ProfileViewModel @Inject constructor(
 
     private fun buildAvatarPart(uri: Uri): MultipartBody.Part? {
         val bitmap = decodeAvatarBitmap(uri) ?: return null
-        val scaledBitmap = scaleAvatarBitmap(bitmap, maxSide = 1024)
-        val output = ByteArrayOutputStream()
-
-        var compressed = false
-        for (quality in listOf(88, 76, 64)) {
-            output.reset()
-            compressed = scaledBitmap.compress(Bitmap.CompressFormat.JPEG, quality, output)
-            if (compressed && output.size().toLong() <= MAX_AVATAR_UPLOAD_BYTES) break
+        val bytes = try {
+            val scaledBitmap = scaleAvatarBitmap(bitmap, maxSide = 1024)
+            try {
+                ByteArrayOutputStream().use { output ->
+                    var compressed = false
+                    for (quality in listOf(88, 76, 64)) {
+                        output.reset()
+                        compressed = scaledBitmap.compress(Bitmap.CompressFormat.JPEG, quality, output)
+                        if (compressed && output.size().toLong() <= MAX_AVATAR_UPLOAD_BYTES) break
+                    }
+                    if (!compressed || output.size() == 0 || output.size().toLong() > MAX_AVATAR_UPLOAD_BYTES) return null
+                    output.toByteArray()
+                }
+            } finally {
+                if (scaledBitmap !== bitmap) scaledBitmap.recycle()
+            }
+        } finally {
+            bitmap.recycle()
         }
-        if (scaledBitmap !== bitmap) scaledBitmap.recycle()
-        bitmap.recycle()
-
-        if (!compressed) return null
-        val bytes = output.toByteArray()
-        if (bytes.isEmpty() || bytes.size.toLong() > MAX_AVATAR_UPLOAD_BYTES) return null
 
         val baseName = getDisplayName(uri)
             ?.substringBeforeLast('.')
@@ -163,12 +168,43 @@ class ProfileViewModel @Inject constructor(
         val resolver = appContext.contentResolver
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             val source = ImageDecoder.createSource(resolver, uri)
-            ImageDecoder.decodeBitmap(source) { decoder, _, _ ->
+            ImageDecoder.decodeBitmap(source) { decoder, info, _ ->
+                val scale = (1024f / maxOf(info.size.width, info.size.height)).coerceAtMost(1f)
+                decoder.setTargetSize((info.size.width * scale).toInt().coerceAtLeast(1), (info.size.height * scale).toInt().coerceAtLeast(1))
                 decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
             }
         } else {
-            resolver.openInputStream(uri)?.use { stream ->
-                BitmapFactory.decodeStream(stream)
+            val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            resolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, options) }
+            if (options.outWidth <= 0 || options.outHeight <= 0) return null
+            var sample = 1
+            while (maxOf(options.outWidth, options.outHeight) / (sample * 2) >= 1024) sample *= 2
+            options.inJustDecodeBounds = false
+            options.inSampleSize = sample
+            val bitmap = resolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, options) } ?: return null
+            // BitmapFactory does not apply camera EXIF orientation on API 26–27.
+            try {
+                val exif = resolver.openInputStream(uri)?.use { android.media.ExifInterface(it) }
+                val orientation = exif?.getAttributeInt(android.media.ExifInterface.TAG_ORIENTATION, android.media.ExifInterface.ORIENTATION_NORMAL)
+                val matrix = android.graphics.Matrix().apply {
+                    when (orientation) {
+                        android.media.ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> setScale(-1f, 1f)
+                        android.media.ExifInterface.ORIENTATION_ROTATE_180 -> setRotate(180f)
+                        android.media.ExifInterface.ORIENTATION_FLIP_VERTICAL -> setScale(1f, -1f)
+                        android.media.ExifInterface.ORIENTATION_TRANSPOSE -> { setRotate(90f); postScale(-1f, 1f) }
+                        android.media.ExifInterface.ORIENTATION_ROTATE_90 -> setRotate(90f)
+                        android.media.ExifInterface.ORIENTATION_TRANSVERSE -> { setRotate(-90f); postScale(-1f, 1f) }
+                        android.media.ExifInterface.ORIENTATION_ROTATE_270 -> setRotate(-90f)
+                    }
+                }
+                if (matrix.isIdentity) bitmap else {
+                    Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true).also {
+                        if (it !== bitmap) bitmap.recycle()
+                    }
+                }
+            } catch (exception: Exception) {
+                bitmap.recycle()
+                throw exception
             }
         }
     }

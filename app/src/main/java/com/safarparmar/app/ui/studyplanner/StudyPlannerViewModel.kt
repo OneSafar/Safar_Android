@@ -60,6 +60,8 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.util.Locale
 import javax.inject.Inject
@@ -219,6 +221,7 @@ class StudyPlannerViewModel @Inject constructor(
     private val firedDailyMilestones = mutableSetOf<String>()
     /** Prevents a deliberate return to the plan picker from being auto-opened again. */
     private var initialLandingResolved = false
+    private var openPlanJob: kotlinx.coroutines.Job? = null
 
 
     private val _selectedSubjectId = MutableStateFlow<String?>(null)
@@ -227,18 +230,21 @@ class StudyPlannerViewModel @Inject constructor(
     private val _selectedChapterId = MutableStateFlow<String?>(null)
     val selectedChapterId = _selectedChapterId.asStateFlow()
 
-    val subjects: kotlinx.coroutines.flow.StateFlow<List<SubjectUiModel>> = _uiState.map { state ->
-        state.selectedPlan?.subjects?.map { s ->
+    private val planSubjects = _uiState.map { it.selectedPlan?.subjects }.distinctUntilChanged()
+
+    val subjects: kotlinx.coroutines.flow.StateFlow<List<SubjectUiModel>> = planSubjects.map { subjects ->
+        subjects?.map { s ->
             val totalTopics = s.chapters.sumOf { it.topics.size }
             val doneTopics = s.chapters.sumOf { ch -> ch.topics.count { it.status == TopicStatus.DONE } }
             val completion = if (totalTopics > 0) (doneTopics * 100) / totalTopics else 0
             SubjectUiModel(s.id, s.name, s.color, s.chapters.size, totalTopics, completion)
         } ?: emptyList()
     }.distinctUntilChanged()
-        .stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(), emptyList())
+        .flowOn(Dispatchers.Default)
+        .stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    val chapters: kotlinx.coroutines.flow.StateFlow<List<ChapterUiModel>> = combine(_uiState, _selectedSubjectId) { state, subjectId ->
-        val subject = state.selectedPlan?.subjects?.find { it.id == subjectId }
+    val chapters: kotlinx.coroutines.flow.StateFlow<List<ChapterUiModel>> = combine(planSubjects, _selectedSubjectId) { subjects, subjectId ->
+        val subject = subjects?.find { it.id == subjectId }
         subject?.chapters?.map { ch ->
             val totalTopics = ch.topics.size
             val doneTopics = ch.topics.count { it.status == TopicStatus.DONE }
@@ -253,20 +259,22 @@ class StudyPlannerViewModel @Inject constructor(
             ChapterUiModel(ch.id, ch.name, totalTopics, completion, status)
         } ?: emptyList()
     }.distinctUntilChanged()
-        .stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(), emptyList())
+        .flowOn(Dispatchers.Default)
+        .stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    val topics: kotlinx.coroutines.flow.StateFlow<List<TopicUiModel>> = combine(_uiState, _selectedSubjectId, _selectedChapterId) { state, subjectId, chapterId ->
-        val subject = state.selectedPlan?.subjects?.find { it.id == subjectId }
+    val topics: kotlinx.coroutines.flow.StateFlow<List<TopicUiModel>> = combine(planSubjects, _selectedSubjectId, _selectedChapterId) { subjects, subjectId, chapterId ->
+        val subject = subjects?.find { it.id == subjectId }
         val chapter = subject?.chapters?.find { it.id == chapterId }
         chapter?.topics?.map { t ->
             TopicUiModel(t.id, t.name, t.status, t.plannedDate)
         } ?: emptyList()
     }.distinctUntilChanged()
-        .stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(), emptyList())
+        .flowOn(Dispatchers.Default)
+        .stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5_000), emptyList())
 
     init {
         refreshPlans()
-        loadTemplates()
+        // The creation flow owns its template request; the existing-plan screen does not display templates.
         val planId = savedStateHandle.get<String>("planId")
             ?: savedStateHandle.get<String>(SELECTED_PLAN_ID_KEY)
         if (!planId.isNullOrBlank()) {
@@ -455,9 +463,11 @@ class StudyPlannerViewModel @Inject constructor(
     override fun refreshPlans() {
         viewModelScope.launch {
             _uiState.update { it.copy(loading = true, error = null) }
-            when (val drafts = repo.getSavedSyllabi()) {
-                is Resource.Success -> _uiState.update { it.copy(draftSyllabi = drafts.data.filter { s -> s.isDraft }) }
-                else -> Unit
+            launch {
+                when (val drafts = repo.getSavedSyllabi()) {
+                    is Resource.Success -> _uiState.update { it.copy(draftSyllabi = drafts.data.filter { s -> s.isDraft }) }
+                    else -> Unit
+                }
             }
             when (val r = repo.listPlans()) {
                 is Resource.Success -> {
@@ -490,7 +500,8 @@ class StudyPlannerViewModel @Inject constructor(
     override fun openPlan(planId: String) {
         initialLandingResolved = true
         savedStateHandle[SELECTED_PLAN_ID_KEY] = planId
-        viewModelScope.launch {
+        openPlanJob?.cancel()
+        openPlanJob = viewModelScope.launch {
             _uiState.update {
                 it.copy(
                     loading = true,
@@ -512,6 +523,8 @@ class StudyPlannerViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             selectedPlan = r.data,
+                            calendar = if (it.selectedPlan?.id == planId) it.calendar else emptyMap(),
+                            analytics = if (it.selectedPlan?.id == planId) it.analytics else null,
                             loading = false,
                             message = rolloverMessage,
                             rolloverUndoToken = digest?.undoToken?.takeIf { token -> rolloverMessage != null && token.isNotBlank() },
@@ -519,8 +532,10 @@ class StudyPlannerViewModel @Inject constructor(
                     }
                     refreshOnboardingProgress(planId)
                     refreshPreferredStudyStrategy(planId)
-                    refreshCalendar(planId)
-                    refreshAnalytics(planId)
+                    kotlinx.coroutines.coroutineScope {
+                        launch { refreshCalendar(planId) }
+                        launch { refreshAnalytics(planId) }
+                    }
                     refreshPlannerAchievements()
                 }
                 is Resource.Error -> _uiState.update { it.copy(error = r.message, loading = false) }
@@ -540,6 +555,7 @@ class StudyPlannerViewModel @Inject constructor(
     }
 
     override fun closePlan() {
+        openPlanJob?.cancel()
         savedStateHandle[SELECTED_PLAN_ID_KEY] = null
         _uiState.update {
             it.copy(
@@ -2058,7 +2074,7 @@ class StudyPlannerViewModel @Inject constructor(
 
     private suspend fun refreshCalendar(planId: String) {
         when (val r = repo.getCalendar(planId)) {
-            is Resource.Success -> _uiState.update { it.copy(calendar = r.data) }
+            is Resource.Success -> _uiState.update { if (it.selectedPlan?.id == planId) it.copy(calendar = r.data) else it }
             is Resource.Error -> Unit
             is Resource.Loading -> Unit
         }
@@ -2066,7 +2082,7 @@ class StudyPlannerViewModel @Inject constructor(
 
     private suspend fun refreshAnalytics(planId: String) {
         when (val r = repo.getAnalytics(planId)) {
-            is Resource.Success -> _uiState.update { it.copy(analytics = r.data) }
+            is Resource.Success -> _uiState.update { if (it.selectedPlan?.id == planId) it.copy(analytics = r.data) else it }
             is Resource.Error -> Unit
             is Resource.Loading -> Unit
         }

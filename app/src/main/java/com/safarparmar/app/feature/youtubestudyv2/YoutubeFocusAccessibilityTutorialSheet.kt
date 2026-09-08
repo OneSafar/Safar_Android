@@ -51,7 +51,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.Surface
@@ -101,7 +100,6 @@ fun YoutubeFocusAccessibilityTutorialSheet(
     isLight: Boolean = true,
     onContinueGuide: (() -> Unit)? = null,
 ) {
-    val context = LocalContext.current
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
@@ -133,9 +131,7 @@ fun YoutubeFocusAccessibilityTutorialSheet(
                             onContinueGuide()
                         } else {
                             onDismiss()
-                            if (!YoutubeFocusTutorialActivity.launch(context, isLight)) {
-                                onOpenAccessibilitySettings()
-                            }
+                            onOpenAccessibilitySettings()
                         }
                     },
                     modifier = Modifier.fillMaxWidth().heightIn(min = 50.dp),

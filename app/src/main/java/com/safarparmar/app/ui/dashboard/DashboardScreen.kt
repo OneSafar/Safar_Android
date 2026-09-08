@@ -288,7 +288,7 @@ fun DashboardScreen(
                     onRetry = { viewModel.onEvent(DashboardEvent.Refresh) },
                     modifier = Modifier.align(Alignment.Center),
                 )
-            } else if (uiState.isLoading && uiState.userName.isEmpty()) {
+            } else if (!uiState.profileReady) {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize().padding(padding),
                     contentPadding = PaddingValues(16.dp),
@@ -298,7 +298,7 @@ fun DashboardScreen(
                 }
             } else {
                 SafarPullRefreshBox(
-                    isRefreshing = uiState.isLoading && uiState.userName.isNotEmpty(),
+                    isRefreshing = uiState.isLoading && uiState.profileReady,
                     onRefresh = { viewModel.onEvent(DashboardEvent.Refresh) },
                     modifier = Modifier.fillMaxSize(),
                 ) {
@@ -317,6 +317,7 @@ fun DashboardScreen(
                         // 2. Active Title Card
                         item {
                             StaggeredDashboardEntranceBox(index = 1) {
+                                DashboardSectionContent(uiState, setOf(DashboardSection.TITLE, DashboardSection.ACHIEVEMENTS), { viewModel.onEvent(DashboardEvent.Refresh) }) {
                                 ActiveTitleCard(
                                     title = uiState.activeTitle,
                                     titleImageUrl = uiState.activeTitleImageUrl,
@@ -324,31 +325,38 @@ fun DashboardScreen(
                                     hasEarnedAchievements = uiState.earnedAchievements.isNotEmpty(),
                                     onNavigateToAchievements = { onNavigate(Routes.ACHIEVEMENTS) }
                                 )
+                                }
                             }
                         }
 
                         // 3. Study Plan Progress
                         item {
                             StaggeredDashboardEntranceBox(index = 2) {
-                                StudyPlanProgressCard(uiState.studyPlan, isDarkTheme, onNavigate)
+                                DashboardSectionContent(uiState, setOf(DashboardSection.PLAN), { viewModel.onEvent(DashboardEvent.Refresh) }) {
+                                    StudyPlanProgressCard(uiState.studyPlan, isDarkTheme, onNavigate)
+                                }
                             }
                         }
 
                         // 4. macOS Quick Control Grid (Interactive Hub)
                         item {
                             StaggeredDashboardEntranceBox(index = 3) {
+                                DashboardSectionContent(uiState, setOf(DashboardSection.MOODS, DashboardSection.GOALS, DashboardSection.STREAKS, DashboardSection.ACHIEVEMENTS), { viewModel.onEvent(DashboardEvent.Refresh) }) {
                                 MacOSQuickControlGrid(
                                     uiState = uiState,
                                     isDark = isDarkTheme,
                                     onOpenSheet = { sheet -> activeSheet = sheet }
                                 )
+                                }
                             }
                         }
 
                         // 5. Analytics & Monthly Snapshot
                         item {
                             StaggeredDashboardEntranceBox(index = 4) {
-                                MonthlyCard(uiState.monthlyReport, isDarkTheme, onNavigate)
+                                DashboardSectionContent(uiState, setOf(DashboardSection.REPORT), { viewModel.onEvent(DashboardEvent.Refresh) }) {
+                                    MonthlyCard(uiState.monthlyReport, isDarkTheme, onNavigate)
+                                }
                             }
                         }
 
@@ -1252,7 +1260,7 @@ private fun ConfettiCelebration(
     modifier: Modifier = Modifier,
     isActive: Boolean = true
 ) {
-    if (!isActive) return
+    if (!isActive || !com.safarparmar.app.performance.decorativeMotionEnabled()) return
 
     val colors = listOf(
         Color(0xFFFFC107),
@@ -1477,16 +1485,17 @@ private fun StaggeredDashboardEntranceBox(
     index: Int,
     content: @Composable () -> Unit,
 ) {
+    val motion = com.safarparmar.app.performance.LocalMotionPolicy.current
     var isVisible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         isVisible = true
     }
 
     val slideOffset by androidx.compose.animation.core.animateDpAsState(
-        targetValue = if (isVisible) 0.dp else (20 + index * 12).dp,
+        targetValue = if (isVisible) 0.dp else 8.dp,
         animationSpec = androidx.compose.animation.core.tween(
-            durationMillis = 320,
-            delayMillis = index * 40,
+            durationMillis = motion.navigationMillis,
+            delayMillis = 0,
             easing = androidx.compose.animation.core.FastOutSlowInEasing,
         ),
         label = "dashboardStaggeredOffset",
@@ -1494,8 +1503,8 @@ private fun StaggeredDashboardEntranceBox(
     val alphaAnim by androidx.compose.animation.core.animateFloatAsState(
         targetValue = if (isVisible) 1f else 0f,
         animationSpec = androidx.compose.animation.core.tween(
-            durationMillis = 280,
-            delayMillis = index * 40,
+            durationMillis = motion.navigationMillis,
+            delayMillis = 0,
         ),
         label = "dashboardStaggeredAlpha",
     )
@@ -1508,5 +1517,25 @@ private fun StaggeredDashboardEntranceBox(
             }
     ) {
         content()
+    }
+}
+
+@Composable
+private fun DashboardSectionContent(
+    state: DashboardUiState,
+    sections: Set<DashboardSection>,
+    onRetry: () -> Unit,
+    content: @Composable () -> Unit,
+) {
+    val missing = sections - state.loadedSections
+    val errors = sections.mapNotNull { state.sectionErrors[it] }
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (missing.isEmpty()) content()
+        else if (missing.any { it !in state.sectionErrors }) StatCardSkeleton()
+        if (errors.isNotEmpty()) {
+            androidx.compose.material3.TextButton(onClick = onRetry, enabled = !state.isLoading) {
+                Text("${errors.first()} Tap to retry.")
+            }
+        }
     }
 }

@@ -4,7 +4,17 @@ Use this material when submitting a build that contains YouTube Insights. Legal 
 
 ## Prominent in-app disclosure
 
-> YouTube Insights uses Android Accessibility access only while the feature is enabled. It reads visible information inside the YouTube app—such as whether a video or Short is playing and the displayed channel handle—to measure productive, distracting, Shorts and unidentified time. When blocked content opens, SAFAR pauses it and leaves that YouTube screen automatically. A newly detected exact channel handle is sent to SAFAR's server to verify its permanent YouTube Channel ID and add that verified identity to the shared channel catalogue. Productive-channel choices, video titles and screen content stay on this device. You can disable YouTube Insights or revoke Accessibility access at any time.
+> YouTube Focus uses Android’s AccessibilityService API while enabled to read visible text and screen controls in the YouTube app.
+
+> Data accessed: names (including channel or account display names), personal identifiers (such as YouTube @handles), and other user-generated content visible on screen (such as video titles, descriptions and comments). This information may be present in the screen text read by the service.
+
+> Purpose: SAFAR uses channel names and handles, player controls and screen text to identify the channel being watched, detect videos and Shorts, apply your blocking choices, and measure viewing time. Comments and unrelated account text are not used to identify channels.
+
+> To enforce your blocking settings, Safar can pause playback, go back from blocked content, and show blocking controls over YouTube.
+
+> Data sent and saved: newly detected channel @handles are sent to SAFAR’s server to resolve channel identities and add them to the shared channel catalogue. Channel names, identifiers and your channel choices are saved on this device. Daily viewing totals by category are synced to SAFAR for your analytics. Raw screen text, video titles, descriptions and comments are not uploaded by this feature.
+
+> This access is optional. You can turn it off anytime in Android Settings → Accessibility → SAFAR YouTube Focus.
 
 The disclosure appears in the dedicated YouTube Study Mode onboarding before Android Accessibility Settings opens. Consent version and time are recorded locally. The feature is off by default and is separate from Kavach app blocking.
 
@@ -24,7 +34,7 @@ The disclosure appears in the dedicated YouTube Study Mode onboarding before And
 
 State that YouTube Study Mode is optional, uses Accessibility, is not a disability-support tool, measures YouTube whenever enabled, and can separately block Shorts or distracting channels during Kavach time or always. Explain that starter choices and newly detected channels default to distracting until the student marks them productive. Channel-block notifications may offer local-only **Mark Productive** and **Manage channels** actions.
 
-Data Safety should declare the derived usage totals according to the production backend's retention and account-deletion behavior. Do not declare channel names or raw Accessibility content as collected because the implementation keeps them on-device. Revalidate this statement whenever telemetry or crash logging changes.
+Data Safety should declare the derived usage totals according to the production backend's retention and account-deletion behavior. Detected channel handles are transmitted to the shared server catalogue. Disclose that transfer and daily usage totals in the Accessibility declaration, privacy policy and applicable Data Safety answers. Distinguish on-device screen access from off-device collection. Verify backend retention, logging and deletion before submission.
 
 ## Reviewer video checklist
 
@@ -45,3 +55,7 @@ Data Safety should declare the derived usage totals according to the production 
 - Confirm the service XML remains restricted to YouTube.
 - Verify the disclosure, privacy policy, store listing, Data Safety form and reviewer video all describe the shipped behavior identically.
 - Play approval cannot be guaranteed; submit the actual implementation and an honest, narrow justification.
+
+## Updated consent
+
+Disclosure version 2 replaces the old Boolean consent. Existing users must accept the updated disclosure before YouTube Focus can run, even if Android permission remains enabled. Verify fresh install, upgrade, decline, accept with permission already enabled, and accept before granting permission.

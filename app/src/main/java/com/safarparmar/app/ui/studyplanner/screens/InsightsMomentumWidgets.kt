@@ -1,5 +1,6 @@
 package com.safarparmar.app.ui.studyplanner.screens
 
+import com.safarparmar.app.performance.decorativeFloat
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Animatable
@@ -387,7 +388,7 @@ internal fun ConsistencyStreakCard(
     val haptic = LocalHapticFeedback.current
     var selectedDate by remember { mutableStateOf<String?>(null) }
     val flamePulse = rememberInfiniteTransition(label = "streakFlame")
-    val flameScale by flamePulse.animateFloat(
+    val flameScale by flamePulse.decorativeFloat(
         initialValue = 1f,
         targetValue = if (consistency.studyStreak > 0) 1.08f else 1f,
         animationSpec = infiniteRepeatable(

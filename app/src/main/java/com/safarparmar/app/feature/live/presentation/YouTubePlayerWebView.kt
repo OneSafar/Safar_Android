@@ -210,6 +210,17 @@ fun YouTubePlayerWebView(
                     }
                 }
             },
+            onRelease = { webView ->
+                fullscreenCallback?.onCustomViewHidden()
+                (fullscreenView?.parent as? ViewGroup)?.removeView(fullscreenView)
+                fullscreenView = null
+                fullscreenCallback = null
+                webView.stopLoading()
+                webView.onPause()
+                webView.webChromeClient = null
+                webView.removeAllViews()
+                webView.destroy()
+            },
             update = { webView ->
                 if (loadedUrlRef[0] != sanitizedUrl) {
                     loadedUrlRef[0] = sanitizedUrl

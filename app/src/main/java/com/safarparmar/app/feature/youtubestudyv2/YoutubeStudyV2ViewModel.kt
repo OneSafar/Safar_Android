@@ -15,6 +15,7 @@ import kotlinx.coroutines.launch
 data class YoutubeStudyV2UiState(
     val enabled: Boolean = false,
     val accessibilityEnabled: Boolean = false,
+    val disclosureAccepted: Boolean = false,
     val reference: String = "",
     val resolving: Boolean = false,
     val allowed: List<YoutubeV2IdentityEntity> = emptyList(),
@@ -121,6 +122,7 @@ class YoutubeStudyV2ViewModel @Inject constructor(
 
     fun acceptDisclosure() {
         preferences.acceptDisclosure()
+        refreshPermission()
     }
 
     fun goToStep2() {
@@ -137,15 +139,17 @@ class YoutubeStudyV2ViewModel @Inject constructor(
     }
 
     fun resolveAndAllow() {
+        if (local.value.resolving) return
         val reference = local.value.reference
-        local.value = local.value.copy(resolving = true, message = null)
+        if (reference.isBlank()) return
+        local.value = local.value.copy(resolving = true, message = null, isError = false)
         viewModelScope.launch {
             repository.resolveAndAllow(reference)
                 .onSuccess { resolution ->
                     val channel = resolution.channel
                     local.value = local.value.copy(
                         resolving = false,
-                        reference = "",
+                        reference = if (local.value.reference == reference) "" else local.value.reference,
                         message = "${channel.displayName} is now Productive.",
                         isError = false,
                     )
@@ -217,17 +221,23 @@ class YoutubeStudyV2ViewModel @Inject constructor(
         local.value = local.value.copy(message = null, isError = false)
         viewModelScope.launch {
             repository.setAvailableClassification(channel, classification)
-            val label = when (classification) {
-                YoutubeChannelClassification.PRODUCTIVE -> "Productive"
-                YoutubeChannelClassification.DISTRACTING -> "Distracting"
-                else -> null
-            }
-            if (label != null) {
-                local.value = local.value.copy(
-                    message = "${channel.displayName} is now $label.",
-                    isError = false,
-                )
-            }
+                .onSuccess {
+                    val label = when (classification) {
+                        YoutubeChannelClassification.PRODUCTIVE -> "Productive"
+                        YoutubeChannelClassification.DISTRACTING -> "Distracting"
+                        else -> null
+                    }
+                    local.value = local.value.copy(
+                        message = label?.let { "${channel.displayName} is now $it." },
+                        isError = false,
+                    )
+                }
+                .onFailure {
+                    local.value = local.value.copy(
+                        message = "Could not update channel. Try again.",
+                        isError = true,
+                    )
+                }
         }
     }
 
@@ -239,11 +249,17 @@ class YoutubeStudyV2ViewModel @Inject constructor(
 
     fun refreshPermission() {
         val accessibilityEnabled = YoutubeStudyV2HealthMonitor.isAccessibilityEnabled(context)
-        local.value = local.value.copy(accessibilityEnabled = accessibilityEnabled)
-        if (accessibilityEnabled) {
+        local.value = local.value.copy(
+            accessibilityEnabled = accessibilityEnabled,
+            disclosureAccepted = preferences.isDisclosureAccepted(),
+        )
+        if (accessibilityEnabled && preferences.isDisclosureAccepted()) {
             if (!preferences.setupCompleted.value) {
                 preferences.completeSetup()
                 preferences.setEnabled(true)
+                // Accessibility may connect before setup flips enabled. Start
+                // foreground support here too so that ordering cannot leave it off.
+                YoutubeStudyV2GuardService.start(context)
             }
         } else {
             if (!preferences.setupCompleted.value && preferences.setupStep.value > 1) {

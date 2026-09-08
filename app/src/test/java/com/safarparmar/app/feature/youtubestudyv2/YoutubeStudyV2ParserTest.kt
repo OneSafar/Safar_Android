@@ -8,6 +8,34 @@ import org.junit.Test
 
 class YoutubeStudyV2ParserTest {
     @Test
+    fun `floating mini player on home is playback without borrowing feed channel identity`() {
+        val result = YoutubeStudyV2Parser.parse(snapshot(listOf(
+            node(id = "modern_miniplayer", left = 600, top = 1200, right = 1060, bottom = 1500),
+            node(id = "video_owner", text = "Productive feed recommendation"),
+            node(text = "@productive_channel"),
+        )))
+        assertEquals(YoutubeV2ContentKind.MINI_PLAYER, result.kind)
+        assertFalse(result.hasOwnerEvidence)
+        assertFalse(result.canResumeWatchSession)
+        assertTrue(shouldBlockYoutubePip(false, YoutubeChannelClassification.DISTRACTING))
+    }
+
+    @Test
+    fun `legacy mini player is recognized and hidden mini player is ignored`() {
+        val visible = node(id = "miniplayer_container")
+        assertEquals(YoutubeV2ContentKind.MINI_PLAYER, YoutubeStudyV2Parser.parse(snapshot(listOf(visible))).kind)
+        assertEquals(YoutubeV2ContentKind.NON_PLAYBACK, YoutubeStudyV2Parser.parse(snapshot(listOf(visible.copy(visibleToUser = false)))).kind)
+    }
+
+    @Test
+    fun `mini player closes through close control not its playback toggle`() {
+        assertTrue(YoutubeStudyV2Parser.isMiniPlayerCloseControl("com.google.android.youtube:id/modern_miniplayer_close", null))
+        assertTrue(YoutubeStudyV2Parser.isMiniPlayerCloseControl(null, "Close player"))
+        assertFalse(YoutubeStudyV2Parser.isMiniPlayerCloseControl("modern_miniplayer_play_pause", "Pause"))
+        assertFalse(YoutubeStudyV2Parser.isMiniPlayerCloseControl("modern_miniplayer_expand", "Expand"))
+    }
+
+    @Test
     fun `structural owner row extracts exact handle instead of title keyword`() {
         val nodes = baseWatchNodes() + listOf(
             node(id = "video_owner", parent = 0, left = 0, top = 900, right = 1080, bottom = 1050),

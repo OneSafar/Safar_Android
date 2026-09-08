@@ -1,5 +1,6 @@
 package com.safarparmar.app.ui.maintenance
 
+import com.safarparmar.app.performance.decorativeFloat
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -66,7 +67,7 @@ fun MaintenanceScreen(
     val scrollState = rememberScrollState()
 
     val infiniteTransition = rememberInfiniteTransition(label = "maintenance_pulse")
-    val pulseScale by infiniteTransition.animateFloat(
+    val pulseScale by infiniteTransition.decorativeFloat(
         initialValue = 0.95f,
         targetValue = 1.05f,
         animationSpec = infiniteRepeatable(
@@ -75,7 +76,7 @@ fun MaintenanceScreen(
         ),
         label = "pulse_scale",
     )
-    val glowAlpha by infiniteTransition.animateFloat(
+    val glowAlpha by infiniteTransition.decorativeFloat(
         initialValue = 0.35f,
         targetValue = 0.75f,
         animationSpec = infiniteRepeatable(

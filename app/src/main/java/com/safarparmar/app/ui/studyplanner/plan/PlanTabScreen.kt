@@ -75,7 +75,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
+import com.safarparmar.app.performance.adaptiveBlur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
@@ -1546,7 +1546,7 @@ private fun DoneForTheDayBar(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(54.dp)
-                .blur(16.dp)
+                .adaptiveBlur(16.dp)
                 .background(auraColor, shape = shape)
         )
 

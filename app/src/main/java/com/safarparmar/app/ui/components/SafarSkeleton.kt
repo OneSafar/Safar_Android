@@ -1,11 +1,5 @@
 package com.safarparmar.app.ui.components
 
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -13,10 +7,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -24,53 +18,21 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
-/**
- * Returns a high-performance linear gradient Brush that sweeps diagonally across skeleton elements,
- * creating an authentic, professional shimmer loading animation.
- */
+/** Shared clock, with animation reads deferred until drawing. */
 @Composable
-fun rememberShimmerBrush(
-    targetValue: Float = 1400f,
-    durationMillis: Int = 1200,
-): Brush {
-    val transition = rememberInfiniteTransition(label = "shimmer_skeleton")
-    val translateAnim by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = targetValue,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = durationMillis, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "shimmer_translate"
-    )
-
-    val isPlannerDark = runCatching { com.safarparmar.app.ui.studyplanner.components.LocalPlannerIsDarkTheme.current }.getOrDefault(false)
-    val isMaterialDark = MaterialTheme.colorScheme.background.run { (red + green + blue) / 3f < 0.5f }
-    val isDark = (isPlannerDark == true) || isMaterialDark
-
-    val shimmerColors = if (isDark) {
-        listOf(
-            Color(0xFF1E1E24),
-            Color(0xFF2E2E38),
-            Color(0xFF454554),
-            Color(0xFF2E2E38),
-            Color(0xFF1E1E24),
-        )
-    } else {
-        listOf(
-            Color(0xFFE2E8F0),
-            Color(0xFFF1F5F9),
-            Color(0xFFFFFFFF),
-            Color(0xFFF1F5F9),
-            Color(0xFFE2E8F0),
-        )
+private fun Modifier.skeletonFill(): Modifier {
+    val phase = com.safarparmar.app.performance.rememberDecorationPhase(1200)
+    val enabled = com.safarparmar.app.performance.decorativeMotionEnabled()
+    val colorScheme = MaterialTheme.colorScheme
+    val colors = androidx.compose.runtime.remember(colorScheme) {
+        listOf(colorScheme.surfaceContainerHighest, colorScheme.surfaceContainerHigh, colorScheme.surfaceContainerHighest)
     }
-
-    return Brush.linearGradient(
-        colors = shimmerColors,
-        start = Offset(translateAnim - 450f, translateAnim - 450f),
-        end = Offset(translateAnim, translateAnim)
-    )
+    return this.then(Modifier.drawBehind {
+        if (!enabled) drawRect(colors.first()) else {
+            val position = phase() * (size.width + size.height + 450f)
+            drawRect(Brush.linearGradient(colors, Offset(position - 450f, 0f), Offset(position, size.height)))
+        }
+    })
 }
 
 @Composable
@@ -78,11 +40,10 @@ fun SafarSkeletonBox(
     modifier: Modifier = Modifier,
     shape: Shape = RoundedCornerShape(8.dp),
 ) {
-    val brush = rememberShimmerBrush()
     Box(
         modifier = modifier
             .clip(shape)
-            .background(brush),
+            .skeletonFill(),
     )
 }
 
@@ -93,13 +54,12 @@ fun SafarSkeletonBar(
     height: Dp = 16.dp,
     cornerRadius: Dp = 8.dp,
 ) {
-    val brush = rememberShimmerBrush()
     Box(
         modifier = modifier
             .fillMaxWidth(fraction)
             .height(height)
             .clip(RoundedCornerShape(cornerRadius))
-            .background(brush),
+            .skeletonFill(),
     )
 }
 

@@ -1,7 +1,7 @@
 package com.safarparmar.app.ui.ekagra
 
-internal const val PRESENCE_INTERVAL_SECONDS = 150 * 60
-internal const val PRESENCE_GRACE_MS = 5 * 60 * 1000L
+internal const val PRESENCE_INTERVAL_SECONDS = 90 * 60
+internal const val PRESENCE_GRACE_MS = 2 * 60 * 1000L
 internal data class PresenceAdvance(val creditedSeconds: Int, val deadline: Long, val expired: Boolean)
 
 internal fun advancePresence(activeSeconds: Int, deadline: Long, elapsedSeconds: Int, now: Long, remainingSeconds: Int = Int.MAX_VALUE): PresenceAdvance {

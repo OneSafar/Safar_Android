@@ -1,6 +1,9 @@
 package com.safarparmar.app.ui.ekagra
 
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -196,13 +199,6 @@ internal fun VisualThemeDialog(current: VisualTheme, onSelect: (VisualTheme) -> 
     )
 }
 
-private fun blendColors(color1: Color, color2: Color, ratio: Float): Color {
-    val r = color1.red * ratio + color2.red * (1f - ratio)
-    val g = color1.green * ratio + color2.green * (1f - ratio)
-    val b = color1.blue * ratio + color2.blue * (1f - ratio)
-    return Color(r.coerceIn(0f, 1f), g.coerceIn(0f, 1f), b.coerceIn(0f, 1f))
-}
-
 // ─── Organize free focus sheet ─────────────────────────────────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -227,32 +223,22 @@ internal fun OrganizeFreeFocusSheet(
         pending?.let(::topicStudyActualSeconds) ?: 0,
     )
     
-    // Theme awareness: adapt surface color to selected visual theme or dark mode
-    val isThemeDark = isDarkTheme || (selectedTheme?.gradientColors != null && selectedTheme.gradientColors.isNotEmpty())
-    
-    val containerColor = remember(selectedTheme, isDarkTheme, MaterialTheme.colorScheme.surface) {
-        if (isThemeDark) {
-            val bgSeed = selectedTheme?.gradientColors?.firstOrNull()
-                ?: selectedTheme?.accent
-                ?: Color(0xFF1E293B)
-            blendColors(bgSeed, Color(0xFF14181E), 0.35f)
-        } else {
-            val bgSeed = selectedTheme?.accent ?: Color(0xFFF8FAFC)
-            blendColors(bgSeed, Color(0xFFF8FAFC), 0.10f)
-        }
-    }
+    // Sheets follow the app mode, independently of the timer's visual backdrop.
+    val isThemeDark = isDarkTheme
+    val containerColor = if (isDarkTheme) MaterialTheme.colorScheme.surface else Color.White
 
     val primaryTextColor = if (isThemeDark) Color.White else MaterialTheme.colorScheme.onSurface
     val secondaryTextColor = if (isThemeDark) Color.White.copy(alpha = 0.72f) else MaterialTheme.colorScheme.onSurfaceVariant
     val dividerColor = (if (isThemeDark) Color.White else MaterialTheme.colorScheme.outlineVariant).copy(alpha = 0.2f)
 
-    // Deep, richer shades of blue (Link to a Goal) and orange (Save to Ekagra)
-    val goalAccent = if (isThemeDark) Color(0xFF60A5FA) else Color(0xFF1E3A8A)      // Deep Navy/Dark Blue
-    val quickAccent = if (isThemeDark) Color(0xFFFB923C) else Color(0xFFC2410C)     // Deep Burnt Orange
-    val topicAccent = if (isThemeDark) Color(0xFFF87171) else Color(0xFFB91C1C)     // Deep Crimson Red
-    var selectedGoal by remember { mutableStateOf<com.safarparmar.app.domain.model.Goal?>(null) }
-    val shownGoals = todayGoals
-    var markTopicDone by remember { mutableStateOf(false) }
+    val accent = if (isThemeDark) Color(0xFFB9C9FF) else Color(0xFF354F9B)
+    val onAccent = if (isThemeDark) Color(0xFF172449) else Color.White
+    var selectedGoalId by remember(pending?.sessionId) { mutableStateOf<String?>(null) }
+    val selectedGoal = todayGoals.firstOrNull { it.id == selectedGoalId }
+    var showGoals by remember(pending?.sessionId) { mutableStateOf(false) }
+    var markGoalDone by remember(selectedGoal?.id) { mutableStateOf(false) }
+    var markTopicDone by remember(pending?.sessionId) { mutableStateOf(false) }
+    val isTopicSession = pending?.topicId != null
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -266,285 +252,235 @@ internal fun OrganizeFreeFocusSheet(
                 .wrapContentWidth(Alignment.CenterHorizontally)
                 .widthIn(max = 560.dp)
                 .heightIn(max = maxSheetHeight)
+                .imePadding(),
         ) {
-            // 2. Header Block
-            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp)) {
+            // One dominant headline, followed by a short explanation of the save destination.
+            Column(Modifier.padding(start = 24.dp, end = 24.dp, top = 4.dp, bottom = 24.dp)) {
                 Text(
-                    text = "Session Complete",
-                    fontSize = 16.5.sp,
-                    fontWeight = FontWeight.Bold,
+                    "SESSION COMPLETE",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = 1.2.sp,
+                    color = secondaryTextColor,
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "$focusedTimeLabel focused",
+                    fontSize = 30.sp,
+                    lineHeight = 36.sp,
+                    fontWeight = FontWeight.SemiBold,
                     color = primaryTextColor,
                 )
+                Spacer(Modifier.height(8.dp))
                 Text(
-                    text = "$focusedTimeLabel focused",
-                    fontSize = 23.5.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = primaryTextColor,
-                    modifier = Modifier.padding(vertical = 3.dp)
-                )
-                Text(
-                    text = "Save normally in Ekagra or link it to today's goal.",
-                    fontSize = 11.5.sp,
+                    "Save this session to your Ekagra history.",
+                    fontSize = 14.sp,
+                    lineHeight = 20.sp,
                     color = secondaryTextColor,
                 )
             }
 
-            HorizontalDivider(color = dividerColor)
-
-            // 3. Scrollable List Internal to Sheet
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
                     .weight(1f, fill = false)
                     .verticalScroll(scrollState)
-                    .imePadding()
-                    .padding(bottom = 24.dp)
+                    .padding(horizontal = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                if (pending?.topicId != null) {
-                    // Exam Planner topic save
-                    Column(modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        SaveSectionHeader(
-                            label = "EXAM PLANNER TOPIC",
-                            accent = topicAccent,
-                            icon = Icons.Default.MenuBook,
-                        )
-                        Text(
-                            text = pending.topicTitle ?: "Untitled topic",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = primaryTextColor,
-                        )
+                if (isTopicSession) {
+                    Text("Exam Planner topic", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = primaryTextColor)
+                    Text(pending?.topicTitle ?: "Untitled topic", fontSize = 16.sp, color = primaryTextColor)
+                    SessionCompletionOption(
+                        label = "Mark topic as completed",
+                        checked = markTopicDone,
+                        onCheckedChange = { markTopicDone = it },
+                        accent = accent,
+                        textColor = primaryTextColor,
+                    )
+                } else {
+                    OutlinedTextField(
+                        value = titleInput,
+                        onValueChange = onTitleChange,
+                        label = { Text("Session name", fontSize = 14.sp) },
+                        placeholder = { Text("What did you work on?", fontSize = 14.sp) },
+                        supportingText = { Text("Optional", fontSize = 12.sp) },
+                        singleLine = true,
+                        textStyle = androidx.compose.ui.text.TextStyle(fontSize = 16.sp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = primaryTextColor,
+                            unfocusedTextColor = primaryTextColor,
+                            focusedBorderColor = accent,
+                            unfocusedBorderColor = dividerColor,
+                            focusedLabelColor = accent,
+                            unfocusedLabelColor = secondaryTextColor,
+                            focusedPlaceholderColor = secondaryTextColor,
+                            unfocusedPlaceholderColor = secondaryTextColor,
+                            focusedSupportingTextColor = secondaryTextColor,
+                            unfocusedSupportingTextColor = secondaryTextColor,
+                            cursorColor = accent,
+                        ),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+
+                    HorizontalDivider(color = dividerColor)
+                    if (todayGoals.isEmpty()) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(Icons.Default.Link, contentDescription = null, tint = secondaryTextColor, modifier = Modifier.size(18.dp))
+                            Text(
+                                "No open goals today. You can save this session on its own.",
+                                fontSize = 12.sp,
+                                lineHeight = 18.sp,
+                                color = secondaryTextColor,
+                            )
+                        }
+                    } else {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { markTopicDone = !markTopicDone }
-                                .padding(vertical = 6.dp),
+                                .clickable { showGoals = !showGoals }
+                                .heightIn(min = 48.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(18.dp)
-                                    .border(
-                                        1.dp,
-                                        if (markTopicDone) topicAccent else secondaryTextColor.copy(alpha = 0.5f),
-                                        CircleShape
-                                    )
-                                    .background(
-                                        if (markTopicDone) topicAccent else Color.Transparent,
-                                        CircleShape
-                                    ),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                if (markTopicDone) {
-                                    Icon(
-                                        Icons.Default.Check,
-                                        contentDescription = null,
-                                        tint = Color.White,
-                                        modifier = Modifier.size(12.dp)
-                                    )
-                                }
+                            Icon(Icons.Default.Link, contentDescription = null, tint = accent, modifier = Modifier.size(20.dp))
+                            Column(Modifier.weight(1f)) {
+                                Text("Link to a goal", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = primaryTextColor)
+                                Text(
+                                    selectedGoal?.title ?: "Optional · add this time to today's goal",
+                                    fontSize = 12.sp,
+                                    lineHeight = 18.sp,
+                                    color = secondaryTextColor,
+                                )
                             }
-                            Text(
-                                text = "Mark topic as completed",
-                                fontSize = 12.sp,
-                                color = primaryTextColor,
+                            Icon(
+                                if (showGoals) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                contentDescription = if (showGoals) "Hide goals" else "Show goals",
+                                tint = secondaryTextColor,
                             )
                         }
-                    }
-                    HorizontalDivider(color = dividerColor)
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 14.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        ActionPill(
-                            text = "Discard",
-                            accentColor = secondaryTextColor,
-                            onClick = onDiscard,
-                            modifier = Modifier.weight(1f)
-                        )
-                        ActionPill(
-                            text = "Save Topic",
-                            accentColor = topicAccent,
-                            onClick = { onSaveTopic(markTopicDone) },
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                } else {
-                    // Goal linking or free save
-                    Column(modifier = Modifier.padding(horizontal = 24.dp, vertical = 10.dp)) {
-                        SaveSectionHeader(
-                            label = "LINK TO A GOAL",
-                            accent = goalAccent,
-                            icon = Icons.Default.Link,
-                        )
-                        InfoNoticeCard(
-                            text = "You can only link today's created goals. Create a goal today if you have not created one.",
-                            accent = goalAccent,
-                            textColor = secondaryTextColor,
-                            modifier = Modifier.padding(vertical = 4.dp),
-                        )
-
-                        if (shownGoals.isEmpty()) {
-                            Text(
-                                "No open goals for today.",
-                                fontSize = 11.5.sp,
-                                color = secondaryTextColor,
-                                modifier = Modifier.padding(vertical = 6.dp),
-                            )
-                        } else {
-                            shownGoals.forEachIndexed { index, goal ->
+                        if (showGoals) {
+                            todayGoals.forEach { goal ->
                                 val selected = selectedGoal?.id == goal.id
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .clickable {
-                                            selectedGoal = if (selected) null else goal
-                                        }
-                                        .padding(vertical = 10.dp),
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(if (selected) accent.copy(alpha = 0.10f) else Color.Transparent)
+                                        .selectable(
+                                            selected = selected,
+                                            role = androidx.compose.ui.semantics.Role.RadioButton,
+                                            onClick = { selectedGoalId = if (selected) null else goal.id },
+                                        )
+                                        .padding(horizontal = 8.dp, vertical = 8.dp)
+                                        .heightIn(min = 48.dp),
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                                 ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(24.dp)
-                                            .clip(CircleShape)
-                                            .background(
-                                                if (selected) goalAccent
-                                                else goalAccent.copy(alpha = 0.14f),
-                                            ),
-                                        contentAlignment = Alignment.Center,
-                                    ) {
-                                        Icon(
-                                            imageVector = if (selected) Icons.Default.Check else Icons.Default.Link,
-                                            contentDescription = null,
-                                            tint = if (selected) Color.White else goalAccent,
-                                            modifier = Modifier.size(13.dp)
-                                        )
-                                    }
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = goal.title,
-                                            fontSize = 12.sp,
-                                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                                            color = if (selected) goalAccent else primaryTextColor,
-                                            maxLines = 1,
-                                        )
-                                        goalRowSubtitle(goal)?.let { subtitle ->
-                                            Text(
-                                                text = subtitle,
-                                                fontSize = 10.sp,
-                                                color = secondaryTextColor,
-                                                maxLines = 1,
-                                            )
+                                    RadioButton(
+                                        selected = selected,
+                                        onClick = null,
+                                        colors = RadioButtonDefaults.colors(selectedColor = accent, unselectedColor = secondaryTextColor),
+                                    )
+                                    Column(Modifier.weight(1f).padding(start = 12.dp)) {
+                                        Text(goal.title, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = primaryTextColor)
+                                        goalRowSubtitle(goal)?.let {
+                                            Text(it, fontSize = 12.sp, lineHeight = 18.sp, color = secondaryTextColor)
                                         }
                                     }
-                                }
-                                if (index < shownGoals.size - 1) {
-                                    HorizontalDivider(color = dividerColor)
                                 }
                             }
                         }
-
                         if (selectedGoal != null) {
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = "Time will be added to this goal.",
-                                fontSize = 11.sp,
-                                color = secondaryTextColor,
-                            )
-                            Spacer(modifier = Modifier.height(6.dp))
-                            ActionPill(
-                                text = "Keep Goal Open",
-                                accentColor = goalAccent,
-                                onClick = {
-                                    selectedGoal?.let {
-                                        onLinkGoal(it, GoalSessionSaveChoice.KEEP_GOAL_OPEN.marksGoalDone)
+                            Text("After saving", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = secondaryTextColor)
+                            Column(Modifier.selectableGroup()) {
+                                GoalSessionSaveChoice.entries.forEach { choice ->
+                                    val selected = markGoalDone == choice.marksGoalDone
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth()
+                                            .selectable(
+                                                selected = selected,
+                                                role = androidx.compose.ui.semantics.Role.RadioButton,
+                                                onClick = { markGoalDone = choice.marksGoalDone },
+                                            )
+                                            .heightIn(min = 48.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    ) {
+                                        RadioButton(
+                                            selected = selected,
+                                            onClick = null,
+                                            colors = RadioButtonDefaults.colors(selectedColor = accent, unselectedColor = secondaryTextColor),
+                                        )
+                                        Text(
+                                            if (choice.marksGoalDone) "Mark Goal as Done" else "Keep Goal Open",
+                                            fontSize = 14.sp,
+                                            color = primaryTextColor,
+                                        )
                                     }
-                                },
-                                modifier = Modifier.fillMaxWidth()
-                            )
+                                }
+                            }
                             Text(
-                                text = "Keep goal active.",
-                                fontSize = 10.sp,
+                                if (markGoalDone) "The goal will appear in Goals → Completed."
+                                else "The goal stays open for your next session.",
+                                fontSize = 12.sp,
+                                lineHeight = 18.sp,
                                 color = secondaryTextColor,
-                                modifier = Modifier.padding(top = 2.dp),
                             )
-                            Spacer(modifier = Modifier.height(6.dp))
-                            ActionPill(
-                                text = "Mark Goal Done",
-                                accentColor = goalAccent,
-                                onClick = {
-                                    selectedGoal?.let {
-                                        onLinkGoal(it, GoalSessionSaveChoice.MARK_GOAL_DONE.marksGoalDone)
-                                    }
-                                },
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                            Text(
-                                text = "Complete goal now.",
-                                fontSize = 10.sp,
-                                color = secondaryTextColor,
-                                modifier = Modifier.padding(top = 2.dp),
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
                         }
                     }
+                }
+                Spacer(Modifier.height(8.dp))
+            }
 
-                    HorizontalDivider(color = dividerColor)
-
-                    Column(modifier = Modifier.padding(horizontal = 24.dp, vertical = 10.dp)) {
-                        SaveSectionHeader(
-                            label = "SAVE TO EKAGRA",
-                            accent = quickAccent,
-                            icon = Icons.Default.BookmarkBorder,
-                        )
-                        androidx.compose.foundation.text.BasicTextField(
-                            value = titleInput,
-                            onValueChange = onTitleChange,
-                            singleLine = true,
-                            textStyle = androidx.compose.ui.text.TextStyle(
-                                color = primaryTextColor,
-                                fontSize = 14.sp
-                            ),
-                            cursorBrush = androidx.compose.ui.graphics.SolidColor(quickAccent),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 6.dp),
-                            decorationBox = { field ->
-                                Box {
-                                    if (titleInput.isBlank()) {
-                                        Text("Session name (optional)", fontSize = 14.sp, color = secondaryTextColor)
-                                    }
-                                    field()
-                                }
-                            },
-                        )
-                    }
-
-                    HorizontalDivider(color = dividerColor)
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 14.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        ActionPill(
-                            text = "Discard",
-                            accentColor = secondaryTextColor,
-                            onClick = onDiscard,
-                            modifier = Modifier.weight(1f)
-                        )
-                        ActionPill(
-                            text = "Save Session",
-                            accentColor = quickAccent,
-                            onClick = onSaveFree,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
+            // Keep the save action visible while the optional goal list scrolls.
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                TextButton(onClick = onDiscard, modifier = Modifier.heightIn(min = 48.dp)) {
+                    Text("Discard", fontSize = 14.sp, color = secondaryTextColor)
+                }
+                Button(
+                    onClick = {
+                        val goal = selectedGoal
+                        when {
+                            isTopicSession -> onSaveTopic(markTopicDone)
+                            goal != null -> onLinkGoal(goal, markGoalDone)
+                            else -> onSaveFree()
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = accent, contentColor = onAccent),
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier.weight(1f).heightIn(min = 52.dp),
+                ) {
+                    Text("Save session", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun SessionCompletionOption(
+    label: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    accent: Color,
+    textColor: Color,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth()
+            .toggleable(value = checked, role = androidx.compose.ui.semantics.Role.Checkbox, onValueChange = onCheckedChange)
+            .heightIn(min = 48.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Checkbox(checked = checked, onCheckedChange = null, colors = CheckboxDefaults.colors(checkedColor = accent))
+        Text(label, fontSize = 14.sp, color = textColor)
     }
 }
 
@@ -705,6 +641,7 @@ internal fun EkagraConfirmSaveDialog(
     onCancel: () -> Unit,
     completesTarget: Boolean = false,
     keepsGoalOpen: Boolean = false,
+    linksTopic: Boolean = false,
     accentColor: Color = PlannerAccent.Teal,
 ) {
     val accent = accentColor
@@ -748,8 +685,10 @@ internal fun EkagraConfirmSaveDialog(
                 Spacer(Modifier.height(10.dp))
                 Text(
                     text = when {
-                        completesTarget -> "Your study time will be saved and this goal will be marked done."
-                        keepsGoalOpen -> "Your study time will be saved. This goal will stay open for your next session."
+                        linksTopic && completesTarget -> "Your study time will be saved and this topic will be marked completed in Exam Planner."
+                        linksTopic -> "Your study time will be saved to this Exam Planner topic. The topic stays open."
+                        completesTarget -> "Your session will appear in Ekagra history, linked to this goal. The goal will also appear in Goals → Completed."
+                        keepsGoalOpen -> "Your session will appear in Ekagra history, linked to this goal. The goal stays active for your next session."
                         isQuickSave -> "Your study time will be saved to your Ekagra history."
                         else -> "Your study time will be saved."
                     },
@@ -935,7 +874,7 @@ internal fun PostSaveGoalLinkingSheet(
                 EkagraDisplayTitle("$focusedTimeLabel focused", ink.primaryText)
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    text = "Select a goal to credit this session to",
+                    text = "Saved in Ekagra history. Linking a goal keeps your session there and credits the same study time to the goal.",
                     fontSize = 13.sp,
                     color = ink.secondaryText,
                 )

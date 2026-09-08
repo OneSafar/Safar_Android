@@ -188,6 +188,7 @@ fun MehfilScreen(
         onGuidelinesClick = { showGuidelinesSheet = true },
         onCreatePostClick = { showCreatePostSheet = true },
         onLoadPosts = viewModel::loadPosts,
+        onLoadSavedPage = viewModel::loadSavedPosts,
         onJoinRoom = viewModel::joinRoom,
         onReactSandesh = viewModel::reactSandesh,
         onLikePost = viewModel::toggleLike,

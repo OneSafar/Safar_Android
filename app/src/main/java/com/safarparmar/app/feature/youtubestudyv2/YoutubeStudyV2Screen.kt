@@ -245,9 +245,10 @@ fun YoutubeStudyV2Content(
 ) {
     var showTutorialSheet by remember { mutableStateOf(false) }
     var showDisclosure by remember { mutableStateOf(false) }
+    var enableAfterDisclosure by remember { mutableStateOf(false) }
 
     val handlePermissionRequest = {
-        if (!state.accessibilityEnabled) {
+        if (!state.accessibilityEnabled || !state.disclosureAccepted) {
             showDisclosure = true
         } else {
             onAgree()
@@ -255,7 +256,7 @@ fun YoutubeStudyV2Content(
     }
 
     val handleOpenAccessibility = {
-        if (!state.accessibilityEnabled) {
+        if (!state.accessibilityEnabled || !state.disclosureAccepted) {
             showDisclosure = true
         } else {
             onOpenAccessibility()
@@ -270,7 +271,14 @@ fun YoutubeStudyV2Content(
             StudyModeDashboard(
                 state = state,
                 isLight = isLight,
-                onSetEnabled = onSetEnabled,
+                onSetEnabled = { enabled ->
+                    if (enabled && !state.disclosureAccepted) {
+                        enableAfterDisclosure = true
+                        showDisclosure = true
+                    } else {
+                        onSetEnabled(enabled)
+                    }
+                },
                 onOpenAccessibility = handleOpenAccessibility,
                 onReferenceChanged = onReferenceChanged,
                 onAddChannel = onAddChannel,
@@ -295,7 +303,7 @@ fun YoutubeStudyV2Content(
 
         if (showDisclosure) {
             androidx.compose.material3.AlertDialog(
-                onDismissRequest = { showDisclosure = false },
+                onDismissRequest = { showDisclosure = false; enableAfterDisclosure = false },
                 containerColor = if (isLight) Color(0xFFF8FAFC) else Color(0xFF0F172A),
                 title = { Text("Accessibility access for YouTube Focus") },
                 text = {
@@ -303,9 +311,11 @@ fun YoutubeStudyV2Content(
                         Modifier.verticalScroll(rememberScrollState()),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        Text("YouTube Focus uses Android’s Accessibility Service to read visible YouTube screen information, identify video channels and Shorts, and measure viewing time.")
+                        Text("YouTube Focus uses Android’s AccessibilityService API while enabled to read visible text and screen controls in the YouTube app.")
+                        Text("Data accessed: names (including channel or account display names), personal identifiers (such as YouTube @handles), and other user-generated content visible on screen (such as video titles, descriptions and comments). This information may be present in the screen text read by the service.")
+                        Text("Purpose: SAFAR uses channel names and handles, player controls and screen text to identify the channel being watched, detect videos and Shorts, apply your blocking choices, and measure viewing time. Comments and unrelated account text are not used to identify channels.")
                         Text("To enforce your blocking settings, Safar can pause playback, go back from blocked content, and show blocking controls over YouTube.")
-                        Text("Detected channel information may be sent to Safar’s server to identify and save channels. Viewing totals are used for your analytics.")
+                        Text("Data sent and saved: newly detected channel @handles are sent to SAFAR’s server to resolve channel identities and add them to the shared channel catalogue. Channel names, identifiers and your channel choices are saved on this device. Daily viewing totals by category are synced to SAFAR for your analytics. Raw screen text, video titles, descriptions and comments are not uploaded by this feature.")
                         Text("This access is optional. You can turn it off anytime in Android Settings → Accessibility → SAFAR YouTube Focus.")
                     }
                 },
@@ -313,11 +323,16 @@ fun YoutubeStudyV2Content(
                     TextButton(onClick = {
                         onAcceptDisclosure()
                         showDisclosure = false
-                        showTutorialSheet = true
+                        if (state.accessibilityEnabled) {
+                            if (enableAfterDisclosure) onSetEnabled(true) else onAgree()
+                        } else {
+                            showTutorialSheet = true
+                        }
+                        enableAfterDisclosure = false
                     }) { Text("Agree and continue") }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showDisclosure = false }) { Text("Not now") }
+                    TextButton(onClick = { showDisclosure = false; enableAfterDisclosure = false }) { Text("Not now") }
                 },
             )
         }
@@ -1845,7 +1860,9 @@ private fun AvailableChannelList(
         },
         label = "availableChannelListTabTransition",
     ) { currentTab ->
-        val currentChannels = filterAvailableChannels(channels, classifications, currentTab)
+        val currentChannels = remember(channels, classifications, currentTab) {
+            filterAvailableChannels(channels, classifications, currentTab)
+        }
         Column {
             currentChannels.forEachIndexed { index, channel ->
                 val classification = classifications[channel.channelId] ?: YoutubeChannelClassification.OTHERS

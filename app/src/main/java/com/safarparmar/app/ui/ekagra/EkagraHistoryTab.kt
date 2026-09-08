@@ -71,6 +71,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.safarparmar.app.ui.ekagra.EkagraViewModel
 import com.safarparmar.app.util.IstDateUtils
+import com.safarparmar.app.util.isGoalCompleted
 
 sealed interface DateFilter {
     object All : DateFilter
@@ -93,6 +94,9 @@ internal fun FocusHistoryTab(
     // ViewModel for goal-linking from history
     val ekagraViewModel = hiltViewModel<EkagraViewModel>()
     val allGoals by ekagraViewModel.allGoals.collectAsStateWithLifecycle()
+    val completedGoalIds = remember(allGoals) {
+        allGoals.filter { it.isGoalCompleted() && it.completedViaFocus }.mapTo(mutableSetOf()) { it.id }
+    }
     val todayKey = remember { IstDateUtils.todayKey() }
     val linkableGoals = remember(allGoals, todayKey) {
         allGoals.filter { goal ->
@@ -146,12 +150,8 @@ internal fun FocusHistoryTab(
         }
     }
 
-    // Goal-linked sessions live in Goal History now, not here — Ekagra History
-    // is only for untitled/free-focus sessions.
-    val freeSessions = filteredSessions.filterNot { it.isGoalLinked }
-    // Preserve seconds through aggregation so short stopwatch sessions contribute
-    // to the total instead of disappearing in minute-level rounding.
-    val tabFocusSeconds = freeSessions.sumOf(::exactElapsedSeconds)
+    // A linked goal is another view of the same session, not a different save destination.
+    val tabFocusSeconds = filteredSessions.sumOf(::exactElapsedSeconds)
 
     val ink = rememberEkagraInk(onCanvas = false)
 
@@ -168,6 +168,12 @@ internal fun FocusHistoryTab(
         EkagraDisplayTitle(
             if (selectedSubTab == 0) "Your focus sessions" else "Your stopwatch runs",
             ink.primaryText,
+        )
+        Spacer(Modifier.height(8.dp))
+        Text(
+            "All saved sessions appear here, including sessions linked to goals. Completed goals also appear in Goals → Completed.",
+            fontSize = 12.sp,
+            color = ink.secondaryText,
         )
         Spacer(Modifier.height(18.dp))
 
@@ -203,7 +209,7 @@ internal fun FocusHistoryTab(
             }
             Column {
                 Text(
-                    "${freeSessions.size}",
+                    "${filteredSessions.size}",
                     fontFamily = EkagraSerif,
                     fontSize   = 26.sp,
                     color      = tabAccentColor,
@@ -289,9 +295,10 @@ internal fun FocusHistoryTab(
             return@Column
         }
 
-        val rows = if (selectedSubTab == 0) freeSessions else filteredSessions.filterNot { it.isGoalLinked }
+        val rows = filteredSessions
         HistorySection(
             sessions      = rows,
+            completedGoalIds = completedGoalIds,
             emptyText     = if (selectedSubTab == 0) "No sessions found." else "No stopwatch sessions found.",
             accentColor   = tabAccentColor,
             ink           = ink,
@@ -359,6 +366,7 @@ private fun EkagraEmptyNote(text: String, ink: EkagraInk) {
 @Composable
 internal fun HistorySection(
     sessions: List<com.safarparmar.app.domain.model.EkagraAnalyticsFocusSession>,
+    completedGoalIds: Set<String> = emptySet(),
     emptyText: String,
     accentColor: Color,
     ink: EkagraInk,
@@ -402,11 +410,12 @@ internal fun HistorySection(
             rows.forEach { session ->
                 FocusSessionRow(
                     session       = session,
+                    completedViaEkagra = session.associatedGoalId in completedGoalIds,
                     accentColor   = accentColor,
                     ink           = ink,
                     onLongPress   = if (onLongPress != null && !session.isGoalLinked)
                         { -> onLongPress(session) } else null,
-                    onEditSession = if (onEditSession != null)
+                    onEditSession = if (onEditSession != null && !session.isGoalLinked)
                         { -> onEditSession(session) } else null,
                 )
                 EkagraHairline(ink.hairline.copy(alpha = ink.hairline.alpha * 0.7f))
@@ -421,6 +430,7 @@ internal fun FocusSessionRow(
     session: com.safarparmar.app.domain.model.EkagraAnalyticsFocusSession,
     accentColor: Color,
     ink: EkagraInk,
+    completedViaEkagra: Boolean = false,
     /** Null = not interactive. Saved history is read-only, so a row with no
      *  handler must not show a ripple that implies it can be opened. */
     onClick: (() -> Unit)? = null,
@@ -480,6 +490,14 @@ internal fun FocusSessionRow(
                         )
                     }
                 }
+            }
+            if (session.isGoalLinked) {
+                Text(
+                    if (completedViaEkagra) "Goal completed via Ekagra" else "Linked to goal · Goal kept open",
+                    fontSize = 11.sp,
+                    color = accentColor,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
             }
             Text(
                 formatDateTime(session.endedAt ?: session.startedAt),
