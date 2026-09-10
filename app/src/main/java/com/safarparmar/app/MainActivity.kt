@@ -107,6 +107,7 @@ class MainActivity : AppCompatActivity(), PaymentResultWithDataListener {
             navigateToEkagra = true
         }
         consumeNotificationIntent(intent)
+        maintenanceStateManager.checkSystemStatus()
         handleIncomingReferral(intent)
 
         enableEdgeToEdge()
@@ -116,6 +117,7 @@ class MainActivity : AppCompatActivity(), PaymentResultWithDataListener {
             val configuration = LocalConfiguration.current
 
             val maintenanceInfo by maintenanceStateManager.state.collectAsStateWithLifecycle()
+            val requiredUpdate by maintenanceStateManager.requiredUpdate.collectAsStateWithLifecycle()
             val isCheckingMaintenance by maintenanceStateManager.isChecking.collectAsStateWithLifecycle()
 
             // Anchor font scale globally across the entire app so all screens, dialogs, and sheets maintain intended typography and layout
@@ -155,7 +157,9 @@ class MainActivity : AppCompatActivity(), PaymentResultWithDataListener {
                                 },
                                 label = "maintenance_switch",
                             ) { activeMaintenance ->
-                                if (activeMaintenance != null) {
+                                if (requiredUpdate != null) {
+                                    com.safarparmar.app.ui.update.ForceUpdateScreen(info = requiredUpdate!!)
+                                } else if (activeMaintenance != null) {
                                     com.safarparmar.app.ui.maintenance.MaintenanceScreen(
                                         info = activeMaintenance,
                                         isChecking = isCheckingMaintenance,
@@ -183,6 +187,7 @@ class MainActivity : AppCompatActivity(), PaymentResultWithDataListener {
 
     override fun onResume() {
         super.onResume()
+        maintenanceStateManager.checkSystemStatus()
         youtubeStudyV2HealthMonitor.checkOnAppResume(this)
     }
 

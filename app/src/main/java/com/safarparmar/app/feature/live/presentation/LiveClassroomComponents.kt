@@ -78,6 +78,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.safarparmar.app.R
 import com.safarparmar.app.feature.live.model.LiveSession
 import java.time.Duration
 import java.time.Clock
@@ -94,20 +95,20 @@ import java.time.temporal.ChronoUnit
  */
 object LiveThemeColors {
     // Brand Royal Purple Accents
-    val RoyalPurpleLight = Color(0xFF6B21A8) // Deep royal purple 800 (#6B21A8 / #581C87)
-    val RoyalPurpleDark = Color(0xFF8B5CF6)  // Vibrant royal violet 500 for dark mode
-    val RoyalPurpleContainerLight = Color(0xFFF3E8FF)
-    val RoyalPurpleContainerDark = Color(0xFF2E1065)
+    val RoyalPurpleLight = Color(0xFFBE185D)
+    val RoyalPurpleDark = Color(0xFFF472B6)
+    val RoyalPurpleContainerLight = Color(0xFFFCE7F3)
+    val RoyalPurpleContainerDark = Color(0xFF3A1828)
 
     // Background Canvas
-    val ScreenBgDark = Color(0xFF0F0E17) // Ultra-sleek dark canvas with subtle violet undertone
-    val ScreenBgLight = Color(0xFFFAF8FD) // Crisp off-white with warm purple nuance
+    val ScreenBgDark = Color(0xFF171014)
+    val ScreenBgLight = Color(0xFFFFF8FA)
 
     // Cards & Surfaces
-    val CardBgDark = Color(0xFF181524) // Elevated card background in dark mode
+    val CardBgDark = Color(0xFF21171C) // Elevated card background in dark mode
     val CardBgLight = Color(0xFFFFFFFF) // Crisp white card in light mode
-    val CardBorderDark = Color(0xFF2B2440) // Subtle dark border
-    val CardBorderLight = Color(0xFFECE7F4) // Subtle light border
+    val CardBorderDark = Color(0xFF3A2831) // Subtle dark border
+    val CardBorderLight = Color(0xFFF1D8E3) // Subtle light border
 
     // Search Bar
     val SearchBgDark = Color(0xFF14121F)
@@ -147,11 +148,12 @@ object LiveThemeColors {
     fun avatarText(isDark: Boolean): Color = if (isDark) AvatarTextDark else AvatarTextLight
 }
 
-/** Filter tabs — maps to Live / Completed. */
+/** Dhyan navigation: current session, recordings, and course invitation. */
 enum class LiveSessionFilter(val label: String, val backendStatus: String?) {
     /** Matches web `LiveSessions` (`status=active` → scheduled + live). */
-    LIVE("Live", "active"),
-    COMPLETED("Completed", "ended"),
+    LIVE("Dhyan Live", "active"),
+    COMPLETED("View Recordings", "ended"),
+    JOIN("Join Us", null),
 }
 
 fun formatLiveScheduledAt(value: String?): String {
@@ -194,7 +196,7 @@ fun formatNextSessionSubtitle(scheduledStartAt: String?, title: String?, clock: 
 
 /** Formats relative date & duration: "Yesterday · 48 min", "2 days ago · 52 min", "Today · 30 min". */
 fun formatRelativeDateAndDuration(scheduledStartAt: String?, scheduledEndAt: String? = null, clock: Clock = Clock.systemDefaultZone()): String {
-    if (scheduledStartAt.isNullOrBlank()) return "Completed"
+    if (scheduledStartAt.isNullOrBlank()) return "Recording"
     return try {
         val startInstant = Instant.parse(scheduledStartAt)
         val sessionZone = clock.zone
@@ -273,7 +275,7 @@ fun LiveClassroomErrorBanner(
 
 fun formatLiveStatusLabel(status: String): String = when (status) {
     "scheduled" -> "Upcoming"
-    "ended" -> "Completed"
+    "ended" -> "Recording"
     "live" -> "Live"
     else -> status.replaceFirstChar { it.uppercase() }
 }
@@ -287,7 +289,7 @@ fun LiveClassroomTopBar(
     CenterAlignedTopAppBar(
         title = {
             Text(
-                text = "Live Classroom",
+                text = "Dhyan Live",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.SemiBold,
             )
@@ -838,21 +840,12 @@ fun CompletedSessionCatchUpCard(
                     ),
                 contentAlignment = Alignment.Center,
             ) {
-                if (!session.thumbnailUrl.isNullOrBlank()) {
-                    AsyncImage(
-                        model = session.thumbnailUrl,
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop,
-                    )
-                } else {
-                    Icon(
-                        imageVector = Icons.Default.PlayArrow,
-                        contentDescription = null,
-                        modifier = Modifier.size(24.dp),
-                        tint = primaryColor,
-                    )
-                }
+                AsyncImage(
+                    model = R.drawable.safar_3_0_meditation,
+                    contentDescription = "Dhyan recording",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
+                )
             }
 
             Spacer(Modifier.width(14.dp))

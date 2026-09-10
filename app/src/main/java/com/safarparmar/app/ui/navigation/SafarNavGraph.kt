@@ -23,6 +23,7 @@ import com.safarparmar.app.ui.components.ExitConfirmationHandler
 import com.safarparmar.app.ui.dashboard.DashboardScreen
 import com.safarparmar.app.ui.dhyan.DhyanCoursesScreen
 import com.safarparmar.app.ui.dhyan.DhyanScreen
+import com.safarparmar.app.ui.dhyan.DhyanTab
 import com.safarparmar.app.ui.ekagra.EkagraScreen
 import com.safarparmar.app.ui.home.HomeScreen
 import com.safarparmar.app.ui.mehfil.DmChatScreen
@@ -393,6 +394,13 @@ fun SafarNavGraph(
             com.safarparmar.app.feature.kavachanalytics.ui.AppCategoryEditorScreen(onBack = ::safeBack)
         }
 
+        composable(Routes.YOUTUBE_STUDY_MODE_V2) {
+            YoutubeStudyV2Screen(
+                onBack = ::safeBack,
+                isDarkTheme = isDarkTheme,
+            )
+        }
+
         // ── Study Planner ─────────────────────────────────────────────────────
 
         composable(Routes.STUDY_PLANNER) {
@@ -596,6 +604,7 @@ fun SafarNavGraph(
 
         composable(Routes.DHYAN) {
             DhyanScreen(
+                initialTab = DhyanTab.DHYAN,
                 currentRoute = currentRoute,
                 isDarkTheme = isDarkTheme,
                 onNavigate = ::navigate,
@@ -604,7 +613,20 @@ fun SafarNavGraph(
         }
 
         composable(Routes.COURSES) {
-            DhyanCoursesScreen(
+            DhyanScreen(
+                initialTab = DhyanTab.COURSES,
+                currentRoute = currentRoute,
+                isDarkTheme = isDarkTheme,
+                onNavigate = ::navigate,
+                onToggleDarkTheme = onToggleDarkTheme,
+            )
+        }
+
+        composable(Routes.LIVE_SESSIONS_ROOT) {
+            DhyanScreen(
+                initialTab = DhyanTab.LIVE,
+                courseId = "",
+                initialLiveView = "live",
                 currentRoute = currentRoute,
                 isDarkTheme = isDarkTheme,
                 onNavigate = ::navigate,
@@ -619,12 +641,19 @@ fun SafarNavGraph(
                     type = NavType.StringType
                     nullable = true
                     defaultValue = ""
-                }
+                },
+                navArgument("view") {
+                    type = NavType.StringType
+                    defaultValue = "live"
+                },
             )
         ) { entry ->
             val courseId = entry.arguments?.getString("courseId").orEmpty()
-            LiveSessionsHubScreen(
+            val liveView = entry.arguments?.getString("view").orEmpty()
+            DhyanScreen(
+                initialTab = DhyanTab.LIVE,
                 courseId = courseId,
+                initialLiveView = liveView,
                 currentRoute = currentRoute,
                 isDarkTheme = isDarkTheme,
                 onNavigate = ::navigate,

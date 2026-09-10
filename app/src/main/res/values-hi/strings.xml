@@ -61,12 +61,13 @@
     <string name="nav_youtube_study_mode">YouTube स्टडी मोड</string>
     <string name="focus_shield_notification_listener_label">नोटिफिकेशन कवच</string>
     <string name="nav_live_classes">लाइव क्लासेस</string>
-    <string name="nav_live_sessions">लाइव सेशन्स</string>
+    <string name="nav_live_sessions">ध्यान लाइव</string>
     <string name="courses_live_sessions_description">लाइव क्लास में जुड़ें, आने वाले सेशन देखें और तय पढ़ाई पर वापस जाएं।</string>
     <string name="courses_live_sessions_open">खोलें →</string>
     <string name="nav_study_circle">स्टडी सर्कल</string>
     <string name="nav_leaderboard">लीडरबोर्ड</string>
     <string name="nav_admin_notifications">एडमिन सूचनाएं</string>
+    <string name="nav_premium">प्रीमियम</string>
 
     <!-- KAVACH -->
     <string name="kavach_hero_title">भटकाव से आपका बचाव</string>

@@ -39,7 +39,7 @@ object Routes {
     const val FOCUS_SHIELD_ROUTE = "focus_shield?tab={tab}"
     const val YOUTUBE_STUDY_MODE_V2 = "youtube_study_mode_v2"
     const val LIVE_SESSIONS_ROOT = "live/sessions"
-    const val LIVE_SESSIONS = "live/sessions?courseId={courseId}"
+    const val LIVE_SESSIONS = "live/sessions?courseId={courseId}&view={view}"
     const val LIVE_SESSION = "live/session/{sessionId}"
     const val ADMIN_NOTIFICATIONS = "admin/notifications"
     const val PREMIUM = "premium"
@@ -122,9 +122,8 @@ object Routes {
 
     fun ekagraAnalytics(): String = nishthaAnalytics("ekagra")
 
-    fun liveSessions(courseId: String? = null): String =
-        if (courseId.isNullOrBlank()) LIVE_SESSIONS_ROOT
-        else "live/sessions?courseId=${encodeParam(courseId)}"
+    fun liveSessions(courseId: String? = null, view: String = "live"): String =
+        "live/sessions?courseId=${encodeParam(courseId.orEmpty())}&view=${encodeParam(view)}"
 
     fun liveSession(sessionId: String): String =
         "live/session/${encodeParam(sessionId)}"

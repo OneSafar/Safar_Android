@@ -60,6 +60,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -237,13 +238,14 @@ private fun NishthaBottomBar(
     selected: NishthaTab,
     onSelect: (NishthaTab) -> Unit,
 ) {
-    val tabs = NishthaTab.entries
+    val tabs = remember { NishthaTab.entries.filter { it != NishthaTab.ANALYTICS } }
     val scheme = MaterialTheme.colorScheme
     val isLight = scheme.background.isLightBackground()
     val isDark = !isLight
     val haptic = LocalHapticFeedback.current
 
-    val selectedIndex = tabs.indexOf(selected).coerceAtLeast(0)
+    val isAnalyticsSelected = selected == NishthaTab.ANALYTICS
+    val selectedIndex = tabs.indexOf(selected).takeIf { it >= 0 } ?: 0
     val animatedIndex by animateFloatAsState(
         targetValue = selectedIndex.toFloat(),
         animationSpec = spring(
@@ -309,6 +311,7 @@ private fun NishthaBottomBar(
             // ── Single Sliding macOS Translucent Glass Indicator Pill ──
             Box(
                 modifier = Modifier
+                    .graphicsLayer { alpha = if (isAnalyticsSelected) 0f else 1f }
                     .offset(x = itemWidth * animatedIndex)
                     .width(itemWidth)
                     .height(56.dp)

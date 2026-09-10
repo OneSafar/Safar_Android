@@ -530,7 +530,7 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
         blockOverlayVisible = true
         overlay.showContent(
             title = "YouTube Shorts blocked",
-            subtitle = "Shorts are blocked in Study Mode. Need a quick break?",
+            subtitle = "Shorts are blocked in YouTube Focus. Need a quick break?",
             buttonText = "I'll Control Myself.",
             onAction = {
                 blockOverlayVisible = false
@@ -593,9 +593,9 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
         val isUnclassifiedOrOthers = lastWatchedClassification == YoutubeChannelClassification.OTHERS
 
         val subtitle = if (analyticsShorts) {
-            "Your $expiredMinutes-minute break ended. Shorts are blocked in Study Mode."
+            "Your $expiredMinutes-minute break ended. Shorts are blocked in YouTube Focus."
         } else if (!lastWatchedDisplayName.isNullOrBlank()) {
-            "Your $expiredMinutes-minute break ended. $displayName is blocked in Study Mode."
+            "Your $expiredMinutes-minute break ended. $displayName is blocked in YouTube Focus."
         } else {
             "Your $expiredMinutes-minute break ended. You have been watching for over $expiredMinutes minutes."
         }

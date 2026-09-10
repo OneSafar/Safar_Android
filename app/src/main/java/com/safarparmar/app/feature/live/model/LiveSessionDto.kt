@@ -62,6 +62,11 @@ data class LiveSessionResponseDto(
     val liveSession: LiveSessionDto? = null,
 )
 
+data class LiveCommunityResponseDto(
+    @SerializedName("telegramUrl")
+    val telegramUrl: String? = null,
+)
+
 data class LiveSessionResource(
     val label: String,
     val url: String,

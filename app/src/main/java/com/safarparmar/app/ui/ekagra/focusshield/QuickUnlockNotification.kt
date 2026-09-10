@@ -56,7 +56,7 @@ object QuickUnlockNotification {
             .setContentTitle(if (isYoutubeStudyUnlock) "YouTube Quick Unlock Active" else "KAVACH Quick Unlock Active")
             .setContentText(
                 if (isYoutubeStudyUnlock) {
-                    "YouTube is unlocked for $displayMins min. Study Mode will block it again when time ends."
+                    "YouTube is unlocked for $displayMins min. YouTube Focus will block it again when time ends."
                 } else {
                     "Unlocked for $displayMins min. KAVACH will re-block when timer ends."
                 },

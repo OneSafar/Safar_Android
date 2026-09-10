@@ -1440,7 +1440,7 @@ private fun AppDetailSheet(
 
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(
-                if (detail.row.packageName == "com.google.android.youtube") "Category when Study Mode is off" else "Usage category",
+                if (detail.row.packageName == "com.google.android.youtube") "Category when YouTube Focus is off" else "Usage category",
                 fontSize = 13.sp, fontWeight = FontWeight.Bold, color = primaryText(isLight),
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

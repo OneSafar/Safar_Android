@@ -1,15 +1,26 @@
 package com.safarparmar.app.feature.live.presentation
 
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -27,29 +38,47 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.safarparmar.app.R
 import com.safarparmar.app.feature.live.model.LiveSession
+import com.safarparmar.app.ui.theme.LoraFontFamily
+import coil.compose.AsyncImage
 import kotlinx.coroutines.launch
+
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
 fun LiveSessionsScreen(
     courseId: String,
+    initialView: String = "live",
     onBack: () -> Unit,
     onOpenSession: (String) -> Unit,
+    onOpenCourses: () -> Unit = onBack,
     showTopBar: Boolean = true,
     isDarkTheme: Boolean = isSystemInDarkTheme(),
     viewModel: LiveSessionViewModel = hiltViewModel(),
 ) {
     val isDark = isDarkTheme
 
-    var selectedFilter by rememberSaveable { mutableStateOf(LiveSessionFilter.LIVE) }
+    var selectedFilter by rememberSaveable(initialView) {
+        mutableStateOf(
+            when (initialView.lowercase()) {
+                "recordings" -> LiveSessionFilter.COMPLETED
+                "join" -> LiveSessionFilter.JOIN
+                else -> LiveSessionFilter.LIVE
+            },
+        )
+    }
     var searchQuery by rememberSaveable { mutableStateOf("") }
     var isReminderSet by rememberSaveable { mutableStateOf(false) }
 
@@ -58,6 +87,24 @@ fun LiveSessionsScreen(
     val listState = rememberLazyListState()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+
+    val openTelegramCommunity: () -> Unit = {
+        val telegramUrl = uiState.telegramCommunityUrl
+        if (telegramUrl.isNullOrBlank()) {
+            scope.launch {
+                snackbarHostState.showSnackbar("The Telegram group link is unavailable right now.")
+            }
+        } else {
+            runCatching {
+                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(telegramUrl)))
+            }.onFailure {
+                scope.launch {
+                    snackbarHostState.showSnackbar("Could not open Telegram on this device.")
+                }
+            }
+            Unit
+        }
+    }
 
     // Load all sessions so tab switching between Live and Completed is instantaneous
     LaunchedEffect(courseId) {
@@ -120,6 +167,57 @@ fun LiveSessionsScreen(
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            item(key = "dhyan_header") {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .border(
+                            width = 0.5.dp,
+                            color = LiveThemeColors.cardBorder(isDark),
+                            shape = RoundedCornerShape(22.dp),
+                        ),
+                    shape = RoundedCornerShape(22.dp),
+                    colors = CardDefaults.cardColors(containerColor = LiveThemeColors.card(isDark)),
+                ) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Image(
+                            painter = painterResource(id = R.drawable.dhyan_live_hero),
+                            contentDescription = "Dhyan Live",
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .aspectRatio(16f / 9f)
+                                .clip(RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp)),
+                            contentScale = ContentScale.Crop,
+                        )
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 20.dp, vertical = 18.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            Text(
+                                text = "Dhyan Live",
+                                fontFamily = LoraFontFamily,
+                                fontSize = 24.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = LiveThemeColors.textPrimary(isDark),
+                                textAlign = TextAlign.Center,
+                            )
+                            Text(
+                                text = "Join Parmar sir live for yoga and meditation.",
+                                fontSize = 13.sp,
+                                color = LiveThemeColors.textSecondary(isDark),
+                                textAlign = TextAlign.Center,
+                            )
+                        }
+                    }
+                }
+            }
+
             // 1. Search Bar ("Search sessions")
             item(key = "search") {
                 LiveSessionSearchBar(
@@ -209,11 +307,11 @@ fun LiveSessionsScreen(
                         )
                     }
                 }
-            } else {
+            } else if (selectedFilter == LiveSessionFilter.COMPLETED) {
                 // 5. Tab: COMPLETED
                 item(key = "completed_header") {
                     Text(
-                        text = "Completed sessions",
+                        text = "Dhyan recordings",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         color = LiveThemeColors.textPrimary(isDark),
@@ -238,6 +336,29 @@ fun LiveSessionsScreen(
                             onClick = { onSessionClick(session) },
                             isDarkTheme = isDark,
                         )
+                    }
+                }
+            } else {
+                item(key = "join_us") {
+                    Card(
+                        shape = RoundedCornerShape(22.dp),
+                        colors = CardDefaults.cardColors(containerColor = LiveThemeColors.card(isDark)),
+                    ) {
+                        androidx.compose.foundation.layout.Column(
+                            modifier = Modifier.fillMaxWidth().padding(28.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            Text("Join the Safar Dhyan community", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = LiveThemeColors.textPrimary(isDark))
+                            Text(
+                                "Join our community to receive friendly reminders and all the latest updates about Safar's yoga and meditation courses.",
+                                fontSize = 14.sp,
+                                color = LiveThemeColors.textSecondary(isDark),
+                            )
+                            Button(onClick = openTelegramCommunity) {
+                                Text("Join our Telegram group")
+                            }
+                        }
                     }
                 }
             }

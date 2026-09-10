@@ -59,6 +59,8 @@ private class FakeRepo(
 ) : LiveSessionRepositoryContract {
     override suspend fun listByCourse(courseId: String, status: String?) = listResult
     override suspend fun getById(id: String): Resource<LiveSession> = Resource.Success(sampleSession())
+    override suspend fun getCommunityUrl(): Resource<String> =
+        Resource.Success("https://t.me/+5bUB1-LKP8ZjOTE1")
 }
 
 private fun sampleSession() = LiveSession(

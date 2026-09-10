@@ -1,7 +1,9 @@
 package com.safarparmar.app.data.remote.maintenance
 
+import android.content.Context
 import android.util.Log
 import com.safarparmar.app.BuildConfig
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -19,13 +21,20 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class MaintenanceStateManager @Inject constructor() {
+class MaintenanceStateManager @Inject constructor(
+    @ApplicationContext context: Context,
+) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val _state = MutableStateFlow<MaintenanceInfo?>(null)
     val state = _state.asStateFlow()
 
     private val _isChecking = MutableStateFlow(false)
     val isChecking = _isChecking.asStateFlow()
+
+    private val _requiredUpdate = MutableStateFlow<AppUpdateInfo?>(null)
+    val requiredUpdate = _requiredUpdate.asStateFlow()
+
+    private val updatePreferences = context.getSharedPreferences("safar_update_policy", Context.MODE_PRIVATE)
 
     private var pollJob: Job? = null
 
@@ -35,6 +44,18 @@ class MaintenanceStateManager @Inject constructor() {
             .connectTimeout(10, TimeUnit.SECONDS)
             .readTimeout(10, TimeUnit.SECONDS)
             .build()
+    }
+
+    init {
+        applyCachedUpdatePolicy()
+    }
+
+    fun checkSystemStatus() {
+        scope.launch {
+            _isChecking.value = true
+            fetchStatusFromServer()
+            _isChecking.value = false
+        }
     }
 
     fun onMaintenanceDetected(info: MaintenanceInfo) {
@@ -84,8 +105,9 @@ class MaintenanceStateManager @Inject constructor() {
     private fun fetchStatusFromServer(): Boolean {
         return try {
             val base = BuildConfig.BASE_URL.trimEnd('/')
+            val statusUrl = if (base.endsWith("/api", ignoreCase = true)) "$base/system/status" else "$base/api/system/status"
             val request = Request.Builder()
-                .url("$base/api/system/status")
+                .url(statusUrl)
                 .header("Cache-Control", "no-cache")
                 .header("Accept", "application/json")
                 .build()
@@ -97,6 +119,7 @@ class MaintenanceStateManager @Inject constructor() {
 
             if (code == 200) {
                 val json = JSONObject(body)
+                updatePolicyFrom(json.optJSONObject("androidUpdate"))
                 val inMaintenance = json.optBoolean("inMaintenance", false)
                 if (inMaintenance) {
                     _state.value = MaintenanceInfo(
@@ -134,5 +157,31 @@ class MaintenanceStateManager @Inject constructor() {
             Log.w("MaintenanceState", "Failed to check maintenance status: ${e.message}")
             true
         }
+    }
+
+    private fun updatePolicyFrom(json: JSONObject?) {
+        if (json == null) return
+        val minimum = json.optInt("minimumVersionCode", 0).coerceAtLeast(0)
+        val latest = json.optString("latestVersionName").takeIf { it.isNotBlank() && it != "null" }
+        val title = json.optString("title", "A new Safar update is ready")
+        val message = json.optString("message", "Update Safar to continue using the app.")
+        val url = json.optString("playStoreUrl", "https://play.google.com/store/apps/details?id=com.safarparmar.app")
+        updatePreferences.edit().putInt("minimum_version_code", minimum).putString("latest_version_name", latest)
+            .putString("title", title).putString("message", message).putString("play_store_url", url).apply()
+        applyUpdatePolicy(minimum, latest, title, message, url)
+    }
+
+    private fun applyCachedUpdatePolicy() {
+        applyUpdatePolicy(
+            updatePreferences.getInt("minimum_version_code", 0),
+            updatePreferences.getString("latest_version_name", null),
+            updatePreferences.getString("title", null) ?: "A new Safar update is ready",
+            updatePreferences.getString("message", null) ?: "Update Safar to continue using the app.",
+            updatePreferences.getString("play_store_url", null) ?: "https://play.google.com/store/apps/details?id=com.safarparmar.app",
+        )
+    }
+
+    private fun applyUpdatePolicy(minimum: Int, latest: String?, title: String, message: String, url: String) {
+        _requiredUpdate.value = if (BuildConfig.VERSION_CODE < minimum) AppUpdateInfo(minimum, latest, title, message, url) else null
     }
 }

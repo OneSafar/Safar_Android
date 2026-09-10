@@ -12,9 +12,9 @@ import javax.inject.Inject
 class PaymentRepository @Inject constructor(
     private val api: PaymentApi
 ) {
-    fun createOrder(amount: Int, courseId: String): Flow<Result<com.safarparmar.app.data.remote.dto.CreateOrderResponseWrapper>> = flow {
+    fun createOrder(amount: Int, courseId: String, couponCode: String? = null): Flow<Result<com.safarparmar.app.data.remote.dto.CreateOrderResponseWrapper>> = flow {
         try {
-            val response = api.createOrder(CreateOrderRequestDto(amount, courseId))
+            val response = api.createOrder(CreateOrderRequestDto(amount, courseId, couponCode))
             if (response.isSuccessful && response.body() != null) {
                 emit(Result.success(response.body()!!))
             } else {
@@ -24,6 +24,12 @@ class PaymentRepository @Inject constructor(
         } catch (e: Exception) {
             emit(Result.failure(e))
         }
+    }
+
+    suspend fun getDhyanPricing(): Result<com.safarparmar.app.data.remote.dto.DhyanPricingDto> = runCatching {
+        val response = api.getDhyanPricing()
+        if (!response.isSuccessful || response.body() == null) throw Exception(response.errorBody()?.string() ?: "Failed to load Dhyan pricing")
+        response.body()!!
     }
 
     fun extendPlan(duration: Int): Flow<Result<com.safarparmar.app.data.remote.dto.CreateOrderResponseWrapper>> = flow {

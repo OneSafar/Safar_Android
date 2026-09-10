@@ -24,6 +24,7 @@ data class LiveSessionsUiState(
     val sessions: List<LiveSession> = emptyList(),
     val errorMessage: String? = null,
     val errorCode: Int? = null,
+    val telegramCommunityUrl: String? = null,
 )
 
 data class LiveSessionUiState(
@@ -122,9 +123,20 @@ class LiveSessionViewModel @Inject constructor(
     fun loadSessions(courseId: String, status: String?) {
         viewModelScope.launch {
             _liveSessionsState.value = _liveSessionsState.value.copy(isLoading = true, errorMessage = null)
+            val communityUrl = when (val community = repository.getCommunityUrl()) {
+                is Resource.Success -> community.data
+                else -> null
+            }
             when (val result = repository.listByCourse(courseId, status)) {
-                is Resource.Success -> _liveSessionsState.value = LiveSessionsUiState(sessions = result.data)
-                is Resource.Error -> _liveSessionsState.value = LiveSessionsUiState(errorMessage = result.message, errorCode = result.code)
+                is Resource.Success -> _liveSessionsState.value = LiveSessionsUiState(
+                    sessions = result.data,
+                    telegramCommunityUrl = communityUrl,
+                )
+                is Resource.Error -> _liveSessionsState.value = LiveSessionsUiState(
+                    errorMessage = result.message,
+                    errorCode = result.code,
+                    telegramCommunityUrl = communityUrl,
+                )
                 is Resource.Loading -> Unit
             }
         }

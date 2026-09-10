@@ -62,12 +62,13 @@
     <string name="nav_focus_shield">KAVACH</string>
     <string name="nav_youtube_study_mode">YouTube Focus</string>
     <string name="nav_live_classes">Live Classes</string>
-    <string name="nav_live_sessions">Live Sessions</string>
+    <string name="nav_live_sessions">Dhyan Live</string>
     <string name="courses_live_sessions_description">Join live classes, see upcoming sessions, and revisit scheduled learning.</string>
     <string name="courses_live_sessions_open">Open →</string>
     <string name="nav_study_circle">Study Circle</string>
     <string name="nav_leaderboard">Leaderboard</string>
     <string name="nav_admin_notifications">Admin Notifications</string>
+    <string name="nav_premium">Premium</string>
 
     <!-- KAVACH -->
     <string name="kavach_hero_title">Stop apps that take you away from study</string>

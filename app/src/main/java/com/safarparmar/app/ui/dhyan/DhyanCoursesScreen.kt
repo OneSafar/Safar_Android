@@ -1,7 +1,5 @@
 package com.safarparmar.app.ui.dhyan
 
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -11,34 +9,34 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.LiveTv
-import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -48,295 +46,275 @@ import com.safarparmar.app.ui.navigation.Routes
 import com.safarparmar.app.ui.studyplanner.components.LocalPlannerIsDarkTheme
 import com.safarparmar.app.ui.studyplanner.plan.PlanHairline
 import com.safarparmar.app.ui.theme.LoraFontFamily
-import com.safarparmar.app.util.YoutubeUrls
 
-private fun Modifier.coursesGlassPanel(isLight: Boolean): Modifier {
-    val body = DhyanFlatColors.glassBody(isLight)
-    val borderBrush = if (isLight) {
-        Brush.verticalGradient(listOf(Color(0xFFE5E5EA), Color(0xFFD1D1D6)))
-    } else {
-        Brush.verticalGradient(
-            listOf(Color.White.copy(alpha = 0.25f), Color.White.copy(alpha = 0.02f)),
-        )
+/**
+ * Editorial Dhyan Courses content matching the website layout:
+ * - Header: Amber Sparkles + "Dhyan Course"
+ * - Card: Cover artwork (dhyan_course.webp), title, enrollment badge, bullet checklist,
+ *   and dynamic action button ("Enroll Now" vs "Go to Dhyan Live →").
+ */
+@Composable
+fun DhyanCoursesContent(
+    isDarkTheme: Boolean,
+    isPremiumActive: Boolean,
+    onNavigate: (String) -> Unit,
+    onGoToLive: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val scrollState = rememberScrollState()
+
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(scrollState)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(18.dp),
+    ) {
+        // Section Header: Sparkles + "Dhyan Course"
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.padding(top = 4.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Default.AutoAwesome,
+                contentDescription = null,
+                tint = Color(0xFFF59E0B), // Amber sparkles
+                modifier = Modifier.size(20.dp),
+            )
+            Text(
+                text = "Dhyan Course",
+                fontFamily = LoraFontFamily,
+                fontWeight = FontWeight.Bold,
+                fontSize = 22.sp,
+                color = DhyanFlatColors.Text,
+            )
+        }
+
+        // Featured Course Card: SAFAR Yoga and Meditation Course
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(
+                    width = 0.5.dp,
+                    color = DhyanFlatColors.BorderHairline,
+                    shape = RoundedCornerShape(24.dp),
+                ),
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = DhyanFlatColors.CardBg),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                // Course Cover Artwork (dhyan_course.webp)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(16f / 10f)
+                        .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
+                        .background(if (isDarkTheme) Color(0xFF1B1117) else Color(0xFFFCE7F3)),
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.dhyan_course),
+                        contentDescription = "SAFAR Yoga and Meditation Course",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                    )
+                }
+
+                // Card Body
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                ) {
+                    // Title and Enrollment Status Chip
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.Top,
+                    ) {
+                        Text(
+                            text = "SAFAR Yoga and Meditation Course",
+                            fontFamily = LoraFontFamily,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp,
+                            color = DhyanFlatColors.Text,
+                            modifier = Modifier.weight(1f).padding(end = 8.dp),
+                            lineHeight = 24.sp,
+                        )
+
+                        // Status Badge
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(999.dp))
+                                .background(DhyanFlatColors.EmeraldBg)
+                                .border(0.5.dp, DhyanFlatColors.EmeraldBorder, RoundedCornerShape(999.dp))
+                                .padding(horizontal = 9.dp, vertical = 4.dp),
+                        ) {
+                            Text(
+                                text = if (isPremiumActive) "ENROLLED & ACTIVE" else "AVAILABLE",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = DhyanFlatColors.Emerald,
+                                letterSpacing = 0.5.sp,
+                            )
+                        }
+                    }
+
+                    // Subtitle
+                    Text(
+                        text = "Every morning join Parmar Sir for Meditation and Yoga sessions.",
+                        fontSize = 13.sp,
+                        color = DhyanFlatColors.Muted,
+                        lineHeight = 18.sp,
+                    )
+
+                    // Checklist Benefits
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        CourseBenefitRow(
+                            text = "Guided Morning Meditation & Yoga",
+                            isDark = isDarkTheme,
+                        )
+                        CourseBenefitRow(
+                            text = "Diaphragmatic & Pranayama Breathing",
+                            isDark = isDarkTheme,
+                        )
+                        CourseBenefitRow(
+                            text = "Daily Structure & 6 Months Access",
+                            isDark = isDarkTheme,
+                        )
+                    }
+
+                    Spacer(Modifier.height(4.dp))
+                    PlanHairline(alpha = 0.5f)
+
+                    // Bottom Access & Action Row
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column {
+                            Text(
+                                text = if (isPremiumActive) "YOUR ACCESS" else "CHOOSE YOUR PLAN",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = DhyanFlatColors.Muted,
+                                letterSpacing = 0.5.sp,
+                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                modifier = Modifier.padding(top = 2.dp),
+                            ) {
+                                if (isPremiumActive) {
+                                    Text(
+                                        text = "Enrolled",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 15.sp,
+                                        color = DhyanFlatColors.Text,
+                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .size(5.dp)
+                                            .clip(CircleShape)
+                                            .background(DhyanFlatColors.Emerald),
+                                    )
+                                    Text(
+                                        text = "Active",
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 12.sp,
+                                        color = DhyanFlatColors.Emerald,
+                                    )
+                                } else {
+                                    Text(
+                                        text = "₹49",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 16.sp,
+                                        color = DhyanFlatColors.Text,
+                                    )
+                                    Text(
+                                        text = "or from ₹29 for active Premium",
+                                        fontSize = 11.sp,
+                                        color = DhyanFlatColors.Muted,
+                                    )
+                                }
+                            }
+                        }
+
+                        // CTA Button: "Enroll Now" vs "Go to Dhyan Live →"
+                        Button(
+                            onClick = {
+                                if (isPremiumActive) {
+                                    onGoToLive()
+                                } else {
+                                    onNavigate(Routes.PREMIUM)
+                                }
+                            },
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = DhyanFlatColors.Primary,
+                                contentColor = if (isDarkTheme) Color(0xFF27141E) else Color.White,
+                            ),
+                            elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp),
+                        ) {
+                            Text(
+                                text = if (isPremiumActive) "Go to Dhyan Live →" else "Enroll Now",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                            )
+                        }
+                    }
+                }
+            }
+        }
     }
-    val shape = RoundedCornerShape(20.dp)
-    val shadowElevation = if (isLight) 4.dp else 12.dp
-    val shadowColor = if (isLight) Color.Black.copy(alpha = 0.12f) else Color.Black.copy(alpha = 0.8f)
-    return this
-        .shadow(elevation = shadowElevation, shape = shape, spotColor = shadowColor, ambientColor = shadowColor)
-        .clip(shape)
-        .background(body)
-        .border(width = 0.5.dp, brush = borderBrush, shape = shape)
 }
 
+@Composable
+private fun CourseBenefitRow(
+    text: String,
+    isDark: Boolean,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Icon(
+            imageVector = Icons.Default.CheckCircle,
+            contentDescription = null,
+            tint = DhyanFlatColors.Emerald,
+            modifier = Modifier.size(16.dp),
+        )
+        Text(
+            text = text,
+            fontSize = 12.sp,
+            color = DhyanFlatColors.Muted,
+        )
+    }
+}
+
+/** Standalone screen wrapper maintaining compatibility with Routes.COURSES */
 @Composable
 fun DhyanCoursesScreen(
     currentRoute: String = Routes.COURSES,
     isDarkTheme: Boolean = false,
     onNavigate: (String) -> Unit = {},
     onToggleDarkTheme: () -> Unit = {},
+    isPremiumActive: Boolean = false,
 ) {
-    CompositionLocalProvider(LocalPlannerIsDarkTheme provides isDarkTheme) {
-        Box(Modifier.fillMaxSize()) {
-            SafarDrawerScaffold(
-                title = "Courses",
-                subtitle = null,
-                currentRoute = currentRoute,
-                isDarkTheme = isDarkTheme,
-                onNavigate = onNavigate,
-                onToggleDarkTheme = onToggleDarkTheme,
-                containerColor = DhyanFlatColors.Bg,
-            ) { padding ->
-                Box(Modifier.fillMaxSize().padding(top = padding.calculateTopPadding())) {
-                    CoursesTabContent(
-                        isDarkTheme = isDarkTheme,
-                        onNavigate = onNavigate,
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun CoursesTabContent(
-    isDarkTheme: Boolean,
-    onNavigate: (String) -> Unit,
-) {
-    val context = LocalContext.current
-    val isLight = !isDarkTheme
-    val onGlass = DhyanFlatColors.onGlassText(isLight)
-    val mutedGlass = DhyanFlatColors.onGlassMuted(isLight)
-
-    var coursesVisible by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
-    androidx.compose.runtime.LaunchedEffect(Unit) {
-        coursesVisible = true
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp, vertical = 20.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        Text(
-            "Learn & practice",
-            fontFamily = LoraFontFamily,
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Normal,
-            color = DhyanFlatColors.Text,
-        )
-        Spacer(Modifier.height(4.dp))
-
-        // Live learning belongs to Courses, but keeps its dedicated destination so
-        // notifications, course filters, and session-detail deep links still work.
-        StaggeredDhyanEntranceBox(index = 0, isVisible = coursesVisible) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .coursesGlassPanel(isLight)
-                    .clickable { onNavigate(Routes.LIVE_SESSIONS_ROOT) }
-                    .padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(50.dp)
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(DhyanFlatColors.Primary, Color(0xFF6D28D9)),
-                            ),
-                        ),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.LiveTv,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(27.dp),
-                    )
-                }
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(
-                        text = stringResource(R.string.nav_live_sessions),
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 15.sp,
-                        color = onGlass,
-                    )
-                    Text(
-                        text = stringResource(R.string.courses_live_sessions_description),
-                        fontSize = 12.sp,
-                        color = mutedGlass,
-                        lineHeight = 17.sp,
-                    )
-                }
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(DhyanFlatColors.Primary)
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                ) {
-                    Text(
-                        text = stringResource(R.string.courses_live_sessions_open),
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White,
-                    )
-                }
-            }
-        }
-
-        // YouTube promo — macOS glass tile
-        StaggeredDhyanEntranceBox(index = 1, isVisible = coursesVisible) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .coursesGlassPanel(isLight)
-                    .clickable {
-                        runCatching {
-                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(YoutubeUrls.SAFAR_CHANNEL_URL)))
-                        }
-                    }
-                    .padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-            Box(
-                modifier = Modifier
-                    .size(50.dp)
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(
-                        Brush.verticalGradient(listOf(Color(0xFFFF4D4D), Color(0xFFE60000))),
-                    ),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Default.PlayArrow,
-                    contentDescription = "YouTube",
-                    tint = Color.White,
-                    modifier = Modifier.size(30.dp),
-                )
-            }
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("Visit SAFAR on YouTube", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = onGlass)
-                Text(
-                    "Meditation guidance, mindful practices, and new videos from SAFAR.",
-                    fontSize = 12.sp,
-                    color = mutedGlass,
-                    lineHeight = 17.sp,
-                )
-            }
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(DhyanFlatColors.Primary)
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
-            ) {
-                Text("Visit", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
-            }
-        }
-        }
-
-        // SAFAR 3.0 course — macOS glass tile
-        val courseUrl = "https://www.parmaracademy.in/courses/75-safar-30"
-        StaggeredDhyanEntranceBox(index = 2, isVisible = coursesVisible) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .coursesGlassPanel(isLight)
-                    .clickable {
-                        runCatching {
-                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(courseUrl)))
-                        }
-                    }
-                    .padding(18.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(14.dp),
-                ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.safar_3_0_meditation),
-                        contentDescription = "SAFAR 3.0 Meditation",
-                        modifier = Modifier
-                            .size(50.dp)
-                            .clip(RoundedCornerShape(14.dp)),
-                        contentScale = ContentScale.Crop,
-                    )
-                    Text(
-                        text = "SAFAR 3.0 Meditation Course",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp,
-                        lineHeight = 18.sp,
-                        color = onGlass,
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-                Text(
-                    text = "Every Morning Join Parmar Sir for refreshing Yoga sessions, Guided meditation and Mind Calming Practices.",
-                    fontSize = 13.sp,
-                    color = mutedGlass,
-                    lineHeight = 19.sp,
-                )
-                PlanHairline(alpha = 0.55f)
-                Row(
-                    Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = "Available",
-                        fontSize = 12.sp,
-                        color = DhyanFlatColors.Primary,
-                        fontWeight = FontWeight.Medium,
-                    )
-                    Text(
-                        text = "Buy now →",
-                        fontSize = 12.sp,
-                        color = DhyanFlatColors.Primary,
-                        fontWeight = FontWeight.Bold,
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun StaggeredDhyanEntranceBox(
-    index: Int,
-    isVisible: Boolean,
-    content: @Composable () -> Unit,
-) {
-    val slideOffset by androidx.compose.animation.core.animateDpAsState(
-        targetValue = if (isVisible) 0.dp else (20 + index * 12).dp,
-        animationSpec = androidx.compose.animation.core.tween(
-            durationMillis = 320,
-            delayMillis = index * 40,
-            easing = androidx.compose.animation.core.FastOutSlowInEasing,
-        ),
-        label = "dhyanStaggeredOffset",
+    DhyanScreen(
+        initialTab = DhyanTab.COURSES,
+        currentRoute = currentRoute,
+        isDarkTheme = isDarkTheme,
+        onNavigate = onNavigate,
+        onToggleDarkTheme = onToggleDarkTheme,
     )
-    val alphaAnim by androidx.compose.animation.core.animateFloatAsState(
-        targetValue = if (isVisible) 1f else 0f,
-        animationSpec = androidx.compose.animation.core.tween(
-            durationMillis = 280,
-            delayMillis = index * 40,
-        ),
-        label = "dhyanStaggeredAlpha",
-    )
-
-    Box(
-        modifier = Modifier
-            .graphicsLayer {
-                translationY = slideOffset.toPx()
-                alpha = alphaAnim
-            }
-    ) {
-        content()
-    }
 }

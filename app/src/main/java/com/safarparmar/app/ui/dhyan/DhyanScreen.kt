@@ -42,7 +42,6 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -59,8 +58,13 @@ import com.safarparmar.app.ui.studyplanner.plan.PlanHairline
 import com.safarparmar.app.ui.theme.LoraFontFamily
 import com.safarparmar.app.ui.theme.isLightBackground
 import com.safarparmar.app.util.bounceClick
-import kotlinx.coroutines.delay
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.safarparmar.app.feature.live.presentation.DhyanLiveLockOverlay
+import com.safarparmar.app.feature.live.presentation.LiveSessionsScreen
 import com.safarparmar.app.ui.audio.MediaFileCache
+import com.safarparmar.app.ui.premium.PremiumViewModel
+import kotlinx.coroutines.delay
 
 // ─── Data ──────────────────────────────────────────────────────────────────────
 
@@ -126,7 +130,7 @@ private object DhyanColors {
     fun calm(isDark: Boolean) = if (isDark) DarkCalm else LightCalm
     fun sky(isDark: Boolean) = if (isDark) Color(0xFF7CB9E8) else Color(0xFF5B9BD5)
     fun accentBlue(isDark: Boolean) = sky(isDark)
-    fun actionPink(isDark: Boolean) = if (isDark) Color(0xFFE86B96) else Color(0xFFF04880)
+    fun actionPink(isDark: Boolean) = if (isDark) Color(0xFFF472B6) else Color(0xFFBE185D)
 }
 
 private val DhyanGlassShape = RoundedCornerShape(20.dp)
@@ -281,22 +285,6 @@ private fun DhyanMeditationOrb(
     }
 }
 
-/** Flat outlined circular top-bar chip (not glass). */
-@Composable
-private fun DhyanTopBarChip(
-    onClick: () -> Unit,
-    content: @Composable BoxScope.() -> Unit,
-) {
-    Box(
-        modifier = Modifier
-            .size(36.dp)
-            .clip(CircleShape)
-            .border(1.dp, DhyanFlatColors.Hairline, CircleShape)
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center,
-        content = content,
-    )
-}
 
 @Composable
 private fun DhyanSessionSlider(
@@ -509,11 +497,20 @@ private fun DhyanStatusBar(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DhyanScreen(
+    initialTab: DhyanTab = DhyanTab.DHYAN,
     currentRoute: String = Routes.DHYAN,
     isDarkTheme: Boolean = false,
+    courseId: String = "",
+    initialLiveView: String = "live",
     onNavigate: (String) -> Unit = {},
     onToggleDarkTheme: () -> Unit = {},
 ) {
+    var selectedTab by rememberSaveable { mutableStateOf(initialTab) }
+
+    LaunchedEffect(initialTab) {
+        selectedTab = initialTab
+    }
+
     var showAudioLibraryPanel by remember { mutableStateOf(false) }
     var showTechniquesSheet   by remember { mutableStateOf(false) }
     val context = LocalContext.current
@@ -532,11 +529,20 @@ fun DhyanScreen(
     }
 
     val dhyanVm: DhyanViewModel = hiltViewModel()
+    val premiumVm: PremiumViewModel = hiltViewModel()
+    val premiumStatus by premiumVm.premiumStatus.collectAsStateWithLifecycle()
+    val dhyanPricing by premiumVm.dhyanPricing.collectAsStateWithLifecycle()
+    val isPremium = premiumStatus.isPremium || premiumStatus.hasAnyPaidAccess
+    val hasDhyanLiveAccess = dhyanPricing.accessState == "DHYAN_INCLUDED"
 
     CompositionLocalProvider(LocalPlannerIsDarkTheme provides isDarkTheme) {
     Box(Modifier.fillMaxSize()) {
         SafarDrawerScaffold(
-            title    = "Dhyan",
+            title    = when (selectedTab) {
+                DhyanTab.DHYAN -> "Dhyan"
+                DhyanTab.COURSES -> "Courses"
+                DhyanTab.LIVE -> "Dhyan Live"
+            },
             subtitle = null,
             currentRoute      = currentRoute,
             isDarkTheme       = isDarkTheme,
@@ -545,36 +551,76 @@ fun DhyanScreen(
             useGlassTopBar    = false,
             useDetachedMenuGlass = false,
             containerColor    = Color.Transparent,
-            topBarActions = {
-                DhyanTopBarChip(onClick = { showAudioLibraryPanel = true }) {
-                    Icon(
-                        Icons.Default.MusicNote,
-                        contentDescription = "Meditation Audio Library",
-                        tint = DhyanFlatColors.Text,
-                        modifier = Modifier.size(18.dp),
-                    )
-                }
-            },
+            topBarActions = {},
         ) { padding ->
             Box(Modifier.fillMaxSize()) {
                 DhyanMockBackdrop()
 
-                Box(
+                Column(
                     Modifier
                         .fillMaxSize()
                         .padding(top = padding.calculateTopPadding())
                         .padding(bottom = padding.calculateBottomPadding()),
                 ) {
-                    BreathingTab(
-                        isDarkTheme       = isDarkTheme,
-                        selectedTechnique = selectedTechnique,
-                        selectedMusicTrack = selectedMusicTrack,
-                        selectedBreathingSound = selectedBreathingSound,
-                        activeAudioSource = activeAudioSource,
-                        onActiveAudioSourceChange = { activeAudioSource = it },
-                        onBreatheWithMe   = { showTechniquesSheet = true },
-                        onSessionComplete = { minutes -> dhyanVm.trackCompletedSession(minutes) },
+                    // Top Navigation Capsule
+                    DhyanTopNavigation(
+                        selectedTab = selectedTab,
+                        onTabSelected = { selectedTab = it },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 6.dp),
                     )
+
+                    // Tab View Content Area
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                    ) {
+                        when (selectedTab) {
+                            DhyanTab.DHYAN -> {
+                                BreathingTab(
+                                    isDarkTheme       = isDarkTheme,
+                                    selectedTechnique = selectedTechnique,
+                                    selectedMusicTrack = selectedMusicTrack,
+                                    selectedBreathingSound = selectedBreathingSound,
+                                    activeAudioSource = activeAudioSource,
+                                    onActiveAudioSourceChange = { activeAudioSource = it },
+                                    onBreatheWithMe   = { showTechniquesSheet = true },
+                                    onOpenAudioLibrary = { showAudioLibraryPanel = true },
+                                    onSessionComplete = { minutes -> dhyanVm.trackCompletedSession(minutes) },
+                                )
+                            }
+                            DhyanTab.COURSES -> {
+                                DhyanCoursesContent(
+                                    isDarkTheme = isDarkTheme,
+                                    isPremiumActive = isPremium,
+                                    onNavigate = onNavigate,
+                                    onGoToLive = { selectedTab = DhyanTab.LIVE },
+                                )
+                            }
+                            DhyanTab.LIVE -> {
+                                Box(Modifier.fillMaxSize()) {
+                                    LiveSessionsScreen(
+                                        courseId = courseId,
+                                        initialView = initialLiveView,
+                                        onBack = { selectedTab = DhyanTab.DHYAN },
+                                        onOpenSession = { sessionId -> onNavigate(Routes.liveSession(sessionId)) },
+                                        onOpenCourses = { selectedTab = DhyanTab.COURSES },
+                                        showTopBar = false,
+                                        isDarkTheme = isDarkTheme,
+                                    )
+                                    if (!hasDhyanLiveAccess) {
+                                        DhyanLiveLockOverlay(
+                                            modifier = Modifier.fillMaxSize(),
+                                            isDarkTheme = isDarkTheme,
+                                            onEnrollClick = { onNavigate(Routes.PREMIUM) },
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -620,6 +666,7 @@ private fun BreathingTab(
     activeAudioSource: DhyanAudioSource,
     onActiveAudioSourceChange: (DhyanAudioSource) -> Unit,
     onBreatheWithMe: () -> Unit,
+    onOpenAudioLibrary: () -> Unit,
     onSessionComplete: (Int) -> Unit,
 ) {
     var sessionLengthMin    by remember { mutableIntStateOf(5) }
@@ -763,15 +810,6 @@ private fun BreathingTab(
             .padding(top = 2.dp, bottom = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(
-            "\"Silence is the language of God.\"",
-            fontSize = 12.sp,
-            color = DhyanFlatColors.Muted.copy(alpha = 0.9f),
-            fontStyle = FontStyle.Italic,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(bottom = 6.dp),
-        )
-
         // Hero cluster (orb + timer) — shares remaining height so lower controls stay compact.
         Column(
             modifier = Modifier
@@ -939,6 +977,7 @@ private fun BreathingTab(
             isDarkTheme = isDarkTheme,
             technique = selectedTechnique,
             onEdit = onBreatheWithMe,
+            onOpenAudioLibrary = onOpenAudioLibrary,
         )
     }
 }
@@ -951,6 +990,7 @@ private fun DhyanGuidanceSheet(
     isDarkTheme: Boolean,
     technique: BreathingTechnique?,
     onEdit: () -> Unit,
+    onOpenAudioLibrary: () -> Unit,
 ) {
     val isLight = !isDarkTheme
     val title = technique?.let { "${it.name} · ${it.pattern}" } ?: "Breathing techniques"
@@ -970,19 +1010,43 @@ private fun DhyanGuidanceSheet(
         Spacer(Modifier.height(14.dp))
         PlanHairline(alpha = 0.65f)
         Spacer(Modifier.height(12.dp))
-        Text(
-            "Guidance",
-            fontFamily = LoraFontFamily,
-            fontSize = 22.sp,
-            fontWeight = FontWeight.Normal,
-            color = DhyanFlatColors.Text,
-        )
-        Spacer(Modifier.height(6.dp))
-        Text(
-            "Choose how you want to breathe",
-            fontSize = 12.5.sp,
-            color = DhyanFlatColors.Muted,
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+                Text(
+                    "Guidance",
+                    fontFamily = LoraFontFamily,
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Normal,
+                    color = DhyanFlatColors.Text,
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    "Choose how you want to breathe",
+                    fontSize = 12.5.sp,
+                    color = DhyanFlatColors.Muted,
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(DhyanFlatColors.PrimaryContainer)
+                    .border(width = 0.5.dp, color = DhyanFlatColors.BorderHairline, shape = CircleShape)
+                    .clickable(onClick = onOpenAudioLibrary),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Default.MusicNote,
+                    contentDescription = "Meditation Audio Library",
+                    tint = DhyanFlatColors.Primary,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+        }
         Spacer(Modifier.height(12.dp))
         PlanHairline(alpha = 0.55f)
         Spacer(Modifier.height(12.dp))
@@ -1052,14 +1116,14 @@ private fun BreathingOptionsSheet(
             PlanEyebrow("Dhyan")
             Spacer(Modifier.height(6.dp))
             Text(
-                "Breathe with me",
+                "Breathing Techniques",
                 fontFamily = LoraFontFamily,
                 fontWeight = FontWeight.Normal,
                 fontSize = 24.sp,
                 color = DhyanFlatColors.Text,
             )
             Text(
-                "Choose a technique to start",
+                "Choose a breathing technique to start",
                 fontSize = 13.sp,
                 color = DhyanFlatColors.Muted,
                 modifier = Modifier.padding(top = 4.dp, bottom = 12.dp),

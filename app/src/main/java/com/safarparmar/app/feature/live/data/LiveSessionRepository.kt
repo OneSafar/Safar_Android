@@ -26,11 +26,19 @@ class LiveSessionRepository @Inject constructor(
                 dto.liveSession?.toDomain()
                     ?: throw IllegalStateException("Live session payload missing")
             }
+
+    override suspend fun getCommunityUrl(): Resource<String> =
+        safeApiCall { api.getCommunity() }
+            .map { dto ->
+                dto.telegramUrl?.takeIf { it.isNotBlank() }
+                    ?: throw IllegalStateException("Telegram community link missing")
+            }
 }
 
 interface LiveSessionRepositoryContract {
     suspend fun listByCourse(courseId: String, status: String?): Resource<List<LiveSession>>
     suspend fun getById(id: String): Resource<LiveSession>
+    suspend fun getCommunityUrl(): Resource<String>
 }
 
 private fun <T, R> Resource<T>.map(transform: (T) -> R): Resource<R> = when (this) {

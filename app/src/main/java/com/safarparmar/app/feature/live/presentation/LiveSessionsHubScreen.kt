@@ -18,7 +18,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -29,14 +28,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.safarparmar.app.R
 import com.safarparmar.app.ui.drawer.SafarDrawerScaffold
 import com.safarparmar.app.ui.navigation.Routes
 import com.safarparmar.app.ui.premium.PremiumViewModel
@@ -54,6 +51,7 @@ import com.safarparmar.app.ui.theme.ThemeViewModel
 @Composable
 fun LiveSessionsHubScreen(
     courseId: String = "",
+    initialView: String = "live",
     currentRoute: String = Routes.LIVE_SESSIONS_ROOT,
     isDarkTheme: Boolean = false,
     onNavigate: (String) -> Unit = {},
@@ -69,11 +67,11 @@ fun LiveSessionsHubScreen(
     }
     val currentIsDark by themeVm.isDarkTheme.collectAsStateWithLifecycle(initialValue = isDarkTheme)
 
-    val premiumStatus by premiumViewModel.premiumStatus.collectAsStateWithLifecycle()
+    val dhyanPricing by premiumViewModel.dhyanPricing.collectAsStateWithLifecycle()
     val bgColor = LiveThemeColors.background(currentIsDark)
 
     SafarDrawerScaffold(
-        title = stringResource(R.string.nav_live_sessions),
+        title = "Dhyan Live",
         subtitle = null,
         currentRoute = currentRoute,
         isDarkTheme = currentIsDark,
@@ -88,16 +86,18 @@ fun LiveSessionsHubScreen(
         ) {
             LiveSessionsScreen(
                 courseId = courseId,
+                initialView = initialView,
                 onBack = {},
                 onOpenSession = { sessionId -> onNavigate(Routes.liveSession(sessionId)) },
+                onOpenCourses = { onNavigate(Routes.COURSES) },
                 showTopBar = false,
                 isDarkTheme = currentIsDark,
             )
-            if (!premiumStatus.isPremium) {
-                LiveSessionsPremiumLockOverlay(
+            if (dhyanPricing.accessState != "DHYAN_INCLUDED") {
+                DhyanLiveLockOverlay(
                     modifier = Modifier.fillMaxSize(),
                     isDarkTheme = currentIsDark,
-                    onUpgradeClick = { onNavigate(Routes.PREMIUM) },
+                    onEnrollClick = { onNavigate(Routes.PREMIUM) },
                 )
             }
         }
@@ -105,10 +105,10 @@ fun LiveSessionsHubScreen(
 }
 
 @Composable
-fun LiveSessionsPremiumLockOverlay(
+fun DhyanLiveLockOverlay(
     modifier: Modifier = Modifier,
     isDarkTheme: Boolean = false,
-    onUpgradeClick: () -> Unit = {},
+    onEnrollClick: () -> Unit = {},
 ) {
     val bgColor = LiveThemeColors.background(isDarkTheme)
     val primaryColor = LiveThemeColors.primary(isDarkTheme)
@@ -117,14 +117,14 @@ fun LiveSessionsPremiumLockOverlay(
 
     Box(
         modifier = modifier
-            .background(bgColor.copy(alpha = 0.94f))
+            .background(bgColor.copy(alpha = 0.96f))
             .pointerInput(Unit) {
                 detectVerticalDragGestures { _, _ -> }
             }
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
-                onClick = onUpgradeClick,
+                onClick = onEnrollClick,
             ),
     ) {
         Column(
@@ -145,22 +145,22 @@ fun LiveSessionsPremiumLockOverlay(
             ) {
                 Icon(
                     imageVector = Icons.Default.Lock,
-                    contentDescription = "Safar Premium feature",
+                    contentDescription = "Dhyan Live locked",
                     tint = primaryColor,
                     modifier = Modifier.size(28.dp),
                 )
             }
-            PlanEyebrow("Live Classroom")
+            PlanEyebrow("Live access")
             Text(
-                text = "Safar Premium Feature",
+                text = "Unlock Dhyan Live",
                 fontFamily = LoraFontFamily,
                 fontSize = 22.sp,
-                fontWeight = FontWeight.Normal,
+                fontWeight = FontWeight.Bold,
                 color = textPrimary,
                 textAlign = TextAlign.Center,
             )
             Text(
-                text = "Upgrade to unlock Live Classes, interactive guidance, and live Q&A sessions.",
+                text = "Get Dhyan Live for 6 months, or choose a Safar Premium bundle with Dhyan Live included.",
                 fontSize = 14.sp,
                 textAlign = TextAlign.Center,
                 color = textSecondary,
@@ -169,21 +169,20 @@ fun LiveSessionsPremiumLockOverlay(
             Box(
                 modifier = Modifier
                     .fillMaxWidth(0.85f)
-                    .heightIn(min = 52.dp)
+                    .heightIn(min = 50.dp)
                     .clip(RoundedCornerShape(14.dp))
                     .background(primaryColor)
-                    .clickable(onClick = onUpgradeClick),
+                    .clickable(onClick = onEnrollClick),
                 contentAlignment = Alignment.Center,
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
-                    Icon(Icons.Default.Star, null, tint = Color.White, modifier = Modifier.size(16.dp))
                     Text(
-                        "Upgrade to Safar Premium",
+                        "View Plans",
                         fontWeight = FontWeight.Bold,
-                        color = Color.White,
+                        color = if (isDarkTheme) Color(0xFF27141E) else Color.White,
                         fontSize = 14.sp,
                     )
                 }
