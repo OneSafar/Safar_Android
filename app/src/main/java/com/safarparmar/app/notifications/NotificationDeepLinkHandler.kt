@@ -62,7 +62,8 @@ object NotificationDeepLinkHandler {
                 "app_picker" -> Routes.APP_PICKER
                 else -> Routes.EKAGRA
             }
-            "dashboard", "home" -> Routes.DASHBOARD
+            "home" -> Routes.HOME
+            "dashboard" -> Routes.DASHBOARD
             "nishtha" -> when (firstSegment) {
                 "checkin"   -> Routes.nishthaTab(0)
                 "journal"   -> Routes.nishthaTab(1)
@@ -88,7 +89,7 @@ object NotificationDeepLinkHandler {
                 "app_categories" -> Routes.KAVACH_APP_CATEGORIES
                 else -> Routes.FOCUS_SHIELD
             }
-            "youtube_study_mode", "youtube_study_v2" -> Routes.focusShieldTab(1)
+            "youtube_study_mode", "youtube_study_v2", "youtube_focus" -> Routes.YOUTUBE_STUDY_MODE_V2
             "course" -> Routes.COURSES
             "studyplanner", "study_planner" -> {
                 val planId = queryUri?.getQueryParameter("planId").orEmpty()
@@ -109,7 +110,15 @@ object NotificationDeepLinkHandler {
                 "session" -> segments.getOrNull(1)?.let { sessionId ->
                     "live/session/${decodePathSegment(sessionId)}"
                 } ?: Routes.LIVE_SESSIONS_ROOT
-                "sessions" -> Routes.LIVE_SESSIONS_ROOT
+                "sessions" -> {
+                    val view = queryUri?.getQueryParameter("view")?.let { decodePathSegment(it) }
+                    val courseId = queryUri?.getQueryParameter("courseId")?.let { decodePathSegment(it) }
+                    if (!view.isNullOrBlank() || !courseId.isNullOrBlank()) {
+                        "live/sessions?courseId=${courseId.orEmpty()}&view=${view.orEmpty()}"
+                    } else {
+                        Routes.LIVE_SESSIONS_ROOT
+                    }
+                }
                 else -> Routes.LIVE_SESSIONS_ROOT
             }
             "study_circles" -> when {

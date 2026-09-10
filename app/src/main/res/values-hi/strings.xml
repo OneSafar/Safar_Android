@@ -58,7 +58,7 @@
     <string name="nav_previous">पिछला</string>
     <string name="nav_next">अगला</string>
     <string name="nav_focus_shield">कवच</string>
-    <string name="nav_youtube_study_mode">YouTube स्टडी मोड</string>
+    <string name="nav_youtube_study_mode">YouTube फोकस</string>
     <string name="focus_shield_notification_listener_label">नोटिफिकेशन कवच</string>
     <string name="nav_live_classes">लाइव क्लासेस</string>
     <string name="nav_live_sessions">ध्यान लाइव</string>
@@ -437,7 +437,7 @@
     <!-- Notification action buttons -->
     <string name="notification_action_start_now">अभी शुरू करें</string>
 
-    <string name="youtube_study_v2_accessibility_label">SAFAR YouTube स्टडी मोड</string>
+    <string name="youtube_study_v2_accessibility_label">SAFAR YouTube फोकस</string>
     <string name="youtube_study_v2_accessibility_description">YouTube Focus, Accessibility से YouTube पर दिखने वाले नाम, @handles और उपयोगकर्ताओं की बनाई सामग्री पढ़ता है। इसका उपयोग वीडियो और Shorts पहचानने, देखने का समय मापने और आपकी ब्लॉकिंग सेटिंग लागू करने के लिए होता है। चैनल handles और दैनिक देखने का कुल समय SAFAR सर्वर पर भेजा जाता है। सेवा चालू करने से पहले SAFAR में पूरा विवरण पढ़ें और सहमति दें।</string>
 
     <string name="module_courses">कोर्सेस</string>

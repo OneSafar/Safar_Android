@@ -489,7 +489,7 @@ internal fun TimerFocusTab(
     }
 }
 
-// ─── Ekagra YouTube Study Banner ──────────────────────────────────────────────
+// ─── Ekagra YouTube Focus Banner ──────────────────────────────────────────────
 
 @Composable
 internal fun EkagraYouTubeStudyBanner(

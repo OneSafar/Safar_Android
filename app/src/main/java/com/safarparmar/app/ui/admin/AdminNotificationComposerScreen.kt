@@ -110,8 +110,8 @@ data class AdminDeepLinkOption(
 )
 
 private val deepLinkOptions = listOf(
+    AdminDeepLinkOption("Home", "safar://home"),
     AdminDeepLinkOption("Home Dashboard", "safar://dashboard"),
-    AdminDeepLinkOption("Updates (In-App Tab)", "safar://updates"),
     AdminDeepLinkOption("Play Store App Link", "https://play.google.com/store/apps/details?id=com.safarparmar.app"),
     AdminDeepLinkOption("Exam Planner", "safar://study_planner"),
     AdminDeepLinkOption("Exam Planner - Create Plan", "safar://study_planner/create"),
@@ -130,7 +130,7 @@ private val deepLinkOptions = listOf(
     AdminDeepLinkOption("App Picker", "safar://ekagra/app_picker"),
     AdminDeepLinkOption("Kavach About", "safar://kavach/about"),
     AdminDeepLinkOption("Kavach App Categories", "safar://kavach/app_categories"),
-    AdminDeepLinkOption("YouTube Focus", "safar://youtube_study_mode"),
+    AdminDeepLinkOption("YouTube Focus", "safar://youtube_focus"),
     AdminDeepLinkOption("Ekagra (Ekagra)", "safar://ekagra"),
     AdminDeepLinkOption("Dhyan (Mindfulness)", "safar://dhyan"),
     AdminDeepLinkOption("Courses", "safar://dhyan_courses"),

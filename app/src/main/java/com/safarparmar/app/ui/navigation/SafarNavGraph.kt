@@ -14,6 +14,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
+import androidx.navigation.navDeepLink
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.safarparmar.app.data.local.SafarDataStore
 import com.safarparmar.app.ui.achievements.AchievementsScreen
@@ -50,6 +51,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+
+private const val DEEP_LINK_BASE = "safar://app"
 
 private val ADMIN_NOTIFICATION_ALLOWED_EMAILS = setOf(
     "safarparmar0@gmail.com",
@@ -250,7 +253,10 @@ fun SafarNavGraph(
 
         // ── Home (start destination after login) ──────────────────────────────
 
-        composable(Routes.HOME) {
+        composable(
+            route = Routes.HOME,
+            deepLinks = listOf(navDeepLink { uriPattern = "$DEEP_LINK_BASE/home" }),
+        ) {
             // Home is the base destination — intercept Back here to confirm before
             // exiting, instead of the app closing on a single stray Back press.
             ExitConfirmationHandler(onConfirmExit = { activity?.finish() })
@@ -353,7 +359,13 @@ fun SafarNavGraph(
             )
         }
 
-        composable(Routes.FOCUS_SHIELD) {
+        composable(
+            route = Routes.FOCUS_SHIELD,
+            deepLinks = listOf(
+                navDeepLink { uriPattern = "$DEEP_LINK_BASE/kavach" },
+                navDeepLink { uriPattern = "$DEEP_LINK_BASE/focus_shield" },
+            ),
+        ) {
             FocusShieldStandaloneScreen(
                 currentRoute = currentRoute,
                 isDarkTheme = isDarkTheme,
@@ -394,7 +406,13 @@ fun SafarNavGraph(
             com.safarparmar.app.feature.kavachanalytics.ui.AppCategoryEditorScreen(onBack = ::safeBack)
         }
 
-        composable(Routes.YOUTUBE_STUDY_MODE_V2) {
+        composable(
+            route = Routes.YOUTUBE_STUDY_MODE_V2,
+            deepLinks = listOf(
+                navDeepLink { uriPattern = "$DEEP_LINK_BASE/youtube_focus" },
+                navDeepLink { uriPattern = "$DEEP_LINK_BASE/youtube_study_mode" },
+            ),
+        ) {
             YoutubeStudyV2Screen(
                 onBack = ::safeBack,
                 isDarkTheme = isDarkTheme,
@@ -602,7 +620,10 @@ fun SafarNavGraph(
 
         // ── Dhyan / Courses / Live ────────────────────────────────────────────
 
-        composable(Routes.DHYAN) {
+        composable(
+            route = Routes.DHYAN,
+            deepLinks = listOf(navDeepLink { uriPattern = "$DEEP_LINK_BASE/dhyan" }),
+        ) {
             DhyanScreen(
                 initialTab = DhyanTab.DHYAN,
                 currentRoute = currentRoute,
@@ -612,7 +633,10 @@ fun SafarNavGraph(
             )
         }
 
-        composable(Routes.COURSES) {
+        composable(
+            route = Routes.COURSES,
+            deepLinks = listOf(navDeepLink { uriPattern = "$DEEP_LINK_BASE/courses" }),
+        ) {
             DhyanScreen(
                 initialTab = DhyanTab.COURSES,
                 currentRoute = currentRoute,
@@ -622,7 +646,13 @@ fun SafarNavGraph(
             )
         }
 
-        composable(Routes.LIVE_SESSIONS_ROOT) {
+        composable(
+            route = Routes.LIVE_SESSIONS_ROOT,
+            deepLinks = listOf(
+                navDeepLink { uriPattern = "$DEEP_LINK_BASE/live" },
+                navDeepLink { uriPattern = "$DEEP_LINK_BASE/live_sessions" },
+            ),
+        ) {
             DhyanScreen(
                 initialTab = DhyanTab.LIVE,
                 courseId = "",
