@@ -31,11 +31,11 @@ fun StudyPlan.flattenTopics(): List<TopicRef> = subjects.flatMap { subject ->
 
 /** Never scheduled. Explicitly disjoint from Missed. */
 fun StudyTopic.isUnscheduled(): Boolean =
-    status != TopicStatus.DONE && plannedDate.isNullOrBlank() && missedReason.isNullOrBlank()
+    !status.isStudied && plannedDate.isNullOrBlank() && missedReason.isNullOrBlank()
 
 /** Previously due, including topics deferred with Done for the Day. */
 fun StudyTopic.isMissed(today: String = todayKey()): Boolean {
-    if (status == TopicStatus.DONE) return false
+    if (status.isStudied) return false
     if (!missedReason.isNullOrBlank()) return true
     val dateKey = plannedDate?.take(10).orEmpty()
     return dateKey.isNotBlank() && dateKey < today
@@ -65,7 +65,7 @@ fun StudyPlan.rollup(): PlanProgress {
     val refs = flattenTopics()
     val topics = refs.map { it.topic }
     val total = topics.size
-    val done = topics.count { it.status == TopicStatus.DONE }
+    val done = topics.count { it.status.isStudied }
     val revision = topics.count { it.status == TopicStatus.REVISION_NEEDED }
     val percent = weightedCompletionPercent(refs.map { it.topic to it.chapter })
     val dailyTodosList = dailyTodos.orEmpty()
@@ -114,7 +114,7 @@ private fun nodeProgress(
     topics: List<StudyTopic>,
     percent: Int,
 ): NodeProgress {
-    val finished = topics.count { it.status == TopicStatus.DONE }
+    val finished = topics.count { it.status.isStudied }
     // With partial completion and the "in progress" status both gone, a node is
     // DOING purely because some — but not all — of its topics are done.
     val started = 0
@@ -162,7 +162,7 @@ fun StudyPlan.courseMapNudge(today: String = todayKey()): CourseMapNudge {
     val refs = flattenTopics()
     val lateByChapter = refs
         .filter { ref ->
-            ref.topic.status != TopicStatus.DONE &&
+            !ref.topic.status.isStudied &&
                 (ref.topic.plannedDate?.take(10)?.let { it < today } == true)
         }
         .groupBy { it.subject.id to it.chapter.id }
@@ -183,7 +183,7 @@ fun StudyPlan.courseMapNudge(today: String = todayKey()): CourseMapNudge {
 
     val todayRefs = refs.filter { it.topic.plannedDate?.take(10) == today }
     val unfinishedTodayByChapter = todayRefs
-        .filter { it.topic.status != TopicStatus.DONE }
+        .filter { !it.topic.status.isStudied }
         .groupBy { it.subject.id to it.chapter.id }
     val todayFocus = unfinishedTodayByChapter.values.maxByOrNull { it.size }
     if (!todayFocus.isNullOrEmpty()) {
@@ -197,7 +197,7 @@ fun StudyPlan.courseMapNudge(today: String = todayKey()): CourseMapNudge {
         )
     }
 
-    if (todayRefs.isNotEmpty() && todayRefs.all { it.topic.status == TopicStatus.DONE }) {
+    if (todayRefs.isNotEmpty() && todayRefs.all { it.topic.status.isStudied }) {
         return CourseMapNudge(CourseMapNudgeKind.TODAY_FINISHED)
     }
     if (refs.none { !it.topic.plannedDate.isNullOrBlank() }) {

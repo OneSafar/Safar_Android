@@ -79,6 +79,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -113,17 +114,17 @@ fun YoutubeFocusAccessibilityTutorialSheet(
                 Modifier.padding(18.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Text("YouTube Focus", fontSize = 22.sp, fontWeight = FontWeight.Bold,
+                Text(stringResource(R.string.youtube_focus_name), fontSize = 22.sp, fontWeight = FontWeight.Bold,
                     color = if (isLight) YTCMColors.RoyalPurple else Color(0xFFC084FC))
                 Column(
                     Modifier.weight(1f).verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
                     PhoneMockup(isLight, Modifier.fillMaxWidth().height(430.dp))
-                    Text("Settings may look different on your phone.",
+                    Text(stringResource(R.string.youtube_focus_settings_may_differ),
                         fontSize = 12.sp, color = Color(0xFF64748B))
                 }
-                Text("The guide will float beside Settings when supported.",
+                Text(stringResource(R.string.youtube_focus_guide_float_hint),
                     fontSize = 12.sp, color = if (isLight) Color(0xFF64748B) else Color(0xFF94A3B8))
                 Button(
                     onClick = {
@@ -141,7 +142,7 @@ fun YoutubeFocusAccessibilityTutorialSheet(
                         contentColor = if (isLight) Color.White else Color(0xFF1E1033),
                     ),
                 ) {
-                    Text("Got it", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.common_got_it), fontSize = 16.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -344,7 +345,7 @@ private fun MockAccessibilityScreen(
                     modifier = Modifier.size(16.dp),
                 )
                 Text(
-                    text = "Accessibility",
+                    text = stringResource(R.string.common_accessibility),
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                     color = if (isLight) Color(0xFF1E293B) else Color(0xFFF1F5F9),
@@ -353,7 +354,7 @@ private fun MockAccessibilityScreen(
 
             // Section Label
             Text(
-                text = "General  ·  More",
+                text = stringResource(R.string.youtube_focus_general_more),
                 fontSize = 10.5.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color(0xFF6366F1),
@@ -388,20 +389,20 @@ private fun MockAccessibilityScreen(
                     ) {
                         Image(
                             painter = painterResource(R.drawable.ic_safar_launcher_foreground),
-                            contentDescription = "SAFAR",
+                            contentDescription = stringResource(R.string.app_name),
                             modifier = Modifier.fillMaxSize(),
                         )
                     }
 
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "SAFAR YouTube Focus",
+                            text = stringResource(R.string.youtube_focus_service_name),
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             color = if (isLight) Color(0xFF0F172A) else Color(0xFFF8FAFC),
                         )
                         Text(
-                            text = "Off",
+                            text = stringResource(R.string.common_off),
                             fontSize = 10.5.sp,
                             fontWeight = FontWeight.Medium,
                             color = if (isLight) Color(0xFF64748B) else Color(0xFF94A3B8),
@@ -417,7 +418,7 @@ private fun MockAccessibilityScreen(
                         color = Color(0xFF6366F1),
                     ) {
                         Text(
-                            text = "TAP HERE",
+                            text = stringResource(R.string.common_tap_here_upper),
                             fontSize = 8.5.sp,
                             fontWeight = FontWeight.ExtraBold,
                             color = Color.White,
@@ -429,7 +430,7 @@ private fun MockAccessibilityScreen(
 
             // Dummy background items for context realism
             Text(
-                text = "Other services",
+                text = stringResource(R.string.youtube_focus_other_services),
                 fontSize = 10.5.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = if (isLight) Color(0xFF64748B) else Color(0xFF94A3B8),
@@ -456,12 +457,12 @@ private fun MockAccessibilityScreen(
                     }
                     Column {
                         Text(
-                            text = "Switch Access",
+                            text = stringResource(R.string.youtube_focus_switch_access),
                             fontSize = 11.sp,
                             color = if (isLight) Color(0xFF334155) else Color(0xFFCBD5E1),
                         )
                         Text(
-                            text = "Off",
+                            text = stringResource(R.string.common_off),
                             fontSize = 9.sp,
                             color = if (isLight) Color(0xFF94A3B8) else Color(0xFF64748B),
                         )
@@ -531,7 +532,7 @@ private fun MockSafarServiceScreen(
                     modifier = Modifier.size(16.dp),
                 )
                 Text(
-                    text = "SAFAR YouTube Focus",
+                    text = stringResource(R.string.youtube_focus_service_name),
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                     color = if (isLight) Color(0xFF1E293B) else Color(0xFFF1F5F9),
@@ -555,7 +556,7 @@ private fun MockSafarServiceScreen(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "SAFAR YouTube Focus",
+                            text = stringResource(R.string.youtube_focus_service_name),
                             fontSize = 12.5.sp,
                             fontWeight = FontWeight.Bold,
                             color = if (switchChecked) {
@@ -565,7 +566,7 @@ private fun MockSafarServiceScreen(
                             },
                         )
                         Text(
-                            text = if (switchChecked) "On · Return to Safar" else "Off",
+                            text = if (switchChecked) stringResource(R.string.youtube_focus_on_return) else stringResource(R.string.common_off),
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Medium,
                             color = if (switchChecked) {
@@ -597,8 +598,8 @@ private fun MockSafarServiceScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Column {
-                        Text("Shortcut", fontSize = 12.sp)
-                        Text("Off · Leave this off", fontSize = 10.sp,
+                        Text(stringResource(R.string.youtube_focus_shortcut), fontSize = 12.sp)
+                        Text(stringResource(R.string.youtube_focus_shortcut_off_hint), fontSize = 10.sp,
                             color = if (isLight) Color(0xFF64748B) else Color(0xFF94A3B8))
                     }
                     MockMaterialSwitch(checked = false, isTapping = false)
@@ -613,13 +614,13 @@ private fun MockSafarServiceScreen(
             ) {
                 Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
-                        text = "About this function",
+                        text = stringResource(R.string.youtube_focus_about_function),
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
                         color = if (isLight) Color(0xFF64748B) else Color(0xFF94A3B8),
                     )
                     Text(
-                        text = "YouTube Focus checks video channels to block distractions while allowing your chosen study channels.",
+                        text = stringResource(R.string.youtube_focus_about_function_body),
                         fontSize = 9.5.sp,
                         color = if (isLight) Color(0xFF475569) else Color(0xFF94A3B8),
                         lineHeight = 13.sp,
@@ -664,26 +665,26 @@ private fun MockPermissionConfirmation(tapProgress: () -> Float, isLight: Boolea
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Text(
-                    "Allow “SAFAR YouTube Focus” to have full control of your device?",
+                    stringResource(R.string.youtube_focus_mock_permission_title),
                     fontSize = 13.sp, lineHeight = 17.sp,
                     fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center,
                 )
                 Text(
-                    "Read the system permission details before allowing access.",
+                    stringResource(R.string.youtube_focus_read_permission_details),
                     fontSize = 10.sp, lineHeight = 14.sp,
                     color = if (isLight) Color(0xFF64748B) else Color(0xFFCBD5E1),
                 )
-                Text("View and control screen", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                Text("Read screen content and display content over other apps.",
+                Text(stringResource(R.string.youtube_focus_view_control_screen), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.youtube_focus_view_control_screen_body),
                     fontSize = 10.sp, lineHeight = 13.sp)
-                Text("View and perform actions", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                Text("Track interactions and perform actions on your behalf.",
+                Text(stringResource(R.string.youtube_focus_view_perform_actions), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.youtube_focus_view_perform_actions_body),
                     fontSize = 10.sp, lineHeight = 13.sp)
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
-                    Text("Deny", fontSize = 12.sp, color = Color(0xFF64748B),
+                    Text(stringResource(R.string.common_deny), fontSize = 12.sp, color = Color(0xFF64748B),
                         modifier = Modifier.padding(10.dp))
                     Text(
-                        "Allow", fontSize = 12.sp, fontWeight = FontWeight.Bold,
+                        stringResource(R.string.common_allow), fontSize = 12.sp, fontWeight = FontWeight.Bold,
                         color = Color(0xFF6366F1),
                         modifier = Modifier.onGloballyPositioned {
                             allowCenter = it.positionInRoot() + Offset(it.size.width / 2f, it.size.height / 2f)

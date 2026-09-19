@@ -9,7 +9,6 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
-import retrofit2.Retrofit
 import javax.inject.Singleton
 
 @Module
@@ -19,7 +18,7 @@ object YoutubeStudyV2Module {
     @Singleton
     fun database(@ApplicationContext context: Context): YoutubeStudyV2Database = Room
         .databaseBuilder(context, YoutubeStudyV2Database::class.java, YoutubeStudyV2Database.NAME)
-        .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+        .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
         .fallbackToDestructiveMigration()
         .build()
 
@@ -57,8 +56,7 @@ object YoutubeStudyV2Module {
     private val MIGRATION_4_5 = object : Migration(4, 5) {
         override fun migrate(db: SupportSQLiteDatabase) {
             // Version 4 guessed that every legacy identity was educational.
-            // Invalidate those guesses so the resolver refreshes each channel
-            // once and stores only categories verified by the backend.
+            // Invalidate the old guessed education categories.
             db.execSQL("UPDATE youtube_v2_identity SET categories = 'unclassified'")
         }
     }
@@ -109,19 +107,24 @@ object YoutubeStudyV2Module {
         }
     }
 
+    internal val MIGRATION_7_8 = object : Migration(7, 8) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            // Preserve legacy category rows for manual recovery; unverified IDs
+            // cannot be evaluated or reused as identities by version 8.
+            db.execSQL("DELETE FROM youtube_v2_alias WHERE channelId LIKE 'handle:%' OR channelId LIKE 'display:%' OR channelId LIKE 'ephemeral:%'")
+            db.execSQL("DELETE FROM youtube_v2_identity WHERE channelId LIKE 'handle:%' OR channelId LIKE 'display:%' OR channelId LIKE 'ephemeral:%'")
+            db.execSQL("DELETE FROM youtube_v2_allowlist WHERE channelId LIKE 'handle:%' OR channelId LIKE 'display:%' OR channelId LIKE 'ephemeral:%'")
+        }
+    }
+
     @Provides
     @Singleton
     fun dao(database: YoutubeStudyV2Database): YoutubeStudyV2Dao = database.dao()
 
     @Provides
     @Singleton
-    fun api(retrofit: Retrofit): YoutubeStudyV2Api = retrofit.create(YoutubeStudyV2Api::class.java)
-
-    @Provides
-    @Singleton
     fun repository(
         database: YoutubeStudyV2Database,
         dao: YoutubeStudyV2Dao,
-        api: YoutubeStudyV2Api,
-    ): YoutubeStudyV2Repository = YoutubeStudyV2Repository(database, dao, api)
+    ): YoutubeStudyV2Repository = YoutubeStudyV2Repository(database, dao)
 }

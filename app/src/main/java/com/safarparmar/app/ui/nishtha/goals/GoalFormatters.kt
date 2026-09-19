@@ -24,6 +24,28 @@ internal fun formatStudyTime(mins: Int): String {
     return if (hours > 0) "${hours}h ${minutes}m" else "${minutes}m"
 }
 
+internal fun addStudyTime(
+    hours: Int,
+    minutes: Int,
+    addedMinutes: Int,
+    maxHours: Int = 99,
+): Pair<Int, Int> {
+    val maxTotal = maxHours * 60 + 59
+    val total = (hours.coerceAtLeast(0) * 60L + minutes.coerceAtLeast(0) + addedMinutes.coerceAtLeast(0))
+        .coerceAtMost(maxTotal.toLong())
+        .toInt()
+    return total / 60 to total % 60
+}
+
+internal fun Goal.editScheduleKind(todayKey: String = IstDateUtils.todayKey()): String {
+    val assignedDate = assignedDateKey()
+    return if (goalKind == "scheduled" || (goalKind == "repeat" && assignedDate != null && assignedDate > todayKey)) {
+        "scheduled"
+    } else {
+        "today"
+    }
+}
+
 internal fun Goal.isCompletedForStats(): Boolean =
     isGoalCompleted()
 

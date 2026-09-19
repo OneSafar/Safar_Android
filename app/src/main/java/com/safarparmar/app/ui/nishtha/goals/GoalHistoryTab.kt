@@ -16,8 +16,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarToday
@@ -39,11 +37,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.safarparmar.app.R
 import com.safarparmar.app.domain.model.Goal
 import com.safarparmar.app.domain.model.GoalLinkedSession
 import com.safarparmar.app.ui.ekagra.EkagraViewModel
@@ -65,13 +66,11 @@ internal fun HistoryTab(
     goals: List<Goal>,
     isSaving: Boolean,
     onReopen: (Goal) -> Unit,
+    onDelete: (Goal) -> Unit,
 ) {
     val today = LocalDate.now(IstDateUtils.zone)
     var selectedDate by remember { mutableStateOf(today) }
     var showHistoryDatePicker by remember { mutableStateOf(false) }
-    val historyDatePickerState = rememberDatePickerState(
-        initialSelectedDateMillis = selectedDate.atStartOfDay(java.time.ZoneOffset.UTC).toInstant().toEpochMilli(),
-    )
     val ekagraViewModel = hiltViewModel<EkagraViewModel>()
     val linkedSessions by ekagraViewModel.linkedSessions.collectAsStateWithLifecycle()
     LaunchedEffect(goals) { ekagraViewModel.loadLinkedSessions() }
@@ -91,6 +90,12 @@ internal fun HistoryTab(
     }
 
     if (showHistoryDatePicker) {
+        // Create the picker from the date currently displayed every time it is
+        // opened. Keeping one remembered state made Reset update the label while
+        // the next picker still selected the old date.
+        val historyDatePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = selectedDate.atStartOfDay(java.time.ZoneOffset.UTC).toInstant().toEpochMilli(),
+        )
         DatePickerDialog(
             onDismissRequest = { showHistoryDatePicker = false },
             confirmButton = {
@@ -101,11 +106,11 @@ internal fun HistoryTab(
                             .toLocalDate()
                     }
                     showHistoryDatePicker = false
-                }) { Text("OK", color = GoalsFlatColors.Primary) }
+                }) { Text(stringResource(R.string.common_ok), color = GoalsFlatColors.Primary) }
             },
             dismissButton = {
                 TextButton(onClick = { showHistoryDatePicker = false }) {
-                    Text("Cancel", color = GoalsFlatColors.Muted)
+                    Text(stringResource(R.string.common_cancel), color = GoalsFlatColors.Muted)
                 }
             },
         ) {
@@ -123,13 +128,13 @@ internal fun HistoryTab(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(
-                "Goal history",
+                stringResource(R.string.goals_history_title),
                 fontFamily = LoraFontFamily,
                 fontSize = 20.sp,
                 color = GoalsFlatColors.Scheduled,
             )
             Text(
-                "Each goal appears once, with the focus sessions that contributed to it.",
+                stringResource(R.string.goals_history_help),
                 fontSize = 12.sp,
                 color = GoalsFlatColors.Muted,
             )
@@ -164,7 +169,7 @@ internal fun HistoryTab(
                 }
                 if (selectedDate != today) {
                     Text(
-                        "Reset",
+                        stringResource(R.string.common_reset),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         color = GoalsFlatColors.Scheduled,
@@ -188,17 +193,22 @@ internal fun HistoryTab(
                     .background(GoalsFlatColors.Primary.copy(alpha = 0.03f)),
                 contentAlignment = Alignment.Center,
             ) {
-                Text("No completed goals for this date.", color = GoalsFlatColors.Muted)
+                Text(stringResource(R.string.goals_no_completed_for_date), color = GoalsFlatColors.Muted)
             }
             return
         }
 
-        LazyColumn(
-            modifier = Modifier.weight(1f).fillMaxWidth(),
-            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
+        // GoalsScreen already owns the page's vertical scroll. A weighted lazy
+        // list inside that unbounded parent can be measured at zero height: the
+        // goals exist (so the empty state is skipped), but no history card is
+        // drawn. Let the parent scroll this date's cards instead.
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            items(filtered, key = { it.id }) { goal ->
+            filtered.forEach { goal ->
                 val sessions = sessionsByGoal[goal.id].orEmpty()
                 Column(
                     modifier = Modifier
@@ -213,7 +223,7 @@ internal fun HistoryTab(
                         onComplete = {},
                         onReopen = if (isSaving) null else ({ onReopen(goal) }),
                         onEdit = {},
-                        onDelete = {},
+                        onDelete = { onDelete(goal) },
                         completedViaEkagra = goal.completedViaFocus || sessions.isNotEmpty(),
                     )
                     if (sessions.isNotEmpty()) {
@@ -229,8 +239,14 @@ internal fun HistoryTab(
 @Composable
 private fun GoalFocusContribution(sessions: List<GoalLinkedSession>) {
     var expanded by remember { mutableStateOf(false) }
+    val context = LocalContext.current
     val totalSeconds = sessions.sumOf { linkedFocusSeconds(it) }
-    val summary = "${sessions.size} focus ${if (sessions.size == 1) "session" else "sessions"} · ${focusContributionDuration(totalSeconds)}"
+    val summary = context.resources.getQuantityString(
+        R.plurals.goals_focus_sessions,
+        sessions.size,
+        sessions.size,
+        focusContributionDuration(context, totalSeconds),
+    )
     PlanHairline(alpha = 0.5f)
     Column(Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 8.dp)) {
         if (sessions.size > 1) {
@@ -239,7 +255,7 @@ private fun GoalFocusContribution(sessions: List<GoalLinkedSession>) {
                 contentPadding = PaddingValues(0.dp),
             ) {
                 Text(
-                    "$summary · ${if (expanded) "Hide" else "Details"}",
+                    "$summary · ${if (expanded) stringResource(R.string.common_hide) else stringResource(R.string.common_details)}",
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
                     color = GoalsFlatColors.Muted,
@@ -261,13 +277,13 @@ private fun GoalFocusContribution(sessions: List<GoalLinkedSession>) {
                     }
                     start != null -> dateTime.format(start)
                     end != null -> dateTime.format(end)
-                    else -> "Time unavailable"
+                    else -> context.getString(R.string.common_time_unavailable)
                 }
                 Text(
                     buildString {
                         append(timing)
-                        if (sessions.size > 1) append(" · ${focusContributionDuration(linkedFocusSeconds(session))}")
-                        if (session.timerMode.equals("stopwatch", ignoreCase = true)) append(" · Stopwatch")
+                        if (sessions.size > 1) append(" · ${focusContributionDuration(context, linkedFocusSeconds(session))}")
+                        if (session.timerMode.equals("stopwatch", ignoreCase = true)) append(" · ${context.getString(R.string.common_stopwatch)}")
                     },
                     fontSize = 12.sp,
                     lineHeight = 18.sp,
@@ -277,7 +293,7 @@ private fun GoalFocusContribution(sessions: List<GoalLinkedSession>) {
             }
         }
         Text(
-            "Study time credited to this goal · also in Ekagra history",
+            stringResource(R.string.goals_study_time_credited),
             fontSize = 11.sp,
             lineHeight = 16.sp,
             color = GoalsFlatColors.Muted,
@@ -290,10 +306,10 @@ private fun linkedFocusSeconds(session: GoalLinkedSession): Long =
     if (session.durationSeconds > 0) session.durationSeconds.toLong()
     else session.durationMinutes.coerceAtLeast(0) * 60L
 
-private fun focusContributionDuration(seconds: Long): String = when {
-    seconds < 60 -> "$seconds sec"
-    seconds % 60 == 0L -> "${seconds / 60} min"
-    else -> "${seconds / 60} min ${seconds % 60} sec"
+private fun focusContributionDuration(context: android.content.Context, seconds: Long): String = when {
+    seconds < 60 -> context.getString(R.string.common_seconds_short, seconds)
+    seconds % 60 == 0L -> context.getString(R.string.common_minutes_short, seconds / 60)
+    else -> context.getString(R.string.common_minutes_seconds_short, seconds / 60, seconds % 60)
 }
 
 @Composable

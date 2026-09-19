@@ -67,11 +67,18 @@ class KavachBlockOverlay(
         val strokeColor: Int,
         val textColor: Int = Color.WHITE,
         val onSelected: () -> Unit,
+        val dismissOnSelect: Boolean = true,
     )
 
     private var overlayView: View? = null
     private val stateLock = Any()
-    private var content = OverlayContent("This app is blocked", "KAVACH is protecting your focus.", "I'll Control Myself.", { goHome() }, emptyList())
+    private var content = OverlayContent(
+        context.getString(com.safarparmar.app.R.string.kavach_app_blocked_generic),
+        context.getString(com.safarparmar.app.R.string.kavach_protecting_focus),
+        context.getString(com.safarparmar.app.R.string.kavach_return_home),
+        { goHome() },
+        emptyList(),
+    )
     private var currentBlockedPackage: String? = null
     private var currentQuickUnlockOrigin: String = FocusShieldRepository.ShieldPrefs.QUICK_UNLOCK_ORIGIN_KAVACH
 
@@ -85,16 +92,20 @@ class KavachBlockOverlay(
         expiredMinutes: Int = 0,
     ) {
         currentBlockedPackage = blockedPackage
-        val title = if (expiredMinutes > 0) "Quick Unlock Expired" else "$appName is blocked"
+        val title = if (expiredMinutes > 0) {
+            context.getString(com.safarparmar.app.R.string.kavach_quick_unlock_expired)
+        } else {
+            context.getString(com.safarparmar.app.R.string.kavach_app_blocked_named, appName)
+        }
         val subtitle = when {
-            expiredMinutes > 0 -> "Your $expiredMinutes-minute break ended. Your screen is preserved. Unlock again to continue, or return Home."
-            allowQuickUnlock -> "KAVACH is protecting your focus. Need a quick break?"
-            else -> "Always On protection is active. Open KAVACH to turn it off."
+            expiredMinutes > 0 -> context.getString(com.safarparmar.app.R.string.kavach_quick_unlock_expired_body, expiredMinutes)
+            allowQuickUnlock -> context.getString(com.safarparmar.app.R.string.kavach_need_quick_break)
+            else -> context.getString(com.safarparmar.app.R.string.kavach_always_on_active_body)
         }
         showContent(
             title = title,
             subtitle = subtitle,
-            buttonText = "Return Home",
+            buttonText = context.getString(com.safarparmar.app.R.string.kavach_return_home),
             onAction = ::goHome,
             quickUnlockMinutes = if (allowQuickUnlock) listOf(5, 10, 15, 20) else emptyList(),
             blockedPackage = blockedPackage,
@@ -114,9 +125,10 @@ class KavachBlockOverlay(
         onQuickUnlock: ((Int) -> Unit)? = null,
         onDismiss: (() -> Unit)? = null,
     ) {
+        val alreadyShowing: Boolean
         synchronized(stateLock) {
-            if (isShowing) return
-            if (!accessibilityOverlay && !FocusShieldPermissionHelper.hasOverlayPermission(context)) return
+            alreadyShowing = isShowing
+            if (!alreadyShowing && !accessibilityOverlay && !FocusShieldPermissionHelper.hasOverlayPermission(context)) return
             content = OverlayContent(
                 title, subtitle, buttonText, onAction, quickUnlockMinutes, classificationOptions, onQuickUnlock, onDismiss
             )
@@ -124,7 +136,13 @@ class KavachBlockOverlay(
             currentQuickUnlockOrigin = quickUnlockOrigin
             isShowing = true
         }
-        mainHandler.post { showInternal() }
+        mainHandler.post {
+            if (alreadyShowing && overlayView != null) {
+                updateInternal()
+            } else {
+                showInternal()
+            }
+        }
     }
 
     /** Remove the overlay. Safe to call even if not showing. */
@@ -176,6 +194,24 @@ class KavachBlockOverlay(
         }
     }
 
+    private fun updateInternal() {
+        val root = overlayView as? FrameLayout ?: run {
+            showInternal()
+            return
+        }
+        root.removeAllViews()
+        val baseConfig = root.context.resources.configuration
+        val uiContext = if (baseConfig.fontScale > 1.15f || baseConfig.fontScale < 0.85f) {
+            val clampedConfig = Configuration(baseConfig).apply {
+                fontScale = fontScale.coerceIn(0.85f, 1.15f)
+            }
+            root.context.createConfigurationContext(clampedConfig)
+        } else {
+            root.context
+        }
+        attachSheetToRoot(uiContext, root)
+    }
+
     // ── View builder (bottom-sheet style) ──────────────────────────────
 
     private fun buildBottomSheetView(): View {
@@ -189,15 +225,20 @@ class KavachBlockOverlay(
             context
         }
 
-        val density = uiContext.resources.displayMetrics.density
-        val dp = { value: Int -> (value * density + 0.5f).toInt() }
-
         // ── Root: full-screen dark scrim ──
         val root = FrameLayout(uiContext).apply {
             setBackgroundColor(Color.argb(153, 0, 0, 0))   // 60% black scrim
             isClickable = true      // swallow touches on the scrim
             isFocusable = true
         }
+
+        attachSheetToRoot(uiContext, root)
+        return root
+    }
+
+    private fun attachSheetToRoot(uiContext: Context, root: FrameLayout) {
+        val density = uiContext.resources.displayMetrics.density
+        val dp = { value: Int -> (value * density + 0.5f).toInt() }
 
         // ── Bottom sheet card ──
         val sheet = LinearLayout(uiContext).apply {
@@ -310,7 +351,7 @@ class KavachBlockOverlay(
                     isClickable = true
                     isFocusable = true
                     setOnClickListener {
-                        dismiss()
+                        if (option.dismissOnSelect) dismiss()
                         option.onSelected()
                     }
                 }
@@ -382,7 +423,7 @@ class KavachBlockOverlay(
         // ── Quick Unlock ──
         if (content.quickUnlockMinutes.isNotEmpty()) {
             val quickUnlockLabel = TextView(uiContext).apply {
-                text = "Quick Unlock"
+                text = uiContext.getString(com.safarparmar.app.R.string.kavach_quick_unlock)
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
                 setTextColor(Color.WHITE)
                 gravity = Gravity.CENTER
@@ -396,7 +437,7 @@ class KavachBlockOverlay(
             }
             content.quickUnlockMinutes.forEach { minutes ->
                 val minButton = TextView(uiContext).apply {
-                    text = "$minutes\nmin"
+                    text = uiContext.getString(com.safarparmar.app.R.string.common_minutes_short, minutes)
                     setTextColor(Color.WHITE)
                     gravity = Gravity.CENTER
                     maxLines = 2
@@ -476,8 +517,6 @@ class KavachBlockOverlay(
                 Gravity.BOTTOM,
             ),
         )
-
-        return root
     }
 
     private fun isGestureNavigation(ctx: Context): Boolean = runCatching {

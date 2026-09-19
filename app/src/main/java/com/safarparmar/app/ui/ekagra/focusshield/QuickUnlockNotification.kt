@@ -53,12 +53,16 @@ object QuickUnlockNotification {
         val notification = NotificationCompat.Builder(context, SafarNotificationChannels.FOCUS_SHIELD_STATUS)
             .setSmallIcon(SafarNotificationManager.SafarNotificationStyle.smallIconRes(context))
             .setColor(SafarNotificationManager.SafarNotificationStyle.brandColor(context))
-            .setContentTitle(if (isYoutubeStudyUnlock) "YouTube Quick Unlock Active" else "KAVACH Quick Unlock Active")
+            .setContentTitle(
+                context.getString(
+                    if (isYoutubeStudyUnlock) R.string.youtube_quick_unlock_active else R.string.kavach_quick_unlock_active,
+                ),
+            )
             .setContentText(
                 if (isYoutubeStudyUnlock) {
-                    "YouTube is unlocked for $displayMins min. YouTube Focus will block it again when time ends."
+                    context.getString(R.string.youtube_quick_unlock_notification_body, displayMins)
                 } else {
-                    "Unlocked for $displayMins min. KAVACH will re-block when timer ends."
+                    context.getString(R.string.kavach_quick_unlock_notification_body, displayMins)
                 },
             )
             .setContentIntent(contentIntent)
@@ -80,7 +84,7 @@ object QuickUnlockNotification {
                         .putExtra(EXTRA_GRACE_UNTIL, graceUntilMs)
                     addAction(
                         0,
-                        "End unlock",
+                        context.getString(R.string.kavach_end_unlock),
                         PendingIntent.getBroadcast(
                             context, NOTIFICATION_ID, endIntent,
                             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,

@@ -219,7 +219,7 @@ fun NishthaScreen(
             // Tour overlay disabled
             TourManager(
                 dataStore = viewModel.dataStore,
-                steps = nishthaTourSteps,
+                steps = nishthaTourSteps(),
                 section = "nishtha",
                 askOnFirstVisit = false,
                 onTourStateReady = { tourState = it },

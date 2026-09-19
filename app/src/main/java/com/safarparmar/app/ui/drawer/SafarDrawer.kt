@@ -80,6 +80,7 @@ data class DrawerSection(
 val drawerPinnedTop = listOf(
     DrawerItem(R.string.nav_home, Icons.Default.Home, Routes.HOME),
     DrawerItem(R.string.nav_dashboard, Icons.Default.Dashboard, Routes.DASHBOARD),
+    DrawerItem(R.string.nishtha_tab_analytics, Icons.Default.Analytics, Routes.nishthaAnalytics()),
 )
 
 val drawerSections = listOf(
@@ -87,7 +88,7 @@ val drawerSections = listOf(
         id = DrawerSectionId.STUDY_PRODUCTIVITY,
         labelRes = R.string.drawer_section_study_productivity,
         icon = Icons.Default.School,
-        defaultExpanded = true,
+        defaultExpanded = false,
         items = listOf(
             DrawerItem(
                 R.string.nav_study_planner,
@@ -100,6 +101,11 @@ val drawerSections = listOf(
                 R.string.nav_focus_shield,
                 Icons.Default.Shield,
                 Routes.FOCUS_SHIELD,
+            ),
+            DrawerItem(
+                R.string.nav_habit_tracker,
+                Icons.Default.CheckCircle,
+                Routes.HABIT_TRACKER,
             ),
             DrawerItem(
                 R.string.nav_leaderboard,
@@ -118,11 +124,13 @@ val drawerSections = listOf(
             DrawerItem(R.string.module_dhyan, Icons.Default.Spa, Routes.DHYAN),
             DrawerItem(R.string.module_mehfil, Icons.Default.Groups, Routes.MEHFIL),
             DrawerItem(R.string.nav_study_circle, Icons.Default.GroupWork, Routes.STUDY_CIRCLES),
+            DrawerItem(R.string.nav_human_support, Icons.Default.VolunteerActivism, Routes.SUPPORT),
         ),
     ),
 )
 
 val drawerPinnedBottom = listOf(
+    DrawerItem(R.string.nav_premium, Icons.Default.WorkspacePremium, Routes.PREMIUM),
     DrawerItem(R.string.nav_profile, Icons.Default.Person, Routes.PROFILE),
     DrawerItem(R.string.profile_section_settings, Icons.Default.Settings, Routes.SETTINGS),
     DrawerItem(
@@ -497,8 +505,9 @@ private fun DrawerUserProfileHeader(
     dk: DarkFlat,
     lt: LightFlat,
 ) {
-    val displayName = remember(userName) {
-        userName?.trim()?.ifBlank { null } ?: "Aspirant"
+    val fallbackName = stringResource(R.string.drawer_default_user_name)
+    val displayName = remember(userName, fallbackName) {
+        userName?.trim()?.ifBlank { null } ?: fallbackName
     }
     val displayEmail = remember(userEmail) {
         userEmail?.trim()?.ifBlank { null } ?: ""
@@ -536,7 +545,7 @@ private fun DrawerUserProfileHeader(
                 if (!userAvatar.isNullOrBlank()) {
                     AsyncImage(
                         model = userAvatar,
-                        contentDescription = "User Profile",
+                        contentDescription = stringResource(R.string.drawer_user_profile),
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize(),
                     )
@@ -594,7 +603,7 @@ private fun DrawerUserProfileHeader(
                                 modifier = Modifier.size(14.dp),
                             )
                             Text(
-                                text = "Premium Active",
+                                text = stringResource(R.string.drawer_premium_active),
                                 style = MaterialTheme.typography.labelMedium.copy(
                                     fontWeight = FontWeight.SemiBold,
                                     fontSize = 12.sp,
@@ -695,7 +704,7 @@ private fun DrawerSectionHeader(
         }
         Icon(
             imageVector = Icons.Default.KeyboardArrowDown,
-            contentDescription = if (expanded) "Collapse" else "Expand",
+            contentDescription = stringResource(if (expanded) R.string.drawer_collapse else R.string.drawer_expand),
             tint = textColor,
             modifier = Modifier
                 .size(20.dp)
@@ -739,6 +748,7 @@ private fun DrawerNavRow(
     val iconColor = when {
         selected && isLight -> lt.selIcon
         selected -> dk.selIcon
+        item.route == Routes.PREMIUM -> Color(0xFFE08A3C)
         isLight -> lt.iconIndigo
         else -> dk.iconIndigo
     }
@@ -808,7 +818,37 @@ private fun DrawerNavRow(
                 overflow = TextOverflow.Ellipsis,
             )
 
-            if (item.requiresPremium) {
+            if (item.route == Routes.PREMIUM) {
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = if (isPremiumActive) {
+                        if (isLight) Color(0xFFEBFBF3) else Color(0xFF064E3B)
+                    } else {
+                        if (isLight) Color(0xFFFFF7ED) else Color(0xFF431407)
+                    },
+                    border = BorderStroke(
+                        1.dp,
+                        if (isPremiumActive) {
+                            if (isLight) Color(0xFFD1F4E0) else Color(0xFF059669).copy(alpha = 0.5f)
+                        } else {
+                            if (isLight) Color(0xFFFFEDD5) else Color(0xFF9A3412).copy(alpha = 0.5f)
+                        }
+                    )
+                ) {
+                    Text(
+                        text = if (isPremiumActive) "PRO" else stringResource(R.string.drawer_upgrade),
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isPremiumActive) {
+                            if (isLight) Color(0xFF059669) else Color(0xFF34D399)
+                        } else {
+                            Color(0xFFC85A32)
+                        },
+                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp),
+                        letterSpacing = 0.5.sp,
+                    )
+                }
+            } else if (item.requiresPremium) {
                 ShimmerProBadge(isPremiumActive = isPremiumActive, isLight = isLight)
             } else if (item.route == Routes.ADMIN_NOTIFICATIONS) {
                 Icon(
@@ -820,7 +860,7 @@ private fun DrawerNavRow(
             } else if (showLock) {
                 Icon(
                     imageVector = Icons.Default.Lock,
-                    contentDescription = "Premium locked",
+                    contentDescription = stringResource(R.string.drawer_premium_locked),
                     tint = if (isLight) lt.textSecondary else dk.textSecondary,
                     modifier = Modifier.size(16.dp),
                 )
@@ -906,16 +946,16 @@ private fun DrawerDarkModeCard(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Icon(
-                imageVector = if (isDarkTheme) Icons.Default.Nightlight else Icons.Default.Nightlight,
+                imageVector = if (isDarkTheme) Icons.Default.Nightlight else Icons.Default.WbSunny,
                 contentDescription = null,
-                tint = if (isDarkTheme) Color(0xFF818CF8) else Color(0xFF3730A3),
+                tint = if (isDarkTheme) Color(0xFF818CF8) else Color(0xFFF59E0B),
                 modifier = Modifier
                     .size(22.dp)
                     .graphicsLayer { rotationZ = iconRotation },
             )
             Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
                 Text(
-                    text = "Dark Mode",
+                    text = stringResource(if (isDarkTheme) R.string.drawer_dark_mode else R.string.drawer_light_mode),
                     style = MaterialTheme.typography.labelLarge.copy(
                         fontWeight = FontWeight.Bold,
                         fontSize = 14.sp,
@@ -923,7 +963,9 @@ private fun DrawerDarkModeCard(
                     color = if (isLight) lt.textPrimary else dk.textPrimary,
                 )
                 Text(
-                    text = if (isDarkTheme) "Dark theme enabled" else "Light theme enabled",
+                    text = stringResource(
+                        if (isDarkTheme) R.string.drawer_dark_theme_enabled else R.string.drawer_light_theme_enabled
+                    ),
                     style = MaterialTheme.typography.bodySmall,
                     fontSize = 12.sp,
                     color = if (isLight) lt.textSecondary else dk.textSecondary,

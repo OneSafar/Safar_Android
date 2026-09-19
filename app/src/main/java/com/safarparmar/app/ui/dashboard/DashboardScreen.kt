@@ -436,8 +436,8 @@ private fun MacOSQuickControlGrid(
         ) {
             MacOSControlButton(
                 iconVector = Icons.Default.Favorite,
-                title = "Today Mood",
-                subtitle = uiState.todayMood?.mood?.replaceFirstChar { it.uppercase() } ?: "Check In",
+                title = stringResource(R.string.dashboard_today_mood),
+                subtitle = uiState.todayMood?.mood?.replaceFirstChar { it.uppercase() } ?: stringResource(R.string.dashboard_check_in),
                 isDarkTheme = isDark,
                 iconBackgroundColor = Color(0xFFFF2D55), // macOS Pink
                 modifier = Modifier.weight(1f),
@@ -446,8 +446,8 @@ private fun MacOSQuickControlGrid(
 
             MacOSControlButton(
                 iconVector = Icons.Default.TrackChanges,
-                title = "Today Goals",
-                subtitle = "${uiState.todayGoals.count { it.completed }}/${uiState.todayGoals.size} Done",
+                title = stringResource(R.string.dashboard_today_goals),
+                subtitle = stringResource(R.string.dashboard_goals_done, uiState.todayGoals.count { it.completed }, uiState.todayGoals.size),
                 isDarkTheme = isDark,
                 iconBackgroundColor = Color(0xFF0A84FF), // macOS Blue
                 modifier = Modifier.weight(1f),
@@ -461,8 +461,8 @@ private fun MacOSQuickControlGrid(
         ) {
             MacOSControlButton(
                 iconVector = Icons.Default.LocalFireDepartment,
-                title = "Streak",
-                subtitle = "${uiState.streaks.checkInStreak} Days Active",
+                title = stringResource(R.string.dashboard_streak),
+                subtitle = stringResource(R.string.dashboard_days_active, uiState.streaks.checkInStreak),
                 isDarkTheme = isDark,
                 iconBackgroundColor = Color(0xFFFF9500), // macOS Orange
                 modifier = Modifier.weight(1f),
@@ -471,8 +471,8 @@ private fun MacOSQuickControlGrid(
 
             MacOSControlButton(
                 iconVector = Icons.Default.EmojiEvents,
-                title = "Badges",
-                subtitle = "${uiState.earnedAchievements.size} Unlocked",
+                title = stringResource(R.string.dashboard_badges),
+                subtitle = stringResource(R.string.dashboard_unlocked_count, uiState.earnedAchievements.size),
                 isDarkTheme = isDark,
                 iconBackgroundColor = Color(0xAF5856D6), // macOS Purple
                 modifier = Modifier.weight(1f),
@@ -506,13 +506,13 @@ private fun WelcomeBanner(userName: String, isDark: Boolean) {
                 Spacer(Modifier.width(12.dp))
                 Column {
                     Text(
-                        text = "Welcome back,",
+                        text = stringResource(R.string.dashboard_welcome_back),
                         color = macSubtitleColor(isDark),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium
                     )
                     Text(
-                        text = userName.replaceFirstChar { it.uppercase() }.ifEmpty { "User" },
+                        text = userName.replaceFirstChar { it.uppercase() }.ifEmpty { stringResource(R.string.dashboard_default_user) },
                         color = macTextColor(isDark),
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold
@@ -532,7 +532,7 @@ private fun WelcomeBanner(userName: String, isDark: Boolean) {
                         modifier = Modifier.size(16.dp)
                     )
                     Text(
-                        text = "DAILY INSPIRATION",
+                        text = stringResource(R.string.dashboard_daily_inspiration).uppercase(),
                         fontSize = 10.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = macSubtitleColor(isDark),
@@ -540,7 +540,7 @@ private fun WelcomeBanner(userName: String, isDark: Boolean) {
                     )
                 }
                 Text(
-                    text = "\"Your limit is mostly your imagination.\"",
+                    text = stringResource(R.string.dashboard_inspiration_quote),
                     color = macSubtitleColor(isDark),
                     fontSize = 13.sp,
                     style = MaterialTheme.typography.bodyMedium
@@ -587,7 +587,7 @@ private fun StudyPlanProgressCard(
                     Icon(Icons.Default.Today, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
                 }
                 Text(
-                    text = "Study Plan Progress",
+                    text = stringResource(R.string.dashboard_study_plan_progress),
                     color = macTextColor(isDark),
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold
@@ -595,13 +595,13 @@ private fun StudyPlanProgressCard(
             }
             Spacer(Modifier.height(10.dp))
             Text(
-                "Create a study plan to track your syllabus completion.",
+                stringResource(R.string.dashboard_create_plan_help),
                 color = macSubtitleColor(isDark),
                 fontSize = 13.sp,
             )
             Spacer(Modifier.height(12.dp))
             MacOSButton(
-                text = "Create Plan",
+                text = stringResource(R.string.dashboard_create_plan),
                 icon = Icons.Default.Add,
                 onClick = ::openPlanner,
                 isDarkTheme = isDark,
@@ -640,7 +640,7 @@ private fun ActiveTitleCard(
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(
-                "CURRENT TITLE",
+                stringResource(R.string.dashboard_current_title).uppercase(),
                 fontSize = 10.sp,
                 letterSpacing = 2.sp,
                 color = macSubtitleColor(isDark),
@@ -690,7 +690,10 @@ private fun ActiveTitleCard(
                 }
                 Spacer(Modifier.height(12.dp))
                 Text(
-                    text = if (hasEarnedAchievements) "Tap to set achievement title" else "Unlock achievements to earn titles",
+                    text = stringResource(
+                        if (hasEarnedAchievements) R.string.dashboard_set_title
+                        else R.string.dashboard_unlock_titles
+                    ),
                     color = macTextColor(isDark),
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold
@@ -728,7 +731,7 @@ private fun MoodSheetContent(
             ) {
                 Icon(Icons.Default.Favorite, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
             }
-            Text("Today's Mood Check-In", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = macTextColor(isDark))
+            Text(stringResource(R.string.dashboard_mood_checkin_title), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = macTextColor(isDark))
         }
 
         if (todayMood != null) {
@@ -757,10 +760,10 @@ private fun MoodSheetContent(
                 }
             }
         } else {
-            Text("You haven't checked in your mood today. Reflecting on your state helps build self-awareness.", color = macSubtitleColor(isDark), fontSize = 14.sp)
+            Text(stringResource(R.string.dashboard_no_mood_help), color = macSubtitleColor(isDark), fontSize = 14.sp)
             Spacer(Modifier.height(4.dp))
             MacOSButton(
-                text = "Check In Now",
+                text = stringResource(R.string.dashboard_check_in_now),
                 icon = Icons.Default.FavoriteBorder,
                 onClick = {
                     onDismiss()
@@ -804,7 +807,7 @@ private fun TodayGoalsSheetContent(
                 ) {
                     Icon(Icons.Default.TrackChanges, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
                 }
-                Text("Today's Goals", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = macTextColor(isDark))
+                Text(stringResource(R.string.dashboard_today_goals), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = macTextColor(isDark))
             }
             Text("$completed / ${goals.size} Done", fontSize = 13.sp, color = macSubtitleColor(isDark), fontWeight = FontWeight.SemiBold)
         }
@@ -843,12 +846,12 @@ private fun TodayGoalsSheetContent(
                 }
             }
         } else {
-            Text("No goals scheduled for today.", color = macSubtitleColor(isDark), fontSize = 14.sp)
+            Text(stringResource(R.string.dashboard_no_goals), color = macSubtitleColor(isDark), fontSize = 14.sp)
         }
 
         Spacer(Modifier.height(4.dp))
         MacOSButton(
-            text = "Manage Goals",
+            text = stringResource(R.string.dashboard_manage_goals),
             icon = Icons.Default.TrackChanges,
             onClick = {
                 onDismiss()
@@ -883,7 +886,7 @@ private fun StreaksSheetContent(
             ) {
                 Icon(Icons.Default.LocalFireDepartment, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
             }
-            Text("Activity Streaks", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = macTextColor(isDark))
+            Text(stringResource(R.string.dashboard_activity_streaks), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = macTextColor(isDark))
         }
 
         Column(
@@ -901,7 +904,7 @@ private fun StreaksSheetContent(
         }
 
         MacOSButton(
-            text = "View Streak History",
+            text = stringResource(R.string.dashboard_view_streak_history),
             icon = Icons.Default.Loop,
             onClick = {
                 onDismiss()
@@ -942,7 +945,7 @@ private fun BadgesSheetContent(
                 ) {
                     Icon(Icons.Default.EmojiEvents, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
                 }
-                Text("Unlocked Badges", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = macTextColor(isDark))
+                Text(stringResource(R.string.dashboard_unlocked_badges), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = macTextColor(isDark))
             }
             Text("${earned.size} Unlocked", fontSize = 13.sp, color = macSubtitleColor(isDark), fontWeight = FontWeight.SemiBold)
         }
@@ -994,7 +997,7 @@ private fun BadgesSheetContent(
         }
 
         MacOSButton(
-            text = "View All Achievements",
+            text = stringResource(R.string.dashboard_view_achievements),
             icon = Icons.Default.EmojiEvents,
             onClick = {
                 onDismiss()
@@ -1053,7 +1056,7 @@ private fun MonthlyCard(report: MonthlyReport?, isDark: Boolean, onNavigate: (St
         }
         Spacer(Modifier.height(4.dp))
         Text(
-            "A quick look at your performance this month.",
+            stringResource(R.string.dashboard_monthly_snapshot_help),
             color = macSubtitleColor(isDark),
             fontSize = 12.sp,
         )
@@ -1065,7 +1068,7 @@ private fun MonthlyCard(report: MonthlyReport?, isDark: Boolean, onNavigate: (St
         StatRow(stringResource(R.string.dashboard_focus), "${report.focusDepth.toInt()}m/day", isDark)
         Spacer(Modifier.height(10.dp))
         MacOSButton(
-            text = "View Full Report",
+            text = stringResource(R.string.dashboard_view_full_report),
             icon = Icons.Default.BarChart,
             onClick = { onNavigate(Routes.nishthaTab(4)) },
             isDarkTheme = isDark,
@@ -1089,7 +1092,10 @@ private fun StatRow(label: String, value: String, isDark: Boolean) {
 
 @Composable
 private fun WeeklyMoodChart(moods: List<Mood>, isDark: Boolean) {
-    val days = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+    val days = listOf(
+        R.string.day_mon, R.string.day_tue, R.string.day_wed, R.string.day_thu,
+        R.string.day_fri, R.string.day_sat, R.string.day_sun,
+    ).map { stringResource(it) }
     MacOSControlCard(isDarkTheme = isDark) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Box(
@@ -1105,7 +1111,7 @@ private fun WeeklyMoodChart(moods: List<Mood>, isDark: Boolean) {
         }
         Spacer(Modifier.height(4.dp))
         Text(
-            "Your emotional journey from Monday to Sunday.",
+            stringResource(R.string.dashboard_weekly_mood_help),
             color = macSubtitleColor(isDark),
             fontSize = 12.sp,
         )
@@ -1205,7 +1211,10 @@ private fun DashboardWelcomeOverlay(userName: String, isDark: Boolean, onDismiss
                 }
 
                 Text(
-                    text = "Welcome back,\n${userName.replaceFirstChar { it.uppercase() }.ifEmpty { "Friend" }}",
+                    text = stringResource(
+                        R.string.dashboard_welcome_overlay_title,
+                        userName.replaceFirstChar { it.uppercase() }.ifEmpty { stringResource(R.string.dashboard_default_friend) },
+                    ),
                     fontFamily = LoraFontFamily,
                     fontSize = 21.sp,
                     fontWeight = FontWeight.Normal,
@@ -1215,7 +1224,7 @@ private fun DashboardWelcomeOverlay(userName: String, isDark: Boolean, onDismiss
                 )
 
                 Text(
-                    text = "Your journey continues here.\nEvery small step forward counts — today is a new opportunity to grow, reflect, and be present.",
+                    text = stringResource(R.string.dashboard_welcome_overlay_body),
                     fontSize = 13.5.sp,
                     color = subtitleColor,
                     textAlign = TextAlign.Center,
@@ -1243,7 +1252,7 @@ private fun DashboardWelcomeOverlay(userName: String, isDark: Boolean, onDismiss
                     )
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        text = "Let's begin",
+                        text = stringResource(R.string.dashboard_lets_begin),
                         color = Color.White,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
@@ -1389,7 +1398,7 @@ private fun CelebrationDialog(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text(
-                        "Congratulations! 🎉",
+                        stringResource(R.string.dashboard_congratulations),
                         fontFamily = LoraFontFamily,
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Normal,
@@ -1399,9 +1408,9 @@ private fun CelebrationDialog(
 
                     Text(
                         if (achievements.size > 1) {
-                            "You have unlocked new achievements!"
+                            stringResource(R.string.dashboard_new_achievements)
                         } else {
-                            "You unlocked a new achievement!"
+                            stringResource(R.string.dashboard_new_achievement)
                         },
                         fontSize = 14.sp,
                         color = subtitleColor,
@@ -1467,7 +1476,7 @@ private fun CelebrationDialog(
                         )
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            text = "Awesome!",
+                            text = stringResource(R.string.dashboard_awesome),
                             color = Color.White,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,

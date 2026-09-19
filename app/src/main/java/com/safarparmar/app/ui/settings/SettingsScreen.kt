@@ -41,6 +41,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -60,6 +61,7 @@ import com.safarparmar.app.ui.studyplanner.components.PlannerFlatColors
 import com.safarparmar.app.ui.studyplanner.plan.PlanHairline
 import com.safarparmar.app.ui.theme.LoraFontFamily
 import com.safarparmar.app.ui.theme.SafarSemanticColors
+import com.safarparmar.app.R
 
 private const val URL_PRIVACY_POLICY = "https://safarapp.in/privacy"
 private const val URL_TERMS = "https://safarapp.in/terms"
@@ -129,7 +131,7 @@ fun SettingsScreen(
 
     CompositionLocalProvider(LocalPlannerIsDarkTheme provides isDarkTheme) {
         SafarDrawerScaffold(
-            title = "Settings",
+            title = stringResource(R.string.settings_title),
             subtitle = null,
             currentRoute = currentRoute,
             isDarkTheme = isDarkTheme,
@@ -154,14 +156,14 @@ fun SettingsScreen(
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(
-                            text = "Customize theme, notifications, and permissions",
+                            text = stringResource(R.string.settings_subtitle),
                             fontSize = 13.sp,
                             color = PlannerFlatColors.TextMuted,
                         )
                     }
 
                     StaggeredSettingsEntranceBox(index = 0, isVisible = settingsVisible) {
-                        SettingsSheetSection(title = "Account & Subscription") {
+                        SettingsSheetSection(title = stringResource(R.string.settings_account_subscription)) {
                             PremiumStatusSection(
                                 isPremiumActive = premiumStatus.hasAnyPaidAccess,
                                 onExplorePremium = onPremium,
@@ -173,10 +175,10 @@ fun SettingsScreen(
                     if (canAccessAdminComposer) {
                         PlanHairline(alpha = 0.5f)
                         StaggeredSettingsEntranceBox(index = 1, isVisible = settingsVisible) {
-                            SettingsSheetSection(title = "Admin Tools") {
+                            SettingsSheetSection(title = stringResource(R.string.settings_admin_tools)) {
                                 SettingsNavigationRow(
-                                    title = "Notification Composer",
-                                    subtitle = "Broadcast push alerts to all enrolled students",
+                                    title = stringResource(R.string.settings_notification_composer),
+                                    subtitle = stringResource(R.string.settings_notification_composer_subtitle),
                                     icon = Icons.Default.AdminPanelSettings,
                                     onClick = onOpenAdminNotificationComposer,
                                 )
@@ -188,10 +190,10 @@ fun SettingsScreen(
 
                     StaggeredSettingsEntranceBox(index = 2, isVisible = settingsVisible) {
                         val haptic = LocalHapticFeedback.current
-                        SettingsSheetSection(title = "Preferences & Appearance") {
+                        SettingsSheetSection(title = stringResource(R.string.settings_preferences_appearance)) {
                             SettingsSwitchRow(
-                                title = "Dark Theme",
-                                subtitle = "Switch between dark and light theme",
+                                title = stringResource(R.string.settings_dark_theme),
+                                subtitle = stringResource(R.string.settings_dark_theme_subtitle),
                                 checked = isDarkTheme,
                                 onCheckedChange = {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -205,7 +207,7 @@ fun SettingsScreen(
                     PlanHairline(alpha = 0.5f)
 
                     StaggeredSettingsEntranceBox(index = 3, isVisible = settingsVisible) {
-                        SettingsSheetSection(title = "Study Notifications") {
+                        SettingsSheetSection(title = stringResource(R.string.settings_study_notifications)) {
                             NotificationsSection(
                                 uiState = uiState,
                                 onEvent = viewModel::onEvent,
@@ -218,7 +220,7 @@ fun SettingsScreen(
 
                     val grantedCount = listOf(hasUsagePermission, hasOverlayPermission, hasNotificationPermission, hasNotificationShieldPermission).count { it }
                     StaggeredSettingsEntranceBox(index = 4, isVisible = settingsVisible) {
-                        SettingsSheetSection(title = "App Permissions ($grantedCount/4)") {
+                        SettingsSheetSection(title = stringResource(R.string.settings_app_permissions, grantedCount, 4)) {
                             PermissionsSection(
                                 hasUsagePermission = hasUsagePermission,
                                 hasOverlayPermission = hasOverlayPermission,
@@ -232,7 +234,7 @@ fun SettingsScreen(
                     PlanHairline(alpha = 0.5f)
 
                     StaggeredSettingsEntranceBox(index = 5, isVisible = settingsVisible) {
-                        SettingsSheetSection(title = "Legal & Information") {
+                        SettingsSheetSection(title = stringResource(R.string.settings_legal_information)) {
                             LegalSection(
                                 context = context,
                                 onShowPermissionInfo = { showPermissionInfoDialog = true },
@@ -243,10 +245,10 @@ fun SettingsScreen(
                     PlanHairline(alpha = 0.5f)
 
                     StaggeredSettingsEntranceBox(index = 6, isVisible = settingsVisible) {
-                        SettingsSheetSection(title = "Account & Data Management") {
+                        SettingsSheetSection(title = stringResource(R.string.settings_account_data)) {
                             SettingsNavigationRow(
-                                title = "Delete Account & Data",
-                                subtitle = "Permanently wipe your account, study history, and private data",
+                                title = stringResource(R.string.settings_delete_account),
+                                subtitle = stringResource(R.string.settings_delete_account_subtitle),
                                 icon = Icons.Default.DeleteForever,
                                 onClick = { viewModel.onEvent(SettingsEvent.ShowDeleteAccountDialog) },
                             )
@@ -299,8 +301,8 @@ private fun PremiumStatusSection(
     onRestoreStatus: () -> Unit,
 ) {
     val scheme = MaterialTheme.colorScheme
-    val statusTitle = if (isPremiumActive) "Safar Premium Active" else "Safar Plus Plan"
-    val statusSubtitle = if (isPremiumActive) "All AI planning and analytics features unlocked" else "Standard free features active"
+    val statusTitle = stringResource(if (isPremiumActive) R.string.settings_premium_active else R.string.settings_plus_plan)
+    val statusSubtitle = stringResource(if (isPremiumActive) R.string.settings_premium_unlocked else R.string.settings_free_active)
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -352,7 +354,7 @@ private fun PremiumStatusSection(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = if (isPremiumActive) "Manage" else "Explore",
+                    text = stringResource(if (isPremiumActive) R.string.settings_manage else R.string.settings_explore),
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
                     color = SafarSemanticColors.brandPurple()
@@ -370,8 +372,8 @@ private fun NotificationsSection(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         SettingsSwitchRow(
-            title = "Allow Notifications",
-            subtitle = "Turn on all study alerts and reminders",
+            title = stringResource(R.string.settings_allow_notifications),
+            subtitle = stringResource(R.string.settings_allow_notifications_subtitle),
             checked = uiState.notificationsEnabled,
             onCheckedChange = { onEvent(SettingsEvent.ToggleNotifications(it)) },
             icon = Icons.Default.Notifications,
@@ -381,15 +383,15 @@ private fun NotificationsSection(
             PlanHairline(alpha = 0.4f)
 
             SettingsSwitchRow(
-                title = "Ekagra Timer Updates",
-                subtitle = "Sound and vibration alerts for study timer",
+                title = stringResource(R.string.settings_timer_updates),
+                subtitle = stringResource(R.string.settings_timer_updates_subtitle),
                 checked = uiState.focusTimerNotificationsEnabled,
                 onCheckedChange = { onEvent(SettingsEvent.ToggleFocusTimerNotifications(it)) },
             )
 
             SettingsSwitchRow(
-                title = "Daily Study Reminder",
-                subtitle = "Daily alert to start your study sessions",
+                title = stringResource(R.string.settings_daily_reminder),
+                subtitle = stringResource(R.string.settings_daily_reminder_subtitle),
                 checked = uiState.dailyStudyReminderEnabled,
                 onCheckedChange = { onEvent(SettingsEvent.ToggleDailyStudyReminder(it)) },
             )
@@ -416,7 +418,7 @@ private fun NotificationsSection(
                             modifier = Modifier.size(18.dp)
                         )
                         Text(
-                            text = "Reminder Time",
+                            text = stringResource(R.string.settings_reminder_time),
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Medium,
                             color = PlannerFlatColors.TextDark
@@ -432,22 +434,22 @@ private fun NotificationsSection(
             }
 
             SettingsSwitchRow(
-                title = "Streak Expiry Warnings",
-                subtitle = "Alert 2 hours before losing daily streak",
+                title = stringResource(R.string.settings_streak_warning),
+                subtitle = stringResource(R.string.settings_streak_warning_subtitle),
                 checked = uiState.streakReminderEnabled,
                 onCheckedChange = { onEvent(SettingsEvent.ToggleStreakReminder(it)) },
             )
 
             SettingsSwitchRow(
-                title = "Course Updates",
-                subtitle = "Alerts for live classes & audio",
+                title = stringResource(R.string.settings_course_updates),
+                subtitle = stringResource(R.string.settings_course_updates_subtitle),
                 checked = uiState.courseUpdatesEnabled,
                 onCheckedChange = { onEvent(SettingsEvent.ToggleCourseUpdates(it)) },
             )
 
             SettingsSwitchRow(
-                title = "Mehfil Replies",
-                subtitle = "Alerts when someone replies to your posts",
+                title = stringResource(R.string.settings_mehfil_replies),
+                subtitle = stringResource(R.string.settings_mehfil_replies_subtitle),
                 checked = uiState.communityRepliesEnabled,
                 onCheckedChange = { onEvent(SettingsEvent.ToggleCommunityReplies(it)) },
             )
@@ -465,8 +467,8 @@ private fun PermissionsSection(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         PermissionRow(
-            title = "Usage Access",
-            subtitle = "Required for focus app tracking",
+            title = stringResource(R.string.settings_usage_access),
+            subtitle = stringResource(R.string.settings_usage_access_subtitle),
             isGranted = hasUsagePermission,
             onGrantClick = {
                 val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS).apply {
@@ -477,8 +479,8 @@ private fun PermissionsSection(
         )
 
         PermissionRow(
-            title = "Display Over Apps",
-            subtitle = "Required to show focus shield overlay",
+            title = stringResource(R.string.settings_display_over_apps),
+            subtitle = stringResource(R.string.settings_display_over_apps_subtitle),
             isGranted = hasOverlayPermission,
             onGrantClick = {
                 val intent = Intent(
@@ -491,8 +493,8 @@ private fun PermissionsSection(
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             PermissionRow(
-                title = "System Notifications",
-                subtitle = "Required for timer and study alerts",
+                title = stringResource(R.string.settings_system_notifications),
+                subtitle = stringResource(R.string.settings_system_notifications_subtitle),
                 isGranted = hasNotificationPermission,
                 onGrantClick = {
                     val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
@@ -504,8 +506,8 @@ private fun PermissionsSection(
         }
 
         PermissionRow(
-            title = "Notification Shield",
-            subtitle = "Suppresses distracting notifications during focus",
+            title = stringResource(R.string.settings_notification_shield),
+            subtitle = stringResource(R.string.settings_notification_shield_subtitle),
             isGranted = hasNotificationShieldPermission,
             onGrantClick = {
                 FocusShieldPermissionHelper.openNotificationListenerSettings(context)
@@ -521,22 +523,22 @@ private fun LegalSection(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         SettingsNavigationRow(
-            title = "Privacy Policy",
-            subtitle = "How SAFAR handles and protects your data",
+            title = stringResource(R.string.settings_privacy_policy),
+            subtitle = stringResource(R.string.settings_privacy_policy_subtitle),
             icon = Icons.Default.PrivacyTip,
             onClick = { openUrl(context, URL_PRIVACY_POLICY) },
         )
 
         SettingsNavigationRow(
-            title = "Terms of Service",
-            subtitle = "End User License Agreement & Rules",
+            title = stringResource(R.string.settings_terms),
+            subtitle = stringResource(R.string.settings_terms_subtitle),
             icon = Icons.Default.Gavel,
             onClick = { openUrl(context, URL_TERMS) },
         )
 
         SettingsNavigationRow(
-            title = "Why Kavach Needs Permissions",
-            subtitle = "Detailed explanation of Focus Shield privacy guarantees",
+            title = stringResource(R.string.settings_kavach_permissions),
+            subtitle = stringResource(R.string.settings_kavach_permissions_subtitle),
             icon = Icons.Default.Info,
             onClick = onShowPermissionInfo,
         )
@@ -591,7 +593,7 @@ private fun PermissionRow(
                     modifier = Modifier.size(18.dp)
                 )
                 Text(
-                    text = "Granted",
+                    text = stringResource(R.string.settings_granted),
                     fontSize = 13.5.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF10B981)
@@ -606,7 +608,7 @@ private fun PermissionRow(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "Grant",
+                    text = stringResource(R.string.settings_grant),
                     fontSize = 13.5.sp,
                     fontWeight = FontWeight.Bold,
                     color = SafarSemanticColors.brandOnPurple()
@@ -747,7 +749,7 @@ private fun TimePickerDialog(
         containerColor = SafarSemanticColors.plannerBackground(),
         title = {
             Text(
-                text = "Select Reminder Time",
+                text = stringResource(R.string.settings_select_reminder_time),
                 fontFamily = LoraFontFamily,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Normal,
@@ -789,12 +791,12 @@ private fun TimePickerDialog(
                     contentColor = SafarSemanticColors.brandOnPurple(),
                 ),
             ) {
-                Text("Save Time", fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.settings_save_time), fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel", fontWeight = FontWeight.Bold, color = PlannerFlatColors.TextMuted)
+                Text(stringResource(R.string.settings_cancel), fontWeight = FontWeight.Bold, color = PlannerFlatColors.TextMuted)
             }
         },
         shape = RoundedCornerShape(20.dp),
@@ -809,7 +811,7 @@ private fun PermissionExplanationDialog(onDismiss: () -> Unit) {
         icon = { Icon(Icons.Default.Security, null, tint = SafarSemanticColors.brandPurple()) },
         title = {
             Text(
-                text = "Kavach Privacy & Permissions",
+                text = stringResource(R.string.settings_kavach_privacy_title),
                 fontFamily = LoraFontFamily,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Normal,
@@ -819,27 +821,27 @@ private fun PermissionExplanationDialog(onDismiss: () -> Unit) {
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    text = "SAFAR Kavach uses Android permissions strictly during active Ekagra study sessions:",
+                    text = stringResource(R.string.settings_kavach_privacy_intro),
                     fontSize = 13.sp,
                     color = PlannerFlatColors.TextMuted
                 )
                 Text(
-                    text = "• Usage Access: Detects when a distracting app is launched so Kavach can block it.",
+                    text = stringResource(R.string.settings_kavach_usage_explanation),
                     fontSize = 12.5.sp,
                     color = PlannerFlatColors.TextDark
                 )
                 Text(
-                    text = "• Display Over Apps: Renders the full-screen study focus shield over distracting apps.",
+                    text = stringResource(R.string.settings_kavach_overlay_explanation),
                     fontSize = 12.5.sp,
                     color = PlannerFlatColors.TextDark
                 )
                 Text(
-                    text = "• Notification Shield: Suppresses distracting notifications during active Ekagra focus sessions.",
+                    text = stringResource(R.string.settings_kavach_notification_explanation),
                     fontSize = 12.5.sp,
                     color = PlannerFlatColors.TextDark
                 )
                 Text(
-                    text = "Your personal data is never transmitted or sold.",
+                    text = stringResource(R.string.settings_kavach_privacy_promise),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
                     color = SafarSemanticColors.brandPurple()
@@ -855,7 +857,7 @@ private fun PermissionExplanationDialog(onDismiss: () -> Unit) {
                     contentColor = SafarSemanticColors.brandOnPurple(),
                 ),
             ) {
-                Text("Got It", fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.settings_got_it), fontWeight = FontWeight.Bold)
             }
         },
         shape = RoundedCornerShape(20.dp),
@@ -871,7 +873,7 @@ private fun FooterSection() {
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            text = "SAFAR Study Planner & Focus Suite\nVersion 1.0.4 • Build 104",
+            text = stringResource(R.string.settings_footer_version),
             fontSize = 12.sp,
             color = PlannerFlatColors.TextMuted,
             textAlign = TextAlign.Center,

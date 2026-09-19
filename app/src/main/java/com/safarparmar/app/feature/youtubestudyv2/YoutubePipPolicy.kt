@@ -4,4 +4,10 @@ package com.safarparmar.app.feature.youtubestudyv2
 internal fun shouldBlockYoutubePip(
     quickUnlockActive: Boolean,
     classification: YoutubeChannelClassification?,
-): Boolean = !quickUnlockActive && classification != YoutubeChannelClassification.PRODUCTIVE
+): Boolean = classification != YoutubeChannelClassification.PRODUCTIVE
+
+/** Accessibility overlays must never cover the lock screen, calls, or another app. */
+internal fun shouldKeepYoutubeBlockOverlay(
+    screenAvailable: Boolean,
+    youtubeForeground: Boolean,
+): Boolean = screenAvailable && youtubeForeground

@@ -75,6 +75,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -84,6 +85,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.safarparmar.app.R
 import com.safarparmar.app.domain.model.Goal
 import com.safarparmar.app.ui.navigation.Routes
 import com.safarparmar.app.ui.nishtha.NishthaEvent
@@ -130,7 +132,12 @@ private fun GoalsScreenContent(
 
     val context = LocalContext.current
     var selectedTab by remember { mutableStateOf(0) }
-    val tabs = listOf("Today", "Upcoming", "Missed", "History")
+    val tabs = listOf(
+        stringResource(R.string.common_today),
+        stringResource(R.string.goals_upcoming),
+        stringResource(R.string.goals_missed),
+        stringResource(R.string.goals_history),
+    )
     var showAddSheet by remember { mutableStateOf(false) }
     var showStatusSheet by remember { mutableStateOf(false) }
     var showDeletedSheet by remember { mutableStateOf(false) }
@@ -212,11 +219,11 @@ private fun GoalsScreenContent(
                         selectedDate = java.time.Instant.ofEpochMilli(millis).atZone(java.time.ZoneOffset.UTC).toLocalDate()
                     }
                     showDatePicker = false
-                }) { Text("OK", color = GoalsFlatColors.Primary) }
+                }) { Text(stringResource(R.string.common_ok), color = GoalsFlatColors.Primary) }
             },
             dismissButton = {
                 TextButton(onClick = { showDatePicker = false }) {
-                    Text("Cancel", color = GoalsFlatColors.Muted)
+                    Text(stringResource(R.string.common_cancel), color = GoalsFlatColors.Muted)
                 }
             },
         ) { DatePicker(state = datePickerState) }
@@ -257,9 +264,9 @@ private fun GoalsScreenContent(
                     .padding(bottom = 32.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                PlanEyebrow("Goals")
+                PlanEyebrow(stringResource(R.string.goals_eyebrow))
                 Text(
-                    "Repeat goals",
+                    stringResource(R.string.goals_repeat_goals),
                     fontFamily = LoraFontFamily,
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Normal,
@@ -267,16 +274,16 @@ private fun GoalsScreenContent(
                 )
                 Text(
                     if (candidates.isEmpty()) {
-                        if (repeatSource == 0) "You have no goals today." else "You had no goals yesterday."
+                        if (repeatSource == 0) stringResource(R.string.goals_no_goals_today) else stringResource(R.string.goals_no_goals_yesterday)
                     } else {
-                        if (repeatSource == 0) "Select today's goals to repeat tomorrow."
-                        else "Select yesterday's goals to bring into today."
+                        if (repeatSource == 0) stringResource(R.string.goals_select_today_repeat_tomorrow)
+                        else stringResource(R.string.goals_select_yesterday_bring_today)
                     },
                     fontSize = 13.sp,
                     color = GoalsFlatColors.Muted,
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf("Today" to 0, "Yesterday" to 1).forEach { (label, index) ->
+                    listOf(stringResource(R.string.common_today) to 0, stringResource(R.string.common_yesterday) to 1).forEach { (label, index) ->
                         TextButton(onClick = { repeatSource = index }) {
                             Text(
                                 label,
@@ -295,7 +302,7 @@ private fun GoalsScreenContent(
                             }
                         }) {
                             Text(
-                                if (selectedIds.size == candidates.size) "Clear all" else "Select all",
+                                if (selectedIds.size == candidates.size) stringResource(R.string.common_clear_all) else stringResource(R.string.common_select_all),
                                 color = GoalsFlatColors.Primary,
                             )
                         }
@@ -333,7 +340,7 @@ private fun GoalsScreenContent(
                                     maxLines = 1,
                                 )
                                 Text(
-                                    if (goal.completed) "Completed" else goal.goalKindLabel(),
+                                    if (goal.completed) stringResource(R.string.goals_completed) else goal.goalKindLabel(),
                                     fontSize = 11.5.sp,
                                     color = GoalsFlatColors.Muted,
                                 )
@@ -349,8 +356,8 @@ private fun GoalsScreenContent(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Column(Modifier.weight(1f)) {
-                            Text("Auto-repeat selected goals daily", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = GoalsFlatColors.Text)
-                            Text("They will continue on following days.", fontSize = 11.5.sp, color = GoalsFlatColors.Muted)
+                            Text(stringResource(R.string.goals_auto_repeat_selected), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = GoalsFlatColors.Text)
+                            Text(stringResource(R.string.goals_auto_repeat_help), fontSize = 11.5.sp, color = GoalsFlatColors.Muted)
                         }
                         Switch(checked = repeatDaily, onCheckedChange = { repeatDaily = it })
                     }
@@ -371,9 +378,9 @@ private fun GoalsScreenContent(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text(
-                        if (selectedIds.isEmpty()) "Choose at least one"
-                        else if (repeatSource == 0) "Repeat ${selectedIds.size} selected tomorrow"
-                        else "Repeat ${selectedIds.size} selected today",
+                        if (selectedIds.isEmpty()) stringResource(R.string.goals_choose_at_least_one)
+                        else if (repeatSource == 0) stringResource(R.string.goals_repeat_selected_tomorrow, selectedIds.size)
+                        else stringResource(R.string.goals_repeat_selected_today, selectedIds.size),
                         fontWeight = FontWeight.Bold,
                         color = if (selectedIds.isEmpty()) GoalsFlatColors.Muted else GoalsFlatColors.Primary,
                     )
@@ -397,15 +404,15 @@ private fun GoalsScreenContent(
                     .padding(bottom = 32.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                PlanEyebrow("Goals")
+                PlanEyebrow(stringResource(R.string.goals_eyebrow))
                 Text(
-                    "Recently Deleted",
+                    stringResource(R.string.goals_recently_deleted),
                     fontFamily = LoraFontFamily,
                     fontSize = 22.sp,
                     color = GoalsFlatColors.Text,
                 )
                 Text(
-                    "Goals remain available for 30 days. Restoring puts them back on their original assigned date.",
+                    stringResource(R.string.goals_recently_deleted_help),
                     fontSize = 13.sp,
                     color = GoalsFlatColors.Muted,
                 )
@@ -415,7 +422,7 @@ private fun GoalsScreenContent(
                         contentAlignment = Alignment.Center,
                     ) { CircularProgressIndicator(color = GoalsFlatColors.Primary) }
                     uiState.recentlyDeletedGoals.isEmpty() -> Text(
-                        "Nothing in Recently Deleted.",
+                        stringResource(R.string.goals_recently_deleted_empty),
                         color = GoalsFlatColors.Muted,
                         modifier = Modifier.padding(vertical = 28.dp),
                     )
@@ -440,8 +447,8 @@ private fun GoalsScreenContent(
                                         overflow = TextOverflow.Ellipsis,
                                     )
                                     Text(
-                                        goal.assignedDateKey()?.let { "Assigned ${IstDateUtils.labelFor(it)}" }
-                                            ?: "Original date unavailable",
+                                        goal.assignedDateKey()?.let { stringResource(R.string.goals_assigned_date_value, IstDateUtils.labelFor(it)) }
+                                            ?: stringResource(R.string.goals_original_date_unavailable),
                                         fontSize = 11.sp,
                                         color = GoalsFlatColors.Muted,
                                     )
@@ -452,7 +459,7 @@ private fun GoalsScreenContent(
                                 ) {
                                     Icon(Icons.Default.Restore, null, modifier = Modifier.size(16.dp))
                                     Spacer(Modifier.width(4.dp))
-                                    Text("Restore")
+                                    Text(stringResource(R.string.common_restore))
                                 }
                             }
                             PlanHairline(alpha = 0.5f)
@@ -466,18 +473,18 @@ private fun GoalsScreenContent(
     deleteGoal?.let { goal ->
         AlertDialog(
             onDismissRequest = { deleteGoal = null },
-            title = { Text("Delete this goal?") },
-            text = { Text("\"${goal.title}\" will move to Recently Deleted for 30 days.") },
+            title = { Text(stringResource(R.string.goals_delete_title)) },
+            text = { Text(stringResource(R.string.goals_delete_body, goal.title)) },
             confirmButton = {
                 TextButton(
                     enabled = !uiState.isSavingGoal,
                     onClick = { viewModel.deleteGoal(goal.id) },
                 ) {
-                    Text(if (uiState.isSavingGoal) "Moving…" else "Move to Recently Deleted", color = GoalsFlatColors.Danger)
+                    Text(if (uiState.isSavingGoal) stringResource(R.string.common_moving) else stringResource(R.string.goals_move_to_recently_deleted), color = GoalsFlatColors.Danger)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { deleteGoal = null }) { Text("Keep it") }
+                TextButton(onClick = { deleteGoal = null }) { Text(stringResource(R.string.goals_keep_it)) }
             },
         )
     }
@@ -488,7 +495,7 @@ private fun GoalsScreenContent(
             containerColor = GoalsFlatColors.Bg,
             title = {
                 Text(
-                    "How long did you study?",
+                    stringResource(R.string.goals_study_time_question),
                     fontFamily = LoraFontFamily,
                     fontWeight = FontWeight.Normal,
                     fontSize = 22.sp,
@@ -504,7 +511,7 @@ private fun GoalsScreenContent(
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
-                                "HOURS",
+                                stringResource(R.string.common_hours_upper),
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = GoalsFlatColors.Primary,
@@ -526,7 +533,7 @@ private fun GoalsScreenContent(
                         )
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
-                                "MINUTES",
+                                stringResource(R.string.common_minutes_upper),
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = GoalsFlatColors.Primary,
@@ -554,9 +561,9 @@ private fun GoalsScreenContent(
                                         interactionSource = remember { MutableInteractionSource() },
                                         indication = null,
                                         onClick = {
-                                            val total = studyHours * 60 + studyMinutes + mins
-                                            studyHours = total / 60
-                                            studyMinutes = total % 60
+                                            val (hours, minutes) = addStudyTime(studyHours, studyMinutes, mins)
+                                            studyHours = hours
+                                            studyMinutes = minutes
                                         },
                                     )
                                     .padding(horizontal = 4.dp, vertical = 8.dp),
@@ -582,10 +589,10 @@ private fun GoalsScreenContent(
                             .padding(vertical = 14.dp),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Text(if (uiState.isSavingGoal) "Saving…" else "Done", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 14.sp)
+                        Text(if (uiState.isSavingGoal) stringResource(R.string.common_saving) else stringResource(R.string.common_done), fontWeight = FontWeight.Bold, color = Color.White, fontSize = 14.sp)
                     }
                     Text(
-                        "Complete without study time",
+                        stringResource(R.string.goals_complete_without_time),
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = GoalsFlatColors.Primary,
@@ -608,7 +615,7 @@ private fun GoalsScreenContent(
                             .padding(vertical = 12.dp),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Text("Cancel", fontWeight = FontWeight.Bold, color = GoalsFlatColors.Muted, fontSize = 13.sp)
+                        Text(stringResource(R.string.common_cancel), fontWeight = FontWeight.Bold, color = GoalsFlatColors.Muted, fontSize = 13.sp)
                     }
                 }
             },
@@ -635,7 +642,7 @@ private fun GoalsScreenContent(
             containerColor = GoalsFlatColors.Bg,
             title = {
                 Text(
-                    "This goal is from an earlier day",
+                    stringResource(R.string.goals_earlier_day_title),
                     fontFamily = LoraFontFamily,
                     fontWeight = FontWeight.Normal,
                     fontSize = 20.sp,
@@ -644,7 +651,7 @@ private fun GoalsScreenContent(
             },
             text = {
                 Text(
-                    "This goal was planned for $originalDate. Where should we count it?",
+                    stringResource(R.string.goals_earlier_day_body, originalDate),
                     fontSize = 14.sp,
                     color = GoalsFlatColors.Muted,
                     lineHeight = 20.sp,
@@ -672,7 +679,7 @@ private fun GoalsScreenContent(
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
-                            if (uiState.isSavingGoal) "Saving…" else "Move to today and complete",
+                            if (uiState.isSavingGoal) stringResource(R.string.common_saving) else stringResource(R.string.goals_move_today_complete),
                             fontWeight = FontWeight.Bold,
                             color = Color.White,
                             fontSize = 14.sp,
@@ -692,7 +699,7 @@ private fun GoalsScreenContent(
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
-                            "Complete for $originalDate",
+                            stringResource(R.string.goals_complete_for_date, originalDate),
                             fontWeight = FontWeight.SemiBold,
                             color = GoalsFlatColors.Primary,
                             fontSize = 13.sp,
@@ -714,7 +721,7 @@ private fun GoalsScreenContent(
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
-                            "Cancel",
+                            stringResource(R.string.common_cancel),
                             fontWeight = FontWeight.Bold,
                             color = GoalsFlatColors.Muted,
                             fontSize = 13.sp,
@@ -749,9 +756,9 @@ private fun GoalsScreenContent(
                     .imePadding(),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                PlanEyebrow("Goals")
+                PlanEyebrow(stringResource(R.string.goals_eyebrow))
                 Text(
-                    "Edit Goal",
+                    stringResource(R.string.goals_edit_goal),
                     fontFamily = LoraFontFamily,
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Normal,
@@ -761,7 +768,7 @@ private fun GoalsScreenContent(
                 OutlinedTextField(
                     value = editTitle,
                     onValueChange = { editTitle = it },
-                    label = { Text("What do you want to do?") },
+                    label = { Text(stringResource(R.string.goals_title_prompt)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     shape = RoundedCornerShape(12.dp),
@@ -771,8 +778,8 @@ private fun GoalsScreenContent(
                 val editIsScheduled = editGoalKind == "scheduled"
                 AssistOptionRow(
                     selected = editIsScheduled,
-                    title = "Schedule for a future date",
-                    subtitle = if (editIsScheduled) "Set for ${selectedDate.format(java.time.format.DateTimeFormatter.ofPattern("EEE, MMM d"))}" else "Set for today. Tap to pick a future date.",
+                    title = stringResource(R.string.goals_schedule_future),
+                    subtitle = if (editIsScheduled) stringResource(R.string.goals_set_for_date, selectedDate.format(DateTimeFormatter.ofPattern("EEE, MMM d", Locale.getDefault()))) else stringResource(R.string.goals_set_today_pick_future),
                     onClick = {
                         if (editIsScheduled) {
                             editGoalKind = "today"
@@ -799,8 +806,8 @@ private fun GoalsScreenContent(
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Column(Modifier.weight(1f)) {
-                        Text("Repeat every day", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = GoalsFlatColors.Text)
-                        Text("A fresh copy is added each day; missed copies stay under Missed.", fontSize = 12.sp, color = GoalsFlatColors.Muted)
+                        Text(stringResource(R.string.goals_repeat_every_day), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = GoalsFlatColors.Text)
+                        Text(stringResource(R.string.goals_repeat_every_day_help), fontSize = 12.sp, color = GoalsFlatColors.Muted)
                     }
                     Switch(checked = editRepeatDaily, onCheckedChange = { editRepeatDaily = it })
                 }
@@ -808,7 +815,7 @@ private fun GoalsScreenContent(
                 OutlinedTextField(
                     value = editDesc,
                     onValueChange = { editDesc = it },
-                    label = { Text("Add details (optional)") },
+                    label = { Text(stringResource(R.string.goals_add_details_optional)) },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
                     colors = fieldColors,
@@ -850,7 +857,7 @@ private fun GoalsScreenContent(
                         .padding(vertical = 14.dp),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Text("Save Changes", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 14.sp)
+                    Text(stringResource(R.string.goals_save_changes), fontWeight = FontWeight.Bold, color = Color.White, fontSize = 14.sp)
                 }
             }
         }
@@ -881,9 +888,9 @@ private fun GoalsScreenContent(
                     .imePadding(),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                PlanEyebrow("Goals")
+                PlanEyebrow(stringResource(R.string.goals_eyebrow))
                 Text(
-                    "New Goal",
+                    stringResource(R.string.goals_new_goal),
                     fontFamily = LoraFontFamily,
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Normal,
@@ -893,7 +900,7 @@ private fun GoalsScreenContent(
                 OutlinedTextField(
                     value = newTitle,
                     onValueChange = { newTitle = it },
-                    label = { Text("What do you want to do?") },
+                    label = { Text(stringResource(R.string.goals_title_prompt)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     shape = RoundedCornerShape(12.dp),
@@ -903,8 +910,8 @@ private fun GoalsScreenContent(
                 val isScheduled = newGoalKind == "scheduled"
                 AssistOptionRow(
                     selected = isScheduled,
-                    title = "Schedule for a future date",
-                    subtitle = if (isScheduled) "Set for ${selectedDate.format(java.time.format.DateTimeFormatter.ofPattern("EEE, MMM d"))}" else "Default is Today. Tap to pick a future date.",
+                    title = stringResource(R.string.goals_schedule_future),
+                    subtitle = if (isScheduled) stringResource(R.string.goals_set_for_date, selectedDate.format(DateTimeFormatter.ofPattern("EEE, MMM d", Locale.getDefault()))) else stringResource(R.string.goals_default_today_pick_future),
                     onClick = {
                         if (isScheduled) {
                             newGoalKind = "today"
@@ -926,8 +933,8 @@ private fun GoalsScreenContent(
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Column(Modifier.weight(1f)) {
-                        Text("Repeat every day", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = GoalsFlatColors.Text)
-                        Text("A fresh copy is added each day; missed copies stay under Missed.", fontSize = 12.sp, color = GoalsFlatColors.Muted)
+                        Text(stringResource(R.string.goals_repeat_every_day), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = GoalsFlatColors.Text)
+                        Text(stringResource(R.string.goals_repeat_every_day_help), fontSize = 12.sp, color = GoalsFlatColors.Muted)
                     }
                     Switch(checked = newRepeatDaily, onCheckedChange = { newRepeatDaily = it })
                 }
@@ -935,7 +942,7 @@ private fun GoalsScreenContent(
                 OutlinedTextField(
                     value = newDesc,
                     onValueChange = { newDesc = it },
-                    label = { Text("Add details (optional)") },
+                    label = { Text(stringResource(R.string.goals_add_details_optional)) },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
                     colors = fieldColors,
@@ -984,7 +991,7 @@ private fun GoalsScreenContent(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.Add, null, modifier = Modifier.size(18.dp), tint = Color.White)
                             Spacer(Modifier.width(6.dp))
-                            Text("Create Goal", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 14.sp)
+                            Text(stringResource(R.string.goals_create_goal), fontWeight = FontWeight.Bold, color = Color.White, fontSize = 14.sp)
                         }
                     }
                 }
@@ -998,12 +1005,12 @@ private fun GoalsScreenContent(
             containerColor = GoalsFlatColors.Bg,
             confirmButton = {
                 TextButton(onClick = { showStatusSheet = false }) {
-                    Text("Close", color = GoalsFlatColors.Primary, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.common_close), color = GoalsFlatColors.Primary, fontWeight = FontWeight.SemiBold)
                 }
             },
             title = {
                 Text(
-                    "Status",
+                    stringResource(R.string.goals_status),
                     fontFamily = LoraFontFamily,
                     fontWeight = FontWeight.Normal,
                     fontSize = 22.sp,
@@ -1044,8 +1051,8 @@ private fun GoalsScreenContent(
                     deleteGoal = null
                     viewModel.loadRecentlyDeletedGoals()
                     val result = snackbarHostState.showSnackbar(
-                        message = "Goal moved to Recently Deleted",
-                        actionLabel = "Undo",
+                        message = context.getString(R.string.goals_moved_to_recently_deleted),
+                        actionLabel = context.getString(R.string.common_undo),
                         withDismissAction = true,
                     )
                     if (result == SnackbarResult.ActionPerformed && actionGoalId != null) {
@@ -1082,7 +1089,7 @@ private fun GoalsScreenContent(
                 .padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 0.dp),
         ) {
             Text(
-                "My Goals",
+                stringResource(R.string.goals_my_goals),
                 fontFamily = LoraFontFamily,
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Normal,
@@ -1091,9 +1098,9 @@ private fun GoalsScreenContent(
             Spacer(Modifier.height(4.dp))
             Text(
                 if (totalToday == 0) {
-                    "Nothing planned for today"
+                    stringResource(R.string.goals_nothing_planned_today)
                 } else {
-                    "$doneToday of $totalToday done today"
+                    stringResource(R.string.goals_done_today_count, doneToday, totalToday)
                 },
                 fontSize = 13.sp,
                 color = GoalsFlatColors.Muted,
@@ -1110,7 +1117,7 @@ private fun GoalsScreenContent(
                 // Keep the primary action visible on narrow screens; secondary
                 // utilities may scroll, but creating a goal must never be clipped.
                 FlatActionChip(
-                    label = "Add Goal",
+                    label = stringResource(R.string.goals_add_goal),
                     icon = {
                         Icon(
                             Icons.Default.Add,
@@ -1123,7 +1130,7 @@ private fun GoalsScreenContent(
                     onClick = { showAddSheet = true },
                 )
                 FlatActionChip(
-                    label = "Status",
+                    label = stringResource(R.string.goals_status),
                     icon = {
                         Icon(
                             Icons.Default.BarChart,
@@ -1139,7 +1146,7 @@ private fun GoalsScreenContent(
                 // TYPE (auto-recurring) and the badge on each row. Reusing it for a
                 // one-off bulk action made four unrelated things share one label.
                 FlatActionChip(
-                    label = "Repeat goals",
+                    label = stringResource(R.string.goals_repeat_goals),
                     icon = {
                         Icon(
                             Icons.Default.Repeat,
@@ -1152,7 +1159,7 @@ private fun GoalsScreenContent(
                     onClick = { showRepeatPicker = true },
                 )
                 FlatActionChip(
-                    label = "Insights",
+                    label = stringResource(R.string.goals_insights),
                     icon = {
                         Icon(
                             Icons.AutoMirrored.Filled.TrendingUp,
@@ -1165,7 +1172,7 @@ private fun GoalsScreenContent(
                     onClick = { onNavigate(Routes.nishthaAnalytics("goals")) },
                 )
                 FlatActionChip(
-                    label = "Recently deleted",
+                    label = stringResource(R.string.goals_recently_deleted),
                     icon = {
                         Icon(
                             Icons.Default.DeleteSweep,
@@ -1191,14 +1198,14 @@ private fun GoalsScreenContent(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 Text(
-                    if (totalToday == 0) "Nothing today" else "$doneToday of $totalToday",
+                    if (totalToday == 0) stringResource(R.string.goals_nothing_today) else stringResource(R.string.goals_count_of_total, doneToday, totalToday),
                     fontFamily = LoraFontFamily,
                     fontSize = 28.sp,
                     fontWeight = FontWeight.Normal,
                     color = GoalsFlatColors.Done,
                 )
                 Text(
-                    if (totalToday == 0) "add a goal to get started" else "goals done today",
+                    if (totalToday == 0) stringResource(R.string.goals_add_to_get_started) else stringResource(R.string.goals_done_today_label),
                     fontSize = 13.sp,
                     color = GoalsFlatColors.Muted,
                 )
@@ -1235,7 +1242,7 @@ private fun GoalsScreenContent(
                     editDesc = goal.description ?: ""
                     editPriority = goal.priority
                     editRepeatDaily = goal.goalKind == "repeat"
-                    editGoalKind = if (goal.goalKind == "scheduled") "scheduled" else "today"
+                    editGoalKind = goal.editScheduleKind()
                     editScheduleChanged = false
                     editUnitType = goal.unitType
                     editStatus = goal.status
@@ -1250,6 +1257,7 @@ private fun GoalsScreenContent(
                 goals = uiState.goals,
                 isSaving = uiState.isSavingGoal,
                 onReopen = { goal -> viewModel.reopenGoal(goal.id) },
+                onDelete = { goal -> deleteGoal = goal },
             )
         }
     }

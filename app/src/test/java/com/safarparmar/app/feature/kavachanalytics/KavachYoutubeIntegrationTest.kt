@@ -70,13 +70,13 @@ class KavachYoutubeIntegrationTest {
     }
 
     @Test
-    fun `same video is evaluated again when tracking stopped`() {
+    fun `same video remains evaluated even when tracking stopped`() {
         val session = YoutubeStudyV2Session()
         val video = YoutubeV2Observation(YoutubeV2ContentKind.VIDEO, true, "Lesson", "@teacher")
         session.onVideoTap(0L)
         assertTrue(session.acceptStable(video, 500L))
-        assertTrue(session.isAlreadyEvaluated(video.stableKey, video.stableKey, true))
-        assertFalse(session.isAlreadyEvaluated(video.stableKey, video.stableKey, false))
+        assertTrue(session.isAlreadyEvaluated(video.stableKey, video.stableKey))
+        assertFalse(session.isAlreadyEvaluated(video.stableKey, null))
     }
 
     @Test

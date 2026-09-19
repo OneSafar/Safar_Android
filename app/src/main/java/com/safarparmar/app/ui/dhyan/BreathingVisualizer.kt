@@ -25,19 +25,31 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.safarparmar.app.ui.theme.*
+import com.safarparmar.app.R
 import kotlinx.coroutines.delay
 
 // ─── Data ────────────────────────────────────────────────────────────────────
 
-enum class BreathPhase(val label: String) {
-    INHALE("inhale"),
-    HOLD("hold"),
-    EXHALE("exhale"),
-    HOLD_EMPTY("hold-empty")
+enum class BreathPhase {
+    INHALE,
+    HOLD,
+    EXHALE,
+    HOLD_EMPTY
 }
+
+@Composable
+private fun breathPhaseLabel(phase: BreathPhase): String = stringResource(
+    when (phase) {
+        BreathPhase.INHALE -> R.string.dhyan_phase_inhale
+        BreathPhase.HOLD -> R.string.dhyan_phase_hold
+        BreathPhase.EXHALE -> R.string.dhyan_phase_exhale
+        BreathPhase.HOLD_EMPTY -> R.string.dhyan_phase_rest
+    }
+)
 
 data class BreathCycle(
     val inhale: Int = 4,
@@ -236,7 +248,9 @@ fun WavyPathViz(breathPhase: BreathPhase, isActive: Boolean) {
                     )
                     Text(
                         text = when (breathPhase) {
-                            BreathPhase.INHALE -> "Rise"; BreathPhase.EXHALE -> "Lower"; else -> ""
+                            BreathPhase.INHALE -> stringResource(R.string.dhyan_rise)
+                            BreathPhase.EXHALE -> stringResource(R.string.dhyan_lower)
+                            else -> ""
                         },
                         fontSize = 9.sp, fontWeight = FontWeight.Bold,
                         letterSpacing = 1.5.sp, color = Slate500
@@ -364,7 +378,7 @@ fun GoldenOrbViz(breathPhase: BreathPhase, isActive: Boolean) {
                 )
             }
             Text(
-                text = if (isActive) breathPhase.label.replace("-", " ").uppercase() else "●",
+                text = if (isActive) breathPhaseLabel(breathPhase).uppercase() else "●",
                 fontSize = 10.sp, fontWeight = FontWeight.Bold,
                 color = Color.White.copy(0.9f), letterSpacing = 1.sp, textAlign = TextAlign.Center
             )
@@ -414,8 +428,8 @@ fun BoxTraceViz(breathPhase: BreathPhase, isActive: Boolean, cycle: BreathCycle)
             drawCircle(Blue500, r, Offset(cx, cy))
             drawCircle(Color.White.copy(0.5f), r * 0.35f, Offset(cx - r * 0.15f, cy - r * 0.15f))
         }
-        Text("INHALE", Modifier.align(Alignment.TopCenter), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Blue500.copy(0.8f), letterSpacing = 1.sp)
-        Text("EXHALE", Modifier.align(Alignment.BottomCenter), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Blue500.copy(0.8f), letterSpacing = 1.sp)
+        Text(stringResource(R.string.dhyan_phase_inhale).uppercase(), Modifier.align(Alignment.TopCenter), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Blue500.copy(0.8f), letterSpacing = 1.sp)
+        Text(stringResource(R.string.dhyan_phase_exhale).uppercase(), Modifier.align(Alignment.BottomCenter), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Blue500.copy(0.8f), letterSpacing = 1.sp)
     }
 }
 
@@ -461,7 +475,7 @@ fun ArcRingViz(breathPhase: BreathPhase, isActive: Boolean, cycle: BreathCycle) 
                 fontSize = 28.sp, fontWeight = FontWeight.Bold, color = color
             )
             Text(
-                breathPhase.label.replace("-", " ").uppercase(),
+                breathPhaseLabel(breathPhase).uppercase(),
                 fontSize = 11.sp, fontWeight = FontWeight.Bold,
                 color = Slate500, letterSpacing = 2.sp,
                 modifier = Modifier.padding(top = 4.dp)
@@ -480,12 +494,12 @@ private data class NostrilPhaseData(
 @Composable
 fun NostrilViz() {
     val phases = listOf(
-        NostrilPhaseData("Inhale Left",  "left",  "inhale", Blue400,   Blue500,   "🌊"),
-        NostrilPhaseData("Hold",         "both",  "hold",   Purple400, Violet500, "✨"),
-        NostrilPhaseData("Exhale Right", "right", "exhale", Teal400,   Teal500,   "🍃"),
-        NostrilPhaseData("Inhale Right", "right", "inhale", Teal400,   Teal500,   "🍃"),
-        NostrilPhaseData("Hold",         "both",  "hold",   Purple400, Violet500, "✨"),
-        NostrilPhaseData("Exhale Left",  "left",  "exhale", Blue400,   Blue500,   "🌊"),
+        NostrilPhaseData(stringResource(R.string.dhyan_inhale_left),  "left",  "inhale", Blue400,   Blue500,   "🌊"),
+        NostrilPhaseData(stringResource(R.string.dhyan_phase_hold), "both",  "hold", Purple400, Violet500, "✨"),
+        NostrilPhaseData(stringResource(R.string.dhyan_exhale_right), "right", "exhale", Teal400,   Teal500,   "🍃"),
+        NostrilPhaseData(stringResource(R.string.dhyan_inhale_right), "right", "inhale", Teal400,   Teal500,   "🍃"),
+        NostrilPhaseData(stringResource(R.string.dhyan_phase_hold), "both", "hold", Purple400, Violet500, "✨"),
+        NostrilPhaseData(stringResource(R.string.dhyan_exhale_left), "left", "exhale", Blue400, Blue500, "🌊"),
     )
 
     var idx by remember { mutableIntStateOf(0) }
@@ -529,12 +543,12 @@ fun NostrilViz() {
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("Nadi Shodhana", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Blue600)
-        Text("Alternate Nostril Breathing", fontSize = 12.sp, color = Slate500,
+        Text(stringResource(R.string.dhyan_nadi_shodhana), fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Blue600)
+        Text(stringResource(R.string.dhyan_alternate_nostril), fontSize = 12.sp, color = Slate500,
             modifier = Modifier.padding(top = 4.dp, bottom = 24.dp))
 
         Row(Modifier.fillMaxWidth().height(240.dp), Arrangement.SpaceEvenly, Alignment.CenterVertically) {
-            NostrilChannel("Left", leftFill, Blue500)
+            NostrilChannel(stringResource(R.string.dhyan_left), leftFill, Blue500)
 
             Box(
                 Modifier.size(128.dp * (if (isHold) holdScale else 1f)).clip(CircleShape).background(Color.White),
@@ -551,7 +565,7 @@ fun NostrilViz() {
                 ) { Text(current.icon, fontSize = 28.sp) }
             }
 
-            NostrilChannel("Right", rightFill, Teal500)
+            NostrilChannel(stringResource(R.string.dhyan_right), rightFill, Teal500)
         }
 
         Spacer(Modifier.height(16.dp))
@@ -562,7 +576,21 @@ fun NostrilViz() {
                     Modifier.clip(RoundedCornerShape(20.dp))
                         .background(Brush.horizontalGradient(listOf(p.colorStart, p.colorEnd)))
                         .padding(horizontal = 16.dp, vertical = 6.dp)
-                ) { Text(p.action.uppercase(), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White, letterSpacing = 1.sp) }
+                ) {
+                    Text(
+                        stringResource(
+                            when (p.action) {
+                                "inhale" -> R.string.dhyan_phase_inhale
+                                "exhale" -> R.string.dhyan_phase_exhale
+                                else -> R.string.dhyan_phase_hold
+                            }
+                        ).uppercase(),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        letterSpacing = 1.sp,
+                    )
+                }
                 Spacer(Modifier.height(6.dp))
                 Text(p.label, fontSize = 20.sp, fontWeight = FontWeight.Light, color = Slate700)
             }
@@ -571,8 +599,8 @@ fun NostrilViz() {
         Spacer(Modifier.height(16.dp))
         LinearProgressIndicator({ phaseProgress.value }, Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)), color = current.colorEnd, trackColor = Slate200)
         Row(Modifier.fillMaxWidth().padding(top = 6.dp), Arrangement.SpaceBetween) {
-            Text("Cycle ${idx / 6 + 1}", fontSize = 11.sp, color = Slate400)
-            Text("Phase ${idx + 1}/6", fontSize = 11.sp, color = Slate400)
+            Text(stringResource(R.string.dhyan_cycle_number, idx / 6 + 1), fontSize = 11.sp, color = Slate400)
+            Text(stringResource(R.string.dhyan_phase_number, idx + 1), fontSize = 11.sp, color = Slate400)
         }
 
         Spacer(Modifier.height(16.dp))
@@ -588,31 +616,31 @@ fun NostrilViz() {
                     Modifier.fillMaxSize()
                         .background(Brush.horizontalGradient(listOf(Blue500, Violet500)), RoundedCornerShape(12.dp)),
                     Alignment.Center
-                ) { Text(if (isPlaying) "⏸ Pause" else "▶ Play", color = Color.White, fontWeight = FontWeight.Medium) }
+                ) { Text(if (isPlaying) stringResource(R.string.dhyan_pause_button) else stringResource(R.string.dhyan_play_button), color = Color.White, fontWeight = FontWeight.Medium) }
             }
             OutlinedButton({ idx = 0; isPlaying = false }, Modifier.weight(1f).height(48.dp), shape = RoundedCornerShape(12.dp)) {
-                Text("↻ Reset")
+                Text(stringResource(R.string.dhyan_reset_button))
             }
         }
 
         Spacer(Modifier.height(12.dp))
         Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Slate100).padding(12.dp)) {
             Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
-                Text("Speed", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = Slate600)
+                Text(stringResource(R.string.dhyan_speed), fontSize = 13.sp, fontWeight = FontWeight.Medium, color = Slate600)
                 Text("${speed}x", fontSize = 13.sp, color = Slate500)
             }
             Slider(speed, { speed = it }, valueRange = 0.5f..2f, steps = 5, modifier = Modifier.fillMaxWidth(),
                 colors = SliderDefaults.colors(thumbColor = Violet500, activeTrackColor = Violet500))
             Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
-                Text("Slower", fontSize = 11.sp, color = Slate400)
-                Text("Faster", fontSize = 11.sp, color = Slate400)
+                Text(stringResource(R.string.dhyan_slower), fontSize = 11.sp, color = Slate400)
+                Text(stringResource(R.string.dhyan_faster), fontSize = 11.sp, color = Slate400)
             }
         }
 
         Spacer(Modifier.height(12.dp))
         Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Blue50).padding(12.dp)) {
             Text(
-                "Tip: Nadi Shodhana balances the left and right hemispheres of the brain, promoting calmness and mental clarity. Practice for 5–10 minutes daily.",
+                stringResource(R.string.dhyan_nadi_tip),
                 fontSize = 12.sp, color = Slate600, lineHeight = 18.sp
             )
         }

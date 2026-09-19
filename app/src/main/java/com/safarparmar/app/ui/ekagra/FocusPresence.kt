@@ -1,6 +1,7 @@
 package com.safarparmar.app.ui.ekagra
 
-internal const val PRESENCE_INTERVAL_SECONDS = 90 * 60
+// Temporary QA interval. Restore to `3 * 60 * 60` after the presence flow is approved.
+internal const val PRESENCE_INTERVAL_SECONDS = 30
 internal const val PRESENCE_GRACE_MS = 2 * 60 * 1000L
 internal data class PresenceAdvance(val creditedSeconds: Int, val deadline: Long, val expired: Boolean)
 
@@ -13,3 +14,8 @@ internal fun advancePresence(activeSeconds: Int, deadline: Long, elapsedSeconds:
     val credited = if (expired) (elapsedSeconds - ((now - nextDeadline + 999) / 1000).toInt()).coerceIn(0, elapsed) else elapsed
     return PresenceAdvance(credited, nextDeadline, expired)
 }
+
+/** Stopwatch stores elapsed seconds, which must never be clamped to a countdown target. */
+internal fun restoredTimerSeconds(mode: TimerMode, savedSeconds: Int, totalSeconds: Int): Int =
+    if (mode == TimerMode.STOPWATCH) savedSeconds.coerceAtLeast(0)
+    else savedSeconds.coerceIn(0, totalSeconds.coerceAtLeast(0))

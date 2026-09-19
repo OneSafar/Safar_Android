@@ -37,6 +37,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -47,6 +48,8 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.os.LocaleListCompat
 import coil.compose.AsyncImage
 import coil.compose.SubcomposeAsyncImage
 import coil.compose.SubcomposeAsyncImageContent
@@ -61,6 +64,7 @@ import com.safarparmar.app.ui.studyplanner.plan.PlanHairline
 import com.safarparmar.app.ui.theme.LoraFontFamily
 import com.safarparmar.app.ui.theme.SafarSemanticColors
 import com.safarparmar.app.ui.theme.isLightBackground
+import com.safarparmar.app.R
 
 private val examOptions = listOf("UPSC", "SSC", "IBPS", "RRB", "NEET", "JEE", "12th Boards", "State PSC", "CAT", "GATE", "Other")
 private val stageOptions = listOf("Beginner", "Intermediate", "Advanced", "Revision", "Mock Tests")
@@ -105,13 +109,14 @@ fun ProfileScreen(
     val context = LocalContext.current
     val scheme = MaterialTheme.colorScheme
     var showAvatarPreview by rememberSaveable { mutableStateOf(false) }
+    var showLanguageDialog by rememberSaveable { mutableStateOf(false) }
     val imagePicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let { viewModel.onEvent(ProfileEvent.UploadAvatar(it)) }
     }
 
     LaunchedEffect(uiState.saveSuccess) {
         if (uiState.saveSuccess) {
-            Toast.makeText(context, "Profile saved successfully!", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(R.string.profile_saved_success), Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -123,14 +128,14 @@ fun ProfileScreen(
 
     LaunchedEffect(uiState.avatarUploadSuccess) {
         if (uiState.avatarUploadSuccess) {
-            Toast.makeText(context, "Profile photo updated!", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(R.string.profile_photo_updated), Toast.LENGTH_SHORT).show()
             viewModel.onEvent(ProfileEvent.ClearAvatarUploadSuccess)
         }
     }
 
     CompositionLocalProvider(LocalPlannerIsDarkTheme provides isDarkTheme) {
         SafarDrawerScaffold(
-            title = "Profile",
+            title = stringResource(R.string.profile_title),
             subtitle = null,
             currentRoute = currentRoute,
             isDarkTheme = isDarkTheme,
@@ -151,7 +156,7 @@ fun ProfileScreen(
                     } else {
                         Icon(
                             imageVector = Icons.Default.Check,
-                            contentDescription = "Save Profile",
+                            contentDescription = stringResource(R.string.profile_save_content_description),
                             tint = SafarSemanticColors.brandPurple()
                         )
                     }
@@ -175,10 +180,46 @@ fun ProfileScreen(
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(
-                            text = "Update your personal and exam details",
+                            text = stringResource(R.string.profile_update_details),
                             fontSize = 13.sp,
                             color = PlannerFlatColors.TextMuted,
                         )
+                    }
+
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { showLanguageDialog = true },
+                        shape = RoundedCornerShape(14.dp),
+                        color = MaterialTheme.colorScheme.surface,
+                        tonalElevation = 1.dp,
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = stringResource(R.string.profile_language_title),
+                                    fontWeight = FontWeight.Bold,
+                                    color = PlannerFlatColors.TextDark,
+                                )
+                                Text(
+                                    text = stringResource(R.string.profile_language_subtitle),
+                                    fontSize = 12.sp,
+                                    color = PlannerFlatColors.TextMuted,
+                                )
+                            }
+                            Text(
+                                text = when (AppCompatDelegate.getApplicationLocales().toLanguageTags()) {
+                                    "hi" -> stringResource(R.string.profile_language_hindi)
+                                    "hi-Latn" -> stringResource(R.string.profile_language_hinglish)
+                                    else -> stringResource(R.string.profile_language_english)
+                                },
+                                color = SafarSemanticColors.brandPurple(),
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
                     }
 
                     StaggeredProfileEntranceBox(index = 0, isVisible = profileVisible) {
@@ -195,7 +236,7 @@ fun ProfileScreen(
                     PlanHairline(alpha = 0.5f)
 
                     StaggeredProfileEntranceBox(index = 1, isVisible = profileVisible) {
-                        ProfileSheetSection(title = "Personal Information") {
+                        ProfileSheetSection(title = stringResource(R.string.profile_personal_information)) {
                             PersonalInfoFields(uiState = uiState, viewModel = viewModel)
                         }
                     }
@@ -203,7 +244,7 @@ fun ProfileScreen(
                     PlanHairline(alpha = 0.5f)
 
                     StaggeredProfileEntranceBox(index = 2, isVisible = profileVisible) {
-                        ProfileSheetSection(title = "Academic & Exam Focus") {
+                        ProfileSheetSection(title = stringResource(R.string.profile_academic_focus)) {
                             ExamFocusFields(uiState = uiState, viewModel = viewModel)
                         }
                     }
@@ -211,7 +252,7 @@ fun ProfileScreen(
                     PlanHairline(alpha = 0.5f)
 
                     StaggeredProfileEntranceBox(index = 3, isVisible = profileVisible) {
-                        ProfileSheetSection(title = "Account & Subscription") {
+                        ProfileSheetSection(title = stringResource(R.string.profile_account_subscription)) {
                             AccountStatusRow(
                                 isPremiumActive = premiumStatus.hasAnyPaidAccess,
                                 onPremiumClick = onPremium,
@@ -258,6 +299,36 @@ fun ProfileScreen(
                 )
             }
 
+            if (showLanguageDialog) {
+                val choices = listOf(
+                    "en" to stringResource(R.string.profile_language_english),
+                    "hi" to stringResource(R.string.profile_language_hindi),
+                    "hi-Latn" to stringResource(R.string.profile_language_hinglish),
+                )
+                AlertDialog(
+                    onDismissRequest = { showLanguageDialog = false },
+                    title = { Text(stringResource(R.string.profile_language_dialog_title)) },
+                    text = {
+                        Column {
+                            choices.forEach { (languageTag, label) ->
+                                TextButton(
+                                    onClick = {
+                                        showLanguageDialog = false
+                                        AppCompatDelegate.setApplicationLocales(
+                                            LocaleListCompat.forLanguageTags(languageTag)
+                                        )
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    Text(label, modifier = Modifier.fillMaxWidth())
+                                }
+                            }
+                        }
+                    },
+                    confirmButton = {},
+                )
+            }
+
             if (uiState.showLogoutDialog || uiState.isLoggingOut) {
                 AlertDialog(
                     onDismissRequest = {
@@ -265,8 +336,8 @@ fun ProfileScreen(
                     },
                     containerColor = SafarSemanticColors.plannerBackground(),
                     icon = { Icon(Icons.AutoMirrored.Filled.Logout, null, tint = scheme.error) },
-                    title = { Text("Confirm Logout", fontFamily = LoraFontFamily, fontSize = 20.sp, fontWeight = FontWeight.Normal, color = PlannerFlatColors.TextDark) },
-                    text = { Text("Are you sure you want to logout? You will need to sign in again to access SAFAR features.", fontSize = 14.sp, color = PlannerFlatColors.TextMuted) },
+                    title = { Text(stringResource(R.string.profile_confirm_logout), fontFamily = LoraFontFamily, fontSize = 20.sp, fontWeight = FontWeight.Normal, color = PlannerFlatColors.TextDark) },
+                    text = { Text(stringResource(R.string.profile_logout_message), fontSize = 14.sp, color = PlannerFlatColors.TextMuted) },
                     confirmButton = {
                         Button(
                             onClick = { viewModel.logout { onLogout() } },
@@ -281,16 +352,16 @@ fun ProfileScreen(
                                     color = Color.White,
                                 )
                                 Spacer(Modifier.width(8.dp))
-                                Text("Logging out...", fontWeight = FontWeight.Bold)
+                                Text(stringResource(R.string.profile_logging_out), fontWeight = FontWeight.Bold)
                             } else {
-                                Text("Logout", fontWeight = FontWeight.Bold)
+                                Text(stringResource(R.string.profile_logout), fontWeight = FontWeight.Bold)
                             }
                         }
                     },
                     dismissButton = {
                         if (!uiState.isLoggingOut) {
                             TextButton(onClick = { viewModel.onEvent(ProfileEvent.DismissLogoutDialog) }) {
-                                Text("Cancel", fontWeight = FontWeight.Bold, color = PlannerFlatColors.TextMuted)
+                                Text(stringResource(R.string.profile_cancel), fontWeight = FontWeight.Bold, color = PlannerFlatColors.TextMuted)
                             }
                         }
                     },
@@ -339,7 +410,7 @@ private fun ProfileHeaderSection(
                 if (avatarUrl != null) {
                     SubcomposeAsyncImage(
                         model = avatarUrl,
-                        contentDescription = "Profile photo",
+                        contentDescription = stringResource(R.string.profile_photo),
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop,
                     ) {
@@ -380,7 +451,7 @@ private fun ProfileHeaderSection(
             ) {
                 Icon(
                     imageVector = Icons.Default.CameraAlt,
-                    contentDescription = "Change profile photo",
+                    contentDescription = stringResource(R.string.profile_change_photo),
                     tint = SafarSemanticColors.brandOnPurple(),
                     modifier = Modifier.size(16.dp),
                 )
@@ -419,7 +490,7 @@ private fun ProfilePhotoPreview(
         ) {
             AsyncImage(
                 model = avatarUrl,
-                contentDescription = "$userName profile photo, full screen",
+                contentDescription = stringResource(R.string.profile_photo_fullscreen, userName),
                 modifier = Modifier.fillMaxWidth(),
                 contentScale = ContentScale.Fit,
             )
@@ -431,10 +502,10 @@ private fun ProfilePhotoPreview(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 IconButton(onClick = onEdit) {
-                    Icon(Icons.Default.CameraAlt, contentDescription = "Change profile photo", tint = Color.White)
+                    Icon(Icons.Default.CameraAlt, contentDescription = stringResource(R.string.profile_change_photo), tint = Color.White)
                 }
                 IconButton(onClick = onDismiss) {
-                    Icon(Icons.Default.Close, contentDescription = "Close profile photo", tint = Color.White)
+                    Icon(Icons.Default.Close, contentDescription = stringResource(R.string.profile_close_photo), tint = Color.White)
                 }
             }
         }
@@ -448,16 +519,16 @@ private fun PersonalInfoFields(uiState: ProfileUiState, viewModel: ProfileViewMo
 
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         ProfileTextField(
-            label = "FULL NAME",
+            label = stringResource(R.string.profile_full_name),
             value = uiState.editName,
             onValueChange = { viewModel.onEvent(ProfileEvent.UpdateName(it)) },
             leadingIcon = Icons.Default.Badge,
             errorText = uiState.nameError,
-            placeholder = "Enter your full name"
+            placeholder = stringResource(R.string.profile_full_name_placeholder)
         )
 
         ProfileTextField(
-            label = "EMAIL ADDRESS",
+            label = stringResource(R.string.profile_email_address),
             value = uiState.userEmail,
             onValueChange = {},
             enabled = false,
@@ -466,11 +537,11 @@ private fun PersonalInfoFields(uiState: ProfileUiState, viewModel: ProfileViewMo
                 if (uiState.userEmail.isNotBlank()) {
                     IconButton(onClick = {
                         clipboardManager.setText(AnnotatedString(uiState.userEmail))
-                        Toast.makeText(context, "Email copied to clipboard", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, context.getString(R.string.profile_email_copied), Toast.LENGTH_SHORT).show()
                     }) {
                         Icon(
                             imageVector = Icons.Default.ContentCopy,
-                            contentDescription = "Copy Email",
+                            contentDescription = stringResource(R.string.profile_copy_email),
                             tint = PlannerFlatColors.TextMuted,
                             modifier = Modifier.size(18.dp)
                         )
@@ -478,21 +549,30 @@ private fun PersonalInfoFields(uiState: ProfileUiState, viewModel: ProfileViewMo
                 } else {
                     Icon(
                         imageVector = Icons.Default.Lock,
-                        contentDescription = "Primary Email",
+                        contentDescription = stringResource(R.string.profile_primary_email),
                         tint = PlannerFlatColors.TextMuted,
                         modifier = Modifier.size(18.dp)
                     )
                 }
             },
-            helperText = "Linked to your account.",
+            helperText = stringResource(R.string.profile_email_linked),
         )
 
         ProfileDropdownMenu(
-            label = "GENDER",
+            label = stringResource(R.string.profile_gender),
             options = genderOptions,
-            selectedOption = uiState.editGender.ifEmpty { "Select gender" },
+            selectedOption = uiState.editGender.ifEmpty { stringResource(R.string.profile_select_gender) },
             onSelect = { viewModel.onEvent(ProfileEvent.UpdateGender(it)) },
             leadingIcon = Icons.Default.Person,
+            optionLabel = { value ->
+                when (value) {
+                    "Male" -> stringResource(R.string.profile_option_male)
+                    "Female" -> stringResource(R.string.profile_option_female)
+                    "Other" -> stringResource(R.string.profile_option_other)
+                    "Prefer not to say" -> stringResource(R.string.profile_option_private)
+                    else -> value
+                }
+            },
         )
     }
 }
@@ -501,19 +581,30 @@ private fun PersonalInfoFields(uiState: ProfileUiState, viewModel: ProfileViewMo
 private fun ExamFocusFields(uiState: ProfileUiState, viewModel: ProfileViewModel) {
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         ProfileDropdownMenu(
-            label = "TARGET EXAM",
+            label = stringResource(R.string.profile_target_exam),
             options = examOptions,
-            selectedOption = uiState.editExamType.ifEmpty { "Select target exam" },
+            selectedOption = uiState.editExamType.ifEmpty { stringResource(R.string.profile_select_target_exam) },
             onSelect = { viewModel.onEvent(ProfileEvent.UpdateExamType(it)) },
             leadingIcon = Icons.Default.School,
+            optionLabel = { value -> if (value == "Other") stringResource(R.string.profile_option_other_exam) else value },
         )
 
         ProfileDropdownMenu(
-            label = "PREPARATION STAGE",
+            label = stringResource(R.string.profile_preparation_stage),
             options = stageOptions,
-            selectedOption = uiState.editStage.ifEmpty { "Select preparation stage" },
+            selectedOption = uiState.editStage.ifEmpty { stringResource(R.string.profile_select_preparation_stage) },
             onSelect = { viewModel.onEvent(ProfileEvent.UpdateStage(it)) },
             leadingIcon = Icons.Default.BarChart,
+            optionLabel = { value ->
+                when (value) {
+                    "Beginner" -> stringResource(R.string.profile_option_beginner)
+                    "Intermediate" -> stringResource(R.string.profile_option_intermediate)
+                    "Advanced" -> stringResource(R.string.profile_option_advanced)
+                    "Revision" -> stringResource(R.string.profile_option_revision)
+                    "Mock Tests" -> stringResource(R.string.profile_option_mock_tests)
+                    else -> value
+                }
+            },
         )
     }
 }
@@ -524,9 +615,9 @@ private fun AccountStatusRow(
     onPremiumClick: () -> Unit = {},
 ) {
     val scheme = MaterialTheme.colorScheme
-    val statusTitle = if (isPremiumActive) "Safar Premium" else "Safar Plus"
-    val statusText = if (isPremiumActive) "Premium subscription active" else "Free Access Plan"
-    val buttonText = if (isPremiumActive) "Manage Plan" else "Explore Premium"
+    val statusTitle = stringResource(if (isPremiumActive) R.string.profile_safar_premium else R.string.profile_safar_plus)
+    val statusText = stringResource(if (isPremiumActive) R.string.profile_premium_active else R.string.profile_free_plan)
+    val buttonText = stringResource(if (isPremiumActive) R.string.profile_manage_plan else R.string.profile_explore_premium)
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -601,7 +692,7 @@ private fun ActionsRow(
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         MacOSPrimaryActionButton(
-            text = "Save Profile",
+            text = stringResource(R.string.profile_save_profile),
             onClick = onSaveClick,
             enabled = !isSaving,
             isLoading = isSaving,
@@ -634,7 +725,7 @@ private fun ActionsRow(
                         modifier = Modifier.size(16.dp)
                     )
                     Text(
-                        text = "Logout",
+                        text = stringResource(R.string.profile_logout),
                         fontSize = 13.5.sp,
                         fontWeight = FontWeight.Bold,
                         color = scheme.error
@@ -664,7 +755,7 @@ private fun ActionsRow(
                         modifier = Modifier.size(16.dp)
                     )
                     Text(
-                        text = "Delete Account",
+                        text = stringResource(R.string.profile_delete_account),
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFFE11D48)
@@ -744,6 +835,7 @@ private fun ProfileDropdownMenu(
     onSelect: (String) -> Unit,
     leadingIcon: ImageVector? = null,
     modifier: Modifier = Modifier,
+    optionLabel: @Composable (String) -> String = { it },
 ) {
     var expanded by remember { mutableStateOf(false) }
     val scheme = MaterialTheme.colorScheme
@@ -765,7 +857,7 @@ private fun ProfileDropdownMenu(
             modifier = Modifier.fillMaxWidth()
         ) {
             OutlinedTextField(
-                value = selectedOption,
+                value = optionLabel(selectedOption),
                 onValueChange = {},
                 readOnly = true,
                 modifier = Modifier
@@ -793,7 +885,7 @@ private fun ProfileDropdownMenu(
             ) {
                 options.forEach { opt ->
                     DropdownMenuItem(
-                        text = { Text(text = opt, fontSize = 15.sp, color = PlannerFlatColors.TextDark) },
+                        text = { Text(text = optionLabel(opt), fontSize = 15.sp, color = PlannerFlatColors.TextDark) },
                         onClick = {
                             onSelect(opt)
                             expanded = false
@@ -814,7 +906,7 @@ private fun FooterSection() {
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            text = "For support or queries, reach us at:\nonesafar@gmail.com • safarparmar0@gmail.com",
+            text = stringResource(R.string.profile_support_contact),
             fontSize = 11.sp,
             color = PlannerFlatColors.TextMuted,
             textAlign = TextAlign.Center,
@@ -822,7 +914,7 @@ private fun FooterSection() {
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            text = "© 2026 SAFAR • Version 1.0.4",
+            text = stringResource(R.string.profile_footer_version),
             fontSize = 11.sp,
             color = PlannerFlatColors.TextMuted.copy(alpha = 0.7f),
         )

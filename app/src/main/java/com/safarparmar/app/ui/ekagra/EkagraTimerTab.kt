@@ -119,7 +119,7 @@ internal fun EkagraPipOverlay(
                     .clip(RoundedCornerShape(999.dp)).background(pipAccent))
             }
             Text(
-                when { shieldActive -> "SHIELD ACTIVE"; timerRunning -> "FOCUSING"; else -> "PAUSED" },
+                when { shieldActive -> stringResource(R.string.ekagra_shield_active); timerRunning -> stringResource(R.string.ekagra_focusing); else -> stringResource(R.string.ekagra_paused) },
                 fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.sp,
                 color = if (shieldActive) pipAccent else Color.White.copy(0.65f),
             )
@@ -303,12 +303,12 @@ internal fun TimerFocusTab(
                             )
                             Text(
                                 text = when {
-                                    shieldState.isProtectionActive && alwaysOn -> "Kavach Always On · Active"
-                                    shieldState.isProtectionActive -> "Kavach active"
-                                    shieldState.isProtectionStarting -> "Kavach starting…"
-                                    shieldState.isEnabled && !isRunning -> "Kavach ready"
-                                    shieldState.isEnabled -> "Kavach unavailable"
-                                    else -> "Kavach off"
+                                    shieldState.isProtectionActive && alwaysOn -> stringResource(R.string.ekagra_kavach_always_active)
+                                    shieldState.isProtectionActive -> stringResource(R.string.ekagra_kavach_active)
+                                    shieldState.isProtectionStarting -> stringResource(R.string.ekagra_kavach_starting)
+                                    shieldState.isEnabled && !isRunning -> stringResource(R.string.ekagra_kavach_ready)
+                                    shieldState.isEnabled -> stringResource(R.string.ekagra_kavach_unavailable)
+                                    else -> stringResource(R.string.ekagra_kavach_off)
                                 },
                                 fontSize = EkagraChrome.text(12f),
                                 fontWeight = FontWeight.SemiBold,
@@ -319,6 +319,7 @@ internal fun TimerFocusTab(
                     }
                 }
             }
+
 
             val clampedProgress = progress.coerceIn(0f, 1f)
             // ── One thin ring, one accent ─────────────────────────────────────
@@ -399,10 +400,10 @@ internal fun TimerFocusTab(
                                shrinkVertically(animationSpec = tween(400, easing = FastOutSlowInEasing))
                     ) {
                         val subtext = when (timerMode) {
-                            TimerMode.STOPWATCH -> if (isRunning) "Stopwatch running" else "Ready to start"
-                            TimerMode.BREAK -> if (isRunning) "Break running" else "Ready to break"
-                            TimerMode.POMODORO -> if (isRunning) "Pomodoro running" else "Ready for Pomodoro"
-                            else -> if (isRunning) "Ekagra running" else "Ready to ekagra"
+                            TimerMode.STOPWATCH -> if (isRunning) stringResource(R.string.ekagra_stopwatch_running) else stringResource(R.string.ekagra_ready_start)
+                            TimerMode.BREAK -> if (isRunning) stringResource(R.string.ekagra_break_running) else stringResource(R.string.ekagra_ready_break)
+                            TimerMode.POMODORO -> if (isRunning) stringResource(R.string.ekagra_pomodoro_running) else stringResource(R.string.ekagra_ready_pomodoro)
+                            else -> if (isRunning) stringResource(R.string.ekagra_running) else stringResource(R.string.ekagra_ready)
                         }
                         Text(
                             subtext,
@@ -425,22 +426,22 @@ internal fun TimerFocusTab(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 EkagraGhostAction(
-                    label = if (timerMode == TimerMode.BREAK) "End break" else "End",
+                    label = if (timerMode == TimerMode.BREAK) stringResource(R.string.ekagra_end_break) else stringResource(R.string.common_end),
                     ink   = ink,
                     onClick = onReset,
                 )
                 EkagraPrimaryAction(
                     label = when {
-                        isRunning   -> "Pause"
-                        hasProgress -> "Resume"
-                        else        -> "Start"
+                        isRunning   -> stringResource(R.string.common_pause)
+                        hasProgress -> stringResource(R.string.common_resume)
+                        else        -> stringResource(R.string.common_start)
                     },
                     accent  = themeAccent,
                     onClick = onPlayPause,
                 )
                 if (canStartBreak) {
                     EkagraGhostAction(
-                        label = "Break",
+                        label = stringResource(R.string.ekagra_break),
                         ink   = ink,
                         onClick = onStartBreak,
                     )
@@ -526,7 +527,7 @@ internal fun EkagraYouTubeStudyBanner(
             ) {
                 Icon(
                     imageVector = Icons.Default.PlayArrow,
-                    contentDescription = "YouTube",
+                    contentDescription = stringResource(R.string.ekagra_youtube),
                     tint = Color.White,
                     modifier = Modifier.size(16.dp),
                 )
@@ -538,14 +539,14 @@ internal fun EkagraYouTubeStudyBanner(
                 verticalArrangement = Arrangement.spacedBy(1.dp),
             ) {
                 Text(
-                    text = "Studying on YouTube?",
+                    text = stringResource(R.string.ekagra_studying_youtube),
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
                     color = ink.primaryText,
                     maxLines = 1,
                 )
                 Text(
-                    text = "Try YouTube Focus",
+                    text = stringResource(R.string.ekagra_try_youtube_focus),
                     fontSize = 10.5.sp,
                     fontWeight = FontWeight.Medium,
                     color = ink.secondaryText,
@@ -565,7 +566,7 @@ internal fun EkagraYouTubeStudyBanner(
                 ),
             ) {
                 Text(
-                    text = "Enable",
+                    text = stringResource(R.string.common_enable),
                     fontSize = 11.5.sp,
                     fontWeight = FontWeight.SemiBold,
                 )

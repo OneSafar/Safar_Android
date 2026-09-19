@@ -133,7 +133,7 @@ fun EkagraKavachInlineCard(
     fun onKavachToggle(enabled: Boolean) {
         if (enabled) {
             if (shieldState.blockedPackages.isEmpty()) {
-                android.widget.Toast.makeText(context, "Select an app to block first", android.widget.Toast.LENGTH_SHORT).show()
+                android.widget.Toast.makeText(context, context.getString(R.string.kavach_select_app_first), android.widget.Toast.LENGTH_SHORT).show()
                 return
             }
             if (requiredPermissionsGranted) onToggleEnabled(true) else onSetupPermissions()
@@ -177,20 +177,20 @@ fun EkagraKavachInlineCard(
                     Text(
                         text = when {
                             !shieldState.isEnabled -> {
-                                if (isSessionRunning) "Shield is off. Distracting apps won't be blocked."
+                                if (isSessionRunning) stringResource(R.string.kavach_shield_off_active_session)
                                 else stringResource(R.string.kavach_off_hint)
                             }
                             startBlock == KavachStartBlock.NeedsPermissions -> {
-                                if (isSessionRunning) "Allow permissions below to activate blocking immediately"
-                                else "Allow permissions below, then start ekagra"
+                                if (isSessionRunning) stringResource(R.string.kavach_allow_permissions_now)
+                                else stringResource(R.string.kavach_allow_permissions_before_ekagra)
                             }
                             startBlock == KavachStartBlock.NeedsApps -> {
-                                if (isSessionRunning) "Choose apps to block during this active session"
-                                else "Choose apps to block during this session"
+                                if (isSessionRunning) stringResource(R.string.kavach_choose_apps_active_session)
+                                else stringResource(R.string.kavach_choose_apps_session)
                             }
                             else -> {
                                 when {
-                                    isSessionRunning -> "Ekagra Shield is active and blocking distracting apps."
+                                    isSessionRunning -> stringResource(R.string.kavach_shield_active_blocking)
                                     else -> stringResource(R.string.kavach_enabled_ekagra_hint)
                                 }
                             }
@@ -242,7 +242,7 @@ fun EkagraKavachInlineCard(
                                 verticalArrangement = Arrangement.spacedBy(8.dp),
                             ) {
                                 Text(
-                                    text = "OPTIONAL PROTECTION PERMISSIONS",
+                                    text = stringResource(R.string.kavach_optional_permissions),
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold,
                                     letterSpacing = 1.sp,
@@ -266,19 +266,19 @@ fun EkagraKavachInlineCard(
                                         Spacer(Modifier.width(10.dp))
                                         Column(Modifier.weight(1f)) {
                                             Text(
-                                                text = "Notification Shield",
+                                                text = stringResource(R.string.kavach_notification_shield),
                                                 fontSize = 12.sp,
                                                 fontWeight = FontWeight.SemiBold,
                                                 color = scheme.onSurface,
                                             )
                                             Text(
-                                                text = "Silence notifications from blocked apps.",
+                                                text = stringResource(R.string.kavach_notification_shield_short_body),
                                                 fontSize = 11.sp,
                                                 color = secondaryText,
                                             )
                                         }
                                         Text(
-                                            text = "Enable",
+                                            text = stringResource(R.string.common_enable),
                                             fontSize = 12.sp,
                                             fontWeight = FontWeight.Bold,
                                             color = KavachDesign.Primary,
@@ -306,19 +306,19 @@ fun EkagraKavachInlineCard(
                                         Spacer(Modifier.width(10.dp))
                                         Column(Modifier.weight(1f)) {
                                             Text(
-                                                text = "Timer Notifications",
+                                                text = stringResource(R.string.kavach_timer_notifications),
                                                 fontSize = 12.sp,
                                                 fontWeight = FontWeight.SemiBold,
                                                 color = scheme.onSurface,
                                             )
                                             Text(
-                                                text = "Show timer progress on lock screen.",
+                                                text = stringResource(R.string.kavach_timer_notifications_body),
                                                 fontSize = 11.sp,
                                                 color = secondaryText,
                                             )
                                         }
                                         Text(
-                                            text = "Enable",
+                                            text = stringResource(R.string.common_enable),
                                             fontSize = 12.sp,
                                             fontWeight = FontWeight.Bold,
                                             color = KavachDesign.Primary,
@@ -348,8 +348,8 @@ fun EkagraKavachInlineCard(
                             Icon(Icons.Default.CheckCircle, contentDescription = null, tint = accent, modifier = Modifier.size(16.dp))
                             Text(
                                 text = when {
-                                    isSessionRunning -> "KAVACH is active and blocking apps"
-                                    else -> "KAVACH will run when you start the timer"
+                                    isSessionRunning -> stringResource(R.string.kavach_active_blocking_apps)
+                                    else -> stringResource(R.string.kavach_runs_with_timer)
                                 },
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.SemiBold,
@@ -411,7 +411,7 @@ private fun EkagraKavachAppsRow(
             )
         }
         Text(
-            text = if (needsApps) "Choose" else "Edit",
+            text = if (needsApps) stringResource(R.string.common_choose) else stringResource(R.string.common_edit),
             fontSize = 12.sp,
             fontWeight = FontWeight.Bold,
             color = KavachDesign.Primary,

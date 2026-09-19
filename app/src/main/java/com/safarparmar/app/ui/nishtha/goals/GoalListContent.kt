@@ -47,12 +47,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.safarparmar.app.domain.model.Goal
+import com.safarparmar.app.R
 import com.safarparmar.app.ui.components.GoalRowSkeleton
 import com.safarparmar.app.ui.components.SafarEmptyState
 import com.safarparmar.app.ui.components.SafarErrorState
@@ -134,9 +136,9 @@ internal fun GoalsTab(
     }
     if (goals.isEmpty()) {
         SafarEmptyState(
-            title = "No goals yet",
-            message = "Add a goal to get started on your study plan.",
-            primaryActionLabel = "Add Goal",
+            title = stringResource(R.string.goals_none_yet),
+            message = stringResource(R.string.goals_none_help),
+            primaryActionLabel = stringResource(R.string.goals_add_goal),
             onPrimaryAction = onAddClick,
             modifier = Modifier.fillMaxSize().background(GoalsFlatColors.Bg),
         )
@@ -167,13 +169,13 @@ internal fun GoalsTab(
                 ) {
                     if (filterMode == "today") {
                         if (pending.isNotEmpty()) {
-                            item { FlatSectionEyebrow("Pending · ${pending.size} tasks") }
+                            item { FlatSectionEyebrow(stringResource(R.string.goals_pending_tasks, pending.size)) }
                             itemsIndexed(pending, key = { _, g -> g.id }) { index, goal ->
                                 GoalItem(goal, onComplete = { onComplete(goal) }, onReopen = { onReopen(goal) }, onEdit = { onEdit(goal) }, onDelete = { onDelete(goal) })
                                 if (index < pending.lastIndex) PlanHairline(alpha = 0.5f)
                             }
                         } else {
-                            item { EmptyGoalsCard("All caught up! Time to plan more?", "Anything scheduled for later stays in the upcoming section.") }
+                            item { EmptyGoalsCard(stringResource(R.string.goals_all_caught_up), stringResource(R.string.goals_upcoming_stays_help)) }
                         }
                         val completedToday = completed.filter { it.anchorDateKey() == todayKey }
                         if (completedToday.isNotEmpty()) {
@@ -181,7 +183,7 @@ internal fun GoalsTab(
                                 Spacer(Modifier.height(18.dp))
                                 PlanHairline()
                                 Spacer(Modifier.height(14.dp))
-                                FlatSectionEyebrow("Completed · ${completedToday.size} tasks")
+                                FlatSectionEyebrow(stringResource(R.string.goals_completed_tasks, completedToday.size))
                             }
                             itemsIndexed(completedToday, key = { _, g -> g.id }) { index, goal ->
                                 GoalItem(goal, onComplete = { onComplete(goal) }, onReopen = { onReopen(goal) }, onEdit = { onEdit(goal) }, onDelete = { onDelete(goal) })
@@ -190,23 +192,23 @@ internal fun GoalsTab(
                         }
                     } else if (filterMode == "upcoming") {
                         if (scheduled.isNotEmpty()) {
-                            item { FlatSectionEyebrow("Scheduled · ${scheduled.size} tasks") }
+                            item { FlatSectionEyebrow(stringResource(R.string.goals_scheduled_tasks, scheduled.size)) }
                             itemsIndexed(scheduled, key = { _, g -> "scheduled-${g.id}" }) { index, goal ->
                                 GoalItem(goal, onComplete = { onComplete(goal) }, onReopen = { onReopen(goal) }, onEdit = { onEdit(goal) }, onDelete = { onDelete(goal) })
                                 if (index < scheduled.lastIndex) PlanHairline(alpha = 0.5f)
                             }
                         } else {
-                            item { EmptyGoalsCard("No upcoming tasks", "You have no tasks scheduled for later dates.") }
+                            item { EmptyGoalsCard(stringResource(R.string.goals_no_upcoming), stringResource(R.string.goals_no_upcoming_help)) }
                         }
                     } else if (filterMode == "missed") {
                         if (missed.isNotEmpty()) {
-                            item { FlatSectionEyebrow("Missed · ${missed.size} tasks") }
+                            item { FlatSectionEyebrow(stringResource(R.string.goals_missed_tasks, missed.size)) }
                             itemsIndexed(missed, key = { _, g -> "missed-${g.id}" }) { index, goal ->
                                 GoalItem(goal, onComplete = { onComplete(goal) }, onReopen = { onReopen(goal) }, onEdit = { onEdit(goal) }, onDelete = { onDelete(goal) })
                                 if (index < missed.lastIndex) PlanHairline(alpha = 0.5f)
                             }
                         } else {
-                            item { EmptyGoalsCard("No missed goals", "Goals that pass their assigned date will appear here.") }
+                            item { EmptyGoalsCard(stringResource(R.string.goals_no_missed), stringResource(R.string.goals_no_missed_help)) }
                         }
                     }
                 }
@@ -313,24 +315,24 @@ internal fun LivePulseCard(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(
-            "Today Pulse",
+            stringResource(R.string.goals_today_pulse),
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
             letterSpacing = 2.sp,
             color = GoalsFlatColors.Progress,
         )
         Text(
-            "$completedToday completed",
+            stringResource(R.string.goals_completed_count, completedToday),
             fontFamily = LoraFontFamily,
             fontSize = 22.sp,
             color = GoalsFlatColors.Done,
         )
-        Text("$openManualGoals open manual goals", fontSize = 13.sp, color = GoalsFlatColors.Muted)
-        Text("$completionRate% overall completion rate", fontSize = 13.sp, color = GoalsFlatColors.Muted)
+        Text(stringResource(R.string.goals_open_manual_count, openManualGoals), fontSize = 13.sp, color = GoalsFlatColors.Muted)
+        Text(stringResource(R.string.goals_completion_rate, completionRate), fontSize = 13.sp, color = GoalsFlatColors.Muted)
 
         PlanHairline(alpha = 0.5f)
 
-        Text("Study time today", fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp, color = GoalsFlatColors.Muted)
+        Text(stringResource(R.string.goals_study_time_today), fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp, color = GoalsFlatColors.Muted)
         Text(
             formatStudyTime(studyToday),
             fontFamily = LoraFontFamily,
@@ -338,11 +340,11 @@ internal fun LivePulseCard(
             color = GoalsFlatColors.Progress,
         )
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(0.dp)) {
-            StatInfoCard("Manual", formatStudyTime(manualToday), "", Modifier.weight(1f), accent = GoalsFlatColors.Done)
-            StatInfoCard("Ekagra", formatStudyTime(ekagraToday), "", Modifier.weight(1f), accent = GoalsFlatColors.Ekagra)
+            StatInfoCard(stringResource(R.string.goals_manual), formatStudyTime(manualToday), "", Modifier.weight(1f), accent = GoalsFlatColors.Done)
+            StatInfoCard(stringResource(R.string.module_ekagra), formatStudyTime(ekagraToday), "", Modifier.weight(1f), accent = GoalsFlatColors.Ekagra)
         }
 
-        Text("Daily progress", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = GoalsFlatColors.Text)
+        Text(stringResource(R.string.goals_daily_progress), fontSize = 13.sp, fontWeight = FontWeight.Bold, color = GoalsFlatColors.Text)
         LinearProgressIndicator(
             progress = { (dailyProgress / 100f).coerceIn(0f, 1f) },
             modifier = Modifier
@@ -355,10 +357,10 @@ internal fun LivePulseCard(
         Text("$dailyProgress%", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = GoalsFlatColors.Done)
 
         Spacer(Modifier.height(4.dp))
-        Text("Total time studied", fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp, color = GoalsFlatColors.Muted)
-        GoalTimeRow(Icons.Default.Timer, "Ekagra Mode", "", formatStudyTime(totalEkagra), GoalsFlatColors.Ekagra)
+        Text(stringResource(R.string.goals_total_time_studied), fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp, color = GoalsFlatColors.Muted)
+        GoalTimeRow(Icons.Default.Timer, stringResource(R.string.goals_ekagra_mode), "", formatStudyTime(totalEkagra), GoalsFlatColors.Ekagra)
         Spacer(Modifier.height(8.dp))
-        GoalTimeRow(Icons.Default.Book, "Manual Goal", "", formatStudyTime(totalManual), GoalsFlatColors.Done)
+        GoalTimeRow(Icons.Default.Book, stringResource(R.string.goals_manual_goal), "", formatStudyTime(totalManual), GoalsFlatColors.Done)
     }
 }
 
@@ -368,7 +370,7 @@ internal fun ProTipCard() {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = GoalsFlatColors.Scheduled, modifier = Modifier.size(16.dp))
             Text(
-                "Pro tip",
+                stringResource(R.string.goals_pro_tip),
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 2.sp,
@@ -376,7 +378,7 @@ internal fun ProTipCard() {
             )
         }
         Text(
-            "Consistent daily completion is better than occasional bursts. Break large goals into smaller ekagra tasks.",
+            stringResource(R.string.goals_pro_tip_body),
             fontSize = 13.sp,
             color = GoalsFlatColors.Muted,
             lineHeight = 19.sp,
@@ -455,12 +457,12 @@ internal fun GoalItem(
                     }
                     FlatBadge("✓ Done$studiedText", GoalsFlatColors.Done)
                     if (completedViaEkagra) {
-                        FlatBadge("Completed via Ekagra", GoalsFlatColors.Ekagra)
+                        FlatBadge(stringResource(R.string.goals_completed_via_ekagra), GoalsFlatColors.Ekagra)
                     }
                 } else {
                     FlatBadge(goal.goalKindLabel(), badgeColor)
                     if (goal.isMissedGoal()) {
-                        FlatBadge("Missed", GoalsFlatColors.Danger)
+                        FlatBadge(stringResource(R.string.goals_missed), GoalsFlatColors.Danger)
                     }
                     if (goal.unitType != "binary") {
                         FlatBadge(goal.unitTypeLabel(), GoalsFlatColors.Muted)
@@ -472,12 +474,12 @@ internal fun GoalItem(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     modifier = Modifier.padding(top = 5.dp),
                 ) {
-                    FlatBadge("Ekagra mode task", GoalsFlatColors.Ekagra)
+                    FlatBadge(stringResource(R.string.goals_ekagra_task), GoalsFlatColors.Ekagra)
                 }
             }
             goal.assignedDateKey()?.let {
                 Text(
-                    if (goal.isMissedGoal()) "Assigned ${IstDateUtils.labelFor(it)}" else IstDateUtils.labelFor(it),
+                    if (goal.isMissedGoal()) stringResource(R.string.goals_assigned_date, IstDateUtils.labelFor(it)) else IstDateUtils.labelFor(it),
                     fontSize = 11.sp,
                     color = GoalsFlatColors.Muted,
                     modifier = Modifier.padding(top = 4.dp),
@@ -506,7 +508,7 @@ internal fun GoalItem(
             IconButton(onClick = { showMenu = true }, modifier = Modifier.size(28.dp)) {
                 Icon(
                     Icons.Default.MoreVert,
-                    contentDescription = "Options",
+                    contentDescription = stringResource(R.string.common_more_options),
                     modifier = Modifier.size(18.dp),
                     tint = GoalsFlatColors.Muted,
                 )
@@ -514,18 +516,18 @@ internal fun GoalItem(
             DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
                 if (!goal.completed) {
                     DropdownMenuItem(
-                        text = { Text("Mark as done") },
+                        text = { Text(stringResource(R.string.goals_mark_done)) },
                         leadingIcon = { Icon(Icons.Default.CheckCircle, null, tint = GoalsFlatColors.Primary) },
                         onClick = { showMenu = false; onComplete() },
                     )
                     DropdownMenuItem(
-                        text = { Text("Edit") },
+                        text = { Text(stringResource(R.string.common_edit)) },
                         leadingIcon = { Icon(Icons.Default.Edit, null) },
                         onClick = { showMenu = false; onEdit() },
                     )
                 } else if (onReopen != null) {
                     DropdownMenuItem(
-                        text = { Text("Reopen") },
+                        text = { Text(stringResource(R.string.goals_reopen)) },
                         leadingIcon = { Icon(Icons.Default.Restore, null, tint = GoalsFlatColors.Primary) },
                         onClick = { showMenu = false; onReopen() },
                     )
@@ -535,7 +537,7 @@ internal fun GoalItem(
                 // of duplicated goals), and the "Bring forward" picker covers the
                 // single-goal case by simply ticking one row.
                 DropdownMenuItem(
-                    text = { Text("Delete", color = GoalsFlatColors.Danger) },
+                    text = { Text(stringResource(R.string.common_delete), color = GoalsFlatColors.Danger) },
                     leadingIcon = { Icon(Icons.Default.Delete, null, tint = GoalsFlatColors.Danger) },
                     onClick = { showMenu = false; onDelete() },
                 )
@@ -554,13 +556,13 @@ internal fun RolloverPromptItem(goal: Goal, onRetry: () -> Unit, onArchive: () -
     ) {
         Text(goal.title, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = GoalsFlatColors.Text)
         Text(
-            "This missed goal can be carried into today or archived.",
+            stringResource(R.string.goals_missed_action_help),
             fontSize = 12.sp,
             color = GoalsFlatColors.Muted,
         )
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            FlatFilledAction("Retry Today", GoalsFlatColors.Primary, onRetry, Modifier.weight(1f))
-            FlatOutlineAction("Archive", onArchive, Modifier.weight(1f))
+            FlatFilledAction(stringResource(R.string.goals_retry_today), GoalsFlatColors.Primary, onRetry, Modifier.weight(1f))
+            FlatOutlineAction(stringResource(R.string.goals_archive), onArchive, Modifier.weight(1f))
         }
     }
 }

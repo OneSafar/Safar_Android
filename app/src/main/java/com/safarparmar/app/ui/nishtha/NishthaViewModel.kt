@@ -322,7 +322,7 @@ class NishthaViewModel @Inject constructor(
                                     scheduledDate = scheduledDate ?: it.scheduledDate,
                                 ) else it
                             },
-                            goalMessage = "Goal completed for $historyDateLabel. Open Completed and select $historyDateLabel to find it.",
+                            goalMessage = "Goal completed for $historyDateLabel. Open History and select $historyDateLabel to find it.",
                             goalAction = "complete",
                         )
                     }
@@ -481,6 +481,7 @@ class NishthaViewModel @Inject constructor(
             var createdOrCovered = 0
             var firstError: String? = null
             for (goal in goals) {
+                var readyToRepeat = true
                 if (repeatDaily && goal.goalKind != "repeat") {
                     when (val update = homeRepository.updateGoalDetails(
                         id = goal.id,
@@ -499,10 +500,14 @@ class NishthaViewModel @Inject constructor(
                         status = goal.status,
                         carryForwardMode = goal.carryForwardMode,
                     )) {
-                        is Resource.Error -> if (firstError == null) firstError = update.message
+                        is Resource.Error -> {
+                            readyToRepeat = false
+                            if (firstError == null) firstError = update.message
+                        }
                         else -> Unit
                     }
                 }
+                if (!readyToRepeat) continue
                 when (val repeated = homeRepository.repeatGoal(goal.id, scheduledDate)) {
                     is Resource.Success -> createdOrCovered += 1
                     is Resource.Error -> if (firstError == null) firstError = repeated.message

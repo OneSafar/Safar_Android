@@ -168,3 +168,7 @@ data class RecentSession(
     val completed: Boolean,
     val taskText: String?,
 )
+
+// Ranking evidence is recorded live by the server, never uploaded with a saved duration.
+data class RankedFocusRequest(val sessionId: String, val running: Boolean, val confirm: String? = null, val close: Boolean = false)
+data class RankedFocusResponse(val checkpoint: String?, val closed: Boolean, val rankedSeconds: Int)

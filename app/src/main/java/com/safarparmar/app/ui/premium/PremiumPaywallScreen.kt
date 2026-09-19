@@ -33,6 +33,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -44,6 +45,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.razorpay.Checkout
+import com.safarparmar.app.R
 import com.safarparmar.app.ui.drawer.SafarDrawerScaffold
 import com.safarparmar.app.ui.navigation.Routes
 import com.safarparmar.app.ui.studyplanner.components.LocalPlannerIsDarkTheme
@@ -80,9 +82,11 @@ private fun PremiumSectionHeader(
     icon: ImageVector,
     title: String,
     isDarkTheme: Boolean = false,
+    accentColor: Color? = null,
     modifier: Modifier = Modifier
 ) {
-    val accent = if (isDarkTheme) Color(0xFFC084FC) else Color(0xFF581C87)
+    val defaultAccent = if (isDarkTheme) Color(0xFFC084FC) else Color(0xFF581C87)
+    val accent = accentColor ?: defaultAccent
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -136,34 +140,37 @@ fun PremiumPaywallScreen(
     val allPlans = listOf(
             PremiumPlanOption(
                 id = "3month",
-                label = "3 Months",
+                label = stringResource(R.string.premium_three_months),
                 price = 99,
-                subtitle = "Premium + Dhyan Live",
-                durationLabel = "3 months",
+                subtitle = stringResource(R.string.premium_plus_dhyan),
+                durationLabel = stringResource(R.string.premium_three_months_lower),
                 durationMonths = 3,
                 courseId = "study-planner-pro-3month",
-                discountLabel = "Starter",
+                discountLabel = stringResource(R.string.premium_starter),
             ),
             PremiumPlanOption(
                 id = "6month",
-                label = "6 Months",
+                label = stringResource(R.string.premium_six_months),
                 price = 119,
-                subtitle = "Premium + Dhyan Live",
-                durationLabel = "6 months",
+                subtitle = stringResource(R.string.premium_plus_dhyan),
+                durationLabel = stringResource(R.string.premium_six_months_lower),
                 durationMonths = 6,
                 courseId = "study-planner-pro-6month",
-                badge = "POPULAR",
-                discountLabel = "Popular",
+                badge = stringResource(R.string.premium_popular).uppercase(),
+                discountLabel = stringResource(R.string.premium_popular),
             ),
             PremiumPlanOption(
                 id = "dhyan",
-                label = "Dhyan Live",
+                label = stringResource(R.string.premium_dhyan_live),
                 price = if (dhyanPricing.couponEligible) dhyanPricing.premiumPrice else dhyanPricing.standardPrice,
-                subtitle = if (dhyanPricing.couponEligible) "Existing Premium member price" else "Meditation & yoga sessions only",
-                durationLabel = "6 months",
+                subtitle = stringResource(
+                    if (dhyanPricing.couponEligible) R.string.premium_existing_member_price
+                    else R.string.premium_meditation_only
+                ),
+                durationLabel = stringResource(R.string.premium_six_months_lower),
                 durationMonths = 6,
                 courseId = "safar-30",
-                badge = if (dhyanPricing.couponEligible) "41% REBATE" else null,
+                badge = null,
                 isDhyanOnly = true,
                 originalPrice = if (dhyanPricing.couponEligible) dhyanPricing.standardPrice else null,
             ),
@@ -199,7 +206,7 @@ fun PremiumPaywallScreen(
                     delay(1_500)
                     viewModel.refreshPremiumStatus(
                         showLoading = true,
-                        fallbackError = "Payment returned, but Safar Premium is not active yet. Please tap Restore Safar Premium."
+                        fallbackError = context.getString(R.string.premium_payment_returned_inactive)
                     )
                 }
             }
@@ -213,12 +220,12 @@ fun PremiumPaywallScreen(
             val state = uiState as PremiumUiState.OrderCreated
             try {
                 if (activity == null) {
-                    viewModel.notifyPaymentFailed("Checkout needs an active screen. Please try again.")
+                    viewModel.notifyPaymentFailed(context.getString(R.string.premium_checkout_active_screen))
                     return@LaunchedEffect
                 }
                 val razorpayKeyId = state.keyId?.trim()?.takeIf { it.isNotEmpty() }
                 if (razorpayKeyId == null) {
-                    viewModel.notifyPaymentFailed("The payment gateway is not configured on this server.")
+                    viewModel.notifyPaymentFailed(context.getString(R.string.premium_gateway_not_configured))
                     return@LaunchedEffect
                 }
                 refreshAfterPaymentReturn = state.planType != "dhyan"
@@ -226,7 +233,13 @@ fun PremiumPaywallScreen(
                 checkout.setKeyID(razorpayKeyId)
                 val options = JSONObject().apply {
                     put("name", "Safar")
-                    put("description", if (state.planType == "dhyan") "Dhyan Live · 6 Months" else "Safar Premium + Dhyan Live")
+                    put(
+                        "description",
+                        context.getString(
+                            if (state.planType == "dhyan") R.string.premium_dhyan_six_months
+                            else R.string.premium_plus_dhyan
+                        )
+                    )
                     put("order_id", state.order.id)
                     put("currency", state.order.currency)
                     put("amount", state.order.amount)
@@ -237,7 +250,7 @@ fun PremiumPaywallScreen(
             } catch (e: Exception) {
                 e.printStackTrace()
                 refreshAfterPaymentReturn = false
-                viewModel.notifyPaymentFailed(e.message ?: "Error launching checkout")
+                viewModel.notifyPaymentFailed(e.message ?: context.getString(R.string.premium_checkout_launch_error))
             }
         }
     }
@@ -248,7 +261,7 @@ fun PremiumPaywallScreen(
     val formattedNewExpiry = remember(premiumStatus.expiresAt, selectedPlanDuration) {
         calculatePremiumExtensionExpiry(premiumStatus.expiresAt, selectedPlanDuration)
     }
-    val planLabel = if (isPremiumActive) premiumPlanLabel(premiumStatus.planType) else "Free Plan"
+    val planLabel = if (isPremiumActive) premiumPlanLabel(premiumStatus.planType) else stringResource(R.string.premium_free_plan)
 
     val updateSelectedPlan: (String) -> Unit = { planId ->
         selectedPlanId = planId
@@ -278,9 +291,9 @@ fun PremiumPaywallScreen(
             AlertDialog(
                 onDismissRequest = viewModel::resetState,
                 icon = { Icon(Icons.Default.CheckCircle, null, tint = Color(0xFF10B981)) },
-                title = { Text("Dhyan Live unlocked") },
-                text = { Text("Your six-month meditation and yoga access is now active.") },
-                confirmButton = { Button(onClick = viewModel::resetState) { Text("Continue") } },
+                title = { Text(stringResource(R.string.premium_dhyan_unlocked)) },
+                text = { Text(stringResource(R.string.premium_dhyan_access_active)) },
+                confirmButton = { Button(onClick = viewModel::resetState) { Text(stringResource(R.string.common_continue)) } },
             )
         }
 
@@ -302,7 +315,7 @@ fun PremiumPaywallScreen(
                 TopAppBar(
                     title = {
                         Text(
-                            text = "Safar Premium",
+                            text = stringResource(R.string.premium_safar_premium),
                             style = MaterialTheme.typography.titleLarge.copy(
                                 fontWeight = FontWeight.Bold,
                                 fontFamily = LoraFontFamily,
@@ -314,7 +327,7 @@ fun PremiumPaywallScreen(
                         IconButton(onClick = onBack) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Back",
+                                contentDescription = stringResource(R.string.common_back),
                                 tint = MaterialTheme.colorScheme.onSurface,
                             )
                         }
@@ -412,7 +425,7 @@ fun PremiumPaywallScreen(
                             colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.CardWhite),
                             border = androidx.compose.foundation.BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
                         ) {
-                            Text("We could not verify your available plans. Please reopen this screen and try again.", modifier = Modifier.padding(20.dp), color = PlannerFlatColors.TextMuted)
+                            Text(stringResource(R.string.premium_verify_plans_error), modifier = Modifier.padding(20.dp), color = PlannerFlatColors.TextMuted)
                         }
                     } else if (plans.isNotEmpty()) {
                         Card(
@@ -430,17 +443,17 @@ fun PremiumPaywallScreen(
                             PremiumSectionHeader(
                                 icon = Icons.Default.WorkspacePremium,
                                 title = when {
-                                    dhyanPricing.accessState == "LEGACY_PREMIUM_DISCOUNT" -> "Choose what to add"
-                                    isPremiumActive -> "Extend your plan"
-                                    else -> "Choose your plan"
+                                    dhyanPricing.accessState == "LEGACY_PREMIUM_DISCOUNT" -> stringResource(R.string.premium_choose_what_to_add)
+                                    isPremiumActive -> stringResource(R.string.premium_extend_your_plan)
+                                    else -> stringResource(R.string.premium_choose_your_plan)
                                 },
                                 isDarkTheme = isDarkTheme,
                             )
                             Text(
                                 text = when {
-                                    dhyanPricing.accessState == "LEGACY_PREMIUM_DISCOUNT" -> "Add Dhyan Live at your member price, or extend Premium by 3 or 6 months. Extra time is added after your current plan."
-                                    isPremiumActive -> "Choose 3 or 6 more months. The new time starts after your current plan ends."
-                                    else -> "Choose Dhyan Live only, or get Premium with Dhyan Live included."
+                                    dhyanPricing.accessState == "LEGACY_PREMIUM_DISCOUNT" -> stringResource(R.string.premium_legacy_choice_help)
+                                    isPremiumActive -> stringResource(R.string.premium_extend_help)
+                                    else -> stringResource(R.string.premium_choose_help)
                                 },
                                 fontSize = 12.5.sp,
                                 color = PlannerFlatColors.TextMuted,
@@ -459,19 +472,31 @@ fun PremiumPaywallScreen(
                     }
                     }
 
+                    val whatYouGetAccent = if (isDarkTheme) Color(0xFFFBBF24) else Color(0xFFD97706)
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(18.dp),
                         colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.CardWhite),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
+                        border = androidx.compose.foundation.BorderStroke(
+                            1.dp,
+                            whatYouGetAccent.copy(alpha = if (isDarkTheme) 0.35f else 0.22f)
+                        ),
                     ) {
                         Column(
                             modifier = Modifier.fillMaxWidth().padding(20.dp),
                             verticalArrangement = Arrangement.spacedBy(16.dp),
                         ) {
-                            PremiumSectionHeader(icon = Icons.Default.Star, title = "What you get", isDarkTheme = isDarkTheme)
+                            PremiumSectionHeader(
+                                icon = Icons.Default.Star,
+                                title = stringResource(R.string.premium_what_you_get),
+                                isDarkTheme = isDarkTheme,
+                                accentColor = whatYouGetAccent,
+                            )
                             PlanHairline(alpha = 0.5f)
-                            PremiumBenefitsCard()
+                            PremiumBenefitsCard(
+                                isDarkTheme = isDarkTheme,
+                                accentColor = whatYouGetAccent,
+                            )
                         }
                     }
 
@@ -516,7 +541,7 @@ private fun StartTrialConfirmationDialog(
         },
         title = {
             Text(
-                text = "Start 7-Day Free Trial",
+                text = stringResource(R.string.premium_start_trial_title),
                 fontFamily = LoraFontFamily,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Normal,
@@ -526,7 +551,7 @@ private fun StartTrialConfirmationDialog(
         },
         text = {
             Text(
-                text = "Use Safar's Premium study features for 7 days. Dhyan Live is not included in the trial.",
+                text = stringResource(R.string.premium_trial_description),
                 fontSize = 14.sp,
                 color = PlannerFlatColors.TextMuted,
                 textAlign = TextAlign.Center,
@@ -541,12 +566,12 @@ private fun StartTrialConfirmationDialog(
                     contentColor = Color.White,
                 ),
             ) {
-                Text("Start Free Trial", fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.premium_start_free_trial), fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel", color = PlannerFlatColors.TextMuted, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.common_cancel), color = PlannerFlatColors.TextMuted, fontWeight = FontWeight.Bold)
             }
         },
         shape = RoundedCornerShape(20.dp),
@@ -577,22 +602,22 @@ private fun PremiumUnlockedDialog(
     )
 
     val dialogTitle = when {
-        state.isRestore && isTrial -> "Free Trial Active!"
-        state.isRestore -> "Safar Premium Active!"
-        isTrial -> "Free Trial Started!"
-        else -> "Payment Successful!"
+        state.isRestore && isTrial -> stringResource(R.string.premium_trial_active_title)
+        state.isRestore -> stringResource(R.string.premium_active_title)
+        isTrial -> stringResource(R.string.premium_trial_started_title)
+        else -> stringResource(R.string.premium_payment_success_title)
     }
 
     val subtitleText = when {
-        isTrial && dialogExpiry != null -> "Your 7-day free trial is active until $dialogExpiry"
-        isTrial -> "Your 7-day free trial is active."
-        dialogExpiry != null -> "Your Safar Premium plan is active until $dialogExpiry"
-        else -> "$dialogPlanLabel is active."
+        isTrial && dialogExpiry != null -> stringResource(R.string.premium_trial_active_until, dialogExpiry)
+        isTrial -> stringResource(R.string.premium_trial_is_active)
+        dialogExpiry != null -> stringResource(R.string.premium_plan_active_until, dialogExpiry)
+        else -> stringResource(R.string.premium_named_plan_active, dialogPlanLabel)
     }
 
     val bodyText = when {
-        isTrial -> "Enjoy full access to all AI study planning and Ekagra analytics features during your trial."
-        else -> "Enjoy unlimited access to all AI study planning and Ekagra analytics features."
+        isTrial -> stringResource(R.string.premium_trial_access_body)
+        else -> stringResource(R.string.premium_paid_access_body)
     }
 
     AlertDialog(
@@ -649,7 +674,7 @@ private fun PremiumUnlockedDialog(
                 shape = RoundedCornerShape(10.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = buttonBg, contentColor = Color.White)
             ) {
-                Text("Continue", fontWeight = FontWeight.Bold, color = Color.White)
+                Text(stringResource(R.string.common_continue), fontWeight = FontWeight.Bold, color = Color.White)
             }
         },
         shape = RoundedCornerShape(20.dp),
@@ -676,7 +701,7 @@ private fun NoActivePlanDialog(
         },
         title = {
             Text(
-                text = "No Active Plan Found",
+                text = stringResource(R.string.premium_no_active_plan_title),
                 fontFamily = LoraFontFamily,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Normal,
@@ -692,14 +717,14 @@ private fun NoActivePlanDialog(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Text(
-                    text = "We couldn't find an active Safar Premium or trial plan for this account.",
+                    text = stringResource(R.string.premium_no_active_plan_body),
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium,
                     color = PlannerFlatColors.TextDark,
                     textAlign = TextAlign.Center,
                 )
                 Text(
-                    text = "You can choose a plan below anytime to unlock all study tools and analytics.",
+                    text = stringResource(R.string.premium_choose_later_help),
                     fontSize = 13.sp,
                     color = PlannerFlatColors.TextMuted,
                     textAlign = TextAlign.Center,
@@ -712,7 +737,7 @@ private fun NoActivePlanDialog(
                 shape = RoundedCornerShape(10.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = buttonBg, contentColor = Color.White)
             ) {
-                Text("View Plans", fontWeight = FontWeight.Bold, color = Color.White)
+                Text(stringResource(R.string.premium_view_plans), fontWeight = FontWeight.Bold, color = Color.White)
             }
         },
         shape = RoundedCornerShape(20.dp),
@@ -720,17 +745,20 @@ private fun NoActivePlanDialog(
 }
 
 @Composable
-private fun PremiumBenefitsCard() {
-    val benefits = remember {
-        listOf(
-            "Track Exam Readiness with Real-time Progress Analytics",
-            "Automatic schedule adjustment for missed topics",
-            "Detailed Ekagra study reports & analytics",
-            "Private Mehfil Connect student community",
-            "Dhyan audio & guided focus sessions",
-            "Dhyan Live meditation & yoga sessions with Parmar Sir",
-        )
-    }
+private fun PremiumBenefitsCard(
+    isDarkTheme: Boolean = false,
+    accentColor: Color? = null,
+) {
+    val defaultAccent = if (isDarkTheme) Color(0xFFFBBF24) else Color(0xFFD97706)
+    val accent = accentColor ?: defaultAccent
+    val benefits = listOf(
+        stringResource(R.string.premium_benefit_planner),
+        stringResource(R.string.premium_benefit_revision),
+        stringResource(R.string.premium_benefit_analytics),
+        stringResource(R.string.premium_benefit_connect),
+        stringResource(R.string.premium_benefit_dhyan_audio),
+        stringResource(R.string.premium_benefit_live_sessions),
+    )
 
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -746,13 +774,13 @@ private fun PremiumBenefitsCard() {
                     modifier = Modifier
                         .size(20.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFF10B981).copy(alpha = 0.15f)),
+                        .background(accent.copy(alpha = 0.14f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.Check,
                         contentDescription = null,
-                        tint = Color(0xFF10B981),
+                        tint = accent,
                         modifier = Modifier.size(13.dp)
                     )
                 }
@@ -783,37 +811,19 @@ private fun LegacyPremiumNotice(
             modifier = Modifier.fillMaxWidth().padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                PremiumSectionHeader(
-                    icon = Icons.Default.WorkspacePremium,
-                    title = "Existing member benefit",
-                    isDarkTheme = isDarkTheme,
-                )
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = accent.copy(alpha = 0.12f),
-                ) {
-                    Text(
-                        text = "41% REBATE",
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
-                        fontSize = 9.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = accent,
-                    )
-                }
-            }
+            PremiumSectionHeader(
+                icon = Icons.Default.WorkspacePremium,
+                title = stringResource(R.string.premium_existing_member_benefit),
+                isDarkTheme = isDarkTheme,
+            )
             Text(
-                text = "You joined Premium before Dhyan Live was added, so you can add 6 months of Dhyan Live for ₹29.",
+                text = stringResource(R.string.premium_legacy_offer),
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = PlannerFlatColors.TextDark,
             )
             Text(
-                text = "This member price is available while your current Premium plan is active. Future Premium plans use the regular price: ₹99 for 3 months or ₹119 for 6 months.",
+                text = stringResource(R.string.premium_legacy_offer_terms),
                 fontSize = 12.sp,
                 color = PlannerFlatColors.TextMuted,
             )
@@ -839,15 +849,18 @@ private fun DhyanAccessNotice(
         ) {
             Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF10B981))
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text("Dhyan Live is active", fontWeight = FontWeight.Bold, color = PlannerFlatColors.TextDark)
+                Text(stringResource(R.string.premium_dhyan_active), fontWeight = FontWeight.Bold, color = PlannerFlatColors.TextDark)
                 Text(
-                    text = if (isPremiumActive) "It is included with your current Premium plan." else "Your 6-month Dhyan Live plan is active. You can also add Premium below.",
+                    text = stringResource(
+                        if (isPremiumActive) R.string.premium_dhyan_included_current
+                        else R.string.premium_dhyan_active_add_premium
+                    ),
                     fontSize = 12.sp,
                     color = PlannerFlatColors.TextMuted,
                 )
             }
             TextButton(onClick = onOpenDhyan, contentPadding = PaddingValues(horizontal = 8.dp)) {
-                Text("Open", fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.common_open), fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -871,17 +884,21 @@ private fun DhyanScheduledNotice(
         ) {
             PremiumSectionHeader(
                 icon = Icons.Default.CheckCircle,
-                title = "Next bundle scheduled",
+                title = stringResource(R.string.premium_next_bundle_scheduled),
                 isDarkTheme = isDarkTheme,
             )
             Text(
-                text = "Your new Premium + Dhyan Live period starts after your current Premium plan ends.",
+                text = stringResource(R.string.premium_next_bundle_help),
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = PlannerFlatColors.TextDark,
             )
             Text(
-                text = "Dhyan Live: ${formatPremiumExpiry(startsAt) ?: "scheduled start"} to ${formatPremiumExpiry(expiresAt) ?: "scheduled end"}. It does not use time from your current plan.",
+                text = stringResource(
+                    R.string.premium_dhyan_schedule_range,
+                    formatPremiumExpiry(startsAt) ?: stringResource(R.string.premium_scheduled_start),
+                    formatPremiumExpiry(expiresAt) ?: stringResource(R.string.premium_scheduled_end),
+                ),
                 fontSize = 12.sp,
                 color = PlannerFlatColors.TextMuted,
             )
@@ -1038,13 +1055,17 @@ private fun SelectedPlanCard(
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(
-                        text = "Selected Plan: ${plan.label}",
+                        text = stringResource(R.string.premium_selected_plan, plan.label),
                         fontSize = 14.5.sp,
                         fontWeight = FontWeight.Bold,
                         color = PlannerFlatColors.TextDark,
                     )
                     Text(
-                        text = if (plan.isDhyanOnly) "Dhyan Live for ${plan.durationLabel}" else "Premium + Dhyan Live for ${plan.durationLabel}",
+                        text = stringResource(
+                            if (plan.isDhyanOnly) R.string.premium_dhyan_for_duration
+                            else R.string.premium_bundle_for_duration,
+                            plan.durationLabel,
+                        ),
                         fontSize = 12.sp,
                         color = PlannerFlatColors.TextMuted,
                     )
@@ -1052,7 +1073,7 @@ private fun SelectedPlanCard(
                 Column(horizontalAlignment = Alignment.End) {
                     plan.originalPrice?.let { originalPrice ->
                         Text(
-                            text = "Regular ₹$originalPrice",
+                            text = stringResource(R.string.premium_regular_price, originalPrice),
                             fontSize = 11.sp,
                             color = PlannerFlatColors.TextMuted,
                             textDecoration = TextDecoration.LineThrough,
@@ -1072,21 +1093,27 @@ private fun SelectedPlanCard(
 
             Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Text(
-                    text = "Current expiry: ${currentExpiryText ?: "No active subscription"}",
+                    text = stringResource(
+                        R.string.premium_current_expiry,
+                        currentExpiryText ?: stringResource(R.string.premium_no_active_subscription),
+                    ),
                     fontSize = 12.sp,
                     color = PlannerFlatColors.TextMuted,
                 )
                 Text(
-                    text = "New expiry after purchase: ${newExpiryText ?: "Calculating..."}",
+                    text = stringResource(
+                        R.string.premium_new_expiry,
+                        newExpiryText ?: stringResource(R.string.premium_calculating),
+                    ),
                     fontSize = 12.5.sp,
                     fontWeight = FontWeight.Bold,
                     color = accent,
                 )
                 Text(
                     text = if (currentExpiryText != null) {
-                        "Premium and Dhyan Live start after your current Premium plan ends."
+                        stringResource(R.string.premium_bundle_starts_after_current)
                     } else {
-                        "Premium and Dhyan Live start today."
+                        stringResource(R.string.premium_bundle_starts_today)
                     },
                     fontSize = 11.5.sp,
                     color = PlannerFlatColors.TextMuted,
@@ -1094,7 +1121,10 @@ private fun SelectedPlanCard(
             }
             } else {
                 Text(
-                    text = if (plan.price == 29) "Existing member price · 41% rebate" else "Standalone Dhyan plan",
+                    text = stringResource(
+                        if (plan.price == 29) R.string.premium_existing_member_price
+                        else R.string.premium_standalone_dhyan
+                    ),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = accent,
@@ -1141,13 +1171,13 @@ private fun SevenDayTrialBanner(
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             Text(
-                text = "Start 7-Day Free Trial",
+                text = stringResource(R.string.premium_start_trial_title),
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,
                 color = PlannerFlatColors.TextDark,
             )
             Text(
-                text = "Premium study features for 7 days · Dhyan Live not included",
+                text = stringResource(R.string.premium_trial_short_description),
                 fontSize = 12.sp,
                 color = PlannerFlatColors.TextMuted,
             )
@@ -1160,7 +1190,7 @@ private fun SevenDayTrialBanner(
             )
         } else {
             Text(
-                text = "Try Free",
+                text = stringResource(R.string.premium_try_free),
                 fontSize = 13.sp,
                 fontWeight = FontWeight.ExtraBold,
                 color = accent
@@ -1217,14 +1247,14 @@ private fun PaywallFooter(
             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
         ) {
             Text(
-                text = "Restore Safar Premium",
+                text = stringResource(R.string.premium_restore),
                 color = accent,
                 fontWeight = FontWeight.Bold,
                 fontSize = 13.sp
             )
         }
         Text(
-            text = "Cancel anytime • 256-bit Secure Razorpay Checkout",
+            text = stringResource(R.string.premium_secure_checkout),
             fontSize = 11.sp,
             color = PlannerFlatColors.TextMuted,
         )
@@ -1300,7 +1330,7 @@ private fun PremiumBottomBar(
                             modifier = Modifier.size(16.dp),
                         )
                         Text(
-                            text = "Buy Now",
+                            text = stringResource(R.string.premium_buy_now),
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.White,
@@ -1344,14 +1374,15 @@ private fun PremiumActiveSummaryCard(
 
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
-                    text = "Safar Premium Active",
+                    text = stringResource(R.string.premium_active_title),
                     fontFamily = LoraFontFamily,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Normal,
                     color = PlannerFlatColors.TextDark
                 )
                 Text(
-                    text = expiryText?.let { "Valid until $it" } ?: "$planLabel is active",
+                    text = expiryText?.let { stringResource(R.string.premium_valid_until, it) }
+                        ?: stringResource(R.string.premium_named_plan_active, planLabel),
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF10B981)
@@ -1360,7 +1391,7 @@ private fun PremiumActiveSummaryCard(
         }
 
         Text(
-            text = "Safar Premium is unlocked. Manage or extend your subscription plan below.",
+            text = stringResource(R.string.premium_unlocked_manage_help),
             fontSize = 12.5.sp,
             color = PlannerFlatColors.TextMuted,
         )
@@ -1387,13 +1418,14 @@ private fun TrialActiveSummaryCard(
             }
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
-                    text = "Premium Trial Active",
+                    text = stringResource(R.string.premium_trial_active_summary),
                     fontFamily = LoraFontFamily,
                     fontSize = 18.sp,
                     color = PlannerFlatColors.TextDark,
                 )
                 Text(
-                    text = expiryText?.let { "Valid until $it" } ?: "Your 7-day trial is active",
+                    text = expiryText?.let { stringResource(R.string.premium_valid_until, it) }
+                        ?: stringResource(R.string.premium_trial_is_active),
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF10B981),
@@ -1401,21 +1433,22 @@ private fun TrialActiveSummaryCard(
             }
         }
         Text(
-            text = "Your trial includes Premium study features. Dhyan Live needs a separate plan or a Premium bundle.",
+            text = stringResource(R.string.premium_trial_bundle_help),
             fontSize = 12.5.sp,
             color = PlannerFlatColors.TextMuted,
         )
     }
 }
 
+@Composable
 private fun premiumPlanLabel(planType: String?): String {
     val normalized = planType.orEmpty().lowercase(Locale.US)
     return when {
-        "trial" in normalized -> "7-day free trial"
-        "3month" in normalized || "3-month" in normalized -> "3-month Premium plan"
-        "6month" in normalized || "6-month" in normalized -> "6-month Premium plan"
-        normalized.isNotBlank() -> "Safar Premium plan"
-        else -> "Safar Premium"
+        "trial" in normalized -> stringResource(R.string.premium_plan_trial_label)
+        "3month" in normalized || "3-month" in normalized -> stringResource(R.string.premium_plan_three_month_label)
+        "6month" in normalized || "6-month" in normalized -> stringResource(R.string.premium_plan_six_month_label)
+        normalized.isNotBlank() -> stringResource(R.string.premium_plan_generic_label)
+        else -> stringResource(R.string.premium_safar_premium)
     }
 }
 
@@ -1432,13 +1465,13 @@ private fun calculatePremiumExtensionExpiry(
         .ofInstant(startsFrom, ZoneOffset.UTC)
         .plusMonths(selectedPlanDuration.toLong())
         .withZoneSameInstant(ZoneId.systemDefault())
-    return DateTimeFormatter.ofPattern("d MMM yyyy", Locale.ENGLISH).format(extendedExpiry)
+    return DateTimeFormatter.ofPattern("d MMM yyyy", Locale.getDefault()).format(extendedExpiry)
 }
 
 private fun formatPremiumExpiry(expiresAt: String?): String? {
     if (expiresAt.isNullOrBlank()) return null
     val instant = rawExpiryToInstant(expiresAt) ?: return expiresAt.take(10)
-    val formatter = DateTimeFormatter.ofPattern("d MMM yyyy, h:mm a", Locale.ENGLISH)
+    val formatter = DateTimeFormatter.ofPattern("d MMM yyyy, h:mm a", Locale.getDefault())
     return formatter.format(instant.atZone(ZoneId.systemDefault()))
 }
 

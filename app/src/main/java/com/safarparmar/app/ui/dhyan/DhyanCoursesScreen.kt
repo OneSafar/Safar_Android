@@ -37,6 +37,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -84,7 +85,7 @@ fun DhyanCoursesContent(
                 modifier = Modifier.size(20.dp),
             )
             Text(
-                text = "Dhyan Course",
+                text = stringResource(R.string.dhyan_course_heading),
                 fontFamily = LoraFontFamily,
                 fontWeight = FontWeight.Bold,
                 fontSize = 22.sp,
@@ -116,7 +117,7 @@ fun DhyanCoursesContent(
                 ) {
                     Image(
                         painter = painterResource(id = R.drawable.dhyan_course),
-                        contentDescription = "SAFAR Yoga and Meditation Course",
+                        contentDescription = stringResource(R.string.dhyan_course_title),
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop,
                     )
@@ -136,7 +137,7 @@ fun DhyanCoursesContent(
                         verticalAlignment = Alignment.Top,
                     ) {
                         Text(
-                            text = "SAFAR Yoga and Meditation Course",
+                            text = stringResource(R.string.dhyan_course_title),
                             fontFamily = LoraFontFamily,
                             fontWeight = FontWeight.Bold,
                             fontSize = 18.sp,
@@ -154,7 +155,9 @@ fun DhyanCoursesContent(
                                 .padding(horizontal = 9.dp, vertical = 4.dp),
                         ) {
                             Text(
-                                text = if (isPremiumActive) "ENROLLED & ACTIVE" else "AVAILABLE",
+                                text = stringResource(
+                                    if (isPremiumActive) R.string.dhyan_enrolled_active else R.string.dhyan_available
+                                ).uppercase(),
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = DhyanFlatColors.Emerald,
@@ -165,7 +168,7 @@ fun DhyanCoursesContent(
 
                     // Subtitle
                     Text(
-                        text = "Every morning join Parmar Sir for Meditation and Yoga sessions.",
+                        text = stringResource(R.string.dhyan_course_subtitle),
                         fontSize = 13.sp,
                         color = DhyanFlatColors.Muted,
                         lineHeight = 18.sp,
@@ -177,15 +180,15 @@ fun DhyanCoursesContent(
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         CourseBenefitRow(
-                            text = "Guided Morning Meditation & Yoga",
+                            text = stringResource(R.string.dhyan_benefit_guided_morning),
                             isDark = isDarkTheme,
                         )
                         CourseBenefitRow(
-                            text = "Diaphragmatic & Pranayama Breathing",
+                            text = stringResource(R.string.dhyan_benefit_breathing),
                             isDark = isDarkTheme,
                         )
                         CourseBenefitRow(
-                            text = "Daily Structure & 6 Months Access",
+                            text = stringResource(R.string.dhyan_benefit_access),
                             isDark = isDarkTheme,
                         )
                     }
@@ -203,7 +206,9 @@ fun DhyanCoursesContent(
                     ) {
                         Column {
                             Text(
-                                text = if (isPremiumActive) "YOUR ACCESS" else "CHOOSE YOUR PLAN",
+                                text = stringResource(
+                                    if (isPremiumActive) R.string.dhyan_your_access else R.string.dhyan_choose_plan
+                                ).uppercase(),
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = DhyanFlatColors.Muted,
@@ -216,7 +221,7 @@ fun DhyanCoursesContent(
                             ) {
                                 if (isPremiumActive) {
                                     Text(
-                                        text = "Enrolled",
+                                        text = stringResource(R.string.dhyan_enrolled),
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 15.sp,
                                         color = DhyanFlatColors.Text,
@@ -228,7 +233,7 @@ fun DhyanCoursesContent(
                                             .background(DhyanFlatColors.Emerald),
                                     )
                                     Text(
-                                        text = "Active",
+                                        text = stringResource(R.string.dhyan_active),
                                         fontWeight = FontWeight.SemiBold,
                                         fontSize = 12.sp,
                                         color = DhyanFlatColors.Emerald,
@@ -241,7 +246,7 @@ fun DhyanCoursesContent(
                                         color = DhyanFlatColors.Text,
                                     )
                                     Text(
-                                        text = "or from ₹29 for active Premium",
+                                        text = stringResource(R.string.dhyan_premium_price_note),
                                         fontSize = 11.sp,
                                         color = DhyanFlatColors.Muted,
                                     )
@@ -266,7 +271,9 @@ fun DhyanCoursesContent(
                             elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp),
                         ) {
                             Text(
-                                text = if (isPremiumActive) "Go to Dhyan Live →" else "Enroll Now",
+                                text = stringResource(
+                                    if (isPremiumActive) R.string.dhyan_go_to_live else R.string.dhyan_enroll_now
+                                ),
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
                             )

@@ -164,6 +164,7 @@ class SafarDataStore @Inject constructor(
         val TIMER_ALERT_STYLE = stringPreferencesKey("ekagra_timer_alert_style")
         val FOCUS_DURATION_MINUTES = intPreferencesKey("ekagra_focus_duration_minutes")
         val BREAK_DURATION_MINUTES = intPreferencesKey("ekagra_break_duration_minutes")
+        val EKAGRA_TAGS            = stringPreferencesKey("ekagra_custom_tags_v1")
 
         val NOTIFICATION_BELL_LAST_SEEN_AT = stringPreferencesKey("notification_bell_last_seen_at")
         val NOTIFICATION_BELL_DISMISSED_IDS = stringSetPreferencesKey("notification_bell_dismissed_ids")
@@ -462,6 +463,18 @@ class SafarDataStore @Inject constructor(
         .catch { emit(emptyPreferences()) }
         .map { it[Keys.BREAK_DURATION_MINUTES] ?: 5 }
 
+    val ekagraTags: Flow<List<String>> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { prefs ->
+            val raw = prefs[Keys.EKAGRA_TAGS]
+            if (raw.isNullOrBlank()) {
+                com.safarparmar.app.ui.ekagra.DEFAULT_EKAGRA_TAGS
+            } else {
+                val list = raw.split("|||").map { it.trim() }.filter { it.isNotEmpty() }
+                if (list.isEmpty()) com.safarparmar.app.ui.ekagra.DEFAULT_EKAGRA_TAGS else list
+            }
+        }
+
     val isPremium: Flow<Boolean> = context.dataStore.data
         .catch { emit(emptyPreferences()) }
         .map { it[Keys.IS_PREMIUM] ?: false }
@@ -723,6 +736,56 @@ class SafarDataStore @Inject constructor(
 
     suspend fun setBreakDurationMinutes(minutes: Int) = context.dataStore.edit {
         it[Keys.BREAK_DURATION_MINUTES] = minutes.coerceAtLeast(1)
+    }
+
+    suspend fun setEkagraTags(tags: List<String>) = context.dataStore.edit { prefs ->
+        prefs[Keys.EKAGRA_TAGS] = tags.map { it.trim() }.filter { it.isNotEmpty() }.distinct().joinToString("|||")
+    }
+
+    suspend fun addEkagraTag(tag: String) {
+        val clean = tag.trim()
+        if (clean.isEmpty()) return
+        context.dataStore.edit { prefs ->
+            val raw = prefs[Keys.EKAGRA_TAGS]
+            val current = if (raw.isNullOrBlank()) {
+                com.safarparmar.app.ui.ekagra.DEFAULT_EKAGRA_TAGS
+            } else {
+                raw.split("|||").map { it.trim() }.filter { it.isNotEmpty() }
+            }
+            if (!current.any { it.equals(clean, ignoreCase = true) }) {
+                prefs[Keys.EKAGRA_TAGS] = (current + clean).joinToString("|||")
+            }
+        }
+    }
+
+    suspend fun removeEkagraTag(tag: String) {
+        val clean = tag.trim()
+        context.dataStore.edit { prefs ->
+            val raw = prefs[Keys.EKAGRA_TAGS]
+            val current = if (raw.isNullOrBlank()) {
+                com.safarparmar.app.ui.ekagra.DEFAULT_EKAGRA_TAGS
+            } else {
+                raw.split("|||").map { it.trim() }.filter { it.isNotEmpty() }
+            }
+            prefs[Keys.EKAGRA_TAGS] = current.filterNot { it.equals(clean, ignoreCase = true) }.joinToString("|||")
+        }
+    }
+
+    suspend fun updateEkagraTag(oldTag: String, newTag: String) {
+        val cleanOld = oldTag.trim()
+        val cleanNew = newTag.trim()
+        if (cleanNew.isEmpty()) return
+        context.dataStore.edit { prefs ->
+            val raw = prefs[Keys.EKAGRA_TAGS]
+            val current = if (raw.isNullOrBlank()) {
+                com.safarparmar.app.ui.ekagra.DEFAULT_EKAGRA_TAGS
+            } else {
+                raw.split("|||").map { it.trim() }.filter { it.isNotEmpty() }
+            }
+            prefs[Keys.EKAGRA_TAGS] = current.map { if (it.equals(cleanOld, ignoreCase = true)) cleanNew else it }
+                .distinct()
+                .joinToString("|||")
+        }
     }
 
     suspend fun setUserId(id: String?) {

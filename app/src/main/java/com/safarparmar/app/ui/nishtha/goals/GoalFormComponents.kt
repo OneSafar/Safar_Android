@@ -23,9 +23,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.safarparmar.app.R
 import com.safarparmar.app.util.IstDateUtils
 import java.time.LocalDate
 
@@ -69,7 +71,7 @@ internal fun AssistOptionRow(selected: Boolean, title: String, subtitle: String,
 internal fun ScheduledDatePickerRow(selectedDate: LocalDate, onClick: () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
-            "When should this activate?",
+            stringResource(R.string.goals_when_activate),
             fontSize = 13.sp,
             fontWeight = FontWeight.Bold,
             color = GoalsFlatColors.Text,
@@ -99,7 +101,7 @@ internal fun ScheduledDatePickerRow(selectedDate: LocalDate, onClick: () -> Unit
             }
         }
         Text(
-            "This goal will activate on ${IstDateUtils.labelFor(selectedDate.toString())}",
+            stringResource(R.string.goals_activates_on, IstDateUtils.labelFor(selectedDate.toString())),
             fontSize = 12.sp,
             color = GoalsFlatColors.Muted,
         )

@@ -43,6 +43,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -53,6 +54,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
+import com.safarparmar.app.R
 import com.safarparmar.app.data.remote.dto.WeeklyLeaderboardEntryDto
 import com.safarparmar.app.data.remote.dto.WeeklyLeaderboardPeriodDto
 import com.safarparmar.app.ui.drawer.SafarDrawerScaffold
@@ -77,13 +79,14 @@ private fun formatMinutes(minutes: Int): String {
     return if (rest == 0) "${hours}h" else "${hours}h ${rest}m"
 }
 
+@Composable
 private fun formatWeekRange(period: WeeklyLeaderboardPeriodDto?): String {
-    if (period?.start.isNullOrBlank() || period?.end.isNullOrBlank()) return "This week"
+    if (period?.start.isNullOrBlank() || period?.end.isNullOrBlank()) return stringResource(R.string.leaderboard_this_week)
     return runCatching {
-        val parser = SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH)
+        val parser = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
         val start = requireNotNull(parser.parse(period?.start.orEmpty()))
         val end = requireNotNull(parser.parse(period?.end.orEmpty()))
-        val formatter = SimpleDateFormat("d MMM", Locale.ENGLISH)
+        val formatter = SimpleDateFormat("d MMM", Locale.getDefault())
         "${formatter.format(start)}–${formatter.format(end)}"
     }.getOrDefault("${period?.start}–${period?.end}")
 }
@@ -102,7 +105,7 @@ fun LeaderboardScreen(
     val currentUserId by viewModel.currentUserId.collectAsStateWithLifecycle()
 
     SafarDrawerScaffold(
-        title = "Leaderboard",
+        title = stringResource(R.string.nav_leaderboard),
         subtitle = null,
         currentRoute = currentRoute,
         isDarkTheme = isDarkTheme,
@@ -121,7 +124,7 @@ fun LeaderboardScreen(
                 } else {
                     Icon(
                         Icons.Default.Refresh,
-                        contentDescription = "Refresh rankings",
+                        contentDescription = stringResource(R.string.leaderboard_refresh_rankings),
                         tint = PlannerFlatColors.TextDark,
                     )
                 }
@@ -257,7 +260,7 @@ private fun PodiumSection(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "Last Week's Champions",
+                    text = stringResource(R.string.leaderboard_last_week_champions),
                     fontSize = 17.sp,
                     fontWeight = FontWeight.Bold,
                     color = textColor,
@@ -274,7 +277,7 @@ private fun PodiumSection(
 
             if (podium.isEmpty()) {
                 Text(
-                    text = "Podium winners will appear once the weekly cycle completes.",
+                    text = stringResource(R.string.leaderboard_podium_pending),
                     fontSize = 13.sp,
                     color = textMuted,
                     textAlign = TextAlign.Center,
@@ -542,16 +545,18 @@ private fun UserSummaryCard(
 
             Column(Modifier.weight(1f)) {
                 Text(
-                    text = if (isRanked) "Your Position" else "Not Ranked Yet",
+                    text = stringResource(
+                        if (isRanked) R.string.leaderboard_your_position else R.string.leaderboard_not_ranked
+                    ),
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
                     color = textColor,
                 )
                 Text(
                     text = if (isRanked) {
-                        "${formatMinutes(entry!!.totalFocusMinutes)} focused this week"
+                        stringResource(R.string.leaderboard_focused_this_week, formatMinutes(entry!!.totalFocusMinutes))
                     } else {
-                        "Complete an Ekagra session to enter rankings"
+                        stringResource(R.string.leaderboard_enter_rankings_help)
                     },
                     fontSize = 12.sp,
                     color = textMuted,
@@ -599,13 +604,13 @@ private fun LiveRankingsHeader() {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = "Live Rankings",
+            text = stringResource(R.string.leaderboard_live_rankings),
             fontSize = 17.sp,
             fontWeight = FontWeight.Bold,
             color = textColor,
         )
         Text(
-            text = "Ekagra Focus Time",
+            text = stringResource(R.string.leaderboard_ekagra_focus_time),
             fontSize = 12.sp,
             fontWeight = FontWeight.Medium,
             color = textMuted,
@@ -718,7 +723,7 @@ private fun LeaderboardRow(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = if (isCurrentUser) "You" else entry.name,
+                    text = if (isCurrentUser) stringResource(R.string.study_circle_you) else entry.name,
                     fontSize = 14.sp,
                     fontWeight = if (isCurrentUser) FontWeight.Bold else FontWeight.Medium,
                     color = textColor,
@@ -735,7 +740,7 @@ private fun LeaderboardRow(
                             .padding(horizontal = 6.dp, vertical = 1.dp),
                     ) {
                         Text(
-                            text = "YOU",
+                            text = stringResource(R.string.study_circle_you).uppercase(),
                             fontSize = 9.sp,
                             fontWeight = FontWeight.Bold,
                             color = accentCoral,
@@ -782,7 +787,7 @@ private fun PaginationBar(
         ) {
             Icon(
                 Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-                contentDescription = "Previous page",
+                contentDescription = stringResource(R.string.leaderboard_previous_page),
                 tint = if (currentPage > 1) textColor else textMuted.copy(alpha = 0.4f),
             )
         }
@@ -815,7 +820,7 @@ private fun PaginationBar(
         ) {
             Icon(
                 Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = "Next page",
+                contentDescription = stringResource(R.string.leaderboard_next_page),
                 tint = if (currentPage < totalPages) textColor else textMuted.copy(alpha = 0.4f),
             )
         }
@@ -829,7 +834,7 @@ private fun EmptyRankingsNotice() {
     val textMuted = PlannerFlatColors.TextMuted
 
     Text(
-        text = "This week's leaderboard is being prepared. It updates automatically as Ekagra sessions are completed.",
+        text = stringResource(R.string.leaderboard_preparing),
         fontSize = 13.sp,
         color = textMuted,
         textAlign = TextAlign.Center,
@@ -914,7 +919,7 @@ private fun LeaderboardErrorState(
         verticalArrangement = Arrangement.Center,
     ) {
         Text(
-            text = "Unable to load leaderboard",
+            text = stringResource(R.string.leaderboard_load_error),
             fontSize = 17.sp,
             fontWeight = FontWeight.Bold,
             color = textColor,
@@ -945,7 +950,7 @@ private fun LeaderboardErrorState(
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    text = "Try Again",
+                    text = stringResource(R.string.common_try_again),
                     fontWeight = FontWeight.Bold,
                     fontSize = 13.5.sp,
                     color = accentCoral,

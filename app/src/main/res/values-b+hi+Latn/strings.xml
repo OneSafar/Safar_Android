@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Conversational Hinglish. Untranslated screens intentionally fall back to English. -->
+    <string name="onboarding_headline">Apni pace par aage badhein.</string>
+    <string name="onboarding_body">Padhai aur well-being ke safar ko simple banayein.</string>
+    <string name="splash_start_safar">Apna SAFAR shuru karein</string>
+
+    <string name="auth_tagline">Apna safar continue karne ke liye sign in karein</string>
+    <string name="auth_create_account_tagline">Apna SAFAR account banayein</string>
+    <string name="auth_sign_in_to_continue">Continue karne ke liye sign in karein</string>
+    <string name="auth_create_account">Apna account banayein</string>
+    <string name="auth_label_email">EMAIL</string>
+    <string name="auth_label_password">PASSWORD</string>
+    <string name="auth_label_full_name">POORA NAAM</string>
+    <string name="auth_label_confirm_password">PASSWORD CONFIRM KAREIN</string>
+    <string name="auth_label_exam_type">EXAM TYPE</string>
+    <string name="auth_label_prep_stage">PREPARATION STAGE</string>
+    <string name="auth_label_gender">GENDER</string>
+    <string name="auth_hint_password_signup">Kam se kam 8 characters</string>
+    <string name="auth_hint_confirm_password">Password dobara daalein</string>
+    <string name="auth_hint_full_name">Apna poora naam</string>
+    <string name="auth_hint_exam_type">Exam select karein</string>
+    <string name="auth_hint_prep_stage">Stage select karein</string>
+    <string name="auth_hint_gender">Gender select karein</string>
+    <string name="auth_remember_me">Mujhe yaad rakhein</string>
+    <string name="auth_forgot_password">Password bhool gaye?</string>
+    <string name="auth_sign_in">Sign in karein</string>
+    <string name="auth_signing_in">Sign in ho raha hai…</string>
+    <string name="auth_create_account_btn">Account banayein</string>
+    <string name="auth_creating_account">Account ban raha hai…</string>
+    <string name="auth_no_account">Account nahi hai? </string>
+    <string name="auth_sign_up_here">Yahan sign up karein</string>
+    <string name="auth_have_account">Pehle se account hai? </string>
+    <string name="auth_sign_in_here">Yahan sign in karein</string>
+    <string name="auth_footer">SAFAR · Har aspirant ke well-being ka saathi</string>
+    <string name="auth_welcome_back">Welcome back</string>
+    <string name="auth_glad_back">Aapko phir dekhkar achha laga.</string>
+    <string name="auth_start_study_journey">SAFAR ke saath apni study journey shuru karein</string>
+    <string name="auth_select_target_exam">Apna target exam select karein</string>
+    <string name="auth_select_preparation_stage">Preparation stage select karein</string>
+
+    <string name="nav_back">Wapas</string>
+    <string name="nav_home">Home</string>
+    <string name="nav_dashboard">Dashboard</string>
+    <string name="nav_study_planner">Exam Planner</string>
+    <string name="nav_profile">Profile</string>
+    <string name="nav_night_mode">Night mode</string>
+    <string name="nav_toggle_night">Night mode badlein</string>
+    <string name="nav_open_menu">Menu kholein</string>
+    <string name="nav_previous">Pichhla</string>
+    <string name="nav_next">Agla</string>
+    <string name="nav_study_circle">Study Circle</string>
+    <string name="nav_leaderboard">Leaderboard</string>
+    <string name="nav_habit_tracker">Habit Tracker</string>
+
+    <string name="home_greeting">Good morning</string>
+    <string name="home_subtitle">Aaj aap kahan se shuru karna chahenge?</string>
+
+    <string name="profile_title">Profile</string>
+    <string name="profile_guest">Guest</string>
+    <string name="profile_no_email">Email set nahi hai</string>
+    <string name="profile_section_settings">Settings</string>
+    <string name="profile_section_about">About</string>
+    <string name="profile_night_mode">Night mode</string>
+    <string name="profile_app_version">App version</string>
+    <string name="profile_logout">Logout karein</string>
+    <string name="profile_logout_confirm">Pakka logout karna hai?</string>
+    <string name="profile_language_title">App language</string>
+    <string name="profile_language_subtitle">English, Hindi, ya Hinglish choose karein</string>
+    <string name="profile_language_dialog_title">Apni language choose karein</string>
+    <string name="profile_language_english">English</string>
+    <string name="profile_language_hindi">हिन्दी (Hindi)</string>
+    <string name="profile_language_hinglish">Hinglish</string>
+    <string name="profile_update_details">Apni profile aur exam details update karein</string>
+    <string name="profile_save_content_description">Profile save karein</string>
+    <string name="profile_saved_success">Profile save ho gayi!</string>
+    <string name="profile_photo_updated">Profile photo update ho gayi!</string>
+
+    <string name="ekagra_tab_timer">Timer</string>
+    <string name="ekagra_tab_break">Break</string>
+    <string name="ekagra_tab_analytics">Analytics</string>
+    <string name="ekagra_theme">Theme</string>
+    <string name="ekagra_song">Music</string>
+    <string name="ekagra_focus">Ekagra</string>
+    <string name="ekagra_minutes">%d min</string>
+    <string name="ekagra_decrease">Kam karein</string>
+    <string name="ekagra_increase">Badhayein</string>
+    <string name="ekagra_reset">Reset karein</string>
+    <string name="ekagra_pause">Pause</string>
+    <string name="ekagra_start">Shuru karein</string>
+    <string name="ekagra_start_break">Break shuru karein</string>
+    <string name="ekagra_break_time">Break time</string>
+    <string name="ekagra_break_minutes">%d min ka break</string>
+    <string name="ekagra_choose_theme">Theme choose karein</string>
+    <string name="ekagra_ambient_sound">Ambient sound</string>
+    <string name="ekagra_stat_sessions">Sessions</string>
+    <string name="ekagra_stat_focus_time">Ekagra time</string>
+    <string name="ekagra_stat_avg_session">Average session</string>
+</resources>

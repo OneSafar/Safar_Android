@@ -1,4 +1,7 @@
 package com.safarparmar.app.feature.youtubestudyv2
+
+import androidx.compose.ui.res.stringResource
+import com.safarparmar.app.R
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 
@@ -95,6 +98,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -108,11 +116,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.safarparmar.app.feature.kavachanalytics.ui.KavachCategoryColors
 import com.safarparmar.app.feature.kavachanalytics.ui.OutlineChip
 import com.safarparmar.app.feature.kavachanalytics.ui.primaryText
@@ -124,22 +127,33 @@ import com.safarparmar.app.ui.theme.SafarTheme
 // ── YTCM Design Tokens ───────────────────────────────────────────────────────
 
 internal object YTCMColors {
-    /** Near-black — premium button fill in light mode */
-    val PremiumBlack = Color(0xFF0F172A)
-    /** Deep royal purple — accent, toggle track, progress */
+    /** Sleek deep obsidian black container in dark mode, clean pure white in light mode */
+    val ContainerDark = Color(0xFF101014)
+    val ContainerLight = Color(0xFFFFFFFF)
+    val ContainerBorderDark = Color.White.copy(alpha = 0.08f)
+    val ContainerBorderLight = Color.Black.copy(alpha = 0.08f)
+
+    /** Sub-container / stat chip fills */
+    val SubContainerDark = Color(0xFF18181E)
+    val SubContainerLight = Color(0xFFF8FAFC)
+
+    /** Signature accent: Kavach Deep Purple (#6B21A8 Light / #C084FC Dark) */
     val RoyalPurple = Color(0xFF6B21A8)
+    val RoyalPurpleDark = Color(0xFFC084FC)
+
+    fun accent(isLight: Boolean) = if (isLight) RoyalPurple else RoyalPurpleDark
 
     /** Royal purple surface wash */
     fun royalPurpleSurface(isLight: Boolean) =
         if (isLight) Color(0xFFF3E8FF) else Color(0xFF3B0764)
 
-    /** Primary CTA fill — near-black in light, brand purple in dark */
+    /** Primary CTA fill — matches App Shield / KavachDesign.Primary */
     fun ctaFill(isLight: Boolean) =
-        if (isLight) PremiumBlack else Color(0xFFC084FC)
+        if (isLight) Color(0xFF581C87) else Color(0xFFC084FC)
 
     /** Toggle track colors */
     fun toggleTrack(isLight: Boolean) =
-        if (isLight) RoyalPurple else Color(0xFF9333EA)
+        if (isLight) RoyalPurple else Color(0xFFA855F7)
 
     fun toggleTrackUnchecked(isLight: Boolean) =
         if (isLight) Color(0xFFCBD5E1) else Color(0xFF334155)
@@ -154,10 +168,10 @@ fun YoutubeStudyV2Screen(
     isDarkTheme: Boolean = false,
     viewModel: YoutubeStudyV2ViewModel = hiltViewModel(),
 ) {
+    val isLight = !isDarkTheme
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val owner = LocalLifecycleOwner.current
-    val isLight = !isDarkTheme
 
     DisposableEffect(owner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -167,11 +181,7 @@ fun YoutubeStudyV2Screen(
         onDispose { owner.lifecycle.removeObserver(observer) }
     }
 
-    fun openAccessibilitySettings() {
-        runCatching { context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }
-    }
-
-    val screenBg = if (isLight) Color(0xFFF8FAFC) else Color(0xFF0F172A)
+    val screenBg = if (isLight) Color(0xFFF8FAFC) else Color(0xFF090A0E)
     Scaffold(
         containerColor = screenBg,
         topBar = {
@@ -187,7 +197,7 @@ fun YoutubeStudyV2Screen(
                     IconButton(onClick = onBack) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
+                            contentDescription = stringResource(R.string.common_back),
                             tint = primaryText(isLight),
                         )
                     }
@@ -198,17 +208,18 @@ fun YoutubeStudyV2Screen(
             )
         },
     ) { padding ->
+        // Temporary launch gate removed. Keep YoutubeFocusComingSoonContent below
+        // so the placeholder can be restored without rebuilding it.
         YoutubeStudyV2Content(
             state = state,
             isLight = isLight,
             onAgree = {
                 if (state.accessibilityEnabled) viewModel.goToStep2()
-                else openAccessibilitySettings()
+                else FocusShieldPermissionHelper.openAccessibilitySettings(context)
             },
-            onAcceptDisclosure = viewModel::acceptDisclosure,
             onNotNow = onBack,
             onSetEnabled = viewModel::setEnabled,
-            onOpenAccessibility = ::openAccessibilitySettings,
+            onOpenAccessibility = { FocusShieldPermissionHelper.openAccessibilitySettings(context) },
             onReferenceChanged = viewModel::setReference,
             onAddChannel = viewModel::resolveAndAllow,
             onSetClassification = viewModel::setClassification,
@@ -217,8 +228,85 @@ fun YoutubeStudyV2Screen(
             onDeleteChannel = viewModel::deleteChannel,
             onBackToStep1 = viewModel::returnToStep1,
             onStart = viewModel::finishSetup,
+            onAcceptDisclosure = viewModel::acceptDisclosure,
             modifier = Modifier.padding(padding).navigationBarsPadding(),
         )
+    }
+}
+
+@Composable
+fun YoutubeFocusComingSoonContent(
+    isLight: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val accent = YTCMColors.accent(isLight)
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(horizontal = 28.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(180.dp)
+                .clip(CircleShape)
+                .background(accent.copy(alpha = 0.08f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(112.dp)
+                    .clip(RoundedCornerShape(28.dp))
+                    .background(accent.copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.SmartDisplay,
+                    contentDescription = null,
+                    tint = accent,
+                    modifier = Modifier.size(48.dp),
+                )
+            }
+            Icon(
+                imageVector = Icons.Default.Lock,
+                contentDescription = null,
+                tint = accent,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(top = 18.dp, end = 18.dp)
+                    .size(27.dp),
+            )
+        }
+        Spacer(Modifier.height(42.dp))
+        Text(
+            text = stringResource(R.string.youtube_focus_title_upper),
+            color = accent,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 3.sp,
+        )
+        Spacer(Modifier.height(24.dp))
+        Text(
+            text = stringResource(R.string.youtube_focus_coming_soon),
+            color = primaryText(isLight),
+            fontSize = 32.sp,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center,
+        )
+        Spacer(Modifier.height(28.dp))
+        Surface(
+            shape = RoundedCornerShape(50),
+            color = accent.copy(alpha = 0.09f),
+        ) {
+            Text(
+                text = stringResource(R.string.youtube_focus_coming_soon_body),
+                color = accent,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp),
+            )
+        }
     }
 }
 
@@ -304,19 +392,19 @@ fun YoutubeStudyV2Content(
         if (showDisclosure) {
             androidx.compose.material3.AlertDialog(
                 onDismissRequest = { showDisclosure = false; enableAfterDisclosure = false },
-                containerColor = if (isLight) Color(0xFFF8FAFC) else Color(0xFF0F172A),
-                title = { Text("Accessibility access for YouTube Focus") },
+                containerColor = if (isLight) YTCMColors.ContainerLight else YTCMColors.ContainerDark,
+                title = { Text(stringResource(R.string.youtube_focus_accessibility_title)) },
                 text = {
                     Column(
                         Modifier.verticalScroll(rememberScrollState()),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        Text("YouTube Focus uses Android’s AccessibilityService API while enabled to read visible text and screen controls in the YouTube app.")
-                        Text("Data accessed: names (including channel or account display names), personal identifiers (such as YouTube @handles), and other user-generated content visible on screen (such as video titles, descriptions and comments). This information may be present in the screen text read by the service.")
-                        Text("Purpose: SAFAR uses channel names and handles, player controls and screen text to identify the channel being watched, detect videos and Shorts, apply your blocking choices, and measure viewing time. Comments and unrelated account text are not used to identify channels.")
-                        Text("To enforce your blocking settings, Safar can pause playback, go back from blocked content, and show blocking controls over YouTube.")
-                        Text("Data sent and saved: newly detected channel @handles are sent to SAFAR’s server to resolve channel identities and add them to the shared channel catalogue. Channel names, identifiers and your channel choices are saved on this device. Daily viewing totals by category are synced to SAFAR for your analytics. Raw screen text, video titles, descriptions and comments are not uploaded by this feature.")
-                        Text("This access is optional. You can turn it off anytime in Android Settings → Accessibility → SAFAR YouTube Focus.")
+                        Text(stringResource(R.string.youtube_focus_accessibility_intro))
+                        Text(stringResource(R.string.youtube_focus_accessibility_data))
+                        Text(stringResource(R.string.youtube_focus_accessibility_purpose))
+                        Text(stringResource(R.string.youtube_focus_accessibility_actions))
+                        Text(stringResource(R.string.youtube_focus_accessibility_storage))
+                        Text(stringResource(R.string.youtube_focus_accessibility_optional))
                     }
                 },
                 confirmButton = {
@@ -329,10 +417,10 @@ fun YoutubeStudyV2Content(
                             showTutorialSheet = true
                         }
                         enableAfterDisclosure = false
-                    }) { Text("Agree and continue") }
+                    }) { Text(stringResource(R.string.common_agree_continue)) }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showDisclosure = false; enableAfterDisclosure = false }) { Text("Not now") }
+                    TextButton(onClick = { showDisclosure = false; enableAfterDisclosure = false }) { Text(stringResource(R.string.common_not_now)) }
                 },
             )
         }
@@ -451,24 +539,30 @@ private fun PermissionStep(
                 modifier = Modifier
                     .size(72.dp)
                     .clip(RoundedCornerShape(20.dp))
-                    .background(if (isLight) Color(0xFFFEF2F2) else Color(0xFF450A0A)),
+                    .background(YTCMColors.royalPurpleSurface(isLight)),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     Icons.Default.SmartDisplay,
                     contentDescription = null,
-                    tint = if (isLight) Color(0xFFEF4444) else Color(0xFFF87171),
+                    tint = YTCMColors.accent(isLight),
                     modifier = Modifier.size(36.dp),
                 )
             }
             Spacer(Modifier.height(4.dp))
-            Text(
-                "YouTube Focus",
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold,
-                color = primaryText(isLight),
-                textAlign = TextAlign.Center,
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(
+                    "YouTube Focus",
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = primaryText(isLight),
+                    textAlign = TextAlign.Center,
+                )
+                YoutubeFocusBetaBadge(isLight = isLight)
+            }
             Text(
                 "Block distracting channels. Only productive channels will open.",
                 fontSize = 14.sp,
@@ -486,21 +580,21 @@ private fun PermissionStep(
                 icon = Icons.Default.SmartDisplay,
                 iconBg = if (isLight) Color(0xFFFEF2F2) else Color(0xFF450A0A),
                 iconTint = if (isLight) Color(0xFFEF4444) else Color(0xFFF87171),
-                label = "Distracting channels blocked automatically",
+                label = stringResource(R.string.youtube_focus_benefit_block_channels),
                 isLight = isLight,
             )
             FeatureRow(
                 icon = Icons.Default.Block,
-                iconBg = if (isLight) Color(0xFFFEF2F2) else Color(0xFF450A0A),
-                iconTint = if (isLight) Color(0xFFEF4444) else Color(0xFFF87171),
-                label = "YouTube Shorts always blocked",
+                iconBg = YTCMColors.royalPurpleSurface(isLight),
+                iconTint = YTCMColors.accent(isLight),
+                label = stringResource(R.string.youtube_focus_benefit_block_shorts),
                 isLight = isLight,
             )
             FeatureRow(
                 icon = Icons.Default.CheckCircle,
                 iconBg = if (isLight) Color(0xFFF0FDF4) else Color(0xFF052E16),
                 iconTint = if (isLight) Color(0xFF10B981) else Color(0xFF4ADE80),
-                label = "Productive channels always open safely",
+                label = stringResource(R.string.youtube_focus_benefit_allow_productive),
                 isLight = isLight,
             )
         }
@@ -513,15 +607,15 @@ private fun PermissionStep(
         if (permissionConnected) {
             StatusPill(
                 icon = Icons.Default.CheckCircle,
-                text = "Permissions active",
+                text = stringResource(R.string.youtube_focus_permissions_active),
                 isOk = true,
                 isLight = isLight,
             )
             if (!isBatteryUnrestricted) {
                 Surface(
                     shape = RoundedCornerShape(12.dp),
-                    color = if (isLight) Color(0xFFFFFBEB) else Color(0xFF2E1905),
-                    border = BorderStroke(1.dp, Color(0xFFF59E0B).copy(alpha = 0.35f)),
+                    color = if (isLight) YTCMColors.ContainerLight else YTCMColors.ContainerDark,
+                    border = BorderStroke(1.dp, if (isLight) YTCMColors.ContainerBorderLight else YTCMColors.ContainerBorderDark),
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { FocusShieldPermissionHelper.openBatterySaverSettings(context) },
@@ -542,19 +636,19 @@ private fun PermissionStep(
                                 "Battery Saver: Set to 'No restrictions'",
                                 fontSize = 12.5.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = if (isLight) Color(0xFF92400E) else Color(0xFFFDE68A),
+                                color = primaryText(isLight),
                             )
                             Text(
                                 "Prevents phone from killing YouTube Focus in background",
                                 fontSize = 11.sp,
-                                color = if (isLight) Color(0xFFB45309) else Color(0xFFFCD34D),
+                                color = secondaryText(isLight),
                             )
                         }
                         Text(
                             "Fix →",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFFF59E0B),
+                            color = YTCMColors.accent(isLight),
                         )
                     }
                 }
@@ -562,7 +656,7 @@ private fun PermissionStep(
         } else {
             StatusPill(
                 icon = Icons.Default.Settings,
-                text = "Permissions are required — Tap for guide",
+                text = stringResource(R.string.youtube_focus_permissions_required),
                 isOk = false,
                 isLight = isLight,
                 onClick = onAgree,
@@ -581,7 +675,7 @@ private fun PermissionStep(
                 onClick = onAgree,
             )
             TextButton(onClick = onNotNow) {
-                Text("Not now", fontSize = 13.sp, color = secondaryText(isLight))
+                Text(stringResource(R.string.common_not_now), fontSize = 13.sp, color = secondaryText(isLight))
             }
         }
     }
@@ -619,8 +713,8 @@ private fun ChannelSelectionStep(
 
         SectionLabel("SUGGESTED PRODUCTIVE CHANNELS", isLight)
         when {
-            state.loadingAvailable -> Text("Loading…", fontSize = 13.sp, color = secondaryText(isLight))
-            suggestions.isEmpty() -> Text("Add a channel below.", fontSize = 13.sp, color = secondaryText(isLight))
+            state.loadingAvailable -> Text(stringResource(R.string.common_loading), fontSize = 13.sp, color = secondaryText(isLight))
+            suggestions.isEmpty() -> Text(stringResource(R.string.youtube_focus_add_channel_below), fontSize = 13.sp, color = secondaryText(isLight))
             else -> ChannelCardGroup(
                 channels = suggestions,
                 classifications = state.classifications,
@@ -630,8 +724,8 @@ private fun ChannelSelectionStep(
         }
 
         ExpandableSection(
-            title = "Discovered Channels",
-            subtitle = "${state.available.size} channels found",
+            title = stringResource(R.string.youtube_focus_channels_on_phone),
+            subtitle = "${state.available.size} saved channels",
             expanded = availableExpanded,
             isLight = isLight,
             onToggle = { availableExpanded = !availableExpanded },
@@ -650,7 +744,7 @@ private fun ChannelSelectionStep(
         OutlinedTextField(
             value = state.reference,
             onValueChange = onReferenceChanged,
-            placeholder = { Text("@channelhandle (e.g. @PhysicsWallah)", fontSize = 14.sp, color = secondaryText(isLight)) },
+            placeholder = { Text(stringResource(R.string.youtube_focus_channel_placeholder), fontSize = 14.sp, color = secondaryText(isLight)) },
             leadingIcon = {
                 Icon(Icons.Default.Add, null, tint = secondaryText(isLight), modifier = Modifier.size(18.dp))
             },
@@ -658,14 +752,14 @@ private fun ChannelSelectionStep(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(14.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = YTCMColors.RoyalPurple,
+                focusedBorderColor = YTCMColors.accent(isLight),
                 unfocusedBorderColor = secondaryText(isLight).copy(alpha = 0.25f),
-                focusedLabelColor = YTCMColors.RoyalPurple,
+                focusedLabelColor = YTCMColors.accent(isLight),
             ),
         )
         if (state.reference.isNotBlank()) {
             CtaButton(
-                text = if (state.resolving) "Searching channel…" else "Add Channel →",
+                text = if (state.resolving) "Adding channel…" else "Add Channel →",
                 isLight = isLight,
                 enabled = !state.resolving,
                 onClick = onAddChannel,
@@ -675,7 +769,7 @@ private fun ChannelSelectionStep(
             Text(
                 it,
                 fontSize = 12.sp,
-                color = if (state.isError) MaterialTheme.colorScheme.error else YTCMColors.RoyalPurple,
+                color = if (state.isError) MaterialTheme.colorScheme.error else YTCMColors.accent(isLight),
             )
         }
 
@@ -692,7 +786,7 @@ private fun ChannelSelectionStep(
             onClick = onBackToStep1,
             modifier = Modifier.align(Alignment.CenterHorizontally),
         ) {
-            Text("← Back to permissions", fontSize = 13.sp, color = secondaryText(isLight))
+            Text(stringResource(R.string.youtube_focus_back_permissions), fontSize = 13.sp, color = secondaryText(isLight))
         }
     }
 }
@@ -750,11 +844,11 @@ private fun StudyModeDashboard(
             )
         }
 
-        // 3. Channel catalog — switchable Productive / Distracting tabs
+        // 3. Local productive-channel allow list
         if (state.available.isNotEmpty() || state.classifications.isNotEmpty()) {
             item {
-                val catalogBg = if (isLight) Color(0xFFF8FAFC) else Color(0xFF18181B)
-                val catalogBorder = if (isLight) Color.Black.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.08f)
+                val catalogBg = if (isLight) YTCMColors.ContainerLight else YTCMColors.ContainerDark
+                val catalogBorder = if (isLight) YTCMColors.ContainerBorderLight else YTCMColors.ContainerBorderDark
                 var catalogExpanded by rememberSaveable { mutableStateOf(true) }
                 val catalogChevronRotation by animateFloatAsState(
                     targetValue = if (catalogExpanded) 180f else 0f,
@@ -783,22 +877,18 @@ private fun StudyModeDashboard(
                             Icon(
                                 imageVector = Icons.Default.VideoLibrary,
                                 contentDescription = null,
-                                tint = secondaryText(isLight),
+                                tint = YTCMColors.accent(isLight),
                                 modifier = Modifier.size(20.dp),
                             )
                             Column(Modifier.weight(1f)) {
                                 Text(
-                                    text = "Channel catalog",
+                                    text = stringResource(R.string.youtube_focus_productive_allow_list),
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     color = primaryText(isLight),
                                 )
-                                val prodCount = state.classifications.values
-                                    .count { it == YoutubeChannelClassification.PRODUCTIVE }
-                                val distCount = state.classifications.values
-                                    .count { it == YoutubeChannelClassification.DISTRACTING }
                                 Text(
-                                    text = "$prodCount productive · $distCount distracting",
+                                    text = "${state.allowed.size} allowed channels",
                                     fontSize = 12.sp,
                                     color = secondaryText(isLight),
                                 )
@@ -868,26 +958,22 @@ private fun ProtectionStatus(
     onOpenAccessibility: () -> Unit,
 ) {
     val active = enabled && accessibilityEnabled
-    val oliveDeepGreen = if (isLight) Color(0xFF2E5A27) else Color(0xFF4ADE80)
-    val targetCardBg = if (active) {
-        if (isLight) Color(0xFFF0F5EE) else Color(0xFF0F1E12)
-    } else {
-        if (isLight) Color(0xFFF1F5F9) else Color(0xFF18181B)
-    }
+    val accentColor = YTCMColors.accent(isLight)
+    val targetCardBg = if (isLight) YTCMColors.ContainerLight else YTCMColors.ContainerDark
     val targetCardBorder = if (active) {
-        if (isLight) Color(0xFF2E5A27).copy(alpha = 0.30f) else Color(0xFF4ADE80).copy(alpha = 0.25f)
+        accentColor.copy(alpha = if (isLight) 0.35f else 0.30f)
     } else {
-        if (isLight) Color.Black.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.08f)
+        if (isLight) YTCMColors.ContainerBorderLight else YTCMColors.ContainerBorderDark
     }
     val cardBg by animateColorAsState(targetCardBg, animationSpec = tween(250), label = "statusCardBg")
     val cardBorder by animateColorAsState(targetCardBorder, animationSpec = tween(250), label = "statusCardBorder")
     val iconTint by animateColorAsState(
-        targetValue = if (active) oliveDeepGreen else secondaryText(isLight),
+        targetValue = if (active) accentColor else secondaryText(isLight),
         animationSpec = tween(250),
         label = "statusIconTint",
     )
     val titleColor by animateColorAsState(
-        targetValue = if (active) oliveDeepGreen else primaryText(isLight),
+        targetValue = if (active) accentColor else primaryText(isLight),
         animationSpec = tween(250),
         label = "statusTitleColor",
     )
@@ -916,8 +1002,9 @@ private fun ProtectionStatus(
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,
                 color = titleColor,
-                modifier = Modifier.weight(1f),
             )
+            YoutubeFocusBetaBadge(isLight = isLight)
+            Spacer(Modifier.weight(1f))
             Box(contentAlignment = Alignment.Center) {
                 Switch(
                     checked = active,
@@ -929,9 +1016,9 @@ private fun ProtectionStatus(
                         }
                     },
                     colors = SwitchDefaults.colors(
-                        checkedTrackColor = if (isLight) Color(0xFF2E5A27) else Color(0xFF3F6212),
+                        checkedTrackColor = YTCMColors.toggleTrack(isLight),
                         checkedThumbColor = Color.White,
-                        uncheckedTrackColor = if (isLight) Color(0xFFCBD5E1) else Color(0xFF334155),
+                        uncheckedTrackColor = YTCMColors.toggleTrackUnchecked(isLight),
                         uncheckedBorderColor = Color.Transparent,
                     ),
                 )
@@ -955,13 +1042,13 @@ private fun ProtectionStatus(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             StatChip(
-                label = "Shorts",
+                label = stringResource(R.string.youtube_focus_shorts),
                 value = if (active) "Blocked" else "Off",
                 isLight = isLight,
                 modifier = Modifier.weight(1f),
             )
             StatChip(
-                label = "Channels allowed",
+                label = stringResource(R.string.youtube_focus_channels_allowed),
                 value = "$productiveCount",
                 isLight = isLight,
                 modifier = Modifier.weight(1f),
@@ -999,7 +1086,7 @@ private fun StatChip(
     isLight: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    val chipBg = if (isLight) Color.White.copy(alpha = 0.70f) else Color.Black.copy(alpha = 0.35f)
+    val chipBg = if (isLight) YTCMColors.SubContainerLight else YTCMColors.SubContainerDark
     val chipBorder = if (isLight) Color.Black.copy(alpha = 0.06f) else Color.White.copy(alpha = 0.06f)
 
     Column(
@@ -1040,8 +1127,8 @@ private fun AddChannelCard(
     onAddChannel: () -> Unit,
     showEmptyState: Boolean,
 ) {
-    val cardBg = if (isLight) Color(0xFFF8FAFC) else Color(0xFF18181B)
-    val cardBorder = if (isLight) Color.Black.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.08f)
+    val cardBg = if (isLight) YTCMColors.ContainerLight else YTCMColors.ContainerDark
+    val cardBorder = if (isLight) YTCMColors.ContainerBorderLight else YTCMColors.ContainerBorderDark
 
     Column(
         modifier = Modifier
@@ -1053,7 +1140,7 @@ private fun AddChannelCard(
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         Text(
-            text = "Add channel by handle",
+            text = stringResource(R.string.youtube_focus_add_channel_title),
             fontSize = 14.5.sp,
             fontWeight = FontWeight.SemiBold,
             color = primaryText(isLight),
@@ -1069,7 +1156,7 @@ private fun AddChannelCard(
                 onValueChange = onReferenceChanged,
                 placeholder = {
                     Text(
-                        "name@channelhandle",
+                        "Channel name or @handle",
                         fontSize = 13.5.sp,
                         color = secondaryText(isLight).copy(alpha = 0.7f),
                     )
@@ -1078,26 +1165,26 @@ private fun AddChannelCard(
                 modifier = Modifier.weight(1f),
                 shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = if (isLight) Color(0xFF0F172A) else Color.White.copy(alpha = 0.5f),
+                    focusedBorderColor = YTCMColors.accent(isLight),
                     unfocusedBorderColor = secondaryText(isLight).copy(alpha = 0.20f),
-                    focusedContainerColor = if (isLight) Color.White else Color(0xFF121316),
-                    unfocusedContainerColor = if (isLight) Color.White else Color(0xFF121316),
+                    focusedContainerColor = if (isLight) YTCMColors.SubContainerLight else YTCMColors.SubContainerDark,
+                    unfocusedContainerColor = if (isLight) YTCMColors.SubContainerLight else YTCMColors.SubContainerDark,
                 ),
             )
 
             // Dedicated "+" Action Button
             val targetButtonBg = when {
-                reference.isNotBlank() -> if (isLight) Color(0xFF0F172A) else Color.White
-                isLight -> Color.White
-                else -> Color(0xFF27272A)
+                reference.isNotBlank() -> YTCMColors.accent(isLight)
+                isLight -> Color(0xFFF1F5F9)
+                else -> Color(0xFF1C1C22)
             }
             val targetButtonBorder = when {
-                reference.isNotBlank() -> if (isLight) Color.Black.copy(alpha = 0.20f) else Color.White.copy(alpha = 0.40f)
-                isLight -> Color.Black.copy(alpha = 0.12f)
-                else -> Color.White.copy(alpha = 0.15f)
+                reference.isNotBlank() -> YTCMColors.accent(isLight).copy(alpha = 0.40f)
+                isLight -> Color.Black.copy(alpha = 0.10f)
+                else -> Color.White.copy(alpha = 0.12f)
             }
             val targetIconTint = when {
-                reference.isNotBlank() -> if (isLight) Color.White else Color.Black
+                reference.isNotBlank() -> Color.White
                 else -> secondaryText(isLight).copy(alpha = 0.6f)
             }
             val buttonBg by animateColorAsState(targetButtonBg, animationSpec = tween(200), label = "addBtnBg")
@@ -1122,7 +1209,7 @@ private fun AddChannelCard(
                     } else {
                         Icon(
                             imageVector = Icons.Default.Add,
-                            contentDescription = "Add channel",
+                            contentDescription = stringResource(R.string.youtube_focus_add_channel),
                             tint = iconTint,
                             modifier = Modifier.size(22.dp),
                         )
@@ -1152,7 +1239,7 @@ private fun AddChannelCard(
 
         // Empty state box below input if no productive channels yet
         if (showEmptyState) {
-            val emptyBoxBg = if (isLight) Color(0xFFF1F5F9) else Color(0xFF121316)
+            val emptyBoxBg = if (isLight) YTCMColors.SubContainerLight else YTCMColors.SubContainerDark
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1175,14 +1262,14 @@ private fun AddChannelCard(
                 )
                 Spacer(Modifier.height(2.dp))
                 Text(
-                    text = "No productive channels yet",
+                    text = stringResource(R.string.youtube_focus_no_productive_channels),
                     fontSize = 13.5.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = primaryText(isLight),
                     textAlign = TextAlign.Center,
                 )
                 Text(
-                    text = "Add a handle above to allow it through",
+                    text = stringResource(R.string.youtube_focus_exact_channel_help),
                     fontSize = 12.sp,
                     color = secondaryText(isLight),
                     textAlign = TextAlign.Center,
@@ -1201,8 +1288,8 @@ private fun ChannelAllowedCard(
     isLight: Boolean,
     onDelete: () -> Unit,
 ) {
-    val cardBg = if (isLight) Color(0xFFF8FAFC) else Color(0xFF18181B)
-    val cardBorder = if (isLight) Color.Black.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.08f)
+    val cardBg = if (isLight) YTCMColors.ContainerLight else YTCMColors.ContainerDark
+    val cardBorder = if (isLight) YTCMColors.ContainerBorderLight else YTCMColors.ContainerBorderDark
 
     Surface(
         shape = RoundedCornerShape(14.dp),
@@ -1216,14 +1303,14 @@ private fun ChannelAllowedCard(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             ChannelInitialsAvatar(
-                name = handle ?: name,
-                backgroundColor = Color(0xFF1E3A8A),
-                textColor = Color(0xFF93C5FD),
+                name = handle?.takeIf { it.isNotBlank() } ?: name,
+                backgroundColor = YTCMColors.royalPurpleSurface(isLight),
+                textColor = YTCMColors.accent(isLight),
             )
 
             Column(Modifier.weight(1f)) {
                 Text(
-                    text = handle ?: name,
+                    text = handle?.takeIf { it.isNotBlank() } ?: name,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = primaryText(isLight),
@@ -1253,7 +1340,7 @@ private fun ChannelAllowedCard(
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         imageVector = Icons.Default.Close,
-                        contentDescription = "Remove channel",
+                        contentDescription = stringResource(R.string.youtube_focus_remove_channel),
                         tint = secondaryText(isLight),
                         modifier = Modifier.size(16.dp),
                     )
@@ -1274,8 +1361,8 @@ private fun YourChannelsCard(
     onToggle: () -> Unit,
     onSetClassification: (ResolvedYoutubeChannelDto, YoutubeChannelClassification) -> Unit,
 ) {
-    val cardBg = if (isLight) Color(0xFFF8FAFC) else Color(0xFF18181B)
-    val cardBorder = if (isLight) Color.Black.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.08f)
+    val cardBg = if (isLight) YTCMColors.ContainerLight else YTCMColors.ContainerDark
+    val cardBorder = if (isLight) YTCMColors.ContainerBorderLight else YTCMColors.ContainerBorderDark
 
     Surface(
         shape = RoundedCornerShape(14.dp),
@@ -1295,12 +1382,12 @@ private fun YourChannelsCard(
                 Icon(
                     imageVector = Icons.Default.VideoLibrary,
                     contentDescription = null,
-                    tint = secondaryText(isLight),
+                    tint = YTCMColors.accent(isLight),
                     modifier = Modifier.size(20.dp),
                 )
                 Column(Modifier.weight(1f)) {
                     Text(
-                        text = "Your YouTube channels",
+                        text = stringResource(R.string.youtube_focus_your_channels),
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = primaryText(isLight),
@@ -1363,7 +1450,7 @@ private fun YourChannelsCard(
 
                             if (isAllowed) {
                                 Text(
-                                    text = "Allowed",
+                                    text = stringResource(R.string.common_allowed),
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     color = ChannelColors.productive(isLight),
@@ -1387,7 +1474,7 @@ private fun YourChannelsCard(
                                     ),
                                 ) {
                                     Text(
-                                        text = "Allow",
+                                        text = stringResource(R.string.common_allow),
                                         fontSize = 12.5.sp,
                                         fontWeight = FontWeight.SemiBold,
                                         color = primaryText(isLight),
@@ -1399,7 +1486,7 @@ private fun YourChannelsCard(
                     }
                     if (channels.isEmpty()) {
                         Text(
-                            text = "No channels found yet. Open YouTube to discover your visited channels.",
+                            text = stringResource(R.string.youtube_focus_no_channels_found),
                             fontSize = 12.sp,
                             color = secondaryText(isLight),
                             modifier = Modifier.padding(vertical = 8.dp),
@@ -1419,8 +1506,8 @@ private fun TroubleshootingWarningCard(
     isLight: Boolean,
     onToggle: () -> Unit,
 ) {
-    val warningBg = if (isLight) Color(0xFFFFFBEB) else Color(0xFF2E1905)
-    val warningBorder = if (isLight) Color(0xFFF59E0B).copy(alpha = 0.35f) else Color(0xFFF59E0B).copy(alpha = 0.35f)
+    val warningBg = if (isLight) YTCMColors.ContainerLight else YTCMColors.ContainerDark
+    val warningBorder = if (isLight) YTCMColors.ContainerBorderLight else YTCMColors.ContainerBorderDark
     val warningAmber = Color(0xFFF59E0B)
     val warningChevronRotation by animateFloatAsState(
         targetValue = if (expanded) 180f else 0f,
@@ -1454,15 +1541,15 @@ private fun TroubleshootingWarningCard(
                 )
                 Column(Modifier.weight(1f)) {
                     Text(
-                        text = "Protection stopping automatically?",
+                        text = stringResource(R.string.youtube_focus_protection_stopping),
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = primaryText(isLight),
                     )
                     Text(
-                        text = "Fix battery settings for your phone",
+                        text = stringResource(R.string.youtube_focus_fix_battery),
                         fontSize = 12.sp,
-                        color = if (isLight) Color(0xFFB45309) else Color(0xFFFCD34D),
+                        color = secondaryText(isLight),
                     )
                 }
                 Icon(
@@ -1488,7 +1575,7 @@ private fun TroubleshootingWarningCard(
                 ),
             ) {
                 Column {
-                    HorizontalDivider(color = warningAmber.copy(alpha = 0.15f))
+                    HorizontalDivider(color = if (isLight) Color.Black.copy(alpha = 0.06f) else Color.White.copy(alpha = 0.06f))
                     Column(
                         modifier = Modifier.padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -1496,22 +1583,22 @@ private fun TroubleshootingWarningCard(
                         Text(
                             "• Xiaomi / Redmi: Turn on Autostart & set Battery Saver to No Restrictions",
                             fontSize = 12.sp,
-                            color = if (isLight) Color(0xFF78350F) else Color(0xFFFDE68A),
+                            color = secondaryText(isLight),
                         )
                         Text(
                             "• Realme / OPPO: Turn on Auto Launch & Background Running",
                             fontSize = 12.sp,
-                            color = if (isLight) Color(0xFF78350F) else Color(0xFFFDE68A),
+                            color = secondaryText(isLight),
                         )
                         Text(
                             "• Samsung: Remove SAFAR from Sleeping Apps list",
                             fontSize = 12.sp,
-                            color = if (isLight) Color(0xFF78350F) else Color(0xFFFDE68A),
+                            color = secondaryText(isLight),
                         )
                         Text(
                             "• OnePlus: Lock SAFAR in Recent Apps & disable battery optimization",
                             fontSize = 12.sp,
-                            color = if (isLight) Color(0xFF78350F) else Color(0xFFFDE68A),
+                            color = secondaryText(isLight),
                         )
                         val context = LocalContext.current
                         Spacer(Modifier.height(4.dp))
@@ -1522,8 +1609,8 @@ private fun TroubleshootingWarningCard(
                                 .height(38.dp),
                             shape = RoundedCornerShape(10.dp),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFFF59E0B),
-                                contentColor = Color.Black,
+                                containerColor = YTCMColors.accent(isLight),
+                                contentColor = Color.White,
                             ),
                         ) {
                             Text(
@@ -1543,8 +1630,8 @@ private fun TroubleshootingWarningCard(
 private fun ChannelInitialsAvatar(
     name: String,
     modifier: Modifier = Modifier,
-    backgroundColor: Color = Color(0xFF1E3A8A),
-    textColor: Color = Color(0xFF93C5FD),
+    backgroundColor: Color = Color(0xFF3B0764),
+    textColor: Color = Color(0xFFC084FC),
 ) {
     val initials = remember(name) {
         val clean = name.removePrefix("@").trim()
@@ -1638,11 +1725,9 @@ private fun ChannelToggleRow(
     onDelete: (() -> Unit)? = null,
 ) {
     val productive = classification == YoutubeChannelClassification.PRODUCTIVE
-    val distracting = classification == YoutubeChannelClassification.DISTRACTING
     val avatarBg by animateColorAsState(
         targetValue = when {
             productive -> ChannelColors.productive(isLight).copy(alpha = 0.12f)
-            distracting -> ChannelColors.distracting(isLight).copy(alpha = 0.12f)
             else -> secondaryText(isLight).copy(alpha = 0.10f)
         },
         animationSpec = tween(200),
@@ -1651,7 +1736,6 @@ private fun ChannelToggleRow(
     val avatarIconTint by animateColorAsState(
         targetValue = when {
             productive -> ChannelColors.productive(isLight)
-            distracting -> ChannelColors.distracting(isLight)
             else -> secondaryText(isLight)
         },
         animationSpec = tween(200),
@@ -1676,7 +1760,6 @@ private fun ChannelToggleRow(
                 Icon(
                     when {
                         productive -> Icons.Default.Check
-                        distracting -> Icons.Default.Block
                         else -> Icons.Default.VisibilityOff
                     },
                     contentDescription = null,
@@ -1694,7 +1777,7 @@ private fun ChannelToggleRow(
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    text = handle ?: "Verified channel",
+                    text = handle?.takeIf { it.isNotBlank() } ?: "Exact channel name",
                     fontSize = 11.sp,
                     color = secondaryText(isLight),
                     maxLines = 1,
@@ -1708,7 +1791,7 @@ private fun ChannelToggleRow(
                 ) {
                     Icon(
                         imageVector = Icons.Default.DeleteOutline,
-                        contentDescription = "Delete channel",
+                        contentDescription = stringResource(R.string.youtube_focus_delete_channel),
                         tint = secondaryText(isLight).copy(alpha = 0.6f),
                         modifier = Modifier.size(20.dp),
                     )
@@ -1716,27 +1799,14 @@ private fun ChannelToggleRow(
             }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            // Productive in Deep Green
             AnimatedChannelChip(
-                label = "Productive",
+                label = if (productive) "Allowed" else "Add to allow list",
                 accent = ChannelColors.productive(isLight),
                 selected = productive,
                 isLight = isLight,
                 onClick = {
                     onClassificationChange(
                         if (productive) YoutubeChannelClassification.OTHERS else YoutubeChannelClassification.PRODUCTIVE,
-                    )
-                },
-            )
-            // Distracting in Maroon
-            AnimatedChannelChip(
-                label = "Distracting",
-                accent = ChannelColors.distracting(isLight),
-                selected = distracting,
-                isLight = isLight,
-                onClick = {
-                    onClassificationChange(
-                        if (distracting) YoutubeChannelClassification.OTHERS else YoutubeChannelClassification.DISTRACTING,
                     )
                 },
             )
@@ -1788,105 +1858,28 @@ private fun AvailableChannelList(
     onClassificationChange: (ResolvedYoutubeChannelDto, YoutubeChannelClassification) -> Unit,
     onDeleteChannel: (String) -> Unit = {},
 ) {
-    var selectedFilter by rememberSaveable { mutableStateOf(initialFilter) }
-
-    // Segmented control — Productive in Deep Green | Distracting in Maroon
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(secondaryText(isLight).copy(alpha = 0.08f))
-            .padding(3.dp),
-    ) {
-        AvailableChannelFilter.entries.forEach { filter ->
-            val selected = selectedFilter == filter
-            val activeColor = when (filter) {
-                AvailableChannelFilter.PRODUCTIVE -> ChannelColors.productive(isLight)
-                AvailableChannelFilter.DISTRACTING -> ChannelColors.distracting(isLight)
-            }
-            val tabBg by animateColorAsState(
-                targetValue = if (selected) {
-                    if (isLight) Color.White else MaterialTheme.colorScheme.surfaceVariant
-                } else Color.Transparent,
-                animationSpec = tween(200),
-                label = "tabBg",
+    Column {
+        channels.forEachIndexed { index, channel ->
+            val classification = classifications[channel.channelId] ?: YoutubeChannelClassification.OTHERS
+            ChannelToggleRow(
+                name = channel.displayName,
+                handle = channel.handle,
+                classification = classification,
+                isLight = isLight,
+                onClassificationChange = { onClassificationChange(channel, it) },
+                onDelete = { onDeleteChannel(channel.channelId) },
             )
-            val tabBorder by animateColorAsState(
-                targetValue = if (selected) activeColor.copy(alpha = 0.35f) else Color.Transparent,
-                animationSpec = tween(200),
-                label = "tabBorder",
-            )
-            val tabTextColor by animateColorAsState(
-                targetValue = if (selected) activeColor else secondaryText(isLight),
-                animationSpec = tween(200),
-                label = "tabTextColor",
-            )
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(RoundedCornerShape(9.dp))
-                    .background(tabBg)
-                    .border(1.dp, tabBorder, RoundedCornerShape(9.dp))
-                    .clickable { selectedFilter = filter }
-                    .padding(horizontal = 4.dp, vertical = 8.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = when (filter) {
-                        AvailableChannelFilter.PRODUCTIVE -> "Productive"
-                        AvailableChannelFilter.DISTRACTING -> "Distracting"
-                    },
-                    fontSize = 12.sp,
-                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                    color = tabTextColor,
-                    maxLines = 1,
-                )
+            if (index != channels.lastIndex) {
+                HorizontalDivider(color = secondaryText(isLight).copy(alpha = 0.08f))
             }
         }
-    }
-
-    Spacer(Modifier.height(8.dp))
-
-    AnimatedContent(
-        targetState = selectedFilter,
-        transitionSpec = {
-            if (targetState == AvailableChannelFilter.DISTRACTING) {
-                (slideInHorizontally { width -> width / 4 } + fadeIn(tween(180)))
-                    .togetherWith(slideOutHorizontally { width -> -width / 4 } + fadeOut(tween(140)))
-            } else {
-                (slideInHorizontally { width -> -width / 4 } + fadeIn(tween(180)))
-                    .togetherWith(slideOutHorizontally { width -> width / 4 } + fadeOut(tween(140)))
-            }
-        },
-        label = "availableChannelListTabTransition",
-    ) { currentTab ->
-        val currentChannels = remember(channels, classifications, currentTab) {
-            filterAvailableChannels(channels, classifications, currentTab)
-        }
-        Column {
-            currentChannels.forEachIndexed { index, channel ->
-                val classification = classifications[channel.channelId] ?: YoutubeChannelClassification.OTHERS
-                ChannelToggleRow(
-                    name = channel.displayName,
-                    handle = channel.handle,
-                    classification = classification,
-                    isLight = isLight,
-                    onClassificationChange = { onClassificationChange(channel, it) },
-                    onDelete = { onDeleteChannel(channel.channelId) },
-                )
-                if (index != currentChannels.lastIndex) HorizontalDivider(color = secondaryText(isLight).copy(alpha = 0.08f))
-            }
-            if (currentChannels.isEmpty()) {
-                Text(
-                    text = when (currentTab) {
-                        AvailableChannelFilter.PRODUCTIVE -> "No productive channels found."
-                        AvailableChannelFilter.DISTRACTING -> "No distracting channels found."
-                    },
-                    fontSize = 13.sp,
-                    color = secondaryText(isLight),
-                    modifier = Modifier.padding(vertical = 12.dp),
-                )
-            }
+        if (channels.isEmpty()) {
+            Text(
+                text = stringResource(R.string.youtube_focus_allow_list_empty),
+                fontSize = 13.sp,
+                color = secondaryText(isLight),
+                modifier = Modifier.padding(vertical = 12.dp),
+            )
         }
     }
 }
@@ -1923,8 +1916,8 @@ private fun ExpandableSection(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(12.dp))
-                    .background(if (isLight) Color(0xFFF8FAFC) else Color(0xFF0F172A))
-                    .border(1.dp, secondaryText(isLight).copy(alpha = 0.10f), RoundedCornerShape(12.dp))
+                    .background(if (isLight) YTCMColors.ContainerLight else YTCMColors.ContainerDark)
+                    .border(1.dp, if (isLight) YTCMColors.ContainerBorderLight else YTCMColors.ContainerBorderDark, RoundedCornerShape(12.dp))
                     .padding(12.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) { content() }

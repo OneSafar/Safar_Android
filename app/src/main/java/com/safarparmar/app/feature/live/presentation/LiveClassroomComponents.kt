@@ -36,6 +36,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.VideocamOff
@@ -47,6 +48,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -284,6 +286,8 @@ fun formatLiveStatusLabel(status: String): String = when (status) {
 @Composable
 fun LiveClassroomTopBar(
     onBack: () -> Unit,
+    onReload: (() -> Unit)? = null,
+    isReloading: Boolean = false,
     onNotificationsClick: () -> Unit = {},
 ) {
     CenterAlignedTopAppBar(
@@ -300,6 +304,22 @@ fun LiveClassroomTopBar(
             }
         },
         actions = {
+            if (onReload != null) {
+                IconButton(onClick = onReload) {
+                    if (isReloading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(19.dp),
+                            strokeWidth = 2.dp,
+                            color = LiveThemeColors.primary(true),
+                        )
+                    } else {
+                        Icon(
+                            Icons.Default.Refresh,
+                            contentDescription = "Reload live sessions",
+                        )
+                    }
+                }
+            }
             IconButton(onClick = onNotificationsClick) {
                 BadgedBox(
                     badge = { Badge(containerColor = MaterialTheme.colorScheme.error) },
@@ -413,6 +433,8 @@ fun LiveSessionSegmentedTabs(
     onSelected: (LiveSessionFilter) -> Unit,
     isDarkTheme: Boolean,
     modifier: Modifier = Modifier,
+    isReloading: Boolean = false,
+    onReload: (() -> Unit)? = null,
 ) {
     val primaryColor = LiveThemeColors.primary(isDarkTheme)
     val cardBg = LiveThemeColors.card(isDarkTheme)
@@ -421,13 +443,18 @@ fun LiveSessionSegmentedTabs(
 
     Row(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         LiveSessionFilter.entries.forEach { filter ->
             val isSelected = selected == filter
+            val tabWeight = when (filter) {
+                LiveSessionFilter.LIVE -> 1.05f
+                LiveSessionFilter.COMPLETED -> 1.30f
+                LiveSessionFilter.JOIN -> 0.65f
+            }
             Box(
                 modifier = Modifier
-                    .weight(1f)
+                    .weight(tabWeight)
                     .height(46.dp)
                     .clip(RoundedCornerShape(12.dp))
                     .background(if (isSelected) primaryColor else cardBg)
@@ -436,15 +463,46 @@ fun LiveSessionSegmentedTabs(
                         color = if (isSelected) primaryColor else cardBorder,
                         shape = RoundedCornerShape(12.dp),
                     )
-                    .clickable { onSelected(filter) },
+                    .clickable {
+                        if (isSelected && filter == LiveSessionFilter.LIVE && onReload != null) {
+                            onReload()
+                        } else {
+                            onSelected(filter)
+                        }
+                    }
+                    .padding(horizontal = 4.dp),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(
-                    text = filter.label,
-                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                    color = if (isSelected) Color.White else textSecondary,
-                    fontSize = 15.sp,
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(5.dp),
+                ) {
+                    if (filter == LiveSessionFilter.LIVE && isSelected) {
+                        if (isReloading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(13.dp),
+                                strokeWidth = 1.8.dp,
+                                color = Color.White,
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = "Reload",
+                                tint = Color.White,
+                                modifier = Modifier.size(14.dp),
+                            )
+                        }
+                    }
+                    Text(
+                        text = filter.label,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                        color = if (isSelected) Color.White else textSecondary,
+                        fontSize = 13.5.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Center,
+                    )
+                }
             }
         }
     }
@@ -456,12 +514,16 @@ fun LiveClassroomFilterChips(
     selected: LiveSessionFilter,
     onSelected: (LiveSessionFilter) -> Unit,
     modifier: Modifier = Modifier,
+    isReloading: Boolean = false,
+    onReload: (() -> Unit)? = null,
 ) {
     LiveSessionSegmentedTabs(
         selected = selected,
         onSelected = onSelected,
         isDarkTheme = true,
         modifier = modifier,
+        isReloading = isReloading,
+        onReload = onReload,
     )
 }
 
@@ -470,13 +532,13 @@ fun LiveClassroomFilterChips(
  * - Avatar with "PS" (Parmar Sir)
  * - Headline: "Parmar sir isn't live right now"
  * - Subtitle: "Next session: today, 6:00 PM · Quant"
- * - Action button: "Notify me when live" / "Reminder set"
+ * - Action button: "Reload" (fetches from backend to check if admin went live)
  */
 @Composable
 fun TeacherNotLiveCard(
     nextSession: LiveSession?,
-    isReminderSet: Boolean,
-    onToggleReminder: () -> Unit,
+    isReloading: Boolean = false,
+    onReload: () -> Unit = {},
     isDarkTheme: Boolean,
     modifier: Modifier = Modifier,
 ) {
@@ -546,9 +608,9 @@ fun TeacherNotLiveCard(
 
             Spacer(Modifier.height(18.dp))
 
-            // Action Button: "Notify me when live" / "Reminder set"
+            // Action Button: "Reload"
             Button(
-                onClick = onToggleReminder,
+                onClick = onReload,
                 shape = RoundedCornerShape(50),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = primaryColor,
@@ -560,14 +622,22 @@ fun TeacherNotLiveCard(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Icon(
-                        imageVector = if (isReminderSet) Icons.Default.Check else Icons.Default.Notifications,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                        tint = Color.White,
-                    )
+                    if (isReloading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp,
+                            color = Color.White,
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = "Reload",
+                            modifier = Modifier.size(16.dp),
+                            tint = Color.White,
+                        )
+                    }
                     Text(
-                        text = if (isReminderSet) "Reminder set" else "Notify me when live",
+                        text = if (isReloading) "Reloading..." else "Reload",
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = Color.White,

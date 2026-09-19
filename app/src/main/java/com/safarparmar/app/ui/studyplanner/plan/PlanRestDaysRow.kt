@@ -1,5 +1,8 @@
 package com.safarparmar.app.ui.studyplanner.plan
 
+import androidx.compose.ui.res.stringResource
+import com.safarparmar.app.R
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -59,7 +62,7 @@ fun PlanRestDaysRow(
 
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
-            text = "MY REST DAYS",
+            text = stringResource(R.string.planner_my_rest_days_upper),
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
             letterSpacing = 2.sp,

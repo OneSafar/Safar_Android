@@ -74,6 +74,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -222,8 +223,8 @@ internal fun CommunityTab(
         when {
             uiState.isLoadingPosts && uiState.posts.isEmpty() -> LoadingPostList()
             !uiState.isLoadingPosts && uiState.posts.isEmpty() -> SafarEmptyState(
-                title = "No posts yet",
-                message = "Be the first to share in this room.",
+                title = stringResource(R.string.mehfil_no_posts),
+                message = stringResource(R.string.mehfil_first_to_share),
                 modifier = Modifier.fillMaxSize(),
             )
             searchQuery.isNotBlank() && filteredPosts.isEmpty() -> EmptySearchState(
@@ -244,7 +245,7 @@ internal fun CommunityTab(
                 ) {
                     item(key = "__community_posts_header__") {
                         Text(
-                            "COMMUNITY POSTS",
+                            stringResource(R.string.mehfil_community_posts),
                             fontSize = 11.5.sp,
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 1.sp,
@@ -281,7 +282,7 @@ internal fun CommunityTab(
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     CircularProgressIndicator(modifier = Modifier.size(20.dp), color = MehfilFlatColors.Primary, strokeWidth = 2.dp)
                                     if (searchQuery.isNotBlank()) {
-                                        Text("Searching more pages...", fontSize = 12.sp, color = MehfilFlatColors.Muted)
+                                        Text(stringResource(R.string.mehfil_searching_more), fontSize = 12.sp, color = MehfilFlatColors.Muted)
                                     }
                                 }
                             }
@@ -290,7 +291,7 @@ internal fun CommunityTab(
                     if (searchQuery.isNotBlank() && !uiState.hasMore && filteredPosts.isNotEmpty()) {
                         item(key = "__end__") {
                             Box(Modifier.fillMaxWidth().padding(vertical = 12.dp), contentAlignment = Alignment.Center) {
-                                Text("All matching posts shown", fontSize = 12.sp, color = MehfilFlatColors.Muted)
+                                Text(stringResource(R.string.mehfil_all_matches_shown), fontSize = 12.sp, color = MehfilFlatColors.Muted)
                             }
                         }
                     }
@@ -313,7 +314,7 @@ private fun CommunityHeader(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         val resultText = if (searchQuery.isBlank()) {
-            "Community Space"
+            stringResource(R.string.mehfil_community_space)
         } else {
             "$resultCount result${if (resultCount != 1) "s" else ""} for \"$searchQuery\""
         }
@@ -328,11 +329,11 @@ private fun CommunityHeader(
         when {
             onlineCount > 0 -> Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 Box(Modifier.size(6.dp).clip(CircleShape).background(MehfilFlatColors.Activity))
-                Text("$onlineCount online", fontSize = 11.sp, color = MehfilFlatColors.Activity)
+                Text(stringResource(R.string.mehfil_online_count, onlineCount), fontSize = 11.sp, color = MehfilFlatColors.Activity)
             }
             !socketConnected -> Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 CircularProgressIndicator(modifier = Modifier.size(10.dp), strokeWidth = 1.5.dp, color = MehfilFlatColors.Muted)
-                Text("Connecting...", fontSize = 11.sp, color = MehfilFlatColors.Muted)
+                Text(stringResource(R.string.mehfil_connecting), fontSize = 11.sp, color = MehfilFlatColors.Muted)
             }
         }
     }
@@ -341,9 +342,9 @@ private fun CommunityHeader(
 @Composable
 private fun RoomSelector(selectedSpace: String, onJoinRoom: (String) -> Unit) {
     val rooms = listOf(
-        "ALL" to "All",
-        "ACADEMIC" to "Academic",
-        "REFLECTIVE" to "Reflective",
+        "ALL" to stringResource(R.string.common_all),
+        "ACADEMIC" to stringResource(R.string.mehfil_academic),
+        "REFLECTIVE" to stringResource(R.string.mehfil_reflective),
     )
     Row(
         Modifier
@@ -401,10 +402,10 @@ private fun StudyCircleShelf(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text("Study Circles", fontSize = 21.sp, fontWeight = FontWeight.Bold, color = Color(0xFF6B168D))
-                Text("Focus together, grow together", fontSize = 12.sp, color = MehfilFlatColors.Muted)
+                Text(stringResource(R.string.study_circle_title), fontSize = 21.sp, fontWeight = FontWeight.Bold, color = Color(0xFF6B168D))
+                Text(stringResource(R.string.mehfil_focus_together), fontSize = 12.sp, color = MehfilFlatColors.Muted)
             }
-            FlatOutlineButton(text = "View all", onClick = onViewAll)
+            FlatOutlineButton(text = stringResource(R.string.common_view_all), onClick = onViewAll)
         }
 
         when {
@@ -418,8 +419,8 @@ private fun StudyCircleShelf(
             ) {
                 Icon(Icons.Default.Groups, contentDescription = null, tint = Color(0xFF6B168D))
                 Column(Modifier.weight(1f)) {
-                    Text("Find your study people", fontWeight = FontWeight.SemiBold, color = MehfilFlatColors.Text)
-                    Text("Join or create your first circle", fontSize = 12.sp, color = MehfilFlatColors.Muted)
+                    Text(stringResource(R.string.mehfil_find_study_people), fontWeight = FontWeight.SemiBold, color = MehfilFlatColors.Text)
+                    Text(stringResource(R.string.mehfil_join_first_circle), fontSize = 12.sp, color = MehfilFlatColors.Muted)
                 }
             }
             else -> Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -445,15 +446,15 @@ private fun StudyCircleShelfCard(circle: StudyCircleSummaryDto, onClick: () -> U
         Box(Modifier.size(40.dp).clip(CircleShape).border(1.5.dp, purple, CircleShape), contentAlignment = Alignment.Center) {
             Icon(
                 if (circle.isPinned) Icons.Default.VerifiedUser else if (circle.visibility.equals("public", true)) Icons.Default.Language else Icons.Default.Lock,
-                contentDescription = if (circle.isPinned) "Official" else circle.visibility,
+                contentDescription = if (circle.isPinned) stringResource(R.string.mehfil_official) else circle.visibility,
                 tint = purple,
                 modifier = Modifier.size(20.dp),
             )
         }
         Text(circle.name, maxLines = 2, overflow = TextOverflow.Ellipsis, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MehfilFlatColors.Text)
-        Text("${circle.focusingCount} focusing", fontSize = 11.sp, color = purple, fontWeight = FontWeight.SemiBold)
+        Text(stringResource(R.string.mehfil_focusing_count, circle.focusingCount), fontSize = 11.sp, color = purple, fontWeight = FontWeight.SemiBold)
         Box(Modifier.clip(CircleShape).background(purple.copy(alpha = 0.10f)).padding(horizontal = 12.dp, vertical = 6.dp)) {
-            Text("Open", fontSize = 12.sp, color = purple, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.common_open), fontSize = 12.sp, color = purple, fontWeight = FontWeight.Bold)
         }
     }
 }
@@ -476,7 +477,7 @@ private fun EmptySearchState(searchQuery: String, isSearchingMore: Boolean, onCl
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
             if (isSearchingMore) {
                 CircularProgressIndicator(color = MehfilFlatColors.Primary, modifier = Modifier.size(28.dp), strokeWidth = 2.5.dp)
-                Text("Searching posts...", color = MehfilFlatColors.Muted, fontSize = 13.sp)
+                Text(stringResource(R.string.mehfil_searching_posts), color = MehfilFlatColors.Muted, fontSize = 13.sp)
             } else {
                 Icon(
                     painter = painterResource(id = R.drawable.ic_magnifying_glass),
@@ -484,9 +485,9 @@ private fun EmptySearchState(searchQuery: String, isSearchingMore: Boolean, onCl
                     modifier = Modifier.size(40.dp),
                     tint = MehfilFlatColors.Muted,
                 )
-                Text("No results for \"$searchQuery\"", color = MehfilFlatColors.Muted, fontSize = 14.sp)
+                Text(stringResource(R.string.mehfil_no_results, searchQuery), color = MehfilFlatColors.Muted, fontSize = 14.sp)
                 Text(
-                    "Clear search",
+                    stringResource(R.string.mehfil_clear_search),
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = MehfilFlatColors.Primary,
@@ -541,7 +542,7 @@ private fun CollapsibleSandeshCard(
             }
             Column(Modifier.weight(1f)) {
                 Text(
-                    "SANDESH",
+                    stringResource(R.string.mehfil_sandesh),
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 1.sp,
@@ -558,7 +559,7 @@ private fun CollapsibleSandeshCard(
             }
             Icon(
                 if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                contentDescription = if (expanded) "Collapse" else "Expand",
+                contentDescription = if (expanded) stringResource(R.string.common_collapse) else stringResource(R.string.common_expand),
                 tint = MehfilFlatColors.Muted,
             )
         }
@@ -606,18 +607,18 @@ private fun SandeshAnnouncementCard(
                 modifier = Modifier.size(34.dp).clip(RoundedCornerShape(10.dp)).background(MehfilFlatColors.Connect),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(Icons.Default.VerifiedUser, contentDescription = "Admin", tint = Color.White, modifier = Modifier.size(16.dp))
+                Icon(Icons.Default.VerifiedUser, contentDescription = stringResource(R.string.mehfil_admin), tint = Color.White, modifier = Modifier.size(16.dp))
             }
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("Parmar Sir's Corner", fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold, color = MehfilFlatColors.Text)
+                    Text(stringResource(R.string.mehfil_parmar_corner), fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold, color = MehfilFlatColors.Text)
                     Box(
                         Modifier
                             .clip(RoundedCornerShape(4.dp))
                             .background(MehfilFlatColors.Connect.copy(alpha = 0.14f))
                             .padding(horizontal = 6.dp, vertical = 2.dp),
                     ) {
-                        Text("Faculty", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = MehfilFlatColors.Connect)
+                        Text(stringResource(R.string.mehfil_faculty), fontSize = 9.sp, fontWeight = FontWeight.Bold, color = MehfilFlatColors.Connect)
                     }
                 }
                 Text(formatPostDate(sandesh.createdAt), fontSize = 11.sp, color = MehfilFlatColors.Muted)
@@ -671,14 +672,14 @@ private fun SandeshMedia(sandesh: Sandesh) {
                 try {
                     context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(videoUrl)))
                 } catch (e: android.content.ActivityNotFoundException) {
-                    android.widget.Toast.makeText(context, "No app available to open this video.", android.widget.Toast.LENGTH_SHORT).show()
+                    android.widget.Toast.makeText(context, context.getString(R.string.mehfil_cannot_open_video), android.widget.Toast.LENGTH_SHORT).show()
                 }
             },
             contentAlignment = Alignment.Center,
         ) {
             AsyncImage(
                 model = thumbUrl,
-                contentDescription = "YouTube thumbnail",
+                contentDescription = stringResource(R.string.mehfil_youtube_thumbnail),
                 modifier = Modifier.fillMaxWidth().heightIn(max = 200.dp),
                 contentScale = ContentScale.Crop,
             )
@@ -687,13 +688,13 @@ private fun SandeshMedia(sandesh: Sandesh) {
                 modifier = Modifier.size(56.dp).clip(CircleShape).background(Color.Black.copy(alpha = 0.75f)),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(Icons.Default.PlayArrow, contentDescription = "Play", tint = Color.White, modifier = Modifier.size(32.dp))
+                Icon(Icons.Default.PlayArrow, contentDescription = stringResource(R.string.common_play), tint = Color.White, modifier = Modifier.size(32.dp))
             }
         }
     } else if (directImageUrl != null) {
         AsyncImage(
             model = directImageUrl,
-            contentDescription = "Parmar Sir's Corner attachment. Tap to open.",
+            contentDescription = stringResource(R.string.mehfil_corner_attachment),
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(14.dp))
@@ -702,7 +703,7 @@ private fun SandeshMedia(sandesh: Sandesh) {
                     try {
                         context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(directImageUrl)))
                     } catch (e: android.content.ActivityNotFoundException) {
-                        android.widget.Toast.makeText(context, "No app available to open this image.", android.widget.Toast.LENGTH_SHORT).show()
+                        android.widget.Toast.makeText(context, context.getString(R.string.mehfil_cannot_open_image), android.widget.Toast.LENGTH_SHORT).show()
                     }
                 },
             contentScale = ContentScale.Crop,
@@ -811,7 +812,7 @@ private fun PostCard(
             ) {
                 Icon(
                     if (post.userLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                    contentDescription = "Like",
+                    contentDescription = stringResource(R.string.mehfil_like),
                     modifier = Modifier.size(18.dp),
                     tint = if (post.userLiked) MehfilFlatColors.Like else MehfilFlatColors.Muted,
                 )
@@ -830,7 +831,7 @@ private fun PostCard(
             ) {
                 Icon(
                     Icons.Default.ChatBubbleOutline,
-                    contentDescription = "Comment",
+                    contentDescription = stringResource(R.string.mehfil_comment),
                     modifier = Modifier.size(18.dp),
                     tint = MehfilFlatColors.Muted,
                 )
@@ -850,12 +851,12 @@ private fun PostCard(
                 ) {
                     Icon(
                         if (isConnectLocked) Icons.Default.Lock else Icons.Default.PersonAdd,
-                        contentDescription = "Connect",
+                        contentDescription = stringResource(R.string.mehfil_connect),
                         modifier = Modifier.size(17.dp),
                         tint = if (isConnectLocked) MehfilFlatColors.Muted else MehfilFlatColors.Connect,
                     )
                     Text(
-                        "Connect",
+                        stringResource(R.string.mehfil_connect),
                         fontSize = 12.5.sp,
                         color = if (isConnectLocked) MehfilFlatColors.Muted else MehfilFlatColors.Connect,
                         fontWeight = FontWeight.SemiBold,
@@ -867,7 +868,7 @@ private fun PostCard(
 
             Icon(
                 if (isSaved) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
-                contentDescription = "Save",
+                contentDescription = stringResource(R.string.common_save),
                 modifier = Modifier
                     .size(18.dp)
                     .clickable(onClick = onSave),
@@ -889,18 +890,18 @@ internal fun SavedTab(
     when {
         uiState.isLoadingSaved && uiState.savedPosts.isEmpty() -> LoadingPostList()
         uiState.savedPosts.isEmpty() && uiState.savedError != null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            androidx.compose.material3.TextButton(onClick = { onLoadPage(1) }) { Text("${uiState.savedError} Tap to retry.") }
+            androidx.compose.material3.TextButton(onClick = { onLoadPage(1) }) { Text(stringResource(R.string.mehfil_error_tap_retry, uiState.savedError.orEmpty())) }
         }
         uiState.savedPosts.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Icon(painter = painterResource(id = R.drawable.ic_bookmarks_simple), contentDescription = null, modifier = Modifier.size(48.dp), tint = MehfilFlatColors.Muted)
-                Text("No saved posts yet", fontSize = 15.sp, fontWeight = FontWeight.Medium, color = MehfilFlatColors.Muted)
+                Text(stringResource(R.string.mehfil_no_saved_posts), fontSize = 15.sp, fontWeight = FontWeight.Medium, color = MehfilFlatColors.Muted)
             }
         }
         else -> Column(Modifier.fillMaxSize()) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    "Saved Posts",
+                    stringResource(R.string.mehfil_saved_posts),
                     fontFamily = LoraFontFamily,
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp,
@@ -912,7 +913,7 @@ internal fun SavedTab(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 if (uiState.savedFirstPage > 1) item(key = "saved_previous") {
-                    androidx.compose.material3.TextButton(onClick = { onLoadPage(uiState.savedFirstPage - 1) }, enabled = !uiState.isLoadingSaved) { Text("Earlier saved posts") }
+                    androidx.compose.material3.TextButton(onClick = { onLoadPage(uiState.savedFirstPage - 1) }, enabled = !uiState.isLoadingSaved) { Text(stringResource(R.string.mehfil_earlier_saved_posts)) }
                 }
                 items(uiState.savedPosts, key = { it.id }) { post ->
                     PostCard(
@@ -932,7 +933,7 @@ internal fun SavedTab(
                         uiState.savedError?.let { Text(it, color = MehfilFlatColors.Muted) }
                         if (uiState.savedHasMore || uiState.savedError != null) {
                             androidx.compose.material3.TextButton(onClick = { onLoadPage(if (uiState.savedError != null) uiState.savedRequestedPage else uiState.savedLastPage + 1) }, enabled = !uiState.isLoadingSaved) {
-                                Text(if (uiState.isLoadingSaved) "Loading…" else if (uiState.savedError != null) "Retry" else "More saved posts")
+                                Text(if (uiState.isLoadingSaved) stringResource(R.string.common_loading) else if (uiState.savedError != null) stringResource(R.string.common_retry) else stringResource(R.string.mehfil_more_saved_posts))
                             }
                         }
                     }
@@ -952,7 +953,7 @@ internal fun AnalyticsTab(uiState: MehfilUiState) {
     }
     Column(Modifier.fillMaxSize()) {
         Text(
-            "My Activity",
+            stringResource(R.string.mehfil_my_activity),
             fontFamily = LoraFontFamily,
             fontWeight = FontWeight.Bold,
             fontSize = 16.sp,
@@ -967,14 +968,14 @@ internal fun AnalyticsTab(uiState: MehfilUiState) {
             )
         }
         Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            ActivityStatCard("Posts", "${activityCounts.first}", Icons.AutoMirrored.Filled.Article, Modifier.weight(1f))
-            ActivityStatCard("Comments", "${activityCounts.second}", Icons.Default.ChatBubble, Modifier.weight(1f))
-            ActivityStatCard("Likes", "${activityCounts.third}", Icons.Default.Favorite, Modifier.weight(1f))
+            ActivityStatCard(stringResource(R.string.mehfil_posts), "${activityCounts.first}", Icons.AutoMirrored.Filled.Article, Modifier.weight(1f))
+            ActivityStatCard(stringResource(R.string.mehfil_comments), "${activityCounts.second}", Icons.Default.ChatBubble, Modifier.weight(1f))
+            ActivityStatCard(stringResource(R.string.mehfil_likes), "${activityCounts.third}", Icons.Default.Favorite, Modifier.weight(1f))
         }
         Spacer(Modifier.size(8.dp))
         if (uiState.activity.isEmpty()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("No activity yet.", color = MehfilFlatColors.Muted)
+                Text(stringResource(R.string.mehfil_no_activity), color = MehfilFlatColors.Muted)
             }
             return@Column
         }
@@ -1039,9 +1040,9 @@ private fun ActivityRow(item: ActivityItem) {
         Column(Modifier.weight(1f)) {
             Text(
                 when (item.type) {
-                    "post" -> "Posted"
-                    "comment" -> "Commented: ${item.comment ?: ""}"
-                    "like" -> "Liked a post"
+                    "post" -> stringResource(R.string.mehfil_posted)
+                    "comment" -> stringResource(R.string.mehfil_commented, item.comment ?: "")
+                    "like" -> stringResource(R.string.mehfil_liked_post)
                     else -> item.type
                 },
                 fontSize = 13.sp,
@@ -1072,7 +1073,7 @@ internal fun ConnectionsTab(
             is DmState.Idle -> ConnectIdleCard()
             is DmState.Waiting -> Row(Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = MehfilFlatColors.Chats)
-                Text("Waiting for ${dmState.userName} to reply", fontSize = 13.sp, color = MehfilFlatColors.Muted)
+                Text(stringResource(R.string.mehfil_waiting_reply, dmState.userName), fontSize = 13.sp, color = MehfilFlatColors.Muted)
             }
             is DmState.IncomingRequest -> IncomingRequestCard(dmState = dmState, onAcceptDm = onAcceptDm, onDeclineDm = onDeclineDm)
             is DmState.Open -> Row(
@@ -1087,7 +1088,7 @@ internal fun ConnectionsTab(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 MiniDmAvatar(name = dmState.peerName, avatarUrl = dmState.peerAvatar)
-                Text("Chat with ${dmState.peerName}", fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = MehfilFlatColors.Text, modifier = Modifier.weight(1f))
+                Text(stringResource(R.string.mehfil_chat_with, dmState.peerName), fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = MehfilFlatColors.Text, modifier = Modifier.weight(1f))
                 Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, modifier = Modifier.size(16.dp), tint = MehfilFlatColors.Chats)
             }
         }
@@ -1112,7 +1113,7 @@ private fun PendingRequestsCard(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             Icon(Icons.Default.HourglassEmpty, contentDescription = null, tint = MehfilFlatColors.Chats, modifier = Modifier.size(14.dp))
-            Text("Chat requests", fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = MehfilFlatColors.Chats)
+            Text(stringResource(R.string.mehfil_chat_requests), fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = MehfilFlatColors.Chats)
         }
         pending.forEach { request ->
             var acceptingThis by remember { mutableStateOf(false) }
@@ -1123,7 +1124,7 @@ private fun PendingRequestsCard(
                     CircularProgressIndicator(modifier = Modifier.size(18.dp).padding(2.dp), strokeWidth = 2.dp, color = MehfilFlatColors.Primary)
                 } else {
                     FlatPrimaryButton(
-                        text = "Accept",
+                        text = stringResource(R.string.common_accept),
                         onClick = {
                             acceptingThis = true
                             onAcceptDm(request.userId)
@@ -1132,7 +1133,7 @@ private fun PendingRequestsCard(
                     )
                 }
                 FlatOutlineButton(
-                    text = "Decline",
+                    text = stringResource(R.string.common_decline),
                     onClick = { onDeclineDm(request.userId) },
                     contentPadding = PaddingValues(horizontal = 10.dp, vertical = 5.dp),
                 )
@@ -1152,8 +1153,8 @@ private fun ConnectIdleCard() {
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Text("Private chat", fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = MehfilFlatColors.Text)
-        Text("Tap Connect on a post to ask that student to chat.", fontSize = 12.sp, color = MehfilFlatColors.Muted, lineHeight = 16.sp)
+        Text(stringResource(R.string.mehfil_private_chat), fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = MehfilFlatColors.Text)
+        Text(stringResource(R.string.mehfil_connect_help), fontSize = 12.sp, color = MehfilFlatColors.Muted, lineHeight = 16.sp)
     }
 }
 
@@ -1175,17 +1176,17 @@ private fun IncomingRequestCard(
         Row(verticalAlignment = Alignment.CenterVertically) {
             MiniDmAvatar(name = dmState.fromUserName, avatarUrl = dmState.fromUserAvatar)
             Spacer(Modifier.width(6.dp))
-            Text("${dmState.fromUserName} wants to connect", fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = MehfilFlatColors.Text)
+            Text(stringResource(R.string.mehfil_wants_to_connect, dmState.fromUserName), fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = MehfilFlatColors.Text)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             FlatPrimaryButton(
-                text = "Accept",
+                text = stringResource(R.string.common_accept),
                 onClick = { onAcceptDm(dmState.fromUserId) },
                 modifier = Modifier.weight(1f),
                 contentPadding = PaddingValues(vertical = 8.dp),
             )
             FlatOutlineButton(
-                text = "Decline",
+                text = stringResource(R.string.common_decline),
                 onClick = { onDeclineDm(dmState.fromUserId) },
                 modifier = Modifier.weight(1f),
                 contentPadding = PaddingValues(vertical = 8.dp),
@@ -1206,7 +1207,7 @@ private fun MiniDmAvatar(name: String, avatarUrl: String?) {
         if (!avatarUrl.isNullOrBlank()) {
             AsyncImage(
                 model = avatarUrl,
-                contentDescription = "$name profile photo",
+                contentDescription = stringResource(R.string.mehfil_profile_photo, name),
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop,
             )

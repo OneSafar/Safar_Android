@@ -1,5 +1,8 @@
 package com.safarparmar.app.ui.studyplanner.create.steps
 
+import androidx.compose.ui.res.stringResource
+import com.safarparmar.app.R
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -82,7 +85,7 @@ fun DailyTopicsStep(
         PlanEyebrow("Daily topics")
         Spacer(Modifier.height(8.dp))
         Text(
-            text = "Add daily topics?",
+            text = stringResource(R.string.planner_add_daily_topics),
             fontFamily = LoraFontFamily,
             fontSize = 26.sp,
             fontWeight = FontWeight.Normal,
@@ -90,7 +93,7 @@ fun DailyTopicsStep(
         )
         Spacer(Modifier.height(6.dp))
         Text(
-            text = "Add topics you want to do every day. You'll see them on Home.",
+            text = stringResource(R.string.planner_add_daily_topics_body),
             fontSize = 13.5.sp,
             color = muted,
             lineHeight = 20.sp,
@@ -108,7 +111,7 @@ fun DailyTopicsStep(
             OutlinedTextField(
                 value = taskName,
                 onValueChange = { taskName = it },
-                placeholder = { Text("e.g. Revise vocabulary", color = muted) },
+                placeholder = { Text(stringResource(R.string.planner_daily_topic_example), color = muted) },
                 singleLine = true,
                 enabled = !isSaving,
                 modifier = Modifier.weight(1f),
@@ -139,7 +142,7 @@ fun DailyTopicsStep(
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
-                    contentDescription = "Add daily topic",
+                    contentDescription = stringResource(R.string.planner_add_daily_topic),
                     tint = Color.White,
                     modifier = Modifier.size(22.dp),
                 )
@@ -150,7 +153,7 @@ fun DailyTopicsStep(
 
         if (topics.isEmpty()) {
             Text(
-                text = "No topics yet.",
+                text = stringResource(R.string.planner_no_topics_yet),
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 24.dp),
@@ -222,7 +225,7 @@ fun DailyTopicsStep(
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    text = "Not now",
+                    text = stringResource(R.string.common_not_now),
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 15.sp,
                     color = scheme.onSurface,

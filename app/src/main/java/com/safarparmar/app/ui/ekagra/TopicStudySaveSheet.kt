@@ -22,8 +22,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.safarparmar.app.R
 
 internal sealed interface TopicStudySheetState {
     data object ReadyToSave : TopicStudySheetState
@@ -98,9 +100,9 @@ internal fun TopicStudySaveSheet(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            EkagraEyebrow("Study finished", ink.mutedText)
+            EkagraEyebrow(stringResource(R.string.ekagra_study_finished), ink.mutedText)
             EkagraDisplayTitle(
-                pending.topicTitle ?: "Exam Planner topic",
+                pending.topicTitle ?: stringResource(R.string.ekagra_exam_planner_topic),
                 ink.primaryText,
             )
             Text(
@@ -111,7 +113,7 @@ internal fun TopicStudySaveSheet(
                 textAlign = TextAlign.Center,
             )
             Text(
-                "Study time",
+                stringResource(R.string.goals_study_time_today),
                 fontSize = 12.sp,
                 color = ink.mutedText,
             )
@@ -124,13 +126,13 @@ internal fun TopicStudySaveSheet(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         EkagraGhostAction(
-                            label = "Discard",
+                            label = stringResource(R.string.common_discard),
                             ink = ink,
                             onClick = onDiscard,
                             modifier = Modifier.weight(1f),
                         )
                         EkagraPrimaryAction(
-                            label = "Save",
+                            label = stringResource(R.string.common_save),
                             accent = accent,
                             onClick = onSave,
                             modifier = Modifier.weight(1f),
@@ -140,7 +142,7 @@ internal fun TopicStudySaveSheet(
 
                 TopicStudySheetState.Saving -> {
                     CircularProgressIndicator()
-                    Text("Saving study time…", color = ink.secondaryText)
+                    Text(stringResource(R.string.ekagra_saving_study_time), color = ink.secondaryText)
                 }
 
                 TopicStudySheetState.Saved,
@@ -148,9 +150,9 @@ internal fun TopicStudySaveSheet(
                 is TopicStudySheetState.TopicError -> {
                     Text(
                         if (state == TopicStudySheetState.SavedOnPhone) {
-                            "✓ Study time saved\nIf internet is off, progress will update later."
+                            stringResource(R.string.ekagra_study_saved_offline)
                         } else {
-                            "✓ Study time saved"
+                            stringResource(R.string.ekagra_study_saved)
                         },
                         color = accent,
                         textAlign = TextAlign.Center,
@@ -158,14 +160,14 @@ internal fun TopicStudySaveSheet(
                     )
                     Spacer(Modifier.height(2.dp))
                     Text(
-                        "Did you finish this topic?",
+                        stringResource(R.string.ekagra_finish_topic_question),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = ink.primaryText,
                     )
                     if (state is TopicStudySheetState.TopicError) {
                         Text(
-                            "Study time is saved.\n${state.message}",
+                            stringResource(R.string.ekagra_study_saved_error, state.message),
                             color = MaterialTheme.colorScheme.error,
                             textAlign = TextAlign.Center,
                         )
@@ -175,13 +177,13 @@ internal fun TopicStudySaveSheet(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         EkagraGhostAction(
-                            label = "Not yet",
+                            label = stringResource(R.string.ekagra_not_yet),
                             ink = ink,
                             onClick = onNotYet,
                             modifier = Modifier.weight(1f),
                         )
                         EkagraPrimaryAction(
-                            label = if (state is TopicStudySheetState.TopicError) "Try again" else "Yes",
+                            label = if (state is TopicStudySheetState.TopicError) stringResource(R.string.common_try_again) else stringResource(R.string.common_yes),
                             accent = accent,
                             onClick = onFinished,
                             modifier = Modifier.weight(1f),
@@ -191,12 +193,12 @@ internal fun TopicStudySaveSheet(
 
                 TopicStudySheetState.MarkingDone -> {
                     Text(
-                        "✓ Study time saved",
+                        stringResource(R.string.ekagra_study_saved),
                         color = accent,
                         fontWeight = FontWeight.Bold,
                     )
                     CircularProgressIndicator(color = accent)
-                    Text("Marking topic as done…", color = ink.secondaryText)
+                    Text(stringResource(R.string.ekagra_marking_topic_done), color = ink.secondaryText)
                 }
             }
         }

@@ -1,5 +1,8 @@
 package com.safarparmar.app.ui.studyplanner.screens
 
+import androidx.compose.ui.res.stringResource
+import com.safarparmar.app.R
+
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -123,7 +126,7 @@ internal fun SyllabusMagazineHeader(
         }
 
         Text(
-            text = "Your study plan is made from these subjects and topics.",
+            text = stringResource(R.string.planner_syllabus_intro),
             fontSize = 12.sp,
             color = PlannerFlatColors.TextMuted,
         )
@@ -253,21 +256,21 @@ internal fun SyllabusChangePlanBand(
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Change your study plan",
+                    text = stringResource(R.string.planner_change_study_plan),
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                     color = PlannerFlatColors.TextDark,
                 )
                 Spacer(Modifier.height(3.dp))
                 Text(
-                    text = "Add subjects, change daily study, or make new dates.",
+                    text = stringResource(R.string.planner_change_study_plan_body),
                     fontSize = 11.5.sp,
                     color = PlannerFlatColors.TextMuted,
                 )
             }
             Spacer(Modifier.width(12.dp))
             Text(
-                text = "Change My Plan",
+                text = stringResource(R.string.planner_change_my_plan),
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
                 color = if (enabled) PlannerFlatColors.PrimaryAccent else PlannerFlatColors.TextMuted,
@@ -359,7 +362,7 @@ internal fun SyllabusFullPlanTitleCard(
         ) {
             Icon(
                 imageVector = Icons.Default.Close,
-                contentDescription = "Close",
+                contentDescription = stringResource(R.string.common_close),
                 tint = PlannerFlatColors.TextMuted,
                 modifier = Modifier.size(16.dp),
             )
@@ -408,7 +411,7 @@ internal fun SyllabusRatingRebuildBar(
             modifier = Modifier.size(28.dp).clip(CircleShape).clickable(onClick = onDismiss),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(Icons.Default.Close, contentDescription = "Dismiss", tint = PlannerFlatColors.TextMuted, modifier = Modifier.size(14.dp))
+            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.common_dismiss), tint = PlannerFlatColors.TextMuted, modifier = Modifier.size(14.dp))
         }
     }
 }
@@ -705,7 +708,7 @@ internal fun SyllabusMagazineSubjectRow(
             ) {
                 Icon(
                     imageVector = Icons.Default.MoreVert,
-                    contentDescription = "Subject options",
+                    contentDescription = stringResource(R.string.planner_subject_options),
                     tint = PlannerFlatColors.TextMuted,
                     modifier = Modifier.size(16.dp),
                 )
@@ -719,7 +722,7 @@ internal fun SyllabusMagazineSubjectRow(
         }
 
         Text(
-            text = "Open",
+            text = stringResource(R.string.common_open),
             fontSize = 11.5.sp,
             fontWeight = FontWeight.Bold,
             color = PlannerFlatColors.PrimaryAccent,
@@ -787,7 +790,7 @@ internal fun SyllabusMagazineChapterHeader(
         }
         Spacer(Modifier.height(22.dp))
         SyllabusMagazineListHeader(
-            title = "Chapters",
+            title = stringResource(R.string.planner_chapters),
             onAddSubject = onAddChapter,
             addContentDescription = "Add chapter",
         )
@@ -964,7 +967,7 @@ internal fun SyllabusMagazineChapterRow(
                 ) {
                     Icon(
                         imageVector = Icons.Default.MoreVert,
-                        contentDescription = "Chapter options",
+                        contentDescription = stringResource(R.string.planner_chapter_options),
                         tint = PlannerFlatColors.TextMuted,
                         modifier = Modifier.size(16.dp),
                     )
@@ -1149,7 +1152,7 @@ internal fun SyllabusMagazineTopicRow(
                     .padding(horizontal = 8.dp, vertical = 5.dp),
             ) {
                 Text(
-                    text = "Study today",
+                    text = stringResource(R.string.planner_study_today),
                     fontSize = 10.5.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = accent,
@@ -1169,7 +1172,7 @@ internal fun SyllabusMagazineTopicRow(
             ) {
                 Icon(
                     imageVector = Icons.Default.MoreVert,
-                    contentDescription = "Topic options",
+                    contentDescription = stringResource(R.string.planner_topic_options),
                     tint = PlannerFlatColors.TextMuted,
                     modifier = Modifier.size(16.dp),
                 )

@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import android.widget.Toast
+import com.safarparmar.app.R
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -212,7 +213,7 @@ class FocusShieldViewModel @Inject constructor(
 
     fun setEnabled(enabled: Boolean) {
         if (enabled && repo.blockedPackages.value.isEmpty()) {
-            Toast.makeText(app, "Select an app to block first", Toast.LENGTH_SHORT).show()
+            Toast.makeText(app, app.getString(R.string.kavach_select_app_first), Toast.LENGTH_SHORT).show()
             return
         }
         repo.setEnabled(enabled)

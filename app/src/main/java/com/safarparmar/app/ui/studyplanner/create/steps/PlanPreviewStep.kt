@@ -1,5 +1,8 @@
 package com.safarparmar.app.ui.studyplanner.create.steps
 
+import androidx.compose.ui.res.stringResource
+import com.safarparmar.app.R
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -162,7 +165,7 @@ fun PlanPreviewStep(
         ) {
             item {
                 Text(
-                    "Here's your schedule",
+                    stringResource(R.string.planner_schedule_preview_title),
                     fontFamily = LoraFontFamily,
                     fontSize = 26.sp,
                     fontWeight = FontWeight.Normal,
@@ -183,9 +186,9 @@ fun PlanPreviewStep(
                     // student feels. It carries the signature colour; the other two
                     // are context and stay quiet.
                     val stats = listOf(
-                        Triple(preview.summary.scheduleAssigned.toString(), "Topics scheduled", false),
-                        Triple(if (goal > 0) goal.toString() else needed.toString(), "Goal / day", false),
-                        Triple((preview.summary.daysUntilExam ?: 0).toString(), "Days to exam", true),
+                        Triple(preview.summary.scheduleAssigned.toString(), stringResource(R.string.planner_topics_scheduled), false),
+                        Triple(if (goal > 0) goal.toString() else needed.toString(), stringResource(R.string.planner_goal_per_day), false),
+                        Triple((preview.summary.daysUntilExam ?: 0).toString(), stringResource(R.string.planner_days_to_exam), true),
                     )
                     stats.forEachIndexed { index, (value, label, isHero) ->
                         if (index > 0) {
@@ -243,8 +246,8 @@ fun PlanPreviewStep(
                     PreviewVerdictCard(
                         accent = PlannerAccent.Amber,
                         icon = Icons.Default.Warning,
-                        title = "This plan needs about $needed topics a day",
-                        body = "You asked for $goal a day. Every topic still has a date, but some days will have more than you planned.",
+                        title = stringResource(R.string.planner_plan_needs_daily, needed),
+                        body = stringResource(R.string.planner_plan_needs_daily_body, goal),
                     )
                 }
             } else {
@@ -262,12 +265,11 @@ fun PlanPreviewStep(
                     PreviewVerdictCard(
                         accent = PlannerAccent.Teal,
                         icon = Icons.Default.CheckCircle,
-                        title = "Your plan fits before your exam",
+                        title = stringResource(R.string.planner_plan_fits),
                         body = if (busyDays == 0) {
-                            "All ${preview.summary.totalTopics} topics have a date, and no day goes over your goal."
+                            stringResource(R.string.planner_plan_fits_body, preview.summary.totalTopics)
                         } else {
-                            "All ${preview.summary.totalTopics} topics have a date. " +
-                                "$busyDays ${if (busyDays == 1) "day is" else "days are"} a little over your goal."
+                            stringResource(R.string.planner_plan_busy_days_body, preview.summary.totalTopics, busyDays)
                         },
                     )
                 }
@@ -282,7 +284,7 @@ fun PlanPreviewStep(
             if (week == null) {
                 item {
                     Text(
-                        "We couldn't build a schedule preview yet.",
+                        stringResource(R.string.planner_preview_unavailable),
                         fontSize = 13.sp,
                         color = scheme.onSurfaceVariant,
                     )
@@ -402,10 +404,10 @@ fun PlanPreviewStep(
                     .padding(vertical = 12.dp),
                 contentAlignment = Alignment.Center,
             ) {
-                Text("Go Back", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = scheme.onSurface)
+                Text(stringResource(R.string.common_go_back), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = scheme.onSurface)
             }
             MacOSPrimaryActionButton(
-                text = "Looks Good",
+                text = stringResource(R.string.planner_looks_good),
                 onClick = onConfirm,
                 isLoading = isConfirming,
                 enabled = !isConfirming,
@@ -420,13 +422,13 @@ fun PlanPreviewStep(
         var draft by remember(target.topicId) { mutableStateOf(target.topicName) }
         AlertDialog(
             onDismissRequest = { renameTarget = null },
-            title = { Text("Rename topic") },
+            title = { Text(stringResource(R.string.planner_rename_topic)) },
             text = {
                 OutlinedTextField(
                     value = draft,
                     onValueChange = { draft = it },
                     singleLine = true,
-                    label = { Text("Topic name") },
+                    label = { Text(stringResource(R.string.planner_topic_name)) },
                     modifier = Modifier.fillMaxWidth(),
                 )
             },
@@ -437,10 +439,10 @@ fun PlanPreviewStep(
                         onRenameTopic(target.topicId, draft.trim())
                         renameTarget = null
                     },
-                ) { Text("Save", color = accent) }
+                ) { Text(stringResource(R.string.common_save), color = accent) }
             },
             dismissButton = {
-                TextButton(onClick = { renameTarget = null }) { Text("Cancel") }
+                TextButton(onClick = { renameTarget = null }) { Text(stringResource(R.string.common_cancel)) }
             },
         )
     }
@@ -465,13 +467,13 @@ private fun WeekNavHeader(
         IconButton(onClick = onPrevious, enabled = hasPrevious) {
             Icon(
                 Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Previous week",
+                contentDescription = stringResource(R.string.planner_previous_week),
                 tint = if (hasPrevious) accent else scheme.onSurfaceVariant.copy(alpha = 0.3f),
             )
         }
         Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
-                "WEEK $weekNumber",
+                stringResource(R.string.planner_week_number, weekNumber),
                 fontWeight = FontWeight.Bold,
                 fontSize = 11.sp,
                 letterSpacing = 1.sp,
@@ -492,7 +494,7 @@ private fun WeekNavHeader(
         IconButton(onClick = onNext, enabled = hasNext) {
             Icon(
                 Icons.AutoMirrored.Filled.ArrowForward,
-                contentDescription = "Next week",
+                contentDescription = stringResource(R.string.planner_next_week),
                 tint = if (hasNext) accent else scheme.onSurfaceVariant.copy(alpha = 0.3f),
             )
         }

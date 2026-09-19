@@ -21,29 +21,11 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import dagger.hilt.android.AndroidEntryPoint
 
-/**
- * A dedicated, plain Android Activity (no Compose) for full-screen video playback.
- *
- * WHY a separate Activity instead of a Compose overlay:
- * ─────────────────────────────────────────────────────
- * Android's WebView renders video through an internal SurfaceView that punches a
- * "transparent hole" in the current Window's surface and composites video frames
- * from a separate hardware layer below it (via SurfaceFlinger).
- *
- * Inside a Compose hierarchy the extra compositing layers (Scaffold, Surface, etc.)
- * interfere with this mechanism — the hole is punched but the video layer isn't
- * visible behind the Compose surfaces.
- *
- * A plain Activity with setContentView(webView) has NO extra compositing layers.
- * The WebView is directly the window's content, so SurfaceView compositing works
- * correctly and video frames are visible.
- */
+/** Dedicated landscape playback; leaving fullscreen returns to the session. */
 @AndroidEntryPoint
 class VideoPlayerActivity : ComponentActivity() {
 
     private var webView: WebView? = null
-    private var customView: View? = null
-    private var customViewCallback: WebChromeClient.CustomViewCallback? = null
     private lateinit var rootLayout: FrameLayout
 
     companion object {
@@ -52,11 +34,6 @@ class VideoPlayerActivity : ComponentActivity() {
         private const val EXTRA_SESSION_ID = "extra_session_id"
         private const val EXTRA_SESSION_STATUS = "extra_session_status"
 
-        /**
-         * @param sessionId when non-blank, the live comments pane is shown beside
-         *   the video. Students used to have to back out of the player to comment,
-         *   which meant they could never do both at once.
-         */
         fun start(
             context: Context,
             embedUrl: String,
@@ -89,25 +66,12 @@ class VideoPlayerActivity : ComponentActivity() {
             this,
             object : OnBackPressedCallback(true) {
                 override fun handleOnBackPressed() {
-                    when {
-                        customView != null -> {
-                            // First Back exits YouTube's own full-screen view.
-                            customViewCallback?.onCustomViewHidden()
-                        }
-                        webView?.canGoBack() == true -> webView?.goBack()
-                        else -> finishAfterTransition()
-                    }
+                    exitPlayer()
                 }
             },
         )
 
-        // Dedicated fullscreen video player in landscape
-        val isTablet = resources.configuration.smallestScreenWidthDp >= 600
-        requestedOrientation = if (isTablet) {
-            ActivityInfo.SCREEN_ORIENTATION_SENSOR
-        } else {
-            ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
-        }
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
 
         val embedUrl = intent.getStringExtra(EXTRA_EMBED_URL) ?: run { finish(); return }
         val sanitizedUrl = buildPlayerEmbedUrl(embedUrl)
@@ -173,28 +137,15 @@ class VideoPlayerActivity : ComponentActivity() {
 
             webChromeClient = object : WebChromeClient() {
                 override fun onShowCustomView(view: View?, callback: CustomViewCallback?) {
-                    if (view == null) return
-                    // Video going fullscreen: add the custom view on top of the WebView
-                    customView = view
-                    customViewCallback = callback
-                    rootLayout.addView(
-                        view,
-                        FrameLayout.LayoutParams(
-                            ViewGroup.LayoutParams.MATCH_PARENT,
-                            ViewGroup.LayoutParams.MATCH_PARENT,
-                        ),
-                    )
-                    this@apply.visibility = View.GONE
-                    hideSystemBars()
+                    // This Activity is already the fullscreen landscape player.
+                    // Treat YouTube's fullscreen toggle as exit, rather than adding
+                    // another fullscreen surface that would require a second tap.
+                    exitPlayer()
+                    callback?.onCustomViewHidden()
                 }
 
                 override fun onHideCustomView() {
-                    val cv = customView ?: return
-                    rootLayout.removeView(cv)
-                    customView = null
-                    customViewCallback = null
-                    this@apply.visibility = View.VISIBLE
-                    hideSystemBars()
+                    exitPlayer()
                 }
 
                 override fun onConsoleMessage(msg: android.webkit.ConsoleMessage?): Boolean {
@@ -233,6 +184,8 @@ class VideoPlayerActivity : ComponentActivity() {
 
     override fun onDestroy() {
         webView?.apply {
+            webChromeClient = null
+            (parent as? ViewGroup)?.removeView(this)
             stopLoading()
             loadUrl("about:blank")
             destroy()
@@ -242,6 +195,13 @@ class VideoPlayerActivity : ComponentActivity() {
     }
 
     // ── Helpers ─────────────────────────────────────────────────────────────────
+
+    private fun exitPlayer() {
+        if (isFinishing || isDestroyed) return
+        // Guard against callback re-entry while WebView leaves fullscreen.
+        finish()
+        webView?.onPause()
+    }
 
     private fun hideSystemBars() {
         WindowInsetsControllerCompat(window, window.decorView).apply {

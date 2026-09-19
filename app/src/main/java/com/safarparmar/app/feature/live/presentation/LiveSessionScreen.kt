@@ -242,7 +242,18 @@ private fun LiveClassPlayerChat(
     onSend: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val embedUrl = remember(session.id) { resolveEmbedUrl(session) }
+    val context = LocalContext.current
+    val embedUrl = remember(
+        session.youtubeEmbedUrl,
+        session.recordingVideoId,
+        session.youtubeVideoId,
+    ) { resolveEmbedUrl(session) }
+    val videoId = remember(
+        session.youtubeEmbedUrl,
+        session.recordingVideoId,
+        session.youtubeVideoId,
+    ) { extractVideoId(session) }
+    val thumbnailUrl = videoId?.let { "https://img.youtube.com/vi/$it/hqdefault.jpg" }
 
     Column(
         modifier = modifier
@@ -266,17 +277,43 @@ private fun LiveClassPlayerChat(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .aspectRatio(16f / 9f),
+                        .aspectRatio(16f / 9f)
+                        .clickable {
+                            VideoPlayerActivity.start(
+                                context = context,
+                                embedUrl = embedUrl,
+                                videoTitle = session.title,
+                                sessionId = session.id,
+                                sessionStatus = session.status,
+                            )
+                        },
+                    contentAlignment = Alignment.Center,
                 ) {
-                    YouTubePlayerWebView(
-                        embedUrl = embedUrl,
-                        modifier = Modifier.fillMaxSize(),
-                    )
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = Color.White,
+                            shadowElevation = 4.dp,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.PlayArrow,
+                                contentDescription = "Play ${session.title}",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(14.dp).size(34.dp),
+                            )
+                        }
+                        Text(
+                            text = "Tap to watch live",
+                            color = Color.White,
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
                 }
             } else {
-                val videoId = extractVideoId(session)
-                val thumbnailUrl = videoId?.let { "https://img.youtube.com/vi/$it/hqdefault.jpg" }
-
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()

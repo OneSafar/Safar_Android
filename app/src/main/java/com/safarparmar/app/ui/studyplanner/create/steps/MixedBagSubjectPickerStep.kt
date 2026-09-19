@@ -1,5 +1,8 @@
 package com.safarparmar.app.ui.studyplanner.create.steps
 
+import androidx.compose.ui.res.stringResource
+import com.safarparmar.app.R
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -144,7 +147,7 @@ fun MixedBagSubjectPickerStep(
         if (selected.size >= 2) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                 MixedBagOrderOption(
-                    label = "In my order",
+                    label = stringResource(R.string.planner_in_my_order),
                     info = "Finish the first subject you picked completely. Then start the next one. Keep going in the same order you tapped them.",
                     selected = orderMode == "sequential",
                     accent = accent,
@@ -153,7 +156,7 @@ fun MixedBagSubjectPickerStep(
                     modifier = Modifier.weight(1f),
                 )
                 MixedBagOrderOption(
-                    label = "Mix them together",
+                    label = stringResource(R.string.planner_mix_together),
                     info = "Each day you study a little bit of every subject you picked — mixed together, not one after another.",
                     selected = orderMode == "balanced",
                     accent = accent,
@@ -175,14 +178,14 @@ fun MixedBagSubjectPickerStep(
         ) {
             val canConfirm = selected.size in 2..maxSelectable
             MacOSPrimaryActionButton(
-                text = "Confirm",
+                text = stringResource(R.string.common_confirm),
                 onClick = { onConfirm(selected.toList(), orderMode) },
                 enabled = canConfirm,
                 isLight = isLight,
                 customAccent = PlannerFlatColors.PrimaryAccent,
             )
             Text(
-                text = "Skip — keep an even mix",
+                text = stringResource(R.string.planner_skip_even_mix),
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = scheme.onSurfaceVariant,
@@ -228,7 +231,7 @@ private fun MixedBagOrderOption(
         IconButton(onClick = { showInfo = true }, modifier = Modifier.size(28.dp)) {
             Icon(
                 imageVector = Icons.Default.Info,
-                contentDescription = "About $label",
+                contentDescription = stringResource(R.string.common_about_named, label),
                 tint = if (selected) accent else scheme.onSurfaceVariant,
                 modifier = Modifier.size(15.dp),
             )
@@ -240,7 +243,7 @@ private fun MixedBagOrderOption(
             onDismissRequest = { showInfo = false },
             title = label,
             text = { PlannerDialogText(info) },
-            confirmButton = { PlannerDialogAction(text = "OK") { showInfo = false } },
+            confirmButton = { PlannerDialogAction(text = stringResource(R.string.common_ok)) { showInfo = false } },
         )
     }
 }
@@ -256,9 +259,9 @@ private fun PhaseStrip(chosen: List<String>, rest: List<String>) {
     if (chosen.isEmpty()) return
     val scheme = MaterialTheme.colorScheme
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        PhaseRow(label = "First", names = chosen, accent = scheme.primary, scheme = scheme)
+        PhaseRow(label = stringResource(R.string.common_first), names = chosen, accent = scheme.primary, scheme = scheme)
         if (rest.isNotEmpty()) {
-            PhaseRow(label = "Then", names = rest, accent = scheme.onSurfaceVariant, scheme = scheme)
+            PhaseRow(label = stringResource(R.string.common_then), names = rest, accent = scheme.onSurfaceVariant, scheme = scheme)
         }
     }
 }

@@ -82,6 +82,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import com.safarparmar.app.R
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -147,21 +149,21 @@ fun PlanTabScreen(
         }
     }
     val todayDoneCount = remember(todayTopics) {
-        todayTopics.count { it.topic.status == TopicStatus.DONE }
+        todayTopics.count { it.topic.status.isStudied }
     }
     val overdueTopics = remember(refs, today) {
-        refs.filter { (it.topic.plannedDate?.take(10) ?: "9999") < today && it.topic.status != TopicStatus.DONE }
+        refs.filter { (it.topic.plannedDate?.take(10) ?: "9999") < today && !it.topic.status.isStudied }
     }
     val upcomingTopics = remember(refs, today) {
         refs
-            .filter { (it.topic.plannedDate?.take(10) ?: "") > today && it.topic.status != TopicStatus.DONE }
+            .filter { (it.topic.plannedDate?.take(10) ?: "") > today && !it.topic.status.isStudied }
             .sortedWith(
                 compareBy<TopicRef> { it.topic.plannedDate?.take(10).orEmpty() }
                     .thenBy { it.topic.name.lowercase() },
             )
     }
     val completedTopics = remember(refs) {
-        refs.filter { it.topic.status == TopicStatus.DONE }
+        refs.filter { it.topic.status.isStudied }
     }
     val hasTopics = refs.isNotEmpty()
     
@@ -285,8 +287,8 @@ fun PlanTabScreen(
 
     if (resetConfirm) {
         PlanConfirmDialog(
-            title = "Reset plan?",
-            body = "All topics will move back to Todo and dates will be removed.",
+            title = stringResource(R.string.planner_reset_plan_question),
+            body = stringResource(R.string.planner_reset_plan_body),
             onDismiss = { resetConfirm = false },
             onConfirm = {
                 actions.resetPlan()
@@ -299,7 +301,7 @@ fun PlanTabScreen(
     completionPromptTopic?.let { ref ->
         PlannerDialog(
             onDismissRequest = { completionPromptTopic = null },
-            title = "Mark this topic as?",
+            title = stringResource(R.string.planner_mark_topic_as),
             text = {
                 Text(
                     text = ref.topic.name,
@@ -310,16 +312,16 @@ fun PlanTabScreen(
                 )
             },
             dismissButton = {
-                PlannerDialogTextAction("Cancel") { completionPromptTopic = null }
+                PlannerDialogTextAction(stringResource(R.string.common_cancel)) { completionPromptTopic = null }
             },
             confirmButton = {
                 PlannerDialogActionRow {
-                    PlannerDialogTextAction("To Revise") {
+                    PlannerDialogTextAction(stringResource(R.string.planner_to_revise)) {
                         // Open the revision scheduler instead of directly setting status
                         revisionTopicRef = ref
                         completionPromptTopic = null
                     }
-                    PlannerDialogAction(text = "Done") {
+                    PlannerDialogAction(text = stringResource(R.string.common_done)) {
                         actions.updateTopic(ref.topic.id, status = TopicStatus.DONE)
                         completionPromptTopic = null
                     }
@@ -361,7 +363,7 @@ fun PlanTabScreen(
         // lockExisting=false is set only by the "Rebuild Plan" entry point (only shown
         // once a schedule already exists) — lockExisting=true is the first-ever build.
         val isRebuild = !lockExisting
-        val currentStyleLabel = if (preferredStudyStrategy == "sequential") "Deep Focus mode" else "Balanced mode"
+        val currentStyleLabel = if (preferredStudyStrategy == "sequential") stringResource(R.string.planner_deep_focus_mode) else stringResource(R.string.planner_balanced_mode)
         ModalBottomSheet(
             onDismissRequest = { pendingDistributeAction = null },
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
@@ -376,7 +378,7 @@ fun PlanTabScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Text(
-                    text = if (isRebuild) "Rebuild your plan" else "Build planner",
+                    text = if (isRebuild) stringResource(R.string.planner_rebuild_plan) else stringResource(R.string.planner_build_planner),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.ExtraBold,
                     color = MaterialTheme.colorScheme.onSurface,
@@ -387,7 +389,7 @@ fun PlanTabScreen(
                         color = MaterialTheme.colorScheme.surfaceContainerLow,
                     ) {
                         Text(
-                            text = "Currently: $currentStyleLabel",
+                            text = stringResource(R.string.planner_currently_style, currentStyleLabel),
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
@@ -395,14 +397,14 @@ fun PlanTabScreen(
                         )
                     }
                     Text(
-                        text = "This reschedules your remaining, unfinished topics — today's list and anything already done stays untouched.",
+                        text = stringResource(R.string.planner_rebuild_explainer),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(bottom = 8.dp),
                     )
                 } else {
                     Text(
-                        text = "Choose how SAFAR should place your topics on study days.",
+                        text = stringResource(R.string.planner_choose_study_style),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(bottom = 8.dp)
@@ -410,8 +412,8 @@ fun PlanTabScreen(
                 }
 
                 StudyStyleOption(
-                    title = "Balanced mode",
-                    body = "Mix subjects daily.",
+                    title = stringResource(R.string.planner_balanced_mode),
+                    body = stringResource(R.string.planner_balanced_mode_body),
                     recommended = preferredStudyStrategy == "interleaved",
                     onClick = {
                         actions.autoDistribute(lockExisting = lockExisting, strategy = "interleaved")
@@ -419,8 +421,8 @@ fun PlanTabScreen(
                     },
                 )
                 StudyStyleOption(
-                    title = "Deep Focus mode",
-                    body = "Finish topics in the same order as your syllabus.",
+                    title = stringResource(R.string.planner_deep_focus_mode),
+                    body = stringResource(R.string.planner_deep_focus_mode_body),
                     recommended = preferredStudyStrategy == "sequential",
                     onClick = {
                         actions.autoDistribute(lockExisting = lockExisting, strategy = "sequential")
@@ -473,8 +475,8 @@ fun PlanTabScreen(
     // ── Remove from Today confirmation ─────────────────────────────
     removeFromTodayConfirmTopic?.let { ref ->
         PlanConfirmDialog(
-            title = "Remove from today?",
-            body = "\"${ref.topic.name}\" will be marked as Not Assigned. You can re-add it later.",
+            title = stringResource(R.string.planner_remove_today_question),
+            body = stringResource(R.string.planner_remove_today_body, ref.topic.name),
             onDismiss = { removeFromTodayConfirmTopic = null },
             onConfirm = {
                 actions.clearTopicDates(listOf(ref.topic.id))
@@ -529,7 +531,7 @@ fun PlanTabScreen(
 
     val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
     val isLight = !isDark
-    val remainingToday = todayTopics.filter { it.topic.status != TopicStatus.DONE }
+    val remainingToday = todayTopics.filter { !it.topic.status.isStudied }
     val todayCompleted = todayTopics.isNotEmpty() && remainingToday.isEmpty()
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -659,13 +661,13 @@ fun PlanTabScreen(
                                             verticalArrangement = Arrangement.spacedBy(4.dp)
                                         ) {
                                             Text(
-                                                text = "Today's Queue Conquered!",
+                                                text = stringResource(R.string.planner_today_conquered),
                                                 style = MaterialTheme.typography.titleMedium,
                                                 fontWeight = FontWeight.Black,
                                                 color = if (isDark) Color.White else Color(0xFF064E3B),
                                             )
                                             Text(
-                                                text = "Nice. Your completed tasks stay below so the checkmarks feel visible and satisfying.",
+                                                text = stringResource(R.string.planner_today_conquered_body),
                                                 style = MaterialTheme.typography.bodySmall,
                                                 color = if (isDark) Color.White.copy(alpha = 0.85f) else Color(0xFF047857),
                                             )
@@ -677,8 +679,8 @@ fun PlanTabScreen(
 
                         item(key = "today_list_header") {
                             PlanHomeSectionHeader(
-                                title = "Today's agenda",
-                                trailing = "${todayTopics.size} planned",
+                                title = stringResource(R.string.planner_today_agenda),
+                                trailing = stringResource(R.string.planner_count_planned, todayTopics.size),
                                 modifier = Modifier.padding(top = 22.dp, bottom = 10.dp),
                             )
                         }
@@ -711,8 +713,8 @@ fun PlanTabScreen(
                             if (bonusTopics.isNotEmpty()) {
                                 item(key = "bonus_header") {
                                     PlanHomeSectionHeader(
-                                        title = "Bonus, to get ahead",
-                                        trailing = "${bonusTopics.size} suggested",
+                                        title = stringResource(R.string.planner_bonus_ahead),
+                                        trailing = stringResource(R.string.planner_count_suggested, bonusTopics.size),
                                         modifier = Modifier.padding(top = 26.dp, bottom = 10.dp),
                                     )
                                 }
@@ -757,14 +759,14 @@ fun PlanTabScreen(
                     if (completedTopics.isEmpty()) {
                         item(key = "completed_empty") {
                             PlanHomeEmptyNote(
-                                "Nothing finished yet. Your completed topics collect here.",
+                                stringResource(R.string.planner_nothing_finished),
                             )
                         }
                     } else {
                         item(key = "completed_list_header") {
                             PlanHomeSectionHeader(
-                                title = "Completed",
-                                trailing = "${completedTopics.size} total",
+                                title = stringResource(R.string.common_completed),
+                                trailing = stringResource(R.string.planner_count_total, completedTopics.size),
                                 modifier = Modifier.padding(top = 22.dp, bottom = 10.dp),
                             )
                         }
@@ -792,7 +794,7 @@ fun PlanTabScreen(
       if (hasTopics && activeTab == StudyPlannerTab.TODAY && !todayCompleted && todayTopics.isNotEmpty()) {
           DoneForTheDayBar(
               onClick = {
-                  val incompleteTopics = todayTopics.filter { it.topic.status != TopicStatus.DONE }
+                  val incompleteTopics = todayTopics.filter { !it.topic.status.isStudied }
                   val topicIds = incompleteTopics.map { it.topic.id }
                   if (topicIds.isNotEmpty()) {
                       actions.finishDay(topicIds)
@@ -844,14 +846,14 @@ private fun EmptyPlanTabState(onCreateClick: () -> Unit) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Text("📚", fontSize = 48.sp)
             Text(
-                text = "Your plan is empty",
+                text = stringResource(R.string.planner_plan_empty),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Black,
                 color = scheme.onSurface,
                 textAlign = TextAlign.Center,
             )
             Text(
-                text = "Add subjects and topics first. Then you can build your study schedule.",
+                text = stringResource(R.string.planner_plan_empty_body),
                 style = MaterialTheme.typography.bodyMedium,
                 color = scheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
@@ -863,7 +865,7 @@ private fun EmptyPlanTabState(onCreateClick: () -> Unit) {
             ) {
                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(20.dp))
                 Spacer(Modifier.width(8.dp))
-                Text("Create your plan", fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.planner_create_plan), fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -890,9 +892,9 @@ private fun CreatePlanPromptSheet(
                 .padding(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Text("Let's set up your plan", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.planner_lets_setup), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Text(
-                text = "First, add your subjects and topics in the Syllabus tab. Once that's done, come back here to build your study schedule.",
+                text = stringResource(R.string.planner_setup_first_body),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -902,10 +904,10 @@ private fun CreatePlanPromptSheet(
                 modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
                 shape = ButtonDefaults.shape,
             ) {
-                Text("Go to Syllabus", fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.planner_go_to_syllabus), fontWeight = FontWeight.Bold)
             }
             TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
-                Text("Cancel")
+                Text(stringResource(R.string.common_cancel))
             }
         }
     }
@@ -919,11 +921,11 @@ private fun AddCustomTopicDialog(
     var name by remember { mutableStateOf("") }
     PlannerDialog(
         onDismissRequest = onDismiss,
-        title = "Add a topic to today",
+        title = stringResource(R.string.planner_add_topic_today),
         text = {
             Column {
                 Text(
-                    text = "This adds a one-off topic to Today's Study Plan only. It won't change your daily goal or future days.",
+                    text = stringResource(R.string.planner_add_topic_today_body),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -931,16 +933,16 @@ private fun AddCustomTopicDialog(
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Topic name") },
+                    label = { Text(stringResource(R.string.planner_topic_name)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
         },
-        dismissButton = { PlannerDialogTextAction("Cancel", onClick = onDismiss) },
+        dismissButton = { PlannerDialogTextAction(stringResource(R.string.common_cancel), onClick = onDismiss) },
         confirmButton = {
             PlannerDialogAction(
-                text = "Add to today",
+                text = stringResource(R.string.planner_add_to_today),
                 enabled = name.trim().length >= 2,
             ) { onConfirm(name.trim()) }
         },
@@ -961,18 +963,18 @@ private fun EditTopicDialog(
     }
     PlannerDialog(
         onDismissRequest = onDismiss,
-        title = "Edit",
+        title = stringResource(R.string.common_edit),
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 OutlinedTextField(
                     value = topicName,
                     onValueChange = { topicName = it },
-                    label = { Text("Topic") },
+                    label = { Text(stringResource(R.string.planner_topic)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Text(
-                    text = "Topic size — big topics count as more",
+                    text = stringResource(R.string.planner_topic_size_help),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -988,23 +990,23 @@ private fun EditTopicDialog(
                 OutlinedTextField(
                     value = chapterName,
                     onValueChange = { chapterName = it },
-                    label = { Text("Chapter") },
+                    label = { Text(stringResource(R.string.planner_chapter)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 OutlinedTextField(
                     value = subjectName,
                     onValueChange = { subjectName = it },
-                    label = { Text("Subject") },
+                    label = { Text(stringResource(R.string.planner_subject)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
         },
-        dismissButton = { PlannerDialogTextAction("Cancel", onClick = onDismiss) },
+        dismissButton = { PlannerDialogTextAction(stringResource(R.string.common_cancel), onClick = onDismiss) },
         confirmButton = {
             PlannerDialogAction(
-                text = "Save",
+                text = stringResource(R.string.common_save),
                 enabled = topicName.trim().length >= 2,
             ) {
                 // Only send a size when it actually changed from the current
@@ -1040,7 +1042,7 @@ private fun UnscheduledWarningBanner(
         ) {
             Icon(
                 imageVector = Icons.Default.Warning,
-                contentDescription = "Warning",
+                contentDescription = stringResource(R.string.common_warning),
                 tint = scheme.error,
                 modifier = Modifier.size(24.dp)
             )
@@ -1052,7 +1054,7 @@ private fun UnscheduledWarningBanner(
                     color = scheme.onErrorContainer
                 )
                 Text(
-                    text = "Topics are in your syllabus but not assigned. Tap to assign them.",
+                    text = stringResource(R.string.planner_unassigned_topics_warning),
                     style = MaterialTheme.typography.bodySmall,
                     color = scheme.onSurfaceVariant
                 )
@@ -1061,7 +1063,7 @@ private fun UnscheduledWarningBanner(
                 onClick = onClick,
                 colors = ButtonDefaults.textButtonColors(contentColor = scheme.error)
             ) {
-                Text("Schedule", fontWeight = FontWeight.ExtraBold)
+                Text(stringResource(R.string.common_schedule), fontWeight = FontWeight.ExtraBold)
             }
         }
     }
@@ -1199,7 +1201,7 @@ private fun MoreTimeNeededSheet(
                 modifier = Modifier.fillMaxWidth().heightIn(min = 50.dp),
                 shape = RoundedCornerShape(14.dp),
             ) {
-                Text("Study more each day", fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.planner_study_more_daily), fontWeight = FontWeight.Bold)
             }
             Text(
                 "Increase Topics per day to make room for these topics.",
@@ -1214,14 +1216,14 @@ private fun MoreTimeNeededSheet(
                     modifier = Modifier.fillMaxWidth().heightIn(min = 50.dp),
                     shape = RoundedCornerShape(14.dp),
                 ) {
-                    Text("Change exam date", fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.planner_change_exam_date), fontWeight = FontWeight.Bold)
                 }
             }
             TextButton(
                 onClick = onDismiss,
                 modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
             ) {
-                Text("Not now", fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.common_not_now), fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -1329,12 +1331,12 @@ private fun TopicSchedulingScreen(
                         selectedTopicForDatePicker = null
                     }
                 ) {
-                    Text("OK", fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.common_ok), fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { selectedTopicForDatePicker = null }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.common_cancel))
                 }
             }
         ) {
@@ -1424,7 +1426,7 @@ private fun TopicSchedulingScreen(
                 trailingIcon = {
                     if (searchQuery.isNotBlank()) {
                         IconButton(onClick = { searchQuery = "" }) {
-                            Icon(Icons.Default.Close, contentDescription = "Clear search", modifier = Modifier.size(18.dp))
+                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.common_clear_search), modifier = Modifier.size(18.dp))
                         }
                     }
                 },
@@ -1496,7 +1498,7 @@ private fun TopicSchedulingScreen(
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.CalendarMonth,
-                                        contentDescription = "Schedule",
+                                        contentDescription = stringResource(R.string.common_schedule),
                                         tint = scheme.onPrimaryContainer,
                                         modifier = Modifier.size(18.dp)
                                     )
@@ -1571,7 +1573,7 @@ private fun DoneForTheDayBar(
             contentAlignment = Alignment.Center,
         ) {
             Text(
-                text = "DONE FOR THE DAY",
+                text = stringResource(R.string.planner_done_for_day),
                 fontWeight = FontWeight.Black,
                 letterSpacing = 1.sp,
                 fontSize = 15.sp,

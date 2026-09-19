@@ -68,6 +68,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -80,11 +81,11 @@ import com.safarparmar.app.ui.studyplanner.components.isPlannerDark
 import com.safarparmar.app.ui.theme.SafarSemanticColors
 import kotlinx.coroutines.delay
 
-internal enum class MehfilTab(val label: String, val icon: ImageVector) {
-    COMMUNITY("Community", Icons.Default.Groups),
-    SAVED("Saved", Icons.Default.Bookmark),
-    ANALYTICS("Activity", Icons.Default.BarChart),
-    CONNECTIONS("Chats", Icons.Default.PersonAdd),
+internal enum class MehfilTab(val labelRes: Int, val icon: ImageVector) {
+    COMMUNITY(R.string.mehfil_tab_community, Icons.Default.Groups),
+    SAVED(R.string.mehfil_tab_saved, Icons.Default.Bookmark),
+    ANALYTICS(R.string.mehfil_tab_activity, Icons.Default.BarChart),
+    CONNECTIONS(R.string.mehfil_tab_chats, Icons.Default.PersonAdd),
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -122,8 +123,8 @@ internal fun MehfilContent(
 ) {
     val searchFocusRequester = remember { FocusRequester() }
     SafarDrawerScaffold(
-        title = "Mehfil",
-        subtitle = "SAFAR",
+        title = stringResource(R.string.mehfil_title),
+        subtitle = stringResource(R.string.app_name),
         currentRoute = currentRoute,
         isDarkTheme = isDarkTheme,
         onNavigate = onNavigate,
@@ -135,7 +136,7 @@ internal fun MehfilContent(
                 ) {
                     Icon(
                         if (searchActive) Icons.Default.Close else Icons.Default.Search,
-                        contentDescription = "Search",
+                        contentDescription = stringResource(R.string.common_search),
                         tint = MehfilFlatColors.Muted,
                         modifier = Modifier.size(18.dp),
                     )
@@ -143,7 +144,7 @@ internal fun MehfilContent(
                 FlatTopIconChip(onClick = onGuidelinesClick) {
                     Icon(
                         Icons.Default.Info,
-                        contentDescription = "Guidelines",
+                        contentDescription = stringResource(R.string.mehfil_guidelines),
                         tint = MehfilFlatColors.Muted,
                         modifier = Modifier.size(18.dp),
                     )
@@ -179,7 +180,7 @@ internal fun MehfilContent(
                             ) {
                                 CircularProgressIndicator(color = MehfilFlatColors.Primary)
                                 Text(
-                                    "Setting up Mehfil...",
+                                    stringResource(R.string.mehfil_setting_up),
                                     fontSize = 13.sp,
                                     color = MehfilFlatColors.Muted,
                                 )
@@ -301,7 +302,7 @@ private fun MehfilSearchBar(
             value = searchQuery,
             onValueChange = onSearchQueryChange,
             placeholder = {
-                Text("Search posts or names...", fontSize = 13.sp, color = MehfilFlatColors.Muted)
+                Text(stringResource(R.string.mehfil_search_placeholder), fontSize = 13.sp, color = MehfilFlatColors.Muted)
             },
             leadingIcon = {
                 Icon(
@@ -404,13 +405,13 @@ private fun MehfilBottomBar(
                     ) {
                         Icon(
                             imageVector = tab.icon,
-                            contentDescription = tab.label,
+                            contentDescription = stringResource(tab.labelRes),
                             tint = contentColor,
                             modifier = Modifier.size(22.dp),
                         )
                         Spacer(Modifier.height(3.dp))
                         Text(
-                            text = tab.label,
+                            text = stringResource(tab.labelRes),
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                             color = contentColor,
@@ -443,7 +444,7 @@ private fun MehfilBottomBar(
                         Box {
                             Icon(
                                 imageVector = tab.icon,
-                                contentDescription = tab.label,
+                                contentDescription = stringResource(tab.labelRes),
                                 tint = contentColor,
                                 modifier = Modifier.size(22.dp),
                             )
@@ -468,7 +469,7 @@ private fun MehfilBottomBar(
                         }
                         Spacer(Modifier.height(3.dp))
                         Text(
-                            text = tab.label,
+                            text = stringResource(tab.labelRes),
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                             color = contentColor,
@@ -501,7 +502,7 @@ private fun MehfilBottomBar(
         ) {
             Icon(
                 imageVector = Icons.Default.Add,
-                contentDescription = "Create post",
+                contentDescription = stringResource(R.string.mehfil_create_post),
                 tint = Color.White,
                 modifier = Modifier.size(28.dp),
             )

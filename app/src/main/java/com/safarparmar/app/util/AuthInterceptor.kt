@@ -26,6 +26,7 @@ class AuthInterceptor @Inject constructor(
         val request  = chain.request().newBuilder().apply {
             token?.let { addHeader("Authorization", "Bearer $it") }
             addHeader("Accept-Language", "en")
+            addHeader("X-Safar-Client", "android")
         }.build()
         var response = chain.proceed(request)
         if (response.code == 401 && shouldAttemptRefresh(request.url.encodedPath)) {

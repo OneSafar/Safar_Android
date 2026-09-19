@@ -1,5 +1,8 @@
 package com.safarparmar.app.ui.studyplanner.plan
 
+import androidx.compose.ui.res.stringResource
+import com.safarparmar.app.R
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -69,13 +72,13 @@ internal fun RevisionScreen(
             }
             Column(Modifier.weight(1f)) {
                 Text(
-                    text = "Revision Tasks",
+                    text = stringResource(R.string.planner_revision_tasks),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.ExtraBold,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
-                    text = "Consolidate what you've learned",
+                    text = stringResource(R.string.planner_revision_subtitle),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -112,13 +115,13 @@ internal fun RevisionScreen(
                     ) {
                         Text("🧠", fontSize = 36.sp)
                         Text(
-                            text = "No Revision Scheduled",
+                            text = stringResource(R.string.planner_no_revision_scheduled),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface,
                         )
                         Text(
-                            text = "Topics marked for revision will show up here to help you consolidate your learning.",
+                            text = stringResource(R.string.planner_no_revision_body),
                             style = MaterialTheme.typography.bodySmall,
                             textAlign = TextAlign.Center,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,

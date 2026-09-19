@@ -124,15 +124,19 @@ object NetworkModule {
                     .header("Cache-Control", "public, max-age=$maxAge")
                     .build()
             }
-            .addInterceptor(
-                HttpLoggingInterceptor().apply {
+            .addInterceptor { chain ->
+                // Support requests contain private intake answers and callback numbers.
+                // Never pass their request or response through the logger, even in debug.
+                if (chain.request().url.encodedPath.contains("/support/")) {
+                    chain.proceed(chain.request())
+                } else HttpLoggingInterceptor().apply {
                     level = if (BuildConfig.DEBUG) {
                         HttpLoggingInterceptor.Level.BODY
                     } else {
                         HttpLoggingInterceptor.Level.NONE
                     }
-                }
-            )
+                }.intercept(chain)
+            }
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)
@@ -188,6 +192,7 @@ object NetworkModule {
     @Provides @Singleton fun provideStudyCircleApi(r: Retrofit): StudyCircleApi = r.create(StudyCircleApi::class.java)
     @Provides @Singleton fun provideLeaderboardApi(r: Retrofit): com.safarparmar.app.data.remote.api.LeaderboardApi = r.create(com.safarparmar.app.data.remote.api.LeaderboardApi::class.java)
     @Provides @Singleton fun provideReferralApi(r: Retrofit): com.safarparmar.app.data.remote.api.ReferralApi = r.create(com.safarparmar.app.data.remote.api.ReferralApi::class.java)
+    @Provides @Singleton fun provideSupportApi(r: Retrofit): SupportApi = r.create(SupportApi::class.java)
     @Provides @Singleton fun provideGson(): Gson = Gson()
     @Provides @Singleton fun provideMehfilSocketManager(gson: Gson): MehfilSocketManager = MehfilSocketManager(gson)
 }

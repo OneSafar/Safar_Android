@@ -66,6 +66,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -73,6 +74,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.safarparmar.app.R
 import com.safarparmar.app.domain.model.AnnouncementType
 import com.safarparmar.app.domain.model.NotificationFeedItem
 import com.safarparmar.app.domain.model.NotificationFeedSource
@@ -295,7 +297,7 @@ private fun AnnouncementsSheetContent(
                     )
                 }
                 Text(
-                    text = "Notifications",
+                    text = stringResource(R.string.announcements_title),
                     fontSize = 17.sp,
                     fontWeight = FontWeight.Bold,
                     color = ink.primaryText,
@@ -308,7 +310,7 @@ private fun AnnouncementsSheetContent(
                             .padding(horizontal = 7.dp, vertical = 2.dp),
                     ) {
                         Text(
-                            text = "$unreadCount new",
+                            text = stringResource(R.string.announcements_new_count, unreadCount),
                             fontSize = 10.5.sp,
                             fontWeight = FontWeight.ExtraBold,
                             color = Color.White,
@@ -338,7 +340,7 @@ private fun AnnouncementsSheetContent(
                         modifier = Modifier.size(16.dp),
                     )
                     Text(
-                        text = "Read all",
+                        text = stringResource(R.string.announcements_read_all),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         color = accent,
@@ -365,8 +367,8 @@ private fun AnnouncementsSheetContent(
         when {
             isLoading -> LoadingState(ink = ink, modifier = Modifier.weight(1f))
             items.isEmpty() -> EmptyAnnouncementsState(
-                message = "You're all caught up!",
-                subtext = "No notifications right now.",
+                message = stringResource(R.string.announcements_all_caught_up),
+                subtext = stringResource(R.string.announcements_none_right_now),
                 ink = ink,
                 accent = accent,
                 modifier = Modifier.weight(1f),
@@ -406,18 +408,20 @@ private fun AnnouncementsSheetContent(
     }
 }
 
+@Composable
 private fun emptyMessageFor(filter: UpdatesFilter): String =
     when (filter) {
-        UpdatesFilter.ALL -> "You're all caught up!"
-        UpdatesFilter.ANNOUNCEMENTS -> "No announcements right now"
-        UpdatesFilter.UPDATES -> "No app updates right now"
+        UpdatesFilter.ALL -> stringResource(R.string.announcements_all_caught_up)
+        UpdatesFilter.ANNOUNCEMENTS -> stringResource(R.string.announcements_no_announcements)
+        UpdatesFilter.UPDATES -> stringResource(R.string.announcements_no_updates)
     }
 
+@Composable
 private fun emptySubtextFor(filter: UpdatesFilter): String =
     when (filter) {
-        UpdatesFilter.ALL -> "Check back later for announcements and updates."
-        UpdatesFilter.ANNOUNCEMENTS -> "General announcements from Parmar Sir and the Safar team will appear here."
-        UpdatesFilter.UPDATES -> "New version releases and feature patch updates will appear here."
+        UpdatesFilter.ALL -> stringResource(R.string.announcements_check_back)
+        UpdatesFilter.ANNOUNCEMENTS -> stringResource(R.string.announcements_general_here)
+        UpdatesFilter.UPDATES -> stringResource(R.string.announcements_updates_here)
     }
 
 @Composable
@@ -460,9 +464,9 @@ private fun UpdatesFilterChips(
         items(UpdatesFilter.entries.toTypedArray()) { option ->
             val isSelected = option == selected
             val label = when (option) {
-                UpdatesFilter.ALL -> "All ($allCount)"
-                UpdatesFilter.ANNOUNCEMENTS -> "Announcements ($announcementCount)"
-                UpdatesFilter.UPDATES -> "Updates ($updateCount)"
+                UpdatesFilter.ALL -> stringResource(R.string.announcements_filter_all, allCount)
+                UpdatesFilter.ANNOUNCEMENTS -> stringResource(R.string.announcements_filter_announcements, announcementCount)
+                UpdatesFilter.UPDATES -> stringResource(R.string.announcements_filter_updates, updateCount)
             }
             val chipBg = if (isSelected) {
                 if (isDarkTheme) Color(0xFF3B0764) else Color(0xFF581C87)
@@ -586,7 +590,7 @@ private fun AnnouncementRow(
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.Close,
-                        contentDescription = "Hide ${item.title}",
+                        contentDescription = stringResource(R.string.announcements_hide_item, item.title),
                         tint = ink.mutedText,
                         modifier = Modifier.size(16.dp),
                     )
@@ -622,7 +626,7 @@ private fun AnnouncementRow(
                         .padding(horizontal = 12.dp, vertical = 6.dp),
                 ) {
                     Text(
-                        text = "Open Play Store ↗",
+                        text = stringResource(R.string.announcements_open_play_store),
                         fontSize = 12.5.sp,
                         fontWeight = FontWeight.Bold,
                         color = accent,
@@ -687,17 +691,17 @@ private fun AnnouncementTypePill(
 ) {
     val (label, icon, color) = when (type) {
         AnnouncementType.APP_UPDATE -> Triple(
-            "APP UPDATE",
+            stringResource(R.string.announcements_type_app_update),
             Icons.Outlined.NewReleases,
             if (isDarkTheme) Color(0xFF38BDF8) else Color(0xFF0284C7),
         )
         AnnouncementType.MAINTENANCE -> Triple(
-            "MAINTENANCE",
+            stringResource(R.string.announcements_type_maintenance),
             Icons.Outlined.WarningAmber,
             if (isDarkTheme) Color(0xFFF87171) else Color(0xFFDC2626),
         )
         AnnouncementType.GENERAL -> Triple(
-            "ANNOUNCEMENT",
+            stringResource(R.string.announcements_type_announcement),
             Icons.Outlined.Campaign,
             if (isDarkTheme) Color(0xFFC084FC) else Color(0xFF581C87),
         )
@@ -749,7 +753,7 @@ private fun YoutubeThumb(
         if (thumbUrl.isNotBlank()) {
             AsyncImage(
                 model = thumbUrl,
-                contentDescription = "YouTube video",
+                contentDescription = stringResource(R.string.announcements_youtube_video),
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop,
                 onError = {
@@ -768,7 +772,7 @@ private fun YoutubeThumb(
         Box(modifier = Modifier.matchParentSize().background(Color.Black.copy(alpha = 0.28f)))
         Icon(
             imageVector = Icons.Filled.PlayArrow,
-            contentDescription = "Open YouTube",
+            contentDescription = stringResource(R.string.announcements_open_youtube),
             tint = Color.White,
             modifier = Modifier
                 .size(44.dp)
@@ -786,8 +790,9 @@ private fun LinkChip(
     accent: Color,
     onClick: () -> Unit,
 ) {
-    val host = remember(url) {
-        runCatching { Uri.parse(url).host }.getOrNull().orEmpty().ifBlank { "Open link" }
+    val openLink = stringResource(R.string.announcements_open_link)
+    val host = remember(url, openLink) {
+        runCatching { Uri.parse(url).host }.getOrNull().orEmpty().ifBlank { openLink }
     }
     Row(
         modifier = Modifier
@@ -831,13 +836,17 @@ private fun AudioPlayRow(
     ) {
         Icon(
             imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-            contentDescription = if (isPlaying) "Pause audio" else "Play audio",
+            contentDescription = stringResource(
+                if (isPlaying) R.string.announcements_pause_audio else R.string.announcements_play_audio
+            ),
             tint = accent,
             modifier = Modifier.size(20.dp),
         )
         Spacer(Modifier.width(8.dp))
         Text(
-            text = if (isPlaying) "Playing audio…" else "Play audio",
+            text = stringResource(
+                if (isPlaying) R.string.announcements_playing_audio else R.string.announcements_play_audio
+            ),
             style = MaterialTheme.typography.labelLarge,
             color = ink.primaryText,
         )

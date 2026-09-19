@@ -1,5 +1,8 @@
 package com.safarparmar.app.ui.studyplanner.screens
 
+import androidx.compose.ui.res.stringResource
+import com.safarparmar.app.R
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -148,7 +151,7 @@ internal fun ChapterTopicsSheet(
                         decorationBox = { inner ->
                             if (newTopicText.isEmpty()) {
                                 Text(
-                                    text = "Topic name — commas add several at once",
+                                    text = stringResource(R.string.planner_topic_names_hint),
                                     fontSize = 13.5.sp,
                                     color = PlannerFlatColors.TextMuted,
                                 )
@@ -159,14 +162,14 @@ internal fun ChapterTopicsSheet(
                     PlanHairline()
                     Row(horizontalArrangement = Arrangement.spacedBy(20.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = "Add",
+                            text = stringResource(R.string.common_add),
                             fontSize = 12.5.sp,
                             fontWeight = FontWeight.Bold,
                             color = PlannerFlatColors.PrimaryAccent,
                             modifier = Modifier.clickable { submitNewTopic() },
                         )
                         Text(
-                            text = "Cancel",
+                            text = stringResource(R.string.common_cancel),
                             fontSize = 12.5.sp,
                             fontWeight = FontWeight.Bold,
                             color = PlannerFlatColors.TextMuted,
@@ -182,7 +185,7 @@ internal fun ChapterTopicsSheet(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
-                        text = "Topics",
+                        text = stringResource(R.string.planner_topics),
                         fontFamily = LoraFontFamily,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Normal,
@@ -191,7 +194,7 @@ internal fun ChapterTopicsSheet(
                     )
                     SyllabusGlassAddButton(
                         onClick = { showAddRow = true },
-                        contentDescription = "Add topic",
+                        contentDescription = stringResource(R.string.planner_add_topic),
                     )
                 }
             }
@@ -199,7 +202,7 @@ internal fun ChapterTopicsSheet(
 
             if (topics.isEmpty()) {
                 Text(
-                    text = "No topics yet. Add one above — commas add several at once.",
+                    text = stringResource(R.string.planner_no_topics_add_above),
                     fontSize = 13.sp,
                     color = PlannerFlatColors.TextMuted,
                     modifier = Modifier.padding(horizontal = 24.dp, vertical = 20.dp),

@@ -216,6 +216,11 @@ internal fun OrganizeFreeFocusSheet(
     onDiscard: () -> Unit,
     selectedTheme: VisualTheme? = null,
     isDarkTheme: Boolean = true,
+    availableTags: List<String> = emptyList(),
+    selectedTag: String? = null,
+    onSelectTag: (String?) -> Unit = {},
+    onAddTag: ((String) -> Unit)? = null,
+    onDeleteTag: ((String) -> Unit)? = null,
 ) {
     val scrollState = rememberScrollState()
     val maxSheetHeight = LocalConfiguration.current.screenHeightDp.dp * 0.85f
@@ -322,6 +327,26 @@ internal fun OrganizeFreeFocusSheet(
                         ),
                         modifier = Modifier.fillMaxWidth(),
                     )
+
+                    if (selectedGoalId == null && (availableTags.isNotEmpty() || onAddTag != null)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text(
+                                "Subject / Tag (Optional)",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = secondaryTextColor,
+                            )
+                            EkagraTagSelector(
+                                availableTags = availableTags,
+                                selectedTag = selectedTag,
+                                onSelectTag = onSelectTag,
+                                onAddTag = onAddTag,
+                                onDeleteTag = onDeleteTag,
+                                accentColor = accent,
+                                isDark = isThemeDark,
+                            )
+                        }
+                    }
 
                     HorizontalDivider(color = dividerColor)
                     if (todayGoals.isEmpty()) {
@@ -732,9 +757,19 @@ internal fun SessionNameDialog(
     focusedTimeLabel: String,
     onSave: (String) -> Unit,
     onDiscard: () -> Unit,
+    availableTags: List<String> = emptyList(),
+    initialTag: String? = null,
+    onAddTag: ((String) -> Unit)? = null,
+    onDeleteTag: ((String) -> Unit)? = null,
 ) {
     val accent = PlannerAccent.Amber
-    var nameInput by remember { mutableStateOf(initialTitle) }
+    val parsed = remember(initialTitle) { EkagraTagUtils.parseTagAndTask(initialTitle) }
+    var nameInput by remember {
+        mutableStateOf(
+            parsed.second ?: (if (initialTitle.startsWith("Untitled")) "" else initialTitle)
+        )
+    }
+    var selectedTag by remember { mutableStateOf(initialTag ?: parsed.first) }
 
     androidx.compose.ui.window.Dialog(onDismissRequest = { /* non-dismissable, must choose */ }) {
         Column(
@@ -746,7 +781,7 @@ internal fun SessionNameDialog(
                 .padding(22.dp),
         ) {
             Text(
-                text = "Session complete",
+                text = stringResource(R.string.ekagra_session_complete),
                 fontFamily = LoraFontFamily,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Normal,
@@ -754,7 +789,7 @@ internal fun SessionNameDialog(
             )
             Spacer(Modifier.height(4.dp))
             Text(
-                text = "$focusedTimeLabel focused",
+                text = stringResource(R.string.ekagra_time_focused, focusedTimeLabel),
                 fontSize = 24.sp,
                 fontFamily = LoraFontFamily,
                 fontWeight = FontWeight.Normal,
@@ -762,7 +797,7 @@ internal fun SessionNameDialog(
             )
             Spacer(Modifier.height(16.dp))
             Text(
-                text = "Name your session",
+                text = stringResource(R.string.ekagra_name_session),
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = PlannerFlatColors.TextDark,
@@ -786,7 +821,7 @@ internal fun SessionNameDialog(
                     Box {
                         if (nameInput.isBlank()) {
                             Text(
-                                "What were you working on?",
+                                stringResource(R.string.ekagra_session_name_prompt),
                                 fontSize = 16.sp,
                                 color = PlannerFlatColors.TextMuted,
                             )
@@ -795,18 +830,40 @@ internal fun SessionNameDialog(
                     }
                 },
             )
+            if (availableTags.isNotEmpty() || onAddTag != null) {
+                Spacer(Modifier.height(14.dp))
+                Text(
+                    text = stringResource(R.string.ekagra_subject_tag_optional),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = PlannerFlatColors.TextDark,
+                )
+                Spacer(Modifier.height(6.dp))
+                EkagraTagSelector(
+                    availableTags = availableTags,
+                    selectedTag = selectedTag,
+                    onSelectTag = { selectedTag = it },
+                    onAddTag = onAddTag,
+                    onDeleteTag = onDeleteTag,
+                    accentColor = accent,
+                    isDark = false,
+                )
+            }
             Spacer(Modifier.height(20.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 ActionPill(
-                    text = "Discard",
+                    text = stringResource(R.string.common_discard),
                     accentColor = PlannerFlatColors.TextMuted,
                     onClick = onDiscard,
                     modifier = Modifier.weight(1f),
                 )
                 ActionPill(
-                    text = "Save",
+                    text = stringResource(R.string.common_save),
                     accentColor = accent,
-                    onClick = { onSave(nameInput.trim().ifBlank { "Untitled" }) },
+                    onClick = {
+                        val formatted = EkagraTagUtils.formatTaggedTask(selectedTag, nameInput.trim())
+                        onSave(formatted)
+                    },
                     modifier = Modifier.weight(1f),
                 )
             }
@@ -869,12 +926,12 @@ internal fun PostSaveGoalLinkingSheet(
                     .fillMaxWidth()
                     .padding(horizontal = 24.dp, vertical = 6.dp),
             ) {
-                EkagraEyebrow("SESSION SAVED", themeAccent)
+                EkagraEyebrow(stringResource(R.string.ekagra_session_saved), themeAccent)
                 Spacer(Modifier.height(4.dp))
-                EkagraDisplayTitle("$focusedTimeLabel focused", ink.primaryText)
+                EkagraDisplayTitle(stringResource(R.string.ekagra_time_focused, focusedTimeLabel), ink.primaryText)
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    text = "Saved in Ekagra history. Linking a goal keeps your session there and credits the same study time to the goal.",
+                    text = stringResource(R.string.ekagra_goal_link_explainer),
                     fontSize = 13.sp,
                     color = ink.secondaryText,
                 )
@@ -884,7 +941,7 @@ internal fun PostSaveGoalLinkingSheet(
             EkagraHairline(ink.hairline)
 
             Text(
-                text = "You can only link today's created goals.\nCreate a goal today if you have not created one.",
+                text = stringResource(R.string.ekagra_goal_link_today_only),
                 fontSize = 12.sp,
                 color = ink.secondaryText,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp),
@@ -901,7 +958,7 @@ internal fun PostSaveGoalLinkingSheet(
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        text = "No open goals for today. Your session is already saved.",
+                        text = stringResource(R.string.ekagra_no_open_goals_today),
                         fontSize = 14.sp,
                         color = ink.mutedText,
                     )

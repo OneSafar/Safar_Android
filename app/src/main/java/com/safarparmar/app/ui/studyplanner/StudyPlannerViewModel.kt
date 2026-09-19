@@ -235,7 +235,7 @@ class StudyPlannerViewModel @Inject constructor(
     val subjects: kotlinx.coroutines.flow.StateFlow<List<SubjectUiModel>> = planSubjects.map { subjects ->
         subjects?.map { s ->
             val totalTopics = s.chapters.sumOf { it.topics.size }
-            val doneTopics = s.chapters.sumOf { ch -> ch.topics.count { it.status == TopicStatus.DONE } }
+            val doneTopics = s.chapters.sumOf { ch -> ch.topics.count { it.status.isStudied } }
             val completion = if (totalTopics > 0) (doneTopics * 100) / totalTopics else 0
             SubjectUiModel(s.id, s.name, s.color, s.chapters.size, totalTopics, completion)
         } ?: emptyList()
@@ -247,7 +247,7 @@ class StudyPlannerViewModel @Inject constructor(
         val subject = subjects?.find { it.id == subjectId }
         subject?.chapters?.map { ch ->
             val totalTopics = ch.topics.size
-            val doneTopics = ch.topics.count { it.status == TopicStatus.DONE }
+            val doneTopics = ch.topics.count { it.status.isStudied }
             val completion = if (totalTopics > 0) (doneTopics * 100) / totalTopics else 0
 
             val status = when {
@@ -986,8 +986,8 @@ class StudyPlannerViewModel @Inject constructor(
         val today = todayKey()
         val todayTopics = state.calendar[today].orEmpty()
         val topicWasToday = todayTopics.any { it.topicId == topicId }
-        val wasDone = state.calendar.values.flatten().find { it.topicId == topicId }?.status == TopicStatus.DONE
-        val beforeDoneCount = todayTopics.count { it.status == TopicStatus.DONE }
+        val wasDone = state.calendar.values.flatten().find { it.topicId == topicId }?.status?.isStudied == true
+        val beforeDoneCount = todayTopics.count { it.status.isStudied }
         val statusMessage = when (status) {
             TopicStatus.DONE -> "Marked done"
             TopicStatus.TODO -> "Marked as not done"
@@ -995,10 +995,10 @@ class StudyPlannerViewModel @Inject constructor(
             else -> "Saved"
         }
         mutateSelected(refreshCalendar = true, refreshAnalytics = true, successMessage = statusMessage, onSuccess = {
-            if (topicWasToday && status == TopicStatus.DONE && !wasDone) {
+            if (topicWasToday && status?.isStudied == true && !wasDone) {
                 checkDailyMilestones(planId, beforeDoneCount)
             }
-            if (status == TopicStatus.DONE && !wasDone) {
+            if (status?.isStudied == true && !wasDone) {
                 markOnboardingStepDone(StudyPlannerOnboardingSteps.FIRST_TOPIC_DONE)
             }
             refreshPlannerAchievements()
@@ -2127,7 +2127,7 @@ class StudyPlannerViewModel @Inject constructor(
         val total = todayTopics.size
         if (total == 0) return
         
-        val doneCount = todayTopics.count { it.status == TopicStatus.DONE }
+        val doneCount = todayTopics.count { it.status.isStudied }
         val half = (total + 1) / 2
         val milestone = when {
             beforeDoneCount < half && doneCount >= half -> "half"

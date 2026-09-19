@@ -35,6 +35,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import com.safarparmar.app.R
 import com.safarparmar.app.domain.model.studyplanner.StudySubject
 
 private const val STYLE_BALANCED = "balanced"
@@ -102,41 +104,40 @@ internal fun RescheduleFlowSheet(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
-                text = "Exam date updated — re-plan your syllabus",
+                text = stringResource(R.string.planner_exam_date_updated),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.ExtraBold,
                 color = scheme.onSurface,
             )
             Text(
-                text = "Choose how SAFAR should place your topics into the new window. " +
-                    "Anything you've already completed and any dates you set by hand stay exactly where they are.",
+                text = stringResource(R.string.planner_replan_window_body),
                 style = MaterialTheme.typography.bodySmall,
                 color = scheme.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = 4.dp),
             )
 
             StudyStyleOption(
-                title = "Balanced",
-                body = "Mix subjects evenly across each study day.",
+                title = stringResource(R.string.planner_balanced),
+                body = stringResource(R.string.planner_balanced_body),
                 selected = style == STYLE_BALANCED,
                 onClick = { style = STYLE_BALANCED },
             )
             StudyStyleOption(
-                title = "Mixed Bag",
-                body = "Rotate subjects, and optionally give your toughest ones a topic every day.",
+                title = stringResource(R.string.planner_mixed_bag),
+                body = stringResource(R.string.planner_mixed_bag_body),
                 selected = style == STYLE_MIXED_BAG,
                 onClick = { style = STYLE_MIXED_BAG },
             )
             StudyStyleOption(
-                title = "Deep Focus",
-                body = "Finish topics in the exact order of your syllabus.",
+                title = stringResource(R.string.planner_deep_focus),
+                body = stringResource(R.string.planner_deep_focus_body),
                 selected = style == STYLE_DEEP_FOCUS,
                 onClick = { style = STYLE_DEEP_FOCUS },
             )
 
             if (style == STYLE_MIXED_BAG && subjects.isNotEmpty()) {
                 Text(
-                    text = "Priority subjects (optional, up to $MAX_PRIORITY_SUBJECTS)",
+                    text = stringResource(R.string.planner_priority_subjects_limit, MAX_PRIORITY_SUBJECTS),
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold,
                     color = scheme.onSurface,
@@ -172,12 +173,12 @@ internal fun RescheduleFlowSheet(
                         FilterChip(
                             selected = priorityOrderMode == "sequential",
                             onClick = { priorityOrderMode = "sequential" },
-                            label = { Text("In my order", maxLines = 1) },
+                            label = { Text(stringResource(R.string.planner_in_my_order), maxLines = 1) },
                         )
                         FilterChip(
                             selected = priorityOrderMode == "balanced",
                             onClick = { priorityOrderMode = "balanced" },
-                            label = { Text("Mix them together", maxLines = 1) },
+                            label = { Text(stringResource(R.string.planner_mix_together), maxLines = 1) },
                         )
                     }
                 }
@@ -194,7 +195,7 @@ internal fun RescheduleFlowSheet(
                     .padding(top = 8.dp),
                 shape = RoundedCornerShape(16.dp),
             ) {
-                Text("Rebuild schedule now", fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.planner_rebuild_schedule_now), fontWeight = FontWeight.Bold)
             }
             OutlinedButton(
                 onClick = {
@@ -206,10 +207,10 @@ internal fun RescheduleFlowSheet(
                     .heightIn(min = 50.dp),
                 shape = RoundedCornerShape(16.dp),
             ) {
-                Text("Reorder syllabus first", fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.planner_reorder_syllabus_first), fontWeight = FontWeight.SemiBold)
             }
             Text(
-                text = "Reorder first opens your Syllabus so you can drag subjects, chapters and topics — then tap \"Build re-ordered syllabus\" to apply this plan.",
+                text = stringResource(R.string.planner_reorder_first_body),
                 style = MaterialTheme.typography.labelSmall,
                 color = scheme.onSurfaceVariant,
             )

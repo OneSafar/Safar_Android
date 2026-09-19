@@ -17,11 +17,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.safarparmar.app.data.remote.maintenance.AppUpdateInfo
+import com.safarparmar.app.R
 import com.safarparmar.app.ui.theme.SafarSemanticColors
 
 @Composable
@@ -44,13 +46,13 @@ fun ForceUpdateScreen(info: AppUpdateInfo, modifier: Modifier = Modifier) {
         Text(info.title, fontSize = 26.sp, lineHeight = 32.sp, fontWeight = FontWeight.Black, textAlign = TextAlign.Center)
         Spacer(Modifier.size(10.dp))
         Text(info.message, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 15.sp, lineHeight = 23.sp, textAlign = TextAlign.Center)
-        info.latestVersionName?.let { Spacer(Modifier.size(10.dp)); Text("Latest version: $it", color = accent, fontSize = 12.sp, fontWeight = FontWeight.SemiBold) }
+        info.latestVersionName?.let { Spacer(Modifier.size(10.dp)); Text(stringResource(R.string.update_latest_version, it), color = accent, fontSize = 12.sp, fontWeight = FontWeight.SemiBold) }
         Spacer(Modifier.size(30.dp))
         Button(onClick = { openPlayStore(context, info.playStoreUrl) }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp), colors = ButtonDefaults.buttonColors(containerColor = accent)) {
-            Text("Update Safar", modifier = Modifier.padding(vertical = 7.dp), fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.update_safar), modifier = Modifier.padding(vertical = 7.dp), fontWeight = FontWeight.Bold)
         }
         Spacer(Modifier.size(14.dp))
-        Text("This update is required to continue.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+        Text(stringResource(R.string.update_required), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
     }
 }
 

@@ -147,7 +147,7 @@ fun KavachCompactIntro(
                     modifier = Modifier.size(16.dp),
                 )
                 Text(
-                    text = "Learn More",
+                    text = stringResource(R.string.common_learn_more),
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = KavachDesign.Primary,
@@ -356,21 +356,21 @@ fun KavachPermissionDisclosureCard(
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Text(
-                text = "FOCUS ACCESS",
+                text = stringResource(R.string.kavach_focus_access),
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 1.2.sp,
                 color = KavachDesign.Primary,
             )
             Text(
-                text = if (allGranted) "Permissions Active 🛡️" else "Permissions & Access",
+                text = if (allGranted) stringResource(R.string.kavach_permissions_active) else stringResource(R.string.kavach_permissions_access),
                 fontSize = 22.sp,
                 lineHeight = 28.sp,
                 fontWeight = FontWeight.Bold,
                 color = scheme.onSurface,
             )
             Text(
-                text = if (allGranted) "All Kavach focus protections are active." else stringResource(R.string.kavach_permissions_needed),
+                text = if (allGranted) stringResource(R.string.kavach_all_protections_active) else stringResource(R.string.kavach_permissions_needed),
                 fontSize = 13.sp,
                 lineHeight = 18.sp,
                 color = scheme.onSurfaceVariant,
@@ -384,40 +384,40 @@ fun KavachPermissionDisclosureCard(
         // Flat Editorial Permission Rows
         Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
             KavachPermissionStatusRow(
-                title = "App Check",
-                body = "Detects when blocked apps open.",
+                title = stringResource(R.string.kavach_app_check),
+                body = stringResource(R.string.kavach_app_check_body),
                 granted = hasUsageStats,
                 required = true,
                 onClick = onOpenUsageAccess,
             )
             HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.15f), thickness = 0.5.dp)
             KavachPermissionStatusRow(
-                title = "Display over other apps",
-                body = "Shows block screen over distracting apps.",
+                title = stringResource(R.string.kavach_display_over_apps),
+                body = stringResource(R.string.kavach_display_over_apps_body),
                 granted = hasOverlay,
                 required = true,
                 onClick = onOpenOverlay,
             )
             HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.15f), thickness = 0.5.dp)
             KavachPermissionStatusRow(
-                title = "Background Permission",
-                body = "Removes battery restrictions to keep Kavach running in background.",
+                title = stringResource(R.string.kavach_background_permission),
+                body = stringResource(R.string.kavach_background_permission_body),
                 granted = hasBatterySaver,
                 required = true,
                 onClick = onOpenBatterySaver,
             )
             HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.15f), thickness = 0.5.dp)
             KavachPermissionStatusRow(
-                title = "Notifications",
-                body = "Allows Safar to send notifications.",
+                title = stringResource(R.string.kavach_notifications),
+                body = stringResource(R.string.kavach_notifications_body),
                 granted = hasNotifications,
                 required = false,
                 onClick = onOpenNotifications,
             )
             HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.15f), thickness = 0.5.dp)
             KavachPermissionStatusRow(
-                title = "Notification Shield",
-                body = "Hide notifications from blocked apps.",
+                title = stringResource(R.string.kavach_notification_shield),
+                body = stringResource(R.string.kavach_notification_shield_body),
                 granted = hasNotificationSuppressionAccess,
                 required = false,
                 onClick = onOpenNotificationAccess,
@@ -482,7 +482,7 @@ private fun KavachPermissionStatusRow(
                     modifier = Modifier.size(13.dp),
                 )
                 Text(
-                    text = "Ready",
+                    text = stringResource(R.string.common_ready),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = Color(0xFF059669),
@@ -501,7 +501,7 @@ private fun KavachPermissionStatusRow(
                 elevation = ButtonDefaults.buttonElevation(0.dp, 0.dp, 0.dp, 0.dp),
             ) {
                 Text(
-                    text = "Allow",
+                    text = stringResource(R.string.common_allow),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
                 )
@@ -519,7 +519,7 @@ private fun KavachPermissionStatusRow(
                     modifier = Modifier.padding(horizontal = 12.dp),
                 ) {
                     Text(
-                        text = "Optional",
+                        text = stringResource(R.string.common_optional),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium,
                     )
@@ -537,7 +537,7 @@ fun KavachEnabledSummaryCard(
     modifier: Modifier = Modifier,
 ) {
     val scheme = MaterialTheme.colorScheme
-    val appsLabel = if (blockedAppCount == 1) "1 app selected" else "$blockedAppCount apps selected"
+    val appsLabel = stringResource(R.string.kavach_apps_selected, blockedAppCount)
 
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -567,7 +567,7 @@ fun KavachEnabledSummaryCard(
             }
             Column(Modifier.weight(1f)) {
                 Text(
-                    text = "KAVACH is on",
+                    text = stringResource(R.string.kavach_is_on),
                     fontSize = 18.sp,
                     lineHeight = 24.sp,
                     fontWeight = FontWeight.Bold,
@@ -1012,8 +1012,8 @@ fun KavachControlCenterContainer(
                 // on — a blocker that is hard to stop is a trap, not a tool.
                 KavachControlRow(
                     iconRes = R.drawable.ic_shield_check,
-                    title = "Always On Mode",
-                    subtitle = "Blocks your chosen apps 24/7. Turn it on or off anytime.",
+                    title = stringResource(R.string.kavach_always_on_mode),
+                    subtitle = stringResource(R.string.kavach_always_on_mode_body),
                     onClick = { onAlwaysOnChange(!alwaysOn) },
                     isDark = isDark,
                 ) {
@@ -1031,8 +1031,8 @@ fun KavachControlCenterContainer(
 
                 KavachControlRow(
                     iconRes = R.drawable.ic_shield_check,
-                    title = "Notification Shield",
-                    subtitle = "Optional — hide notifications from blocked apps while you study.",
+                    title = stringResource(R.string.kavach_notification_shield),
+                    subtitle = stringResource(R.string.kavach_notification_shield_optional_body),
                     onClick = { if (!hasNotificationShield) onEnableNotificationShield() },
                     isDark = isDark,
                 ) {
@@ -1046,7 +1046,7 @@ fun KavachControlCenterContainer(
                             )
                             Spacer(Modifier.width(6.dp))
                             Text(
-                                text = "On",
+                                text = stringResource(R.string.common_on),
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = accent,
@@ -1061,7 +1061,7 @@ fun KavachControlCenterContainer(
                             contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
                         ) {
                             Text(
-                                text = "Enable",
+                                text = stringResource(R.string.common_enable),
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = Color.White,
@@ -1185,9 +1185,9 @@ fun KavachInfoBottomSheet(
         permissionsBody.split(". ").map { it.trim() }.filter { it.isNotEmpty() }
     }
     val permissionTitles = listOf(
-        "App Check",
-        "KAVACH Alert",
-        "Notifications",
+        stringResource(R.string.kavach_app_check),
+        stringResource(R.string.kavach_alert),
+        stringResource(R.string.kavach_notifications),
     )
 
     ModalBottomSheet(
@@ -1405,7 +1405,7 @@ private fun KavachPermissionBadge(required: Boolean) {
     val scheme = MaterialTheme.colorScheme
     val bg = if (required) KavachDesign.Primary else scheme.surfaceVariant
     val fg = if (required) scheme.onPrimary else scheme.onSurfaceVariant
-    val label = if (required) "REQUIRED" else "OPTIONAL"
+    val label = if (required) stringResource(R.string.common_required_upper) else stringResource(R.string.common_optional_upper)
     Text(
         text = label,
         modifier = Modifier

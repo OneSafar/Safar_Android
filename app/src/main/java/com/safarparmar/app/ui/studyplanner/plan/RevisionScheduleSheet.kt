@@ -1,5 +1,8 @@
 package com.safarparmar.app.ui.studyplanner.plan
 
+import androidx.compose.ui.res.stringResource
+import com.safarparmar.app.R
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -138,7 +141,7 @@ fun RevisionScheduleSheet(
             ) {
                 PlanEyebrow("Custom revision")
                 Text(
-                    text = "Select revision date",
+                    text = stringResource(R.string.planner_select_revision_date),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold,
                     color = PlannerFlatColors.TextDark,
@@ -160,7 +163,7 @@ fun RevisionScheduleSheet(
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(8.dp)
                     ) {
-                        Text("Back", fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.common_back), fontWeight = FontWeight.Bold)
                     }
                     androidx.compose.material3.Button(
                         onClick = {
@@ -176,7 +179,7 @@ fun RevisionScheduleSheet(
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(8.dp),
                     ) {
-                        Text("Set Date", fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.planner_set_date), fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -304,7 +307,7 @@ private fun SpacedRevisionOptionCard(
             if (hasSlots) {
                 val maxRevisions = dates.size.coerceAtMost(5)
                 Text(
-                    text = "How many reviews?",
+                    text = stringResource(R.string.planner_how_many_reviews),
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold,
                     color = PlannerFlatColors.TextDark,
@@ -337,7 +340,7 @@ private fun SpacedRevisionOptionCard(
                     }
                 }
                 Text(
-                    text = "Last review: ${selectedPreviewLastDate(selectedDates)}",
+                    text = stringResource(R.string.planner_last_review, selectedPreviewLastDate(selectedDates)),
                     style = MaterialTheme.typography.labelSmall,
                     color = PlannerFlatColors.TextMuted,
                 )

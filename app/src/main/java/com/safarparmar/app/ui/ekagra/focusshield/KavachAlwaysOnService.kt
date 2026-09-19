@@ -16,6 +16,7 @@ import androidx.core.app.ServiceCompat
 import androidx.core.app.NotificationCompat
 import com.safarparmar.app.BuildConfig
 import com.safarparmar.app.MainActivity
+import com.safarparmar.app.R
 import com.safarparmar.app.data.local.SafarDataStore
 import com.safarparmar.app.feature.kavachanalytics.data.KavachAnalyticsRecorder
 import com.safarparmar.app.feature.kavachanalytics.data.local.ProtectionSource
@@ -63,12 +64,16 @@ class KavachAlwaysOnService : Service() {
         )
 
         fun start(context: Context): Boolean {
-            val intent = Intent(context, KavachAlwaysOnService::class.java)
+            val appContext = context.applicationContext
+            val intent = Intent(appContext, KavachAlwaysOnService::class.java)
             return runCatching {
+                // Do notification-manager I/O before Android starts the short
+                // startForeground() countdown for this service.
+                SafarNotificationChannels.createAll(appContext)
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    context.startForegroundService(intent)
+                    appContext.startForegroundService(intent)
                 } else {
-                    context.startService(intent)
+                    appContext.startService(intent)
                 }
                 true
             }.getOrElse {
@@ -107,6 +112,7 @@ class KavachAlwaysOnService : Service() {
     private val foregroundAppTracker = ForegroundAppTracker()
     private var stopReasonAlreadyReported = false
     private var youtubeKavachUnlockTracking = false
+    private var isForegroundStarted = false
 
     private fun focusShieldRepository(): FocusShieldRepository =
         dagger.hilt.android.EntryPointAccessors
@@ -120,17 +126,27 @@ class KavachAlwaysOnService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        promoteToForeground()
+        if (!promoteToForeground()) {
+            // Never leave a startForegroundService() request pending. Android
+            // otherwise terminates the process a few seconds later.
+            stopSelf()
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        promoteToForeground()
+        if (!promoteToForeground()) {
+            stopSelfResult(startId)
+            return START_NOT_STICKY
+        }
         if (monitorJob == null) startMonitoring()
         return START_STICKY
     }
 
-    private fun promoteToForeground() {
-        runCatching {
+    private fun promoteToForeground(): Boolean {
+        if (isForegroundStarted) return true
+        return runCatching {
+            // Required for an OS START_STICKY recreation, which does not pass
+            // through start(context).
             SafarNotificationChannels.createAll(this)
             val notification = buildStatusNotification()
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
@@ -145,10 +161,13 @@ class KavachAlwaysOnService : Service() {
             } else {
                 startForeground(NOTIFICATION_ID, notification)
             }
-        }.onFailure { e ->
+            isForegroundStarted = true
+            true
+        }.getOrElse { e ->
             if (BuildConfig.DEBUG) {
                 android.util.Log.e("FocusShield", "Failed to promote Kavach to foreground", e)
             }
+            false
         }
     }
 
@@ -462,11 +481,11 @@ class KavachAlwaysOnService : Service() {
         val currentMinute = cal.get(java.util.Calendar.HOUR_OF_DAY) * 60 + cal.get(java.util.Calendar.MINUTE)
         val isScheduleActive = !scheduleEnabled || FocusShieldRepository.ShieldPrefs.isWithinSchedule(currentMinute, scheduleStartMinute, scheduleEndMinute)
 
-        val title = if (isAlwaysOnMode) "KAVACH Always On" else "KAVACH Active"
+        val title = getString(if (isAlwaysOnMode) R.string.kavach_always_on_title else R.string.kavach_active_title)
         val text = when {
-            !isScheduleActive -> "KAVACH Scheduled (Outside active hours)"
-            isAlwaysOnMode -> "Always On protection is active."
-            else -> "KAVACH protection is active."
+            !isScheduleActive -> getString(R.string.kavach_outside_active_hours)
+            isAlwaysOnMode -> getString(R.string.kavach_always_on_notification_body)
+            else -> getString(R.string.kavach_active_notification_body)
         }
 
         return NotificationCompat.Builder(this, SafarNotificationChannels.FOCUS_SHIELD_STATUS)

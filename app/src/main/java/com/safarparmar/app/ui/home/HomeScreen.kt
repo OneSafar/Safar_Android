@@ -12,13 +12,13 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -48,15 +48,12 @@ import com.safarparmar.app.notifications.NotificationPermissionRequest
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
-import androidx.compose.foundation.Canvas
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.PlayCircle
-import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.Star
 import com.safarparmar.app.util.YoutubeUrls
+import com.safarparmar.app.performance.adaptiveBlur
 import com.safarparmar.app.ui.glass.MacOSPrimaryActionButton
 import com.safarparmar.app.ui.glass.SafarGlassPalette
 import com.safarparmar.app.ui.glass.safarFrostedPanel
@@ -72,8 +69,8 @@ import androidx.compose.ui.window.DialogProperties
 
 private data class HomeSlide(
     val titleRes: Int,
-    val headline: String,
-    val body: String,
+    val headlineRes: Int,
+    val bodyRes: Int,
     val bgImageUrl: String,
     val route: String,
     val accentColor: Color,
@@ -89,8 +86,8 @@ private data class ToolCard(
 private val slides = listOf(
     HomeSlide(
         R.string.module_ekagra,
-        "Boost Your\nProductivity",
-        "Stay focused with your own Pomodoro\ntimer and track your work sessions",
+        R.string.home_slide_ekagra_headline,
+        R.string.home_slide_ekagra_body,
         "img_ekagara.webp",
         Routes.EKAGRA,
         Color(0xFFAAC7FF),
@@ -98,8 +95,8 @@ private val slides = listOf(
     ),
     HomeSlide(
         R.string.module_nishtha,
-        "Build Daily\nHabits",
-        "Track consistency, journal, reflect\non your emotional state",
+        R.string.home_slide_nishtha_headline,
+        R.string.home_slide_nishtha_body,
         "img_nishtha.webp",
         Routes.nishthaRoot(),
         Color(0xFFA9D0B3),
@@ -107,8 +104,8 @@ private val slides = listOf(
     ),
     HomeSlide(
         R.string.module_mehfil,
-        "Capture Your\nThoughts",
-        "Notes, ideas and reminders\n— All in one place",
+        R.string.home_slide_mehfil_headline,
+        R.string.home_slide_mehfil_body,
         "img_mehefil.webp",
         Routes.MEHFIL,
         Color(0xFFFFB5A0),
@@ -116,8 +113,8 @@ private val slides = listOf(
     ),
     HomeSlide(
         R.string.module_dhyan,
-        "Find Your\nInner Peace",
-        "Meditation sessions with Parmar sir",
+        R.string.home_slide_dhyan_headline,
+        R.string.home_slide_dhyan_body,
         "img_dhyan.webp",
         Routes.DHYAN,
         Color(0xFFDDBCE0),
@@ -125,8 +122,8 @@ private val slides = listOf(
     ),
     HomeSlide(
         R.string.module_study_planner,
-        "Plan Your\nSuccess",
-        "Track your syllabus progress, schedule\nyour targets, and achieve your daily goals",
+        R.string.home_slide_planner_headline,
+        R.string.home_slide_planner_body,
         "study_planner_light.webp",
         Routes.STUDY_PLANNER,
         Color(0xFFC8D3A5),
@@ -141,6 +138,9 @@ private val toolCards = listOf(
     ToolCard(R.string.module_mehfil, R.drawable.tool_mehfil, Routes.MEHFIL),
     ToolCard(R.string.module_study_planner, R.drawable.tool_study_planner, Routes.STUDY_PLANNER),
     ToolCard(R.string.module_dhyan, R.drawable.tool_dhyan, Routes.DHYAN),
+    ToolCard(R.string.nav_study_circle, R.drawable.tool_circle, Routes.STUDY_CIRCLES),
+    ToolCard(R.string.nav_focus_shield, R.drawable.tool_kavach, Routes.FOCUS_SHIELD),
+    ToolCard(R.string.nav_leaderboard, R.drawable.tool_leaderboard, Routes.LEADERBOARD),
 )
 
 @Composable
@@ -175,9 +175,7 @@ fun HomeScreen(
 
     var currentPage by remember { mutableIntStateOf((0 until slides.size).random()) }
 
-    val animateCarousel = com.safarparmar.app.performance.decorativeMotionEnabled()
-    LaunchedEffect(currentPage, animateCarousel) {
-        if (!animateCarousel) return@LaunchedEffect
+    LaunchedEffect(currentPage) {
         delay(4000L)
         var next = currentPage
         while (next == currentPage) {
@@ -235,7 +233,7 @@ fun HomeScreen(
     }
 
     SafarDrawerScaffold(
-        title = "Home",
+        title = stringResource(R.string.nav_home),
         subtitle = stringResource(R.string.app_name),
         currentRoute = currentRoute,
         isDarkTheme = isDarkTheme,
@@ -264,7 +262,7 @@ fun HomeScreen(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Notifications,
-                        contentDescription = "Notifications & Updates",
+                        contentDescription = stringResource(R.string.home_notifications_updates),
                         tint = if (isDarkTheme) Color.White else Color.Black
                     )
                 }
@@ -272,10 +270,22 @@ fun HomeScreen(
         }
     ) { padding ->
         val currentSlide = slides[currentPage]
-        val isLight = !isDarkTheme
-        val baseBgColor = if (isDarkTheme) Color(0xFF140F0C) else Color(0xFFFAF7F2)
+        val buttonColor = currentSlide.uiColor
+        val buttonTextColor = currentSlide.accentColor
 
-        Box(
+        val descriptionTextColor = if (isDarkTheme) Color.White else buttonColor
+        val baseBgColor = MaterialTheme.colorScheme.background
+        val currentAccent = currentSlide.accentColor
+        val dynamicGradient = remember(baseBgColor, currentAccent) {
+            Brush.verticalGradient(
+                colors = listOf(
+                    currentAccent.copy(alpha = if (isDarkTheme) 0.25f else 0.35f),
+                    baseBgColor.copy(alpha = if (isDarkTheme) 0.6f else 0.7f)
+                )
+            )
+        }
+
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
                 .background(baseBgColor)
@@ -307,8 +317,7 @@ fun HomeScreen(
                     painter = painterResource(id = targetRes),
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize(),
-                    alpha = if (isDarkTheme) 0.45f else 0.38f
+                    modifier = Modifier.fillMaxSize()
                 )
             }
             if (isDarkTheme) {
@@ -321,93 +330,216 @@ fun HomeScreen(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            colors = if (isLight) {
-                                listOf(
-                                    Color(0xFFFAF7F2).copy(alpha = 0.65f),
-                                    Color(0xFFF3EDE2).copy(alpha = 0.85f),
-                                )
-                            } else {
-                                listOf(
-                                    Color(0xFF140F0C).copy(alpha = 0.75f),
-                                    Color(0xFF1E1815).copy(alpha = 0.9f),
-                                )
-                            }
-                        )
-                    )
+                    .background(dynamicGradient)
             )
+            val screenWidth = maxWidth
+            val screenHeight = maxHeight
+            val isCompactHeight = screenHeight < 760.dp
+            val isNarrow = screenWidth < 380.dp
+            val bottomPanelOffset = (screenHeight * if (isCompactHeight) 0.03f else 0.05f).coerceIn(24.dp, 64.dp)
+            val bottomPanelSpacing = if (isCompactHeight) 12.dp else 16.dp
+            val toolHorizontalPadding = if (isNarrow) 14.dp else 20.dp
+            val ctaHorizontalPadding = if (isNarrow) 32.dp else 44.dp
 
-            // Main editorial content inside scrollable column
+            // Plain Description text overlay (no box container)
+            val topOffset = padding.calculateTopPadding() + 32.dp
             Column(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(top = padding.calculateTopPadding(), bottom = padding.calculateBottomPadding())
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 18.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                    .align(Alignment.TopCenter)
+                    .padding(top = topOffset)
+                    .fillMaxWidth(if (isNarrow) 0.85f else 0.9f)
+                    .clickable { onNavigate(currentSlide.route) },
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // 1. Hero Motivation Banner
-                HeroMotivationBanner(
-                    currentPage = currentPage,
-                    slides = slides,
-                    isDarkTheme = isDarkTheme,
-                    onNavigate = onNavigate,
-                )
-
-                // 2. What's New Section (Header + 2 highlight cards)
-                WhatsNewSection(
-                    isDarkTheme = isDarkTheme,
-                    onNavigate = onNavigate,
-                )
-
-                // 3. Features Section (Header with View More + 3-col top row + 2-col bottom row)
-                FeaturesSection(
-                    tools = toolCards,
-                    isDarkTheme = isDarkTheme,
-                    onNavigate = onNavigate,
-                )
-
-                // 4. Primary CTA Button: Go to Dashboard
-                Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(52.dp)
-                        .bounceClick()
-                        .clickable { onNavigate(Routes.DASHBOARD) },
-                    shape = RoundedCornerShape(18.dp),
-                    color = if (isLight) Color(0xFF2A1810) else Color(0xFF3D2419),
-                    border = BorderStroke(1.dp, Color(0xFF563424).copy(alpha = 0.5f)),
-                    shadowElevation = if (isLight) 6.dp else 0.dp,
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center,
+                Crossfade(
+                    targetState = currentPage,
+                    animationSpec = tween(durationMillis = 800),
+                    label = "text_fade"
+                ) { page ->
+                    val slide = slides[page]
+                    val glowColor = if (isDarkTheme) {
+                        slide.accentColor
+                    } else {
+                        slide.accentColor.copy(alpha = 0.8f)
+                    }
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
                     ) {
                         Text(
-                            text = "✦",
-                            fontSize = 13.sp,
-                            color = Color(0xFFE08A3C),
-                            modifier = Modifier.padding(end = 8.dp),
+                            text = stringResource(slide.titleRes).uppercase(),
+                            fontSize = if (isCompactHeight) 12.1.sp else 13.2.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 3.sp,
+                            color = descriptionTextColor.copy(alpha = 0.85f),
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                shadow = Shadow(
+                                    color = glowColor.copy(alpha = 0.6f),
+                                    offset = Offset(0f, 0f),
+                                    blurRadius = 12f
+                                )
+                            ),
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(bottom = if (isCompactHeight) 4.dp else 6.dp)
                         )
                         Text(
-                            text = "GO TO DASHBOARD",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            letterSpacing = 2.sp,
-                            color = Color(0xFFFDFBF7),
-                        )
-                        Text(
-                            text = "✦",
-                            fontSize = 13.sp,
-                            color = Color(0xFFE08A3C),
-                            modifier = Modifier.padding(start = 8.dp),
+                            text = stringResource(slide.headlineRes),
+                            fontFamily = LoraFontFamily,
+                            fontSize = if (isCompactHeight) 24.sp else 28.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = descriptionTextColor,
+                            style = MaterialTheme.typography.headlineMedium.copy(
+                                shadow = Shadow(
+                                    color = glowColor,
+                                    offset = Offset(0f, 0f),
+                                    blurRadius = 16f
+                                )
+                            ),
+                            textAlign = TextAlign.Center,
+                            lineHeight = if (isCompactHeight) 28.sp else 32.sp
                         )
                     }
                 }
+            }
 
-                Spacer(modifier = Modifier.height(10.dp))
+            // Bottom overlay: tools + button
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .padding(bottom = padding.calculateBottomPadding() + bottomPanelOffset, top = 16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(bottomPanelSpacing),
+            ) {
+                // Frosted Glass Container for Tools
+                val glassShape = RoundedCornerShape(22.dp)
+                val glassBaseColor = if (isDarkTheme) {
+                    Color(0xFF14171E).copy(alpha = 0.58f)
+                } else {
+                    Color(0xFFFFFFFF).copy(alpha = 0.65f)
+                }
+                val glassBorderBrush = Brush.verticalGradient(
+                    colors = if (isDarkTheme) {
+                        listOf(Color.White.copy(alpha = 0.22f), Color.White.copy(alpha = 0.05f))
+                    } else {
+                        listOf(Color.White.copy(alpha = 0.85f), Color.White.copy(alpha = 0.35f))
+                    }
+                )
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = toolHorizontalPadding),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    // Soft Gaussian blur backdrop layer for frosted glass
+                    Box(
+                        modifier = Modifier
+                            .matchParentSize()
+                            .adaptiveBlur(14.dp)
+                            .clip(glassShape)
+                            .background(
+                                color = if (isDarkTheme) Color(0xFF14171E).copy(alpha = 0.50f)
+                                else Color(0xFFFFFFFF).copy(alpha = 0.55f),
+                                shape = glassShape,
+                            )
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(
+                                        buttonColor.copy(alpha = if (isDarkTheme) 0.18f else 0.12f),
+                                        Color.Transparent,
+                                    )
+                                ),
+                                shape = glassShape,
+                            )
+                    )
+
+                    // Frosted Glass Container for Tools
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .shadow(
+                                elevation = if (isDarkTheme) 12.dp else 6.dp,
+                                shape = glassShape,
+                                spotColor = Color.Black.copy(alpha = if (isDarkTheme) 0.45f else 0.12f),
+                                ambientColor = Color.Black.copy(alpha = if (isDarkTheme) 0.35f else 0.08f),
+                            )
+                            .clip(glassShape)
+                            .background(glassBaseColor)
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(
+                                        buttonColor.copy(alpha = if (isDarkTheme) 0.12f else 0.08f),
+                                        Color.Transparent,
+                                    )
+                                )
+                            )
+                            .border(
+                                width = 1.dp,
+                                brush = glassBorderBrush,
+                                shape = glassShape
+                            )
+                            .padding(
+                                horizontal = if (isNarrow) 8.dp else 10.dp,
+                                vertical = if (isCompactHeight) 12.dp else 14.dp
+                            ),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(if (isCompactHeight) 9.dp else 11.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        val rows = toolCards.chunked(4)
+                        rows.forEach { rowItems ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(if (isNarrow) 6.dp else 8.dp)
+                            ) {
+                                rowItems.forEach { tool ->
+                                    val isActive = slides[currentPage].route.substringBefore("?") == tool.route.substringBefore("?")
+                                    Box(
+                                        modifier = Modifier.weight(1f),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        ToolImageCard(
+                                            tool = tool,
+                                            isActive = isActive,
+                                            isDarkTheme = isDarkTheme,
+                                            borderColor = buttonColor,
+                                            onClick = { onNavigate(tool.route) },
+                                            modifier = Modifier.fillMaxWidth(0.96f),
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+                Button(
+                    onClick = { onNavigate(Routes.DASHBOARD) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = ctaHorizontalPadding)
+                        .height(if (isCompactHeight) 48.dp else 50.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = buttonColor,
+                        contentColor = buttonTextColor
+                    ),
+                    shape = RoundedCornerShape(50),
+                    border = BorderStroke(1.dp, buttonColor.copy(alpha = 0.85f)),
+                    contentPadding = PaddingValues(0.dp)
+                ) {
+                    Text(
+                        "✦   GO TO DASHBOARD   ✦",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.sp,
+                        letterSpacing = 2.sp,
+                    )
+                }
             }
         }
     }
@@ -458,7 +590,11 @@ private fun SafarWelcomeDialog(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 Text(
-                    text = "Hello${if (userName.isNotBlank()) ", $userName" else ""}.",
+                    text = if (userName.isNotBlank()) {
+                        stringResource(R.string.home_welcome_hello_name, userName)
+                    } else {
+                        stringResource(R.string.home_welcome_hello)
+                    },
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Black,
                     color = titleColor,
@@ -472,7 +608,7 @@ private fun SafarWelcomeDialog(
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     Text(
-                        text = "Welcome to SAFAR, your space to focus, plan, and grow.",
+                        text = stringResource(R.string.home_welcome_intro),
                         fontSize = 14.5.sp,
                         fontWeight = FontWeight.Bold,
                         color = headlineColor,
@@ -480,14 +616,14 @@ private fun SafarWelcomeDialog(
                         lineHeight = 19.sp,
                     )
                     Text(
-                        text = "Where it's just you and me, and our little battle of staying consistent.\n\nWe'll celebrate small wins, and we'll sit through the bad days together.\n\nA virtual pat on your back. Smile",
+                        text = stringResource(R.string.home_welcome_message),
                         fontSize = 12.5.sp,
                         color = bodyColor,
                         textAlign = TextAlign.Center,
                         lineHeight = 16.5.sp,
                     )
                     Text(
-                        text = "Your journey starts here.",
+                        text = stringResource(R.string.home_welcome_journey),
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = titleColor,
@@ -506,7 +642,7 @@ private fun SafarWelcomeDialog(
                     ),
                 ) {
                     Text(
-                        text = "Let's get started",
+                        text = stringResource(R.string.home_welcome_start),
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
                     )
@@ -548,7 +684,7 @@ fun VideoPlaylistEntryPoint(
         IconButton(onClick = ::openPlaylist) {
             Icon(
                 imageVector = Icons.Default.PlayCircle,
-                contentDescription = "Watch SAFAR video guide",
+                contentDescription = stringResource(R.string.home_watch_video_guide),
                 tint = tint,
             )
         }
@@ -582,7 +718,7 @@ fun VideoPlaylistEntryPoint(
                         modifier = Modifier.size(24.dp),
                     )
                     Text(
-                        text = "Need help with SAFAR?\nWatch our YouTube video.",
+                        text = stringResource(R.string.home_video_help),
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 12.5.sp,
@@ -601,7 +737,7 @@ fun VideoPlaylistEntryPoint(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Close,
-                            contentDescription = "Do not show this tip again",
+                            contentDescription = stringResource(R.string.home_video_tip_dismiss),
                             tint = if (isLight) Color(0xFF64748B) else Color(0xFF94A3B8),
                             modifier = Modifier.size(18.dp),
                         )
@@ -612,396 +748,89 @@ fun VideoPlaylistEntryPoint(
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// HERO MOTIVATION BANNER
-// ─────────────────────────────────────────────────────────────────────────────
-
 @Composable
-private fun HeroMotivationBanner(
-    currentPage: Int,
-    slides: List<HomeSlide>,
+private fun ToolImageCard(
+    tool: ToolCard,
+    isActive: Boolean,
     isDarkTheme: Boolean,
-    onNavigate: (String) -> Unit,
+    borderColor: Color,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val isLight = !isDarkTheme
-    val currentSlide = slides[currentPage]
-
-    Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .bounceClick()
-            .clip(RoundedCornerShape(24.dp))
-            .clickable { onNavigate(currentSlide.route) },
-        shape = RoundedCornerShape(24.dp),
-        color = if (isLight) Color(0xFFFAF4EB).copy(alpha = 0.96f) else Color(0xFF221A16).copy(alpha = 0.96f),
-        border = BorderStroke(
-            1.dp,
-            if (isLight) Color(0xFF2A1810).copy(alpha = 0.08f) else Color(0xFFFAF7F2).copy(alpha = 0.1f),
+    val cardScale by animateFloatAsState(
+        targetValue = if (isActive) 1.05f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessMediumLow,
         ),
-        shadowElevation = if (isLight) 3.dp else 0.dp,
+        label = "card_scale",
+    )
+    val verticalSpacing by animateDpAsState(
+        targetValue = if (isActive) 7.dp else 4.dp,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessMediumLow,
+        ),
+        label = "vertical_spacing",
+    )
+
+    val haptic = LocalHapticFeedback.current
+
+    Column(
+        modifier = modifier.bounceClick {
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            onClick()
+        },
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(verticalSpacing)
     ) {
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 18.dp)
-        ) {
-            // Concentric watermark / focus rings motif
-            Canvas(
-                modifier = Modifier
-                    .size(130.dp)
-                    .align(Alignment.BottomEnd)
-            ) {
-                val strokeColor = (if (isLight) Color(0xFF2A1810) else Color(0xFFFAF7F2)).copy(alpha = 0.05f)
-                drawCircle(color = strokeColor, radius = size.minDimension * 0.48f, style = Stroke(width = 1.5f))
-                drawCircle(color = strokeColor, radius = size.minDimension * 0.32f, style = Stroke(width = 1.5f))
-                drawCircle(color = strokeColor, radius = size.minDimension * 0.16f, style = Stroke(width = 1.5f))
-            }
-
-            Crossfade(
-                targetState = currentPage,
-                animationSpec = tween(durationMillis = 600),
-                label = "hero_crossfade",
-            ) { page ->
-                val slide = slides[page]
-                Column(
-                    modifier = Modifier.fillMaxWidth(0.85f),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    // Category Tag with terracotta dot
-                    val categoryText = stringResource(slide.titleRes).uppercase()
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        modifier = Modifier
-                            .background(
-                                color = if (isLight) Color(0xFF2A1810).copy(alpha = 0.05f) else Color(0xFFFAF7F2).copy(alpha = 0.08f),
-                                shape = RoundedCornerShape(20.dp)
-                            )
-                            .padding(horizontal = 10.dp, vertical = 4.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(6.dp)
-                                .background(Color(0xFFC85A32), CircleShape)
-                        )
-                        Text(
-                            text = categoryText,
-                            fontSize = 9.5.sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 1.8.sp,
-                            color = if (isLight) Color(0xFF563424) else Color(0xFFE7DEC8),
-                        )
-                    }
-
-                    // Headline
-                    Text(
-                        text = slide.headline,
-                        fontFamily = LoraFontFamily,
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = if (isLight) Color(0xFF1A0E0A) else Color(0xFFFAF7F2),
-                        lineHeight = 26.sp,
-                    )
-
-                    // Subtitle / Description
-                    Text(
-                        text = slide.body,
-                        fontSize = 11.5.sp,
-                        color = if (isLight) Color(0xFF563424).copy(alpha = 0.85f) else Color(0xFFE7DEC8).copy(alpha = 0.85f),
-                        lineHeight = 15.sp,
-                    )
-                }
-            }
-        }
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// WHAT'S NEW SECTION (Dhyan Live & YouTube Focus)
-// ─────────────────────────────────────────────────────────────────────────────
-
-@Composable
-private fun WhatsNewSection(
-    isDarkTheme: Boolean,
-    onNavigate: (String) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val isLight = !isDarkTheme
-
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        // Section Header
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            modifier = Modifier.padding(horizontal = 2.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Star,
-                contentDescription = null,
-                tint = Color(0xFFE08A3C),
-                modifier = Modifier.size(13.dp),
-            )
-            Text(
-                text = "WHAT'S NEW",
-                fontSize = 11.sp,
-                fontWeight = FontWeight.ExtraBold,
-                letterSpacing = 1.8.sp,
-                color = if (isLight) Color(0xFF563424) else Color(0xFFE7DEC8),
-            )
-        }
-
-        // 2-Column Row
-        Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            contentAlignment = Alignment.Center
         ) {
-            HighlightItemCard(
-                title = "Dhyan Live",
-                imageRes = R.drawable.tool_live,
-                isDarkTheme = isDarkTheme,
-                onClick = { onNavigate(Routes.liveSessions(view = "live")) },
-                modifier = Modifier.weight(1f),
-            )
-            HighlightItemCard(
-                title = "YouTube Focus",
-                imageRes = R.drawable.tool_youtube,
-                isDarkTheme = isDarkTheme,
-                onClick = { onNavigate(Routes.YOUTUBE_STUDY_MODE_V2) },
-                modifier = Modifier.weight(1f),
-            )
-        }
-    }
-}
+            val resolvedBorderColor = if (isActive) borderColor else borderColor.copy(alpha = 0.5f)
+            val borderWidth = if (isActive) 2.2.dp else 1.5.dp
 
-@Composable
-private fun HighlightItemCard(
-    title: String,
-    imageRes: Int,
-    isDarkTheme: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val isLight = !isDarkTheme
-
-    Surface(
-        modifier = modifier
-            .bounceClick()
-            .clip(RoundedCornerShape(18.dp))
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(18.dp),
-        color = if (isLight) Color.White.copy(alpha = 0.95f) else Color(0xFF221A16).copy(alpha = 0.95f),
-        border = BorderStroke(
-            1.dp,
-            if (isLight) Color(0xFF2A1810).copy(alpha = 0.08f) else Color(0xFFFAF7F2).copy(alpha = 0.1f),
-        ),
-        shadowElevation = if (isLight) 2.dp else 0.dp,
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Image(
-                painter = painterResource(id = imageRes),
-                contentDescription = title,
+            // The actual card
+            Box(
                 modifier = Modifier
-                    .size(42.dp)
-                    .clip(RoundedCornerShape(10.dp)),
-                contentScale = ContentScale.Fit,
-            )
-            Text(
-                text = title,
-                fontSize = 12.5.sp,
-                fontWeight = FontWeight.Bold,
-                color = if (isLight) Color(0xFF1A0E0A) else Color(0xFFFAF7F2),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// FEATURES SECTION (3 Vertical + 2 Horizontal Cards)
-// ─────────────────────────────────────────────────────────────────────────────
-
-@Composable
-private fun FeaturesSection(
-    tools: List<ToolCard>,
-    isDarkTheme: Boolean,
-    onNavigate: (String) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val isLight = !isDarkTheme
-
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        // Section Header with View More
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 2.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = "FEATURES",
-                fontSize = 11.sp,
-                fontWeight = FontWeight.ExtraBold,
-                letterSpacing = 1.8.sp,
-                color = if (isLight) Color(0xFF563424) else Color(0xFFE7DEC8),
-            )
-            Text(
-                text = "View More",
-                fontSize = 11.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = Color(0xFFC85A32),
-                modifier = Modifier
-                    .clickable { onNavigate(Routes.COURSES) }
-                    .padding(vertical = 4.dp, horizontal = 6.dp),
-            )
-        }
-
-        // Top Row: 3-Column Grid (tools[0], tools[1], tools[2]) -> Ekagra, Nishtha, Mehfil
-        if (tools.size >= 3) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    .fillMaxWidth()
+                    .aspectRatio(1f)
+                    .graphicsLayer {
+                        scaleX = cardScale
+                        scaleY = cardScale
+                        clip = false
+                    }
+                    .clip(RoundedCornerShape(12.dp))
+                    .border(borderWidth, resolvedBorderColor, RoundedCornerShape(12.dp))
             ) {
-                tools.take(3).forEach { tool ->
-                    VerticalFeatureCard(
-                        tool = tool,
-                        isDarkTheme = isDarkTheme,
-                        onClick = { onNavigate(tool.route) },
-                        modifier = Modifier.weight(1f),
-                    )
-                }
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current).data(tool.imageRes).build(),
+                    contentDescription = stringResource(tool.labelRes),
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                )
             }
         }
 
-        // Bottom Row: 2-Column Grid (tools[3], tools[4]) -> Exam Planner, Dhyan
-        if (tools.size >= 5) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                tools.drop(3).take(2).forEach { tool ->
-                    HorizontalFeatureCard(
-                        tool = tool,
-                        isDarkTheme = isDarkTheme,
-                        onClick = { onNavigate(tool.route) },
-                        modifier = Modifier.weight(1f),
-                    )
-                }
+        // Text below the image
+        val labelColor = if (isDarkTheme) {
+            if (isActive) Color.White else Color(0xFFD7E4DC)
+        } else {
+            if (isActive) borderColor else Color.Black.copy(alpha = 0.6f)
+        }
+        Text(
+            stringResource(tool.labelRes),
+            fontSize = 11.5.sp,
+            fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal,
+            color = labelColor,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.graphicsLayer {
+                scaleX = cardScale
+                scaleY = cardScale
             }
-        }
+        )
     }
 }
-
-@Composable
-private fun VerticalFeatureCard(
-    tool: ToolCard,
-    isDarkTheme: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val isLight = !isDarkTheme
-
-    Surface(
-        modifier = modifier
-            .bounceClick()
-            .clip(RoundedCornerShape(18.dp))
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(18.dp),
-        color = if (isLight) Color.White.copy(alpha = 0.95f) else Color(0xFF221A16).copy(alpha = 0.95f),
-        border = BorderStroke(
-            1.dp,
-            if (isLight) Color(0xFF2A1810).copy(alpha = 0.08f) else Color(0xFFFAF7F2).copy(alpha = 0.1f),
-        ),
-        shadowElevation = if (isLight) 2.dp else 0.dp,
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 6.dp, vertical = 14.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-        ) {
-            Image(
-                painter = painterResource(id = tool.imageRes),
-                contentDescription = stringResource(tool.labelRes),
-                modifier = Modifier
-                    .size(50.dp)
-                    .clip(RoundedCornerShape(12.dp)),
-                contentScale = ContentScale.Fit,
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = stringResource(tool.labelRes),
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
-                color = if (isLight) Color(0xFF1A0E0A) else Color(0xFFFAF7F2),
-                textAlign = TextAlign.Center,
-                maxLines = 1,
-            )
-        }
-    }
-}
-
-@Composable
-private fun HorizontalFeatureCard(
-    tool: ToolCard,
-    isDarkTheme: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val isLight = !isDarkTheme
-
-    Surface(
-        modifier = modifier
-            .bounceClick()
-            .clip(RoundedCornerShape(18.dp))
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(18.dp),
-        color = if (isLight) Color.White.copy(alpha = 0.95f) else Color(0xFF221A16).copy(alpha = 0.95f),
-        border = BorderStroke(
-            1.dp,
-            if (isLight) Color(0xFF2A1810).copy(alpha = 0.08f) else Color(0xFFFAF7F2).copy(alpha = 0.1f),
-        ),
-        shadowElevation = if (isLight) 2.dp else 0.dp,
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Image(
-                painter = painterResource(id = tool.imageRes),
-                contentDescription = stringResource(tool.labelRes),
-                modifier = Modifier
-                    .size(44.dp)
-                    .clip(RoundedCornerShape(10.dp)),
-                contentScale = ContentScale.Fit,
-            )
-            Text(
-                text = stringResource(tool.labelRes),
-                fontSize = 12.5.sp,
-                fontWeight = FontWeight.Bold,
-                color = if (isLight) Color(0xFF1A0E0A) else Color(0xFFFAF7F2),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-    }
-}
-

@@ -70,6 +70,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -171,32 +172,32 @@ private data class KavachModeOption(
 @Composable
 private fun usageReasons(): List<UsageReasonOption> = listOf(
     UsageReasonOption(
-        title = "Focus better",
-        subtitle = "Stay away from distractions",
+        title = stringResource(R.string.launch_reason_focus_title),
+        subtitle = stringResource(R.string.launch_reason_focus_subtitle),
         icon = Icons.Default.AutoStories,
         accent = LaunchFlatColors.Primary,
     ),
     UsageReasonOption(
-        title = "Build daily habits",
-        subtitle = "Do small tasks every day",
+        title = stringResource(R.string.launch_reason_habits_title),
+        subtitle = stringResource(R.string.launch_reason_habits_subtitle),
         icon = Icons.Default.TrackChanges,
         accent = LaunchFlatColors.Habit,
     ),
     UsageReasonOption(
-        title = "Write my thoughts",
-        subtitle = "Keep a simple daily note",
+        title = stringResource(R.string.launch_reason_journal_title),
+        subtitle = stringResource(R.string.launch_reason_journal_subtitle),
         icon = Icons.Default.EditNote,
         accent = LaunchFlatColors.Journal,
     ),
     UsageReasonOption(
-        title = "Feel calm",
-        subtitle = "Try breathing and meditation",
+        title = stringResource(R.string.launch_reason_calm_title),
+        subtitle = stringResource(R.string.launch_reason_calm_subtitle),
         icon = Icons.Default.SelfImprovement,
         accent = LaunchFlatColors.Calm,
     ),
     UsageReasonOption(
-        title = "Use all SAFAR tools",
-        subtitle = "Get the full SAFAR experience",
+        title = stringResource(R.string.launch_reason_all_title),
+        subtitle = stringResource(R.string.launch_reason_all_subtitle),
         icon = Icons.Default.CheckCircle,
         accent = LaunchFlatColors.Primary,
     ),
@@ -206,16 +207,16 @@ private fun usageReasons(): List<UsageReasonOption> = listOf(
 private fun kavachActivationModes(): List<KavachModeOption> = listOf(
     KavachModeOption(
         mode = AppUsageMode.FOCUSED,
-        title = "With Ekagra",
-        description = "Kavach turns on with an Ekagra session and turns off when it ends.",
+        title = stringResource(R.string.launch_kavach_with_ekagra_title),
+        description = stringResource(R.string.launch_kavach_with_ekagra_description),
         icon = Icons.Rounded.TouchApp,
         accent = LaunchFlatColors.Normal,
         badge = null,
     ),
     KavachModeOption(
         mode = AppUsageMode.ALWAYS_ON,
-        title = "Always On",
-        description = "Kavach keeps blocking until you manually turn it off.",
+        title = stringResource(R.string.launch_kavach_always_on_title),
+        description = stringResource(R.string.launch_kavach_always_on_description),
         icon = Icons.Default.Shield,
         accent = Color(0xFF581C87),
         badge = "24/7",
@@ -226,15 +227,15 @@ private fun kavachActivationModes(): List<KavachModeOption> = listOf(
 private fun kavachProtectionModes(): List<KavachModeOption> = listOf(
     KavachModeOption(
         mode = AppUsageMode.NORMAL,
-        title = "Normal Mode",
-        description = "Blocks selected apps with Quick Unlock available.",
+        title = stringResource(R.string.launch_kavach_normal_title),
+        description = stringResource(R.string.launch_kavach_normal_description),
         icon = Icons.Rounded.TouchApp,
         accent = LaunchFlatColors.Normal,
     ),
     KavachModeOption(
         mode = AppUsageMode.BEAST,
-        title = "Always On Mode",
-        description = "Blocks selected apps 24/7 in the background.",
+        title = stringResource(R.string.launch_kavach_strict_title),
+        description = stringResource(R.string.launch_kavach_strict_description),
         icon = Icons.Default.Shield,
         accent = LaunchFlatColors.Beast,
     ),
@@ -261,7 +262,7 @@ fun LaunchUsageQuestionnaireScreen(
                 .background(LaunchFlatColors.Bg),
             contentAlignment = Alignment.Center,
         ) {
-            Text("Loading…", color = LaunchFlatColors.Muted, fontSize = 14.sp)
+            Text(stringResource(R.string.common_loading), color = LaunchFlatColors.Muted, fontSize = 14.sp)
         }
         return
     }
@@ -382,7 +383,7 @@ private fun QuestionnaireTopBar(
                 ) {
                     Icon(
                         Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back",
+                        contentDescription = stringResource(R.string.common_back),
                         tint = Color.White,
                         modifier = Modifier.size(18.dp),
                     )
@@ -396,16 +397,16 @@ private fun QuestionnaireTopBar(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                PlanEyebrow("Safar")
+                PlanEyebrow(stringResource(R.string.app_name))
                 Text(
-                    text = "KAVACH Setup",
+                    text = stringResource(R.string.launch_kavach_setup),
                     fontFamily = LoraFontFamily,
                     fontWeight = FontWeight.Normal,
                     fontSize = 20.sp,
                     color = LaunchFlatColors.Text,
                 )
                 Text(
-                    text = "Step ${page + 1} of 2",
+                    text = stringResource(R.string.launch_step_of_two, page + 1),
                     fontSize = 12.sp,
                     color = LaunchFlatColors.Muted,
                 )
@@ -463,7 +464,7 @@ private fun WhyHerePage(
 
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(
-                text = "What do you need help with?",
+                text = stringResource(R.string.launch_help_question),
                 fontFamily = LoraFontFamily,
                 fontWeight = FontWeight.Normal,
                 fontSize = 26.sp,
@@ -471,7 +472,7 @@ private fun WhyHerePage(
                 lineHeight = 32.sp,
             )
             Text(
-                text = "Choose all that you want.",
+                text = stringResource(R.string.launch_choose_all),
                 fontSize = 14.sp,
                 color = LaunchFlatColors.Muted,
                 lineHeight = 20.sp,
@@ -515,7 +516,7 @@ private fun KavachModePage(
 
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(
-                text = "Set up KAVACH",
+                text = stringResource(R.string.launch_set_up_kavach),
                 fontFamily = LoraFontFamily,
                 fontWeight = FontWeight.Normal,
                 fontSize = 26.sp,
@@ -523,7 +524,7 @@ private fun KavachModePage(
                 lineHeight = 32.sp,
             )
             Text(
-                text = "You can change this later.",
+                text = stringResource(R.string.launch_change_later),
                 fontSize = 14.sp,
                 color = LaunchFlatColors.Muted,
                 lineHeight = 20.sp,
@@ -538,7 +539,7 @@ private fun KavachModePage(
                 .padding(bottom = 8.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Text("WHEN DOES IT WORK?", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = LaunchFlatColors.Muted)
+            Text(stringResource(R.string.launch_when_does_it_work).uppercase(), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = LaunchFlatColors.Muted)
             activationModes.forEach { option ->
                 KavachModeCard(
                     option = option,
@@ -549,7 +550,7 @@ private fun KavachModePage(
                 )
             }
             Spacer(Modifier.height(4.dp))
-            Text("PROTECTION LEVEL", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = LaunchFlatColors.Muted)
+            Text(stringResource(R.string.launch_protection_level).uppercase(), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = LaunchFlatColors.Muted)
             protectionModes.forEach { option ->
                 KavachModeCard(
                     option = option,
@@ -836,7 +837,7 @@ private fun QuestionnaireBottomBar(
                                 modifier = Modifier.size(18.dp),
                             )
                             Text(
-                                "Back",
+                                stringResource(R.string.common_back),
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = 14.sp,
                                 color = LaunchFlatColors.Text,
@@ -862,7 +863,7 @@ private fun QuestionnaireBottomBar(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
                         Text(
-                            text = if (page == 0) "Continue" else "Finish setup",
+                            text = stringResource(if (page == 0) R.string.common_continue else R.string.launch_finish_setup),
                             fontWeight = FontWeight.Bold,
                             fontSize = 14.sp,
                             color = if (canContinue) Color.White else LaunchFlatColors.Muted,
@@ -883,7 +884,7 @@ private fun QuestionnaireBottomBar(
                 exit = fadeOut(tween(120)),
             ) {
                 Text(
-                    text = "Choose at least one option to continue",
+                    text = stringResource(R.string.launch_choose_one_error),
                     fontSize = 12.sp,
                     color = LaunchFlatColors.Muted,
                     textAlign = TextAlign.Center,

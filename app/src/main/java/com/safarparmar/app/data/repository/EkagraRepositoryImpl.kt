@@ -245,6 +245,7 @@ class EkagraRepositoryImpl @Inject constructor(
         durationMinutes = durationMinutes ?: 0,
         actualMinutes = actualMinutes ?: 0,
         actualSeconds = actualSeconds ?: 0,
+        rankedSeconds = rankedSeconds,
         status = status ?: "completed",
         rawStatus = rawStatus ?: "completed",
         taskText = taskText,

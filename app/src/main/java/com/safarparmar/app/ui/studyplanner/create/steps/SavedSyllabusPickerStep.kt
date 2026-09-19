@@ -2,6 +2,9 @@
 // Hallmark · genre: modern-minimal · reference: Kavach Analytics · designed-as-app
 package com.safarparmar.app.ui.studyplanner.create.steps
 
+import androidx.compose.ui.res.stringResource
+import com.safarparmar.app.R
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -94,7 +97,7 @@ fun SavedSyllabusPickerStep(
         ) {
             item {
                 Text(
-                    text = "Reuse a syllabus or resume a draft.",
+                    text = stringResource(R.string.planner_reuse_or_resume),
                     style = MaterialTheme.typography.bodyLarge,
                     color = muted,
                 )
@@ -119,12 +122,12 @@ fun SavedSyllabusPickerStep(
                         verticalArrangement = Arrangement.Center,
                         horizontalAlignment = Alignment.Start,
                     ) {
-                        Text("Saved syllabi couldn’t load", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.planner_saved_syllabi_load_error), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                         Spacer(Modifier.height(6.dp))
                         Text(error, style = MaterialTheme.typography.bodyMedium, color = muted)
                         Spacer(Modifier.height(12.dp))
                         OutlinedButton(onClick = onRetry, shape = RoundedCornerShape(10.dp)) {
-                            Text("Try again", fontWeight = FontWeight.SemiBold)
+                            Text(stringResource(R.string.common_try_again), fontWeight = FontWeight.SemiBold)
                         }
                     }
                 }
@@ -137,7 +140,7 @@ fun SavedSyllabusPickerStep(
                     item {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = "Your syllabi",
+                                text = stringResource(R.string.planner_your_syllabi),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = ink,
@@ -151,12 +154,12 @@ fun SavedSyllabusPickerStep(
                             OutlinedTextField(
                                 value = searchQuery,
                                 onValueChange = { searchQuery = it },
-                                label = { Text("Search syllabi") },
+                                label = { Text(stringResource(R.string.planner_search_syllabi)) },
                                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp)) },
                                 trailingIcon = {
                                     if (searchQuery.isNotBlank()) {
                                         IconButton(onClick = { searchQuery = "" }) {
-                                            Icon(Icons.Default.Close, contentDescription = "Clear search", modifier = Modifier.size(18.dp))
+                                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.common_clear_search), modifier = Modifier.size(18.dp))
                                         }
                                     }
                                 },
@@ -204,7 +207,7 @@ fun SavedSyllabusPickerStep(
                     colors = ButtonDefaults.buttonColors(containerColor = PlannerFlatColors.PrimaryAccent),
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp).height(50.dp),
                 ) {
-                    Text("Use syllabus", fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.planner_use_syllabus), fontWeight = FontWeight.Bold)
                     Spacer(Modifier.width(8.dp))
                     Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, modifier = Modifier.size(18.dp))
                 }
@@ -213,15 +216,15 @@ fun SavedSyllabusPickerStep(
     }
 
     pendingDeleteId?.let { syllabusId ->
-        val syllabusName = syllabi.firstOrNull { it.id == syllabusId }?.name ?: "this syllabus"
+        val syllabusName = syllabi.firstOrNull { it.id == syllabusId }?.name ?: stringResource(R.string.planner_this_syllabus)
         PlannerDialog(
             onDismissRequest = { pendingDeleteId = null },
-            title = "Delete syllabus?",
-            text = { PlannerDialogText("Delete “$syllabusName”? Existing study plans won’t change.") },
-            dismissButton = { PlannerDialogTextAction("Cancel", onClick = { pendingDeleteId = null }) },
+            title = stringResource(R.string.planner_delete_syllabus_question),
+            text = { PlannerDialogText(stringResource(R.string.planner_delete_syllabus_body, syllabusName)) },
+            dismissButton = { PlannerDialogTextAction(stringResource(R.string.common_cancel), onClick = { pendingDeleteId = null }) },
             confirmButton = {
                 PlannerDialogAction(
-                    text = "Delete",
+                    text = stringResource(R.string.common_delete),
                     accentColor = MaterialTheme.colorScheme.error,
                     onClick = {
                         pendingDeleteId = null
@@ -248,8 +251,8 @@ private fun NewSyllabusRow(onClick: () -> Unit) {
             }
             Spacer(Modifier.width(14.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text("Create custom syllabus", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Text("Start with your own subjects and topics", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.planner_create_custom_syllabus), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.planner_create_custom_syllabus_body), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
@@ -266,10 +269,10 @@ private fun EmptySyllabiState(onCreate: () -> Unit) {
     ) {
         Box(Modifier.size(10.dp).background(MaterialTheme.colorScheme.primary, CircleShape))
         Spacer(Modifier.height(12.dp))
-        Text("No custom syllabi yet", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.planner_no_custom_syllabi), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(6.dp))
         Text(
-            "Create one now. Your work will save here as a draft.",
+            stringResource(R.string.planner_no_custom_syllabi_body),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -277,7 +280,7 @@ private fun EmptySyllabiState(onCreate: () -> Unit) {
         TextButton(onClick = onCreate, modifier = Modifier.height(48.dp)) {
             Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(8.dp))
-            Text("Create syllabus", fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.planner_create_syllabus), fontWeight = FontWeight.SemiBold)
         }
     }
 }
@@ -293,6 +296,7 @@ private fun SavedSyllabusRow(
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
     val selectionColor = MaterialTheme.colorScheme.primary
     val draftColor = MaterialTheme.colorScheme.tertiary
+    val untitledSyllabus = stringResource(R.string.planner_untitled_syllabus)
     Surface(
         onClick = onSelect,
         color = if (selected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.36f) else Color.Transparent,
@@ -322,7 +326,7 @@ private fun SavedSyllabusRow(
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        syllabus.name.ifBlank { "Untitled syllabus" },
+                        syllabus.name.ifBlank { untitledSyllabus },
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.Bold,
                         maxLines = 1,
@@ -330,7 +334,7 @@ private fun SavedSyllabusRow(
                         modifier = Modifier.weight(1f),
                     )
                     if (syllabus.isDraft) {
-                        Text("Draft", style = MaterialTheme.typography.labelMedium, color = draftColor, modifier = Modifier.padding(horizontal = 8.dp))
+                        Text(stringResource(R.string.common_draft), style = MaterialTheme.typography.labelMedium, color = draftColor, modifier = Modifier.padding(horizontal = 8.dp))
                     }
                 }
                 Text(
@@ -341,12 +345,12 @@ private fun SavedSyllabusRow(
                 )
             }
             IconButton(onClick = onEdit, modifier = Modifier.size(44.dp)) {
-                Icon(Icons.Default.Edit, contentDescription = "Edit ${syllabus.name}", tint = muted, modifier = Modifier.size(18.dp))
+                Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.planner_edit_named, syllabus.name), tint = muted, modifier = Modifier.size(18.dp))
             }
             IconButton(onClick = onDelete, modifier = Modifier.size(44.dp)) {
                 Icon(
                     Icons.Default.DeleteOutline,
-                    contentDescription = "Delete ${syllabus.name}",
+                    contentDescription = stringResource(R.string.planner_delete_named, syllabus.name),
                     tint = MaterialTheme.colorScheme.error,
                     modifier = Modifier.size(19.dp),
                 )

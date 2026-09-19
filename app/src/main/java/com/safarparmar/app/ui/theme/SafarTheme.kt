@@ -138,10 +138,14 @@ fun SafarTheme(
     val densityLimit = systemDensity.coerceAtMost(maxAllowedDensity)
     val finalDensityValue = customDensityValue.coerceAtMost(densityLimit) * 0.85f
     
-    val customDensity = remember(finalDensityValue) {
+    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+    val systemFontScale = configuration.fontScale
+    val safeFontScale = systemFontScale.coerceIn(1.0f, 1.45f)
+    
+    val customDensity = remember(finalDensityValue, safeFontScale) {
         Density(
             density = finalDensityValue,
-            fontScale = 1.0f
+            fontScale = safeFontScale
         )
     }
 

@@ -60,6 +60,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -252,7 +253,7 @@ fun KavachOnboardingScreen(
                 Spacer(Modifier.width(12.dp))
                 TextButton(onClick = { skipSetup() }) {
                     Text(
-                        text = "Skip for now",
+                        text = stringResource(R.string.kavach_skip_for_now),
                         color = colors.secondaryText,
                         fontWeight = FontWeight.SemiBold,
                     )
@@ -300,7 +301,7 @@ fun KavachOnboardingScreen(
                         modifier = Modifier.weight(1f),
                     ) {
                         Text(
-                            text = "Almost there. Allow these permissions to use KAVACH.",
+                            text = stringResource(R.string.kavach_almost_there),
                             color = colors.secondaryText,
                             fontSize = 15.sp,
                             lineHeight = 22.sp,
@@ -312,8 +313,8 @@ fun KavachOnboardingScreen(
                 Spacer(Modifier.height(48.dp))
 
                 KavachRegainPermissionRow(
-                    title = "Usage permission",
-                    subtitle = "Lets KAVACH see which app you opened.",
+                    title = stringResource(R.string.kavach_usage_permission),
+                    subtitle = stringResource(R.string.kavach_usage_permission_help),
                     granted = hasUsageStats,
                     isNext = isUsageNext,
                     colors = colors,
@@ -323,8 +324,8 @@ fun KavachOnboardingScreen(
                 HorizontalDivider(color = colors.divider)
 
                 KavachRegainPermissionRow(
-                    title = "Show on top",
-                    subtitle = "Lets KAVACH show a block screen over a distracting app.",
+                    title = stringResource(R.string.kavach_show_on_top),
+                    subtitle = stringResource(R.string.kavach_show_on_top_help),
                     granted = hasOverlay,
                     isNext = isOverlayNext,
                     colors = colors,
@@ -334,8 +335,8 @@ fun KavachOnboardingScreen(
                 HorizontalDivider(color = colors.divider)
 
                 KavachRegainPermissionRow(
-                    title = "Background permission",
-                    subtitle = "Removes battery restrictions to keep Kavach running in background.",
+                    title = stringResource(R.string.kavach_background_permission),
+                    subtitle = stringResource(R.string.kavach_background_permission_help),
                     granted = hasBatterySaver,
                     isNext = isBatterySaverNext,
                     colors = colors,
@@ -345,8 +346,8 @@ fun KavachOnboardingScreen(
                 HorizontalDivider(color = colors.divider)
 
                 KavachRegainPermissionRow(
-                    title = "Notifications",
-                    subtitle = "Keeps KAVACH status and timer alerts working.",
+                    title = stringResource(R.string.kavach_notifications),
+                    subtitle = stringResource(R.string.kavach_notifications_help),
                     granted = hasNotifications,
                     isNext = isNotificationsNext,
                     colors = colors,
@@ -356,8 +357,8 @@ fun KavachOnboardingScreen(
                 HorizontalDivider(color = colors.divider)
 
                 KavachRegainPermissionRow(
-                    title = "Notification Shield",
-                    subtitle = "Hides notifications from the apps you chose to block.",
+                    title = stringResource(R.string.kavach_notification_shield),
+                    subtitle = stringResource(R.string.kavach_notification_shield_help),
                     granted = hasNotificationSuppressionAccess,
                     isNext = isNotificationAccessNext,
                     colors = colors,
@@ -397,7 +398,7 @@ fun KavachOnboardingScreen(
                     )
                     Spacer(Modifier.width(12.dp))
                     Text(
-                        text = "Why should I give this permission?",
+                        text = stringResource(R.string.kavach_why_permission),
                         color = colors.helpText,
                         fontWeight = FontWeight.Medium,
                         fontSize = 14.sp,
@@ -486,7 +487,7 @@ private fun KavachRegainPermissionRow(
         if (granted) {
             Icon(
                 Icons.Default.Check,
-                contentDescription = "Granted",
+                contentDescription = stringResource(R.string.common_granted),
                 tint = colors.helpText,
                 modifier = Modifier.size(24.dp),
             )
@@ -502,7 +503,7 @@ private fun KavachRegainPermissionRow(
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        text = "Allow",
+                        text = stringResource(R.string.common_allow),
                         fontWeight = FontWeight.Medium,
                         fontSize = 14.sp,
                         color = colors.ctaText,
@@ -526,41 +527,41 @@ private fun KavachRegainExplanationSheet(
     val ctaLabelColor = if (accent.luminance() > 0.55f) Color(0xFF16161A) else Color.White
 
     val title = when (permission) {
-        PermissionTarget.USAGE_STATS -> "Allow app check"
-        PermissionTarget.OVERLAY -> "Allow show on top"
-        PermissionTarget.NOTIFICATIONS -> "Allow notifications"
-        PermissionTarget.NOTIFICATION_ACCESS -> "Allow notification shield"
-        PermissionTarget.BATTERY_SAVER -> "Allow background running"
+        PermissionTarget.USAGE_STATS -> stringResource(R.string.kavach_allow_app_check)
+        PermissionTarget.OVERLAY -> stringResource(R.string.kavach_allow_show_on_top)
+        PermissionTarget.NOTIFICATIONS -> stringResource(R.string.kavach_allow_notifications)
+        PermissionTarget.NOTIFICATION_ACCESS -> stringResource(R.string.kavach_allow_notification_shield)
+        PermissionTarget.BATTERY_SAVER -> stringResource(R.string.kavach_allow_background_running)
     }
 
     val bullets = when (permission) {
         PermissionTarget.USAGE_STATS -> listOf(
-            "We do not read your messages, passwords, or photos.",
-            "This only tells SAFAR which app is open right now.",
-            "SAFAR uses it only to block the apps you chose.",
-            "Nothing is shared for ads, and app names are not uploaded.",
+            stringResource(R.string.kavach_usage_bullet_private),
+            stringResource(R.string.kavach_usage_bullet_open_app),
+            stringResource(R.string.kavach_usage_bullet_block_only),
+            stringResource(R.string.kavach_usage_bullet_no_ads),
         )
         PermissionTarget.OVERLAY -> listOf(
-            "This lets SAFAR show a block screen over a distracting app.",
-            "It is used only while you are studying with the timer on.",
-            "SAFAR does not read or capture other apps.",
-            "You can turn this off anytime in phone Settings.",
+            stringResource(R.string.kavach_overlay_bullet_block_screen),
+            stringResource(R.string.kavach_overlay_bullet_timer_only),
+            stringResource(R.string.kavach_overlay_bullet_no_capture),
+            stringResource(R.string.kavach_permission_bullet_turn_off),
         )
         PermissionTarget.NOTIFICATIONS -> listOf(
-            "Get a message when your study timer ends.",
-            "See that KAVACH is still running in the background.",
+            stringResource(R.string.kavach_notifications_bullet_timer),
+            stringResource(R.string.kavach_notifications_bullet_status),
         )
         PermissionTarget.NOTIFICATION_ACCESS -> listOf(
-            "KAVACH can hide notifications only from apps you chose to block.",
-            "This works only while your study timer is on.",
-            "SAFAR does not save notification text.",
-            "You can turn this off anytime in phone Settings.",
+            stringResource(R.string.kavach_shield_bullet_selected_apps),
+            stringResource(R.string.kavach_shield_bullet_timer_only),
+            stringResource(R.string.kavach_shield_bullet_no_save),
+            stringResource(R.string.kavach_permission_bullet_turn_off),
         )
         PermissionTarget.BATTERY_SAVER -> listOf(
-            "Tap Battery Saver in Settings.",
-            "Select 'No restrictions' (or 'Unrestricted').",
-            "This prevents Android from killing focus protection in the background.",
-            "Especially important for Xiaomi, Oppo, Vivo, Samsung, and OnePlus.",
+            stringResource(R.string.kavach_battery_bullet_open),
+            stringResource(R.string.kavach_battery_bullet_unrestricted),
+            stringResource(R.string.kavach_battery_bullet_background),
+            stringResource(R.string.kavach_battery_bullet_brands),
         )
     }
 
@@ -585,7 +586,7 @@ private fun KavachRegainExplanationSheet(
                 .padding(horizontal = 24.dp)
                 .padding(bottom = 32.dp),
         ) {
-            PlanEyebrow("KAVACH")
+            PlanEyebrow(stringResource(R.string.kavach_name))
             Spacer(Modifier.height(10.dp))
 
             Text(
@@ -618,7 +619,7 @@ private fun KavachRegainExplanationSheet(
                 )
                 Spacer(Modifier.width(12.dp))
                 Text(
-                    text = "Is it safe to give this permission?",
+                    text = stringResource(R.string.kavach_permission_safe_question),
                     color = PlannerFlatColors.TextMuted,
                     fontWeight = FontWeight.Medium,
                     fontSize = 14.sp,
@@ -675,9 +676,9 @@ private fun KavachRegainExplanationSheet(
             ) {
                 Text(
                     text = if (permission == PermissionTarget.NOTIFICATION_ACCESS) {
-                        "Agree & enable Notification Shield"
+                        stringResource(R.string.kavach_agree_enable_notification_shield)
                     } else {
-                        "Allow"
+                        stringResource(R.string.kavach_allow)
                     },
                     modifier = Modifier.fillMaxWidth(),
                     textAlign = TextAlign.Center,
@@ -699,7 +700,7 @@ private fun KavachRegainExplanationSheet(
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        text = "Not now",
+                        text = stringResource(R.string.kavach_not_now),
                         fontSize = 15.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = PlannerFlatColors.TextMuted,

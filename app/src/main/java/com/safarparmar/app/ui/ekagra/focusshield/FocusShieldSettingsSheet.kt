@@ -149,7 +149,7 @@ fun FocusShieldSettingsContent(
         if (pendingEnableFlow) {
             pendingEnableFlow = false
             if (state.blockedPackages.isEmpty()) {
-                android.widget.Toast.makeText(context, "Select an app to block first", android.widget.Toast.LENGTH_SHORT).show()
+                android.widget.Toast.makeText(context, context.getString(R.string.kavach_select_app_first), android.widget.Toast.LENGTH_SHORT).show()
                 pendingEnableAfterAppSelection = true
                 onSetPendingEnableAfterAppSelection(true)
                 onOpenAppPicker()
@@ -157,7 +157,7 @@ fun FocusShieldSettingsContent(
                 if (!state.isEnabled) {
                     onToggleEnabled(true)
                 }
-                grantedBannerText = "KAVACH is active and ready to protect your focus!"
+                grantedBannerText = context.getString(R.string.kavach_active_ready)
             }
         }
     }
@@ -177,11 +177,11 @@ fun FocusShieldSettingsContent(
     val readyCount = listOf(hasUsageStats, hasOverlay, hasBatterySaver, hasNotifications, hasNotificationSuppressionAccess).count { it }
 
     val primaryCtaLabel = when {
-        !hasUsageStats -> "Allow App Check"
-        !hasOverlay -> "Allow Display Over Apps"
-        !hasBatterySaver -> "Disable Battery Restriction"
-        state.isEnabled -> "Turn off Kavach"
-        else -> "Turn on Kavach"
+        !hasUsageStats -> stringResource(R.string.kavach_allow_app_check)
+        !hasOverlay -> stringResource(R.string.kavach_allow_display_over_apps)
+        !hasBatterySaver -> stringResource(R.string.kavach_disable_battery_restriction)
+        state.isEnabled -> stringResource(R.string.kavach_turn_off)
+        else -> stringResource(R.string.kavach_turn_on)
     }
 
     LaunchedEffect(grantedBannerText) {
@@ -240,7 +240,7 @@ fun FocusShieldSettingsContent(
                 if (!state.isEnabled) {
                     onToggleEnabled(true)
                 }
-                grantedBannerText = "KAVACH is active and ready to protect your focus!"
+                grantedBannerText = context.getString(R.string.kavach_active_ready)
             }
         }
     }
@@ -284,7 +284,7 @@ fun FocusShieldSettingsContent(
                         if (!state.isEnabled) {
                             onToggleEnabled(true)
                         }
-                        grantedBannerText = "KAVACH is active and ready to protect your focus!"
+                        grantedBannerText = context.getString(R.string.kavach_active_ready)
                     }
                 }
 
@@ -378,7 +378,7 @@ fun FocusShieldSettingsContent(
 
                         // 2. Mandatory permissions granted. Now check apps to block
                         if (state.blockedPackages.isEmpty()) {
-                            android.widget.Toast.makeText(context, "Select an app to block first", android.widget.Toast.LENGTH_SHORT).show()
+                            android.widget.Toast.makeText(context, context.getString(R.string.kavach_select_app_first), android.widget.Toast.LENGTH_SHORT).show()
                             pendingEnableAfterAppSelection = true
                             onSetPendingEnableAfterAppSelection(true)
                             onOpenAppPicker()
@@ -387,7 +387,7 @@ fun FocusShieldSettingsContent(
 
                         // 3. Both permissions and apps are selected -> turn on Kavach!
                         onToggleEnabled(true)
-                        grantedBannerText = "KAVACH is active and ready to protect your focus!"
+                        grantedBannerText = context.getString(R.string.kavach_active_ready)
                     } else {
                         pendingEnableFlow = false
                         pendingEnableAfterAppSelection = false
@@ -403,7 +403,7 @@ fun FocusShieldSettingsContent(
             // WHEN IT WORKS Section
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    text = "WHEN IT WORKS",
+                    text = stringResource(R.string.kavach_when_it_works),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 1.sp,
@@ -413,12 +413,12 @@ fun FocusShieldSettingsContent(
                     options = listOf(
                         SegmentOption(
                             key = AppUsageMode.FOCUSED,
-                            label = "With Ekagra",
+                            label = stringResource(R.string.kavach_with_ekagra),
                             icon = Icons.Default.Timer,
                         ),
                         SegmentOption(
                             key = AppUsageMode.ALWAYS_ON,
-                            label = "Always On",
+                            label = stringResource(R.string.kavach_always_on),
                             icon = Icons.Default.Timer,
                         ),
                     ),
@@ -427,9 +427,9 @@ fun FocusShieldSettingsContent(
                 )
                 Text(
                     text = if (state.isAlwaysOnMode) {
-                        "Keeps blocking in the background 24/7 until you manually turn Kavach off."
+                        stringResource(R.string.kavach_always_on_help)
                     } else {
-                        "Turns on when an Ekagra session starts and off when that session ends."
+                        stringResource(R.string.kavach_with_ekagra_help)
                     },
                     fontSize = 11.5.sp,
                     lineHeight = 16.sp,
@@ -443,7 +443,7 @@ fun FocusShieldSettingsContent(
             // PROTECTION LEVEL Section
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    text = "PROTECTION LEVEL",
+                    text = stringResource(R.string.kavach_protection_level),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 1.sp,
@@ -453,12 +453,12 @@ fun FocusShieldSettingsContent(
                     options = listOf(
                         SegmentOption(
                             key = "normal",
-                            label = "Normal",
+                            label = stringResource(R.string.kavach_normal),
                             icon = Icons.Default.Shield,
                         ),
                         SegmentOption(
                             key = "beast",
-                            label = "Beast",
+                            label = stringResource(R.string.kavach_beast),
                             icon = Icons.Default.Security,
                         ),
                     ),
@@ -469,9 +469,9 @@ fun FocusShieldSettingsContent(
                 )
                 Text(
                     text = if (state.isStrictMode) {
-                        "Blocks selected apps without Quick Unlock until study timer ends."
+                        stringResource(R.string.kavach_beast_help)
                     } else {
-                        "Blocks selected apps and keeps Quick Unlock available for needed breaks."
+                        stringResource(R.string.kavach_normal_help)
                     },
                     fontSize = 11.5.sp,
                     lineHeight = 16.sp,
@@ -487,11 +487,11 @@ fun FocusShieldSettingsContent(
             // Apps to Block Row
             KavachActionRow(
                 icon = Icons.Default.Apps,
-                title = "Apps to block",
+                title = stringResource(R.string.kavach_apps_to_block),
                 subtitle = if (state.blockedPackages.isEmpty()) {
-                    "No apps chosen yet"
+                    stringResource(R.string.kavach_no_apps_chosen)
                 } else {
-                    "${state.blockedPackages.size} apps selected"
+                    stringResource(R.string.kavach_apps_selected, state.blockedPackages.size)
                 },
                 onClick = {
                     if (!state.isEnabled && state.blockedPackages.isEmpty()) {
@@ -515,8 +515,8 @@ fun FocusShieldSettingsContent(
                 EkagraHairline(ink.hairline)
                 KavachActionRow(
                     icon = Icons.Default.Category,
-                    title = "App categories",
-                    subtitle = "Set what counts as productive or distracting in your analytics",
+                    title = stringResource(R.string.kavach_app_categories),
+                    subtitle = stringResource(R.string.kavach_app_categories_help),
                     onClick = onOpenAppCategories,
                 )
             }
@@ -525,8 +525,8 @@ fun FocusShieldSettingsContent(
             EkagraHairline(ink.hairline)
             KavachActionRow(
                 icon = Icons.Default.Lock,
-                title = "Permissions & access",
-                subtitle = "$readyCount of 5 ready",
+                title = stringResource(R.string.kavach_permissions_access),
+                subtitle = stringResource(R.string.kavach_ready_count, readyCount, 5),
                 subtitleColor = if (readyCount == 5) Color(0xFF10B981) else Color(0xFFD97706),
                 onClick = {
                     showPermissionCardSheet = true
@@ -555,8 +555,8 @@ fun FocusShieldSettingsContent(
                 EkagraHairline(ink.hairline)
                 KavachActionRow(
                     icon = Icons.Default.Analytics,
-                    title = "Kavach analytics",
-                    subtitle = "View focus reports, screen time & blocked attempts",
+                    title = stringResource(R.string.kavach_analytics),
+                    subtitle = stringResource(R.string.kavach_analytics_help),
                     onClick = onOpenAnalytics,
                 )
             }
@@ -624,7 +624,7 @@ fun FocusShieldSettingsContent(
                 ),
             ) {
                 Text(
-                    text = "Not Now",
+                    text = stringResource(R.string.kavach_not_now),
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = KavachDesign.Primary,
@@ -642,7 +642,7 @@ fun FocusShieldSettingsContent(
                 ),
             ) {
                 Text(
-                    text = "Save",
+                    text = stringResource(R.string.common_save),
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White,
@@ -726,7 +726,7 @@ fun FocusShieldSettingsContent(
                     elevation = ButtonDefaults.buttonElevation(0.dp, 0.dp, 0.dp, 0.dp),
                 ) {
                     Text(
-                        text = if (allRequiredGranted) "Done" else "Close",
+                        text = if (allRequiredGranted) stringResource(R.string.common_done) else stringResource(R.string.common_close),
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold,
                     )
@@ -786,14 +786,14 @@ private fun KavachMasterStatusCard(
                 }
                 Column {
                     Text(
-                        text = if (isEnabled) "Kavach is on" else "Kavach is off",
+                        text = if (isEnabled) stringResource(R.string.kavach_is_on) else stringResource(R.string.kavach_is_off),
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         color = ink.primaryText,
                     )
                     Spacer(Modifier.height(2.dp))
                     Text(
-                        text = "${if (isAlwaysOn) "Always On" else "With Ekagra"} • ${if (isStrict) "Beast" else "Normal"}",
+                        text = "${if (isAlwaysOn) stringResource(R.string.kavach_always_on) else stringResource(R.string.kavach_with_ekagra)} • ${if (isStrict) stringResource(R.string.kavach_beast) else stringResource(R.string.kavach_normal)}",
                         fontSize = 11.5.sp,
                         color = ink.secondaryText,
                     )

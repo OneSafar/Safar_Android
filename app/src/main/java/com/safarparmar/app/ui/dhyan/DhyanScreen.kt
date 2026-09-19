@@ -42,6 +42,7 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -69,9 +70,9 @@ import kotlinx.coroutines.delay
 // ─── Data ──────────────────────────────────────────────────────────────────────
 
 private data class BreathingTechnique(
-    val name: String,
+    val nameRes: Int,
     val iconRes: Int,
-    val description: String,
+    val descriptionRes: Int,
     val inhale: Int,
     val hold: Int,
     val exhale: Int,
@@ -82,31 +83,31 @@ private data class BreathingTechnique(
 
 private data class BreathingSound(
     val id: String,
-    val name: String,
-    val description: String,
+    val nameRes: Int,
+    val descriptionRes: Int,
     val url: String = "",
     val localResId: Int? = null,
 )
 
 private val techniques = listOf(
-    BreathingTechnique("Diaphragmatic", com.safarparmar.app.R.drawable.ic_wind, "Belly breathing for full oxygen exchange", 4, 0, 6, 0, "4-6"),
-    BreathingTechnique("Pursed Lip", com.safarparmar.app.R.drawable.ic_wind, "Slows breathing and keeps airways open", 2, 0, 4, 0, "2-4"),
-    BreathingTechnique("Box Breathing", com.safarparmar.app.R.drawable.ic_square, "Rhythmic 4-4-4-4 for stress reduction", 4, 4, 4, 4, "4-4-4-4", "https://qms-images.del1.vultrobjects.com/qms-parmar-academy/music/box_breathing.mp3"),
-    BreathingTechnique("4-7-8 Breathing", com.safarparmar.app.R.drawable.ic_moon, "Deep relaxation for anxiety and sleep", 4, 7, 8, 0, "4-7-8", "https://qms-images.del1.vultrobjects.com/qms-parmar-academy/music/four_seven_eight.mp3"),
-    BreathingTechnique("6-7-8 Breathing", com.safarparmar.app.R.drawable.ic_yin_yang, "Slower inhale variation for deeper calm", 6, 7, 8, 0, "6-7-8"),
+    BreathingTechnique(R.string.dhyan_technique_diaphragmatic, R.drawable.ic_wind, R.string.dhyan_technique_diaphragmatic_desc, 4, 0, 6, 0, "4-6"),
+    BreathingTechnique(R.string.dhyan_technique_pursed_lip, R.drawable.ic_wind, R.string.dhyan_technique_pursed_lip_desc, 2, 0, 4, 0, "2-4"),
+    BreathingTechnique(R.string.dhyan_technique_box, R.drawable.ic_square, R.string.dhyan_technique_box_desc, 4, 4, 4, 4, "4-4-4-4", "https://qms-images.del1.vultrobjects.com/qms-parmar-academy/music/box_breathing.mp3"),
+    BreathingTechnique(R.string.dhyan_technique_478, R.drawable.ic_moon, R.string.dhyan_technique_478_desc, 4, 7, 8, 0, "4-7-8", "https://qms-images.del1.vultrobjects.com/qms-parmar-academy/music/four_seven_eight.mp3"),
+    BreathingTechnique(R.string.dhyan_technique_678, R.drawable.ic_yin_yang, R.string.dhyan_technique_678_desc, 6, 7, 8, 0, "6-7-8"),
 )
 
 private val breathingSounds = listOf(
     BreathingSound(
         id = "silent-breathing",
-        name = "Silent Guidance",
-        description = "No background music during breathing techniques",
+        nameRes = R.string.dhyan_silent_guidance,
+        descriptionRes = R.string.dhyan_silent_guidance_desc,
     ),
 )
 
 
-private enum class DhyanBreathPhase(val label: String) {
-    INHALE("INHALE"), HOLD("HOLD"), EXHALE("EXHALE"), HOLD_AFTER("REST")
+private enum class DhyanBreathPhase {
+    INHALE, HOLD, EXHALE, HOLD_AFTER
 }
 
 private enum class DhyanAudioSource {
@@ -529,6 +530,7 @@ fun DhyanScreen(
     }
 
     val dhyanVm: DhyanViewModel = hiltViewModel()
+    val liveSessionVm: com.safarparmar.app.feature.live.presentation.LiveSessionViewModel = hiltViewModel()
     val premiumVm: PremiumViewModel = hiltViewModel()
     val premiumStatus by premiumVm.premiumStatus.collectAsStateWithLifecycle()
     val dhyanPricing by premiumVm.dhyanPricing.collectAsStateWithLifecycle()
@@ -538,11 +540,13 @@ fun DhyanScreen(
     CompositionLocalProvider(LocalPlannerIsDarkTheme provides isDarkTheme) {
     Box(Modifier.fillMaxSize()) {
         SafarDrawerScaffold(
-            title    = when (selectedTab) {
-                DhyanTab.DHYAN -> "Dhyan"
-                DhyanTab.COURSES -> "Courses"
-                DhyanTab.LIVE -> "Dhyan Live"
-            },
+            title = stringResource(
+                when (selectedTab) {
+                    DhyanTab.DHYAN -> R.string.module_dhyan
+                    DhyanTab.COURSES -> R.string.dhyan_courses_tab
+                    DhyanTab.LIVE -> R.string.dhyan_live_tab
+                }
+            ),
             subtitle = null,
             currentRoute      = currentRoute,
             isDarkTheme       = isDarkTheme,
@@ -551,7 +555,28 @@ fun DhyanScreen(
             useGlassTopBar    = false,
             useDetachedMenuGlass = false,
             containerColor    = Color.Transparent,
-            topBarActions = {},
+            topBarActions = {
+                if (selectedTab == DhyanTab.LIVE) {
+                    val liveUiState by liveSessionVm.liveSessionsState.collectAsStateWithLifecycle()
+                    IconButton(
+                        onClick = { liveSessionVm.loadSessions(courseId, status = null) },
+                    ) {
+                        if (liveUiState.isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(19.dp),
+                                strokeWidth = 2.dp,
+                                color = if (isDarkTheme) Color(0xFFC084FC) else Color(0xFF6B21A8),
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = stringResource(R.string.dhyan_reload_live_sessions),
+                                tint = if (isDarkTheme) Color.White else Color(0xFF1E293B),
+                            )
+                        }
+                    }
+                }
+            },
         ) { padding ->
             Box(Modifier.fillMaxSize()) {
                 DhyanMockBackdrop()
@@ -594,7 +619,7 @@ fun DhyanScreen(
                             DhyanTab.COURSES -> {
                                 DhyanCoursesContent(
                                     isDarkTheme = isDarkTheme,
-                                    isPremiumActive = isPremium,
+                                    isPremiumActive = hasDhyanLiveAccess,
                                     onNavigate = onNavigate,
                                     onGoToLive = { selectedTab = DhyanTab.LIVE },
                                 )
@@ -830,7 +855,7 @@ private fun BreathingTab(
                     DhyanMeditationOrb(isDarkTheme = isDarkTheme) {
                         Image(
                             painter = painterResource(R.drawable.meditation_transparent_background),
-                            contentDescription = "Meditate",
+                            contentDescription = stringResource(R.string.dhyan_meditate),
                             modifier = Modifier.fillMaxSize(0.88f),
                             contentScale = ContentScale.Fit,
                         )
@@ -851,7 +876,14 @@ private fun BreathingTab(
                         }
                         AnimatedVisibility(visible = isRunning) {
                             Text(
-                                phase.label,
+                                stringResource(
+                                    when (phase) {
+                                        DhyanBreathPhase.INHALE -> R.string.dhyan_phase_inhale
+                                        DhyanBreathPhase.HOLD -> R.string.dhyan_phase_hold
+                                        DhyanBreathPhase.EXHALE -> R.string.dhyan_phase_exhale
+                                        DhyanBreathPhase.HOLD_AFTER -> R.string.dhyan_phase_rest
+                                    }
+                                ).uppercase(),
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 letterSpacing = 2.sp,
@@ -876,7 +908,7 @@ private fun BreathingTab(
                                     tint = DhyanColors.rose(isDarkTheme),
                                 )
                                 Text(
-                                    "${technique.name} · ${technique.pattern}",
+                                    stringResource(R.string.dhyan_technique_pattern, stringResource(technique.nameRes), technique.pattern),
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     color = DhyanFlatColors.Text,
@@ -910,14 +942,14 @@ private fun BreathingTab(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                "SESSION LENGTH",
+                stringResource(R.string.dhyan_session_length).uppercase(),
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 2.sp,
                 color = DhyanFlatColors.Muted,
             )
             Text(
-                "${sessionLengthMin} min",
+                stringResource(R.string.dhyan_minutes_short, sessionLengthMin),
                 fontFamily = LoraFontFamily,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Normal,
@@ -951,7 +983,7 @@ private fun BreathingTab(
                 onClick = { resetTimer() },
                 size = DhyanSideControlSize,
                 style = DhyanControlStyle.Reset,
-                contentDescription = "Reset",
+                contentDescription = stringResource(R.string.common_reset),
             )
             DhyanControlButton(
                 icon = if (isRunning) Icons.Default.Pause else Icons.Default.PlayArrow,
@@ -959,7 +991,7 @@ private fun BreathingTab(
                 onClick = { isRunning = !isRunning },
                 size = DhyanPlaySize,
                 style = DhyanControlStyle.Play,
-                contentDescription = if (isRunning) "Pause" else "Play",
+                contentDescription = stringResource(if (isRunning) R.string.common_pause else R.string.common_play),
             )
             DhyanControlButton(
                 icon = if (isSessionAudioMuted) Icons.Default.VolumeOff else Icons.Default.VolumeUp,
@@ -967,7 +999,7 @@ private fun BreathingTab(
                 onClick = { isSessionAudioMuted = !isSessionAudioMuted },
                 size = DhyanSideControlSize,
                 style = DhyanControlStyle.Volume,
-                contentDescription = if (isSessionAudioMuted) "Unmute" else "Mute",
+                contentDescription = stringResource(if (isSessionAudioMuted) R.string.common_unmute else R.string.common_mute),
             )
         }
 
@@ -993,7 +1025,9 @@ private fun DhyanGuidanceSheet(
     onOpenAudioLibrary: () -> Unit,
 ) {
     val isLight = !isDarkTheme
-    val title = technique?.let { "${it.name} · ${it.pattern}" } ?: "Breathing techniques"
+    val title = technique?.let {
+        stringResource(R.string.dhyan_technique_pattern, stringResource(it.nameRes), it.pattern)
+    } ?: stringResource(R.string.dhyan_breathing_techniques)
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -1017,7 +1051,7 @@ private fun DhyanGuidanceSheet(
         ) {
             Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
                 Text(
-                    "Guidance",
+                    stringResource(R.string.dhyan_guidance),
                     fontFamily = LoraFontFamily,
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Normal,
@@ -1025,7 +1059,7 @@ private fun DhyanGuidanceSheet(
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    "Choose how you want to breathe",
+                    stringResource(R.string.dhyan_choose_breathe),
                     fontSize = 12.5.sp,
                     color = DhyanFlatColors.Muted,
                 )
@@ -1041,7 +1075,7 @@ private fun DhyanGuidanceSheet(
             ) {
                 Icon(
                     Icons.Default.MusicNote,
-                    contentDescription = "Meditation Audio Library",
+                    contentDescription = stringResource(R.string.dhyan_audio_library),
                     tint = DhyanFlatColors.Primary,
                     modifier = Modifier.size(20.dp),
                 )
@@ -1076,7 +1110,7 @@ private fun DhyanGuidanceSheet(
             )
             Icon(
                 Icons.Default.Edit,
-                contentDescription = "Choose breathing guidance",
+                contentDescription = stringResource(R.string.dhyan_choose_guidance),
                 tint = DhyanColors.actionPink(isDarkTheme),
                 modifier = Modifier.size(20.dp),
             )
@@ -1113,17 +1147,17 @@ private fun BreathingOptionsSheet(
                 .padding(bottom = 40.dp),
             verticalArrangement = Arrangement.spacedBy(0.dp),
         ) {
-            PlanEyebrow("Dhyan")
+            PlanEyebrow(stringResource(R.string.module_dhyan))
             Spacer(Modifier.height(6.dp))
             Text(
-                "Breathing Techniques",
+                stringResource(R.string.dhyan_breathing_techniques),
                 fontFamily = LoraFontFamily,
                 fontWeight = FontWeight.Normal,
                 fontSize = 24.sp,
                 color = DhyanFlatColors.Text,
             )
             Text(
-                "Choose a breathing technique to start",
+                stringResource(R.string.dhyan_choose_technique),
                 fontSize = 13.sp,
                 color = DhyanFlatColors.Muted,
                 modifier = Modifier.padding(top = 4.dp, bottom = 12.dp),
@@ -1131,7 +1165,7 @@ private fun BreathingOptionsSheet(
             PlanHairline()
 
             techniques.forEach { t ->
-                val isSelected = t.name == selectedTechnique?.name
+                val isSelected = t.nameRes == selectedTechnique?.nameRes
                 Column(Modifier.fillMaxWidth()) {
                     Row(
                         modifier = Modifier
@@ -1159,8 +1193,8 @@ private fun BreathingOptionsSheet(
                             )
                         }
                         Column(Modifier.weight(1f)) {
-                            Text(t.name, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = DhyanFlatColors.Text)
-                            Text(t.description, fontSize = 12.sp, color = DhyanFlatColors.Muted, lineHeight = 17.sp)
+                            Text(stringResource(t.nameRes), fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = DhyanFlatColors.Text)
+                            Text(stringResource(t.descriptionRes), fontSize = 12.sp, color = DhyanFlatColors.Muted, lineHeight = 17.sp)
                         }
                         Text(
                             t.pattern,
@@ -1207,17 +1241,17 @@ private fun BreathingSoundSheet(
                 .padding(horizontal = 20.dp)
                 .padding(bottom = 40.dp),
         ) {
-            PlanEyebrow("Dhyan")
+            PlanEyebrow(stringResource(R.string.module_dhyan))
             Spacer(Modifier.height(6.dp))
             Text(
-                "Breathing sounds",
+                stringResource(R.string.dhyan_breathing_sounds),
                 fontFamily = LoraFontFamily,
                 fontWeight = FontWeight.Normal,
                 fontSize = 24.sp,
                 color = DhyanFlatColors.Text,
             )
             Text(
-                "Guidance audio for your technique",
+                stringResource(R.string.dhyan_guidance_audio_help),
                 fontSize = 13.sp,
                 color = DhyanFlatColors.Muted,
                 modifier = Modifier.padding(top = 4.dp, bottom = 12.dp),
@@ -1253,8 +1287,8 @@ private fun BreathingSoundSheet(
                             )
                         }
                         Column(Modifier.weight(1f)) {
-                            Text(sound.name, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = DhyanFlatColors.Text)
-                            Text(sound.description, fontSize = 12.sp, color = DhyanFlatColors.Muted, lineHeight = 17.sp)
+                            Text(stringResource(sound.nameRes), fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = DhyanFlatColors.Text)
+                            Text(stringResource(sound.descriptionRes), fontSize = 12.sp, color = DhyanFlatColors.Muted, lineHeight = 17.sp)
                         }
                         if (isSelected) {
                             Icon(Icons.Default.Check, null, tint = DhyanColors.actionPink(isDarkTheme), modifier = Modifier.size(20.dp))

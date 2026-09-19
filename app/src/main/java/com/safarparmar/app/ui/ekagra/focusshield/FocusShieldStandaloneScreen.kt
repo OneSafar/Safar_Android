@@ -1,7 +1,5 @@
 package com.safarparmar.app.ui.ekagra.focusshield
 
-import android.content.Intent
-import android.provider.Settings
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -73,10 +71,10 @@ fun FocusShieldStandaloneScreen(
     val youtubeState by youtubeViewModel.state.collectAsStateWithLifecycle()
     val accent = KavachDesign.Primary
     val scheme = MaterialTheme.colorScheme
-    val context = LocalContext.current
     val owner = LocalLifecycleOwner.current
     val isLight = !isDarkTheme
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     val pagerState = rememberPagerState(initialPage = initialTab.coerceIn(0, 1)) { 2 }
 
     DisposableEffect(owner) {
@@ -88,10 +86,6 @@ fun FocusShieldStandaloneScreen(
         }
         owner.lifecycle.addObserver(observer)
         onDispose { owner.lifecycle.removeObserver(observer) }
-    }
-
-    fun openAccessibilitySettings() {
-        runCatching { context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }
     }
 
     SafarDrawerScaffold(
@@ -149,7 +143,7 @@ fun FocusShieldStandaloneScreen(
                             modifier = Modifier.size(17.dp),
                         )
                         Text(
-                            text = "App Shield",
+                            text = stringResource(R.string.kavach_app_shield),
                             fontSize = 14.sp,
                             fontWeight = if (appShieldActive) FontWeight.Bold else FontWeight.Medium,
                             color = if (appShieldActive) primaryText(isLight) else secondaryText(isLight),
@@ -169,7 +163,6 @@ fun FocusShieldStandaloneScreen(
 
                 // Tab 1: YouTube Mode
                 val ytActive = pagerState.currentPage == 1
-                val ytRunning = youtubeState.enabled && youtubeState.setupCompleted
                 Column(
                     modifier = Modifier
                         .weight(1f)
@@ -190,19 +183,11 @@ fun FocusShieldStandaloneScreen(
                             modifier = Modifier.size(17.dp),
                         )
                         Text(
-                            text = "YouTube Focus",
+                            text = stringResource(R.string.kavach_youtube_focus),
                             fontSize = 14.sp,
                             fontWeight = if (ytActive) FontWeight.Bold else FontWeight.Medium,
                             color = if (ytActive) primaryText(isLight) else secondaryText(isLight),
                         )
-                        if (ytRunning) {
-                            Box(
-                                modifier = Modifier
-                                    .size(6.dp)
-                                    .clip(CircleShape)
-                                    .background(KavachTabColors.RoyalPurple),
-                            )
-                        }
                     }
                     Spacer(Modifier.height(10.dp))
                     Box(
@@ -250,19 +235,18 @@ fun FocusShieldStandaloneScreen(
                         )
                     }
                     1 -> {
+                        // Temporary launch gate removed. The original placeholder
+                        // composable remains available for a quick rollback.
                         YoutubeStudyV2Content(
                             state = youtubeState,
                             isLight = isLight,
                             onAgree = {
                                 if (youtubeState.accessibilityEnabled) youtubeViewModel.goToStep2()
-                                else openAccessibilitySettings()
+                                else FocusShieldPermissionHelper.openAccessibilitySettings(context)
                             },
-                            onAcceptDisclosure = youtubeViewModel::acceptDisclosure,
-                            onNotNow = {
-                                scope.launch { pagerState.animateScrollToPage(0) }
-                            },
+                            onNotNow = { scope.launch { pagerState.animateScrollToPage(0) } },
                             onSetEnabled = youtubeViewModel::setEnabled,
-                            onOpenAccessibility = ::openAccessibilitySettings,
+                            onOpenAccessibility = { FocusShieldPermissionHelper.openAccessibilitySettings(context) },
                             onReferenceChanged = youtubeViewModel::setReference,
                             onAddChannel = youtubeViewModel::resolveAndAllow,
                             onSetClassification = youtubeViewModel::setClassification,
@@ -271,6 +255,7 @@ fun FocusShieldStandaloneScreen(
                             onDeleteChannel = youtubeViewModel::deleteChannel,
                             onBackToStep1 = youtubeViewModel::returnToStep1,
                             onStart = youtubeViewModel::finishSetup,
+                            onAcceptDisclosure = youtubeViewModel::acceptDisclosure,
                         )
                     }
                 }

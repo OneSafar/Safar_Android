@@ -1,5 +1,8 @@
 package com.safarparmar.app.ui.studyplanner.plan
 
+import androidx.compose.ui.res.stringResource
+import com.safarparmar.app.R
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -139,7 +142,7 @@ internal fun PlanHomeHeader(
             ) {
                 Icon(
                     imageVector = Icons.Default.MoreVert,
-                    contentDescription = "Plan settings",
+                    contentDescription = stringResource(R.string.planner_plan_settings),
                     tint = PlannerFlatColors.TextMuted,
                     modifier = Modifier.size(16.dp),
                 )
@@ -384,7 +387,7 @@ internal fun PlanHomeDailyTodoRow(
             )
             Spacer(Modifier.width(8.dp))
             Text(
-                text = "Daily to-do",
+                text = stringResource(R.string.planner_daily_todo),
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Bold,
                 color = PlannerFlatColors.TextDark,
@@ -577,7 +580,7 @@ internal fun PlanHomeTaskRow(
         if (needsRevision) {
             Spacer(Modifier.width(8.dp))
             Text(
-                text = "To revise",
+                text = stringResource(R.string.planner_to_revise),
                 fontSize = 10.5.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = Color(0xFFF97316),
@@ -595,7 +598,7 @@ internal fun PlanHomeTaskRow(
                 ) {
                     Icon(
                         imageVector = Icons.Default.MoreVert,
-                        contentDescription = "Topic options",
+                        contentDescription = stringResource(R.string.planner_topic_options),
                         tint = PlannerFlatColors.TextMuted,
                         modifier = Modifier.size(16.dp),
                     )
@@ -639,14 +642,14 @@ internal fun PlanHomeAddActions(
         horizontalArrangement = Arrangement.spacedBy(20.dp),
     ) {
         Text(
-            text = "+ Add a topic for today",
+            text = stringResource(R.string.planner_add_topic_today_plus),
             fontSize = 12.5.sp,
             fontWeight = FontWeight.Bold,
             color = PlannerFlatColors.PrimaryAccent,
             modifier = Modifier.clickable(onClick = onAddFromSyllabus),
         )
         Text(
-            text = "+ Add custom",
+            text = stringResource(R.string.planner_add_custom_plus),
             fontSize = 12.5.sp,
             fontWeight = FontWeight.Bold,
             color = PlannerFlatColors.TextMuted,

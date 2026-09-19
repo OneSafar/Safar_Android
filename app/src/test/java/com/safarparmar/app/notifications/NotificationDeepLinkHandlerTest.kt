@@ -28,12 +28,16 @@ class NotificationDeepLinkHandlerTest {
     @Test
     fun `all youtube study links open the final channel mode`() {
         assertEquals(
-            Routes.focusShieldTab(1),
+            Routes.YOUTUBE_STUDY_MODE_V2,
             NotificationDeepLinkHandler.routeFor("safar://youtube_study_mode?section=channels"),
         )
         assertEquals(
-            Routes.focusShieldTab(1),
+            Routes.YOUTUBE_STUDY_MODE_V2,
             NotificationDeepLinkHandler.routeFor("safar://youtube_study_mode/analytics"),
+        )
+        assertEquals(
+            Routes.YOUTUBE_STUDY_MODE_V2,
+            NotificationDeepLinkHandler.routeFor("safar://youtube_focus"),
         )
     }
 

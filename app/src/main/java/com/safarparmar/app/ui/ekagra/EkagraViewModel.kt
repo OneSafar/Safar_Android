@@ -121,6 +121,30 @@ class EkagraViewModel @Inject constructor(
         initialValue = true
     )
 
+    val ekagraTags = dataStore.ekagraTags.stateIn(
+        scope = viewModelScope,
+        started = kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5000),
+        initialValue = DEFAULT_EKAGRA_TAGS,
+    )
+
+    fun addTag(tag: String) {
+        viewModelScope.launch {
+            dataStore.addEkagraTag(tag)
+        }
+    }
+
+    fun removeTag(tag: String) {
+        viewModelScope.launch {
+            dataStore.removeEkagraTag(tag)
+        }
+    }
+
+    fun updateTag(oldTag: String, newTag: String) {
+        viewModelScope.launch {
+            dataStore.updateEkagraTag(oldTag, newTag)
+        }
+    }
+
     fun disableDurationPrompt() {
         viewModelScope.launch {
             dataStore.setShowEkagraDurationPrompt(false)
@@ -332,9 +356,10 @@ class EkagraViewModel @Inject constructor(
         goalTitle: String? = null,
         mode: String = "Timer",
         remainingSeconds: Int = totalSeconds,
+        clientSessionId: String? = null,
     ) {
         val now = Instant.now().toString()
-        val id = "local-${System.currentTimeMillis()}"
+        val id = clientSessionId ?: "local-${java.util.UUID.randomUUID()}"
         activeSessionId = id
         sessionStartedAt = now
         _activeSession.value = EkagraSession(

@@ -1,5 +1,8 @@
 package com.safarparmar.app.ui.studyplanner.create.steps
 
+import androidx.compose.ui.res.stringResource
+import com.safarparmar.app.R
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -103,7 +106,7 @@ fun TemplatePickerStep(
     ) {
         if (!canUsePremiumPlannerFeatures) {
             PremiumPlannerGateCard(
-                title = "Templates are premium",
+                title = stringResource(R.string.planner_templates_premium_title),
                 body = "You can still create a custom plan manually for free.",
                 action = "View Premium",
                 onUpgrade = onUpgrade,
@@ -260,7 +263,7 @@ fun TemplatePickerStep(
                     item {
                         TextButton(onClick = { showAddSubjectDialog = true }) {
                             Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.padding(end = 6.dp))
-                            Text("Add subject", fontWeight = FontWeight.Bold)
+                            Text(stringResource(R.string.planner_add_subject), fontWeight = FontWeight.Bold)
                         }
                     }
                     val visibleSubjectIndices = templateDetail.subjects.indices
@@ -297,8 +300,8 @@ fun TemplatePickerStep(
                 
                 if (showAddSubjectDialog) {
                     TextInputDialog(
-                        title = "Add subject",
-                        label = "Subject name (comma-separated for multiple)",
+                        title = stringResource(R.string.planner_add_subject),
+                        label = stringResource(R.string.planner_subject_names_hint),
                         confirmLabel = "Add",
                         emptyHint = "Please type the subject name",
                         onDismiss = { showAddSubjectDialog = false },
@@ -323,7 +326,7 @@ fun TemplatePickerStep(
                         item {
                             TextButton(onClick = { showAddChapterDialog = true }) {
                                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.padding(end = 6.dp))
-                                Text("Add chapter", fontWeight = FontWeight.Bold)
+                                Text(stringResource(R.string.planner_add_chapter), fontWeight = FontWeight.Bold)
                             }
                         }
                         items(subject.chapters, key = { it.localId }) { chapter ->
@@ -338,8 +341,8 @@ fun TemplatePickerStep(
 
                     if (showAddChapterDialog) {
                         TextInputDialog(
-                            title = "Add chapter",
-                            label = "Chapter name (comma-separated for multiple)",
+                            title = stringResource(R.string.planner_add_chapter),
+                            label = stringResource(R.string.planner_chapter_names_hint),
                             confirmLabel = "Add",
                             emptyHint = "Please type the chapter name",
                             onDismiss = { showAddChapterDialog = false },
@@ -360,7 +363,7 @@ fun TemplatePickerStep(
                         item {
                             TextButton(onClick = { showAddChapterDialog = true }) {
                                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.padding(end = 6.dp))
-                                Text("Add chapter", fontWeight = FontWeight.Bold)
+                                Text(stringResource(R.string.planner_add_chapter), fontWeight = FontWeight.Bold)
                             }
                         }
                         val visibleChapterIndices = subject.chapters.indices
@@ -389,8 +392,8 @@ fun TemplatePickerStep(
 
                     if (showAddChapterDialog) {
                         TextInputDialog(
-                            title = "Add chapter",
-                            label = "Chapter name (comma-separated for multiple)",
+                            title = stringResource(R.string.planner_add_chapter),
+                            label = stringResource(R.string.planner_chapter_names_hint),
                             confirmLabel = "Add",
                             emptyHint = "Please type the chapter name",
                             onDismiss = { showAddChapterDialog = false },
@@ -419,7 +422,7 @@ fun TemplatePickerStep(
                         item {
                             TextButton(onClick = { showAddTopicDialog = true }) {
                                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.padding(end = 6.dp))
-                                Text("Add topic", fontWeight = FontWeight.Bold)
+                                Text(stringResource(R.string.planner_add_topic), fontWeight = FontWeight.Bold)
                             }
                         }
                         items(chapter.topics, key = { it.localId }) { topic ->
@@ -431,8 +434,8 @@ fun TemplatePickerStep(
                     }
                     if (showAddTopicDialog) {
                         TextInputDialog(
-                            title = "Add topic",
-                            label = "Topic name (comma-separated for multiple)",
+                            title = stringResource(R.string.planner_add_topic),
+                            label = stringResource(R.string.planner_topic_names_hint),
                             confirmLabel = "Add",
                             emptyHint = "Please type the topic name",
                             onDismiss = { showAddTopicDialog = false },
@@ -461,7 +464,7 @@ fun TemplatePickerStep(
                                 item {
                                     TextButton(onClick = { showAddTopicDialog = true }) {
                                         Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.padding(end = 6.dp))
-                                        Text("Add topic", fontWeight = FontWeight.Bold)
+                                        Text(stringResource(R.string.planner_add_topic), fontWeight = FontWeight.Bold)
                                     }
                                 }
                                 val visibleTopicIndices = chapter.topics.indices.filterNot { ti ->
@@ -483,8 +486,8 @@ fun TemplatePickerStep(
                             }
                             if (showAddTopicDialog) {
                                 TextInputDialog(
-                                    title = "Add topic",
-                                    label = "Topic name (comma-separated for multiple)",
+                                    title = stringResource(R.string.planner_add_topic),
+                                    label = stringResource(R.string.planner_topic_names_hint),
                                     confirmLabel = "Add",
                                     emptyHint = "Please type the topic name",
                                     onDismiss = { showAddTopicDialog = false },
@@ -504,7 +507,7 @@ fun TemplatePickerStep(
                                 item {
                                     TextButton(onClick = { showAddTopicDialog = true }) {
                                         Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.padding(end = 6.dp))
-                                        Text("Add topic", fontWeight = FontWeight.Bold)
+                                        Text(stringResource(R.string.planner_add_topic), fontWeight = FontWeight.Bold)
                                     }
                                 }
                                 items(chapter.topics, key = { it.localId }) { topic ->
@@ -516,8 +519,8 @@ fun TemplatePickerStep(
                             }
                             if (showAddTopicDialog) {
                                 TextInputDialog(
-                                    title = "Add topic",
-                                    label = "Topic name (comma-separated for multiple)",
+                                    title = stringResource(R.string.planner_add_topic),
+                                    label = stringResource(R.string.planner_topic_names_hint),
                                     confirmLabel = "Add",
                                     emptyHint = "Please type the topic name",
                                     onDismiss = { showAddTopicDialog = false },
@@ -537,7 +540,7 @@ fun TemplatePickerStep(
         if (subjectIndex == null) {
             val isLight = MaterialTheme.colorScheme.background.isLightBackground()
             MacOSPrimaryActionButton(
-                text = "Continue",
+                text = stringResource(R.string.common_continue),
                 onClick = onContinue,
                 enabled = canUsePremiumPlannerFeatures && remainingTopicCount > 0,
                 isLight = isLight,
@@ -631,7 +634,7 @@ private fun TopicAddedRow(name: String, onRemove: () -> Unit) {
         ) {
             Icon(
                 Icons.Default.Close,
-                contentDescription = "Remove topic",
+                contentDescription = stringResource(R.string.planner_remove_topic),
                 tint = MaterialTheme.colorScheme.onError,
                 modifier = Modifier.size(13.dp),
             )

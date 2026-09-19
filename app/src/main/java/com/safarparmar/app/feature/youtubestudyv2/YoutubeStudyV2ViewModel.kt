@@ -56,7 +56,7 @@ class YoutubeStudyV2ViewModel @Inject constructor(
         ResolvedYoutubeChannelDto("starter:safarparmar", "@safarparmar", "Safar"),
     )
 
-    val state = combine(local, setup, repository.allowedChannels, repository.visitedChannels, repository.classifications) { ui, setupState, allowed, visited, classifications ->
+    val state = combine(local, setup, repository.allowedChannels, repository.classifications) { ui, setupState, allowed, classifications ->
         val classMap = classifications.associate { it.channelId to YoutubeChannelClassification.fromWire(it.classification) }
 
         // Channels that were manually added via @handle (allowed table JOIN identity)
@@ -69,28 +69,12 @@ class YoutubeStudyV2ViewModel @Inject constructor(
             )
         }
 
-        // Channels seen by the accessibility service that are classified
-        val visitedDtos = visited
-            .filter { entity ->
-                val classification = classMap[entity.channelId]
-                classification == YoutubeChannelClassification.PRODUCTIVE || classification == YoutubeChannelClassification.DISTRACTING
-            }
-            .map { entity ->
-                ResolvedYoutubeChannelDto(
-                    channelId = entity.channelId,
-                    handle = entity.handle,
-                    displayName = entity.displayName,
-                    thumbnailUrl = entity.thumbnailUrl,
-                )
-            }
-
-        // Merge: allowed channels always appear; add classified-visited on top; no duplicates
-        val mergedList = (allowedDtos + visitedDtos).distinctBy { it.channelId }
+        val mergedList = allowedDtos.distinctBy { it.channelId }
 
         val mergedAvailable = if (!setupState.completed) {
-            (mergedList + starterChannels).distinctBy { it.handle.lowercase() }
+            (mergedList + starterChannels).distinctBy { it.handle.ifBlank { it.displayName }.lowercase() }
         } else {
-            mergedList.distinctBy { it.handle.lowercase() }
+            mergedList.distinctBy { it.handle.ifBlank { it.displayName }.lowercase() }
         }
         ui.copy(
             enabled = setupState.enabled,
@@ -157,7 +141,7 @@ class YoutubeStudyV2ViewModel @Inject constructor(
                 .onFailure {
                     local.value = local.value.copy(
                         resolving = false,
-                        message = "Could not add channel. Check the @handle.",
+                        message = it.message ?: "Enter the channel name or @handle exactly as YouTube shows it.",
                         isError = true,
                     )
                 }
@@ -166,28 +150,6 @@ class YoutubeStudyV2ViewModel @Inject constructor(
 
     fun toggleAvailable() {
         local.value = local.value.copy(availableExpanded = !local.value.availableExpanded)
-    }
-
-    fun loadAvailable() {
-        if (local.value.loadingAvailable) return
-        local.value = local.value.copy(loadingAvailable = true, message = null)
-        viewModelScope.launch {
-            repository.availableChannels()
-                .onSuccess { channels ->
-                    local.value = local.value.copy(
-                        available = channels,
-                        loadingAvailable = false,
-                        isError = false,
-                    )
-                }
-                .onFailure {
-                    local.value = local.value.copy(
-                        loadingAvailable = false,
-                        message = "Could not load channels. Try again.",
-                        isError = true,
-                    )
-                }
-        }
     }
 
     fun setAvailableProductive(channel: ResolvedYoutubeChannelDto, productive: Boolean) {

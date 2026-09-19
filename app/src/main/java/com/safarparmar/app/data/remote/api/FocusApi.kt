@@ -23,6 +23,9 @@ import retrofit2.http.Path
 import retrofit2.http.Query
 
 interface FocusApi {
+    @POST("ekagra-sessions/ranked-session")
+    suspend fun updateRankedFocus(@Body request: com.safarparmar.app.data.remote.dto.RankedFocusRequest): Response<com.safarparmar.app.data.remote.dto.RankedFocusResponse>
+
 
     @POST("ekagra-sessions/presence")
     suspend fun setFocusPresence(@Body request: FocusPresenceRequest): Response<Unit>

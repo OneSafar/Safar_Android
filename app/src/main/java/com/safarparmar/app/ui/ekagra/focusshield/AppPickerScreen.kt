@@ -61,7 +61,7 @@ fun AppPickerScreen(
     fun finishAndReturn() {
         val activated = viewModel.saveAndEnableShieldIfReady()
         if (activated) {
-            android.widget.Toast.makeText(context, "KAVACH is active and ready to protect your focus!", android.widget.Toast.LENGTH_SHORT).show()
+            android.widget.Toast.makeText(context, context.getString(R.string.kavach_active_ready), android.widget.Toast.LENGTH_SHORT).show()
         }
         onBack()
     }
@@ -165,7 +165,7 @@ fun AppPickerScreen(
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                         modifier = Modifier.height(36.dp)
                     ) {
-                        Text("Select Distracting", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.kavach_select_distracting), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
                 }
                 item {
@@ -179,7 +179,7 @@ fun AppPickerScreen(
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                         modifier = Modifier.height(36.dp)
                     ) {
-                        Text("Select All", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                        Text(stringResource(R.string.common_select_all), fontSize = 12.sp, fontWeight = FontWeight.Medium)
                     }
                 }
                 item {
@@ -193,7 +193,7 @@ fun AppPickerScreen(
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                         modifier = Modifier.height(36.dp)
                     ) {
-                        Text("Clear All", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                        Text(stringResource(R.string.common_clear_all), fontSize = 12.sp, fontWeight = FontWeight.Medium)
                     }
                 }
             }

@@ -120,11 +120,14 @@ class MainActivity : AppCompatActivity(), PaymentResultWithDataListener {
             val requiredUpdate by maintenanceStateManager.requiredUpdate.collectAsStateWithLifecycle()
             val isCheckingMaintenance by maintenanceStateManager.isChecking.collectAsStateWithLifecycle()
 
-            // Anchor font scale globally across the entire app so all screens, dialogs, and sheets maintain intended typography and layout
+            // Allow system font scale to expand gracefully within a safe range (1.0f to 1.45f)
+            // so text scales with Android settings without overflowing or breaking layout.
             val currentDensity = androidx.compose.ui.platform.LocalDensity.current
+            val systemFontScale = configuration.fontScale
+            val safeFontScale = systemFontScale.coerceIn(1.0f, 1.45f)
             val customDensity = androidx.compose.ui.unit.Density(
                 density = currentDensity.density,
-                fontScale = 1.0f // Strictly anchored to 1.0f
+                fontScale = safeFontScale
             )
 
             CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides customDensity) {

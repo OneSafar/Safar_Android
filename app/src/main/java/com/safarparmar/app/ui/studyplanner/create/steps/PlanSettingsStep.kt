@@ -1,5 +1,8 @@
 package com.safarparmar.app.ui.studyplanner.create.steps
 
+import androidx.compose.ui.res.stringResource
+import com.safarparmar.app.R
+
 import com.safarparmar.app.ui.studyplanner.components.PlannerDialogText
 import com.safarparmar.app.ui.studyplanner.components.PlannerDialogAction
 import com.safarparmar.app.ui.studyplanner.components.PlannerDialog
@@ -109,7 +112,7 @@ fun PlanSettingsStep(
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         Text(
-            "A few details",
+            stringResource(R.string.planner_few_details),
             fontFamily = LoraFontFamily,
             fontSize = 26.sp,
             fontWeight = FontWeight.Normal,
@@ -118,7 +121,7 @@ fun PlanSettingsStep(
 
         Spacer(Modifier.height(4.dp))
 
-        SettingsSection(title = "When is your exam?") {
+        SettingsSection(title = stringResource(R.string.planner_when_exam)) {
             PlannerExamDateField(
                 examDateIso = examDate,
                 onExamDateChange = onExamDateChange,
@@ -128,20 +131,20 @@ fun PlanSettingsStep(
 
         PlanHairline(alpha = 0.5f)
 
-        SettingsSection(title = "How many days a week do you want to study?") {
+        SettingsSection(title = stringResource(R.string.planner_days_per_week)) {
             PlanRestDaysRow(selected = offDays, onToggle = onToggleOffDay)
         }
 
         PlanHairline(alpha = 0.5f)
 
-        SettingsSection(title = "Choose your study style") {
+        SettingsSection(title = stringResource(R.string.planner_choose_study_style_title)) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 StudyStyleIconOption(
                     icon = Icons.Default.CenterFocusStrong,
                     accent = PlannerAccent.Coral,
-                    title = "Deep Focus",
-                    body = "Focus on one subject at a time.",
-                    info = "Finish one subject before moving to the next.",
+                    title = stringResource(R.string.planner_deep_focus),
+                    body = stringResource(R.string.planner_deep_focus_option_body),
+                    info = stringResource(R.string.planner_deep_focus_option_info),
                     selected = selectedStyle == "deep_focus",
                     onClick = {
                         onStudyStyleChange("deep_focus")
@@ -152,9 +155,9 @@ fun PlanSettingsStep(
                     StudyStyleIconOption(
                         icon = Icons.Default.Shuffle,
                         accent = PlannerAccent.Teal,
-                        title = "Mixed Bag",
-                        body = "Tackle your hardest subjects first.",
-                        info = "Pick your 2-3 hardest subjects. They get scheduled first, in the order you choose, and your other subjects start once they're covered.",
+                        title = stringResource(R.string.planner_mixed_bag),
+                        body = stringResource(R.string.planner_mixed_bag_option_body),
+                        info = stringResource(R.string.planner_mixed_bag_option_info),
                         selected = selectedStyle == "mixed_bag",
                         onClick = {
                             onStudyStyleChange("mixed_bag")
@@ -165,9 +168,9 @@ fun PlanSettingsStep(
                 StudyStyleIconOption(
                     icon = Icons.Default.Bolt,
                     accent = PlannerAccent.Amber,
-                    title = "Balanced",
-                    body = "Study a little bit of all your subjects every day.",
-                    info = "Study a steady mix of every subject each day, in the order you arrange. Nothing waits till the end.",
+                    title = stringResource(R.string.planner_balanced),
+                    body = stringResource(R.string.planner_balanced_option_body),
+                    info = stringResource(R.string.planner_balanced_option_info),
                     selected = selectedStyle == "balanced",
                     onClick = {
                         onStudyStyleChange("balanced")
@@ -194,13 +197,13 @@ fun PlanSettingsStep(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    "Rearrange chapters & topics order",
+                    stringResource(R.string.planner_rearrange_order),
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = accent,
                 )
                 Text(
-                    "Customize →",
+                    stringResource(R.string.planner_customize_arrow),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
                     color = accent,
@@ -225,26 +228,17 @@ fun PlanSettingsStep(
             count.coerceAtLeast(1)
         }.getOrNull()
 
-        SettingsSection(title = "How many topics per day?", subtitle = "Optional — we'll recommend one for you.") {
+        SettingsSection(title = stringResource(R.string.planner_topics_per_day_question), subtitle = stringResource(R.string.planner_topics_per_day_optional)) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (topicCount > 0 && studyDaysEstimate != null) {
                     val recommended = ceil(topicCount.toDouble() / studyDaysEstimate.toDouble()).toInt().coerceAtLeast(1)
                     Text(
-                        text = buildAnnotatedString {
-                            append("With ")
-                            withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = accent)) {
-                                append("$topicCount topics")
-                            }
-                            append(" over ")
-                            withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = accent)) {
-                                append("$studyDaysEstimate study days")
-                            }
-                            append(", we recommend studying ")
-                            withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = accent)) {
-                                append("$recommended topics/day")
-                            }
-                            append(".")
-                        },
+                        text = stringResource(
+                            R.string.planner_recommendation_summary,
+                            topicCount,
+                            studyDaysEstimate,
+                            recommended,
+                        ),
                         fontSize = 12.5.sp,
                         color = scheme.onSurfaceVariant,
                         modifier = Modifier.padding(vertical = 2.dp),
@@ -253,8 +247,8 @@ fun PlanSettingsStep(
                 OutlinedTextField(
                     value = dailyGoal,
                     onValueChange = onDailyGoalChange,
-                    label = { Text("Topics per day") },
-                    supportingText = { Text("Big topics count as more.") },
+                    label = { Text(stringResource(R.string.planner_topics_per_day)) },
+                    supportingText = { Text(stringResource(R.string.planner_big_topics_count_more)) },
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
@@ -262,7 +256,7 @@ fun PlanSettingsStep(
 
         if (premiumRequired) {
             Text(
-                "Safar Premium is required to create plans from templates.",
+                stringResource(R.string.planner_templates_require_premium),
                 color = scheme.error,
                 fontSize = 12.sp,
             )
@@ -278,7 +272,7 @@ fun PlanSettingsStep(
         val sourceAccent = PlannerFlatColors.PrimaryAccent
 
         MacOSPrimaryActionButton(
-            text = "Build my plan",
+            text = stringResource(R.string.planner_build_my_plan),
             onClick = {
                 if (examDateOnly.isBlank()) {
                     buildAttempted = true
@@ -395,7 +389,7 @@ private fun StudyStyleIconOption(
                 Text(body, fontSize = 11.5.sp, color = scheme.onSurfaceVariant, maxLines = 1)
             }
             IconButton(onClick = { showInfo = true }, modifier = Modifier.size(28.dp)) {
-                Icon(Icons.Default.Info, contentDescription = "About $title", tint = scheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
+                Icon(Icons.Default.Info, contentDescription = stringResource(R.string.common_about_named, title), tint = scheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
             }
         }
     }
@@ -404,7 +398,7 @@ private fun StudyStyleIconOption(
             onDismissRequest = { showInfo = false },
             title = title,
             text = { PlannerDialogText(info) },
-            confirmButton = { PlannerDialogAction(text = "OK") { showInfo = false } },
+            confirmButton = { PlannerDialogAction(text = stringResource(R.string.common_ok)) { showInfo = false } },
         )
     }
 }

@@ -23,7 +23,10 @@ enum class TopicStatus(val wireValue: String, val label: String) {
     DONE("done", "Done"),
 
     @SerializedName("revision_needed")
-    REVISION_NEEDED("revision_needed", "To Revise"),
+    REVISION_NEEDED("revision_needed", "To Revise");
+
+    /** Initial study is complete even while revision appointments remain. */
+    val isStudied: Boolean get() = this == DONE || this == REVISION_NEEDED
 }
 
 /** Effort size of a topic. Missing on the wire = MEDIUM. Points: 1 / 2 / 4. */
@@ -75,7 +78,7 @@ fun StudyTopic.effortPoints(chapter: StudyChapter? = null): Int = effectiveSize(
  * by restoring the `progressPercent?.coerceIn(0, 100) ?:` prefix here.
  */
 fun StudyTopic.progressPercentValue(): Int =
-    if (status == TopicStatus.DONE) 100 else 0
+    if (status.isStudied) 100 else 0
 
 /** Remaining effort: a half-done big topic counts as 2 points, not 4. */
 fun StudyTopic.remainingPoints(chapter: StudyChapter? = null): Float =

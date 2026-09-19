@@ -43,6 +43,9 @@ object Routes {
     const val LIVE_SESSION = "live/session/{sessionId}"
     const val ADMIN_NOTIFICATIONS = "admin/notifications"
     const val PREMIUM = "premium"
+    const val HABIT_TRACKER = "habit_tracker"
+    const val HABIT_INSIGHTS = "habit_insights"
+    const val SUPPORT = "support"
 
     // Syllabus route — single unified accordion-tree screen (subjects/chapters/topics expand in place)
     const val ROUTE_SYLLABUS_SUBJECTS = "syllabus/subjects/{planId}"

@@ -42,11 +42,14 @@ import com.safarparmar.app.ui.ekagra.focusshield.KavachAboutScreen
 import com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2Screen
 import com.safarparmar.app.feature.live.presentation.LiveSessionScreen
 import com.safarparmar.app.feature.live.presentation.LiveSessionsHubScreen
+import com.safarparmar.app.feature.habits.ui.HabitScreen
+import com.safarparmar.app.feature.habits.ui.insights.HabitInsightsScreen
 import com.safarparmar.app.ui.premium.PremiumPaywallScreen
 import com.safarparmar.app.ui.premium.PremiumViewModel
 import com.safarparmar.app.ui.leaderboard.LeaderboardScreen
 import com.safarparmar.app.ui.studycircle.StudyCircleDetailScreen
 import com.safarparmar.app.ui.studycircle.StudyCircleScreen
+import com.safarparmar.app.ui.support.SupportScreen
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -114,6 +117,8 @@ fun SafarNavGraph(
         Routes.PROFILE,
         Routes.SETTINGS,
         Routes.ADMIN_NOTIFICATIONS,
+        Routes.HABIT_TRACKER,
+        Routes.SUPPORT,
     )
 
     fun navigate(route: String) {
@@ -530,6 +535,23 @@ fun SafarNavGraph(
             )
         }
 
+        composable(Routes.HABIT_TRACKER) {
+            HabitScreen(
+                currentRoute = Routes.HABIT_TRACKER,
+                isDarkTheme = isDarkTheme,
+                onNavigate = ::navigate,
+                onToggleDarkTheme = onToggleDarkTheme,
+            )
+        }
+
+        composable(Routes.HABIT_INSIGHTS) {
+            HabitInsightsScreen(
+                onBack = ::safeBack,
+                isDarkTheme = isDarkTheme,
+                onToggleDarkTheme = onToggleDarkTheme,
+            )
+        }
+
         composable(Routes.STUDY_CIRCLES) {
             StudyCircleScreen(
                 currentRoute = Routes.STUDY_CIRCLES,
@@ -754,6 +776,10 @@ fun SafarNavGraph(
                     onToggleDarkTheme = onToggleDarkTheme,
                 )
             }
+        }
+
+        composable(Routes.SUPPORT) {
+            SupportScreen(onBack = ::safeBack)
         }
 
         composable(Routes.PREMIUM) {

@@ -6,7 +6,7 @@ import org.junit.Test
 
 class YoutubePipPolicyTest {
     @Test fun `distracting playback is blocked again when break expires in PiP`() {
-        assertFalse(shouldBlockYoutubePip(true, YoutubeChannelClassification.DISTRACTING))
+        assertTrue(shouldBlockYoutubePip(true, YoutubeChannelClassification.DISTRACTING))
         assertTrue(shouldBlockYoutubePip(false, YoutubeChannelClassification.DISTRACTING))
     }
 
@@ -17,6 +17,12 @@ class YoutubePipPolicyTest {
     @Test fun `unidentified PiP cannot bypass channel checks`() {
         assertTrue(shouldBlockYoutubePip(false, null))
         assertTrue(shouldBlockYoutubePip(false, YoutubeChannelClassification.OTHERS))
-        assertFalse(shouldBlockYoutubePip(true, null))
+        assertTrue(shouldBlockYoutubePip(true, null))
+    }
+
+    @Test fun `block overlay is scoped to an unlocked YouTube surface`() {
+        assertTrue(shouldKeepYoutubeBlockOverlay(true, true))
+        assertFalse(shouldKeepYoutubeBlockOverlay(false, true))
+        assertFalse(shouldKeepYoutubeBlockOverlay(true, false))
     }
 }

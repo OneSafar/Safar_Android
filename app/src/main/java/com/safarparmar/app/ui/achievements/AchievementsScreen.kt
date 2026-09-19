@@ -19,12 +19,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import com.safarparmar.app.ui.theme.*
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.safarparmar.app.R
 import com.safarparmar.app.domain.model.Achievement
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -58,7 +60,7 @@ fun AchievementsScreen(
                 },
                 title = {
                     Column {
-                        Text("Achievements & Titles", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(R.string.achievements_title), fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
                     }
                 },
             )
@@ -72,9 +74,9 @@ fun AchievementsScreen(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                StatChip("$earned Earned", MaterialTheme.colorScheme.primary)
-                StatChip("${total - earned} Locked", MaterialTheme.colorScheme.onSurfaceVariant.copy(0.6f))
-                StatChip("$total Total", MaterialTheme.colorScheme.onSurfaceVariant.copy(0.4f))
+                StatChip(stringResource(R.string.achievements_earned_count, earned), MaterialTheme.colorScheme.primary)
+                StatChip(stringResource(R.string.achievements_locked_count, total - earned), MaterialTheme.colorScheme.onSurfaceVariant.copy(0.6f))
+                StatChip(stringResource(R.string.achievements_total_count, total), MaterialTheme.colorScheme.onSurfaceVariant.copy(0.4f))
             }
 
             ScrollableTabRow(
@@ -86,7 +88,17 @@ fun AchievementsScreen(
                     Tab(
                         selected = selectedFilter == f,
                         onClick = { selectedFilter = f },
-                        text = { Text(f.replaceFirstChar { it.uppercase() }, fontSize = 13.sp) }
+                        text = {
+                            Text(
+                                when (f) {
+                                    "earned" -> stringResource(R.string.achievements_filter_earned)
+                                    "badge" -> stringResource(R.string.achievements_filter_badges)
+                                    "title" -> stringResource(R.string.achievements_filter_titles)
+                                    else -> stringResource(R.string.common_all)
+                                },
+                                fontSize = 13.sp,
+                            )
+                        }
                     )
                 }
             }
@@ -94,7 +106,7 @@ fun AchievementsScreen(
             if (filtered.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text(
-                        text = "No achievements currently",
+                        text = stringResource(R.string.achievements_empty),
                         fontSize = 14.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontWeight = FontWeight.Medium
@@ -228,11 +240,11 @@ private fun AchievementCard(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        Text("✓ Earned", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = primary)
+                        Text(stringResource(R.string.achievements_earned_mark), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = primary)
                         AssistChip(
                             onClick = { if (!isSelected) onSelectAchievement(achievement.id) },
                             enabled = !isSelected,
-                            label = { Text(if (isSelected) "Active" else "Set active", fontSize = 10.sp) },
+                        label = { Text(if (isSelected) stringResource(R.string.achievements_active) else stringResource(R.string.achievements_set_active), fontSize = 10.sp) },
                         )
                     }
                 }
@@ -250,7 +262,7 @@ private fun AchievementCard(
             ) {
                 androidx.compose.material3.Icon(
                     imageVector = androidx.compose.material.icons.Icons.Default.Lock,
-                    contentDescription = "Locked",
+                    contentDescription = stringResource(R.string.achievements_locked),
                     tint = Color.White.copy(alpha = 0.8f),
                     modifier = Modifier.size(32.dp)
                 )

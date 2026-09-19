@@ -230,6 +230,7 @@ data class EkagraAnalyticsFocusSession(
     val durationMinutes: Int = 0,
     val actualMinutes: Int = 0,
     val actualSeconds: Int = 0,
+    val rankedSeconds: Int? = null,
     val status: String = "completed",
     val rawStatus: String = "completed",
     val taskText: String? = null,

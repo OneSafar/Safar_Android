@@ -1,5 +1,8 @@
 package com.safarparmar.app.ui.studyplanner.create.steps
 
+import androidx.compose.ui.res.stringResource
+import com.safarparmar.app.R
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -90,7 +93,7 @@ internal fun ChapterRatingStep(
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
                 PlanChoiceCard(
-                    title = "Same every day",
+                    title = stringResource(R.string.planner_same_every_day),
                     lines = listOf(
                         "Every day has exactly $n topics." to null,
                         "Hard or easy, the number never changes." to null,
@@ -105,7 +108,7 @@ internal fun ChapterRatingStep(
                     }
                 }
                 PlanChoiceCard(
-                    title = "Go by how hard it is",
+                    title = stringResource(R.string.planner_go_by_difficulty),
                     lines = listOf(
                         "Hard topics" to ChapterDifficulty.TOUGH,
                         "  fewer in a day, so you get time for them." to null,
@@ -171,19 +174,19 @@ internal fun ChapterRatingStep(
                                 verticalArrangement = Arrangement.spacedBy(6.dp),
                             ) {
                                 Text(
-                                    text = "⚡ SMART EFFORT ADJUSTMENT",
+                                    text = stringResource(R.string.planner_smart_effort_adjustment),
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Black,
                                     color = PlannerAccent.Amber,
                                 )
                                 Text(
-                                    text = "Daily goal set to $requiredGoal topics/day",
+                                    text = stringResource(R.string.planner_daily_goal_adjusted, requiredGoal),
                                     fontSize = 15.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = scheme.onSurface,
                                 )
                                 Text(
-                                    text = "Because of your Tough chapters, we automatically adjusted your daily effort from $dailyGoal to $requiredGoal topics/day so all topics finish before your exam.",
+                                    text = stringResource(R.string.planner_tough_adjustment_body, dailyGoal, requiredGoal),
                                     fontSize = 12.5.sp,
                                     color = scheme.onSurfaceVariant,
                                     lineHeight = 17.sp,
@@ -343,13 +346,13 @@ internal fun ChapterRatingStep(
                         verticalArrangement = Arrangement.spacedBy(2.dp),
                     ) {
                         Text(
-                            text = "💡 Adjusted for your Tough chapters",
+                            text = stringResource(R.string.planner_adjusted_for_tough),
                             fontSize = 12.5.sp,
                             fontWeight = FontWeight.Bold,
                             color = scheme.onSurface,
                         )
                         Text(
-                            text = "To finish all topics before your exam, your daily goal is set to $requiredGoal topics/day.",
+                            text = stringResource(R.string.planner_daily_goal_finish_body, requiredGoal),
                             fontSize = 12.sp,
                             color = scheme.onSurfaceVariant,
                         )
@@ -358,7 +361,7 @@ internal fun ChapterRatingStep(
             }
 
             MacOSPrimaryActionButton(
-                text = "Build my plan",
+                text = stringResource(R.string.planner_build_my_plan),
                 onClick = onContinue,
                 isLight = isLight,
                 customAccent = sourceAccent,

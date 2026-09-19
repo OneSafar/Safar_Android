@@ -26,15 +26,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.safarparmar.app.R
 import com.safarparmar.app.ui.theme.isLightBackground
 
-enum class DhyanTab(val label: String) {
-    DHYAN("Dhyan"),
-    COURSES("Courses"),
-    LIVE("Dhyan Live"),
+enum class DhyanTab {
+    DHYAN,
+    COURSES,
+    LIVE,
 }
 
 @Composable
@@ -126,7 +128,13 @@ private fun DhyanTabItem(
             modifier = Modifier.size(15.dp),
         )
         Text(
-            text = tab.label,
+            text = stringResource(
+                when (tab) {
+                    DhyanTab.DHYAN -> R.string.module_dhyan
+                    DhyanTab.COURSES -> R.string.dhyan_courses_tab
+                    DhyanTab.LIVE -> R.string.dhyan_live_tab
+                }
+            ),
             fontSize = 12.sp,
             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
             color = textColor,

@@ -1,5 +1,8 @@
 package com.safarparmar.app.ui.studyplanner.create.steps
 
+import androidx.compose.ui.res.stringResource
+import com.safarparmar.app.R
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -68,8 +71,8 @@ fun ChoosePathStep(
 
         LiquidGlassPathCard(
             icon = Icons.Default.School,
-            title = "Use a template",
-            subtitle = "SSC, UPSC, Railways, Defence — ready to customize",
+            title = stringResource(R.string.planner_use_template),
+            subtitle = stringResource(R.string.planner_use_template_body),
             actionHint = "Explore templates →",
             accentColor = if (isLight) Color(0xFF064E3B) else Color(0xFF34D399),
             isLight = isLight,
@@ -79,8 +82,8 @@ fun ChoosePathStep(
 
         LiquidGlassPathCard(
             icon = Icons.Default.Edit,
-            title = "Build it myself",
-            subtitle = "Reuse one you made or create a new syllabus",
+            title = stringResource(R.string.planner_build_myself),
+            subtitle = stringResource(R.string.planner_build_myself_body),
             actionHint = "Open my syllabi →",
             accentColor = if (isLight) Color(0xFFFF8A37) else Color(0xFFFFB74D),
             isLight = isLight,
