@@ -139,32 +139,70 @@ internal fun ModeTabs(
     selected: TimerMode,
     accentColor: Color,
     ink: EkagraInk,
+    isDarkTheme: Boolean = false,
     onSelect: (TimerMode) -> Unit,
 ) {
     val modes = remember { TimerMode.entries.filter { it.showInPill } }
 
-    EkagraTextTabs(
-        items = modes,
-        selected = selected,
-        accent = accentColor,
-        ink = ink,
-        label = { it.label },
-        icon = { mode, color ->
+    val trackBg = if (isDarkTheme) Color.White.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.22f)
+    val trackBorder = if (isDarkTheme) Color.White.copy(alpha = 0.14f) else Color.White.copy(alpha = 0.38f)
+
+    Row(
+        modifier = Modifier
+            .clip(CircleShape)
+            .background(trackBg)
+            .border(1.dp, trackBorder, CircleShape)
+            .padding(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        modes.forEach { mode ->
+            val isSelected = mode == selected
+            val pillBg = if (isSelected) {
+                if (isDarkTheme) Color(0xFF1E293B) else Color.White
+            } else Color.Transparent
+            val contentColor = if (isSelected) {
+                if (isDarkTheme) Color.White else Color(0xFF0F172A)
+            } else {
+                if (isDarkTheme) Color.White.copy(alpha = 0.70f) else Color(0xFF334155)
+            }
+
             val iconVector = when (mode) {
                 TimerMode.FOCUS -> Icons.Default.HourglassEmpty
                 TimerMode.BREAK -> Icons.Default.FreeBreakfast
                 TimerMode.STOPWATCH -> Icons.Default.Timer
                 else -> Icons.Default.Timer
             }
-            EkagraChromeIcon(
-                imageVector = iconVector,
-                contentDescription = null,
-                tint = color,
-                baseSizeDp = 16f,
-            )
-        },
-        onSelect = onSelect,
-    )
+
+            Row(
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .then(
+                        if (isSelected) Modifier.shadow(elevation = 3.dp, shape = CircleShape)
+                        else Modifier
+                    )
+                    .background(pillBg)
+                    .clickable { onSelect(mode) }
+                    .padding(horizontal = 14.dp, vertical = 7.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Icon(
+                    imageVector = iconVector,
+                    contentDescription = null,
+                    tint = contentColor,
+                    modifier = Modifier.size(14.dp),
+                )
+                Text(
+                    text = mode.label,
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                    fontSize = 12.sp,
+                    color = contentColor,
+                    maxLines = 1,
+                )
+            }
+        }
+    }
 }
 
 // ─── Timer / Focus tab ─────────────────────────────────────────────────────────
@@ -174,6 +212,10 @@ internal fun ModeTabs(
 internal fun TimerFocusTab(
     modifier: Modifier,
     timerMode: TimerMode,
+    /** The mode shown as selected in the pill tab bar.
+     *  Defaults to [timerMode]. Callers can pass a different value so the user
+     *  can browse/preview other modes without touching the running session. */
+    selectedDisplayMode: TimerMode = timerMode,
     secondsLeft: Int,
     isRunning: Boolean,
     progress: Float,
@@ -257,9 +299,10 @@ internal fun TimerFocusTab(
                     Spacer(Modifier.height(if (isCompactHeight) 8.dp else 12.dp))
 
                     ModeTabs(
-                        selected = timerMode,
+                        selected = selectedDisplayMode,
                         accentColor = themeAccent,
                         ink = ink,
+                        isDarkTheme = isDarkTheme,
                         onSelect = onModeChange,
                     )
                     Spacer(Modifier.height(if (isCompactHeight) 20.dp else 36.dp))
@@ -322,30 +365,47 @@ internal fun TimerFocusTab(
 
 
             val clampedProgress = progress.coerceIn(0f, 1f)
-            // ── One thin ring, one accent ─────────────────────────────────────
-            // The redesign replaces the 18dp band + bloom + frosted glass disc
-            // with a single hairline-weight arc, so the numerals carry the screen.
-            val ringColor  = themeAccent
-            val trackColor = ink.trackFaint
+            val ringColor  = if (isDarkTheme) Color.White else Color.White
+            val trackColor = if (isDarkTheme) Color.White.copy(alpha = 0.20f) else Color.White.copy(alpha = 0.40f)
 
             Box(contentAlignment = Alignment.Center, modifier = Modifier.size(EkagraChrome.size(252f))) {
+                // Ambient glow and soft radial background
+                androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize().padding(4.dp)) {
+                    // Soft outer bloom
+                    drawCircle(
+                        color = Color.White.copy(alpha = if (isDarkTheme) 0.10f else 0.22f),
+                        radius = size.minDimension / 2f,
+                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 16.dp.toPx())
+                    )
+                    // Soft inner radial wash
+                    drawCircle(
+                        brush = androidx.compose.ui.graphics.Brush.radialGradient(
+                            colors = listOf(
+                                Color.White.copy(alpha = if (isDarkTheme) 0.06f else 0.12f),
+                                Color.Transparent,
+                            ),
+                            center = center,
+                            radius = size.minDimension / 2f
+                        )
+                    )
+                }
+
                 // Track ring
                 CircularProgressIndicator(
                     progress      = { 1f },
                     modifier      = Modifier.fillMaxSize(),
                     color         = trackColor,
-                    strokeWidth   = EkagraChrome.stroke(5f),
+                    strokeWidth   = EkagraChrome.stroke(5.5f),
                     strokeCap     = StrokeCap.Round,
                     trackColor    = Color.Transparent,
                     gapSize       = 0.dp,
                 )
-                // Progress ring — a soft breath of width while running is the
-                // only motion left on the ring.
+                // Progress ring — glowing illuminated arc
                 CircularProgressIndicator(
                     progress      = { clampedProgress },
                     modifier      = Modifier.fillMaxSize(),
                     color         = ringColor,
-                    strokeWidth   = EkagraChrome.stroke(5f + pulse * 0.8f),
+                    strokeWidth   = EkagraChrome.stroke(6f + pulse * 0.8f),
                     strokeCap     = StrokeCap.Round,
                     trackColor    = Color.Transparent,
                     gapSize       = 0.dp,
@@ -402,7 +462,7 @@ internal fun TimerFocusTab(
                         val subtext = when (timerMode) {
                             TimerMode.STOPWATCH -> if (isRunning) stringResource(R.string.ekagra_stopwatch_running) else stringResource(R.string.ekagra_ready_start)
                             TimerMode.BREAK -> if (isRunning) stringResource(R.string.ekagra_break_running) else stringResource(R.string.ekagra_ready_break)
-                            TimerMode.POMODORO -> if (isRunning) stringResource(R.string.ekagra_pomodoro_running) else stringResource(R.string.ekagra_ready_pomodoro)
+                            TimerMode.POMODORO -> if (isRunning) runCatching { stringResource(R.string.ekagra_pomodoro_running) }.getOrDefault("Pomodoro running") else runCatching { stringResource(R.string.ekagra_ready_pomodoro) }.getOrDefault("Ready for Pomodoro")
                             else -> if (isRunning) stringResource(R.string.ekagra_running) else stringResource(R.string.ekagra_ready)
                         }
                         Text(

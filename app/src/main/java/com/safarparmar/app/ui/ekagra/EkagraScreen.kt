@@ -227,10 +227,10 @@ fun EkagraScreen(
                 if (presencePaused) {
                     Column(horizontalAlignment = Alignment.End) {
                         TextButton(onClick = { timerService?.savePresencePausedSession() }) {
-                            Text("Save session", fontWeight = FontWeight.Medium)
+                            Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.ekagra_save_session), fontWeight = FontWeight.Medium)
                         }
                         TextButton(onClick = { presenceDialogDismissed = true }) {
-                            Text("Cancel", fontWeight = FontWeight.Medium)
+                            Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.common_cancel), fontWeight = FontWeight.Medium)
                         }
                     }
                 } else {
@@ -238,7 +238,7 @@ fun EkagraScreen(
                         presenceDialogDismissed = true
                         timerService?.pauseForPresence()
                     }) {
-                        Text("Cancel", fontWeight = FontWeight.Medium)
+                        Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.common_cancel), fontWeight = FontWeight.Medium)
                     }
                 }
             }
@@ -257,11 +257,19 @@ fun EkagraScreen(
     var showAudioLibraryPanel    by remember { mutableStateOf(false) }
     var showOrganizeSheet        by remember { mutableStateOf(false) }
     var showTopicStudySheet      by remember { mutableStateOf(false) }
+    // ── Tab-switch persistence fix ──────────────────────────────────────────────
+    // Tracks which mode the pill UI shows. Decoupled from the running service's
+    // timerMode so the user can browse other mode tabs without resetting the session.
+    var selectedDisplayMode by remember { mutableStateOf(TimerMode.FOCUS) }
+    // The mode the user wants to switch to while another session is active.
+    // Non-null triggers the "switch mode?" confirmation dialog.
+    var pendingModeSwitchConfirm by remember { mutableStateOf<TimerMode?>(null) }
     var topicStudySheetState     by remember { mutableStateOf<TopicStudySheetState>(TopicStudySheetState.ReadyToSave) }
     var pendingEndedSession      by remember { mutableStateOf<PendingEndedEkagraSession?>(null) }
     var titleInput               by remember { mutableStateOf("") }
     var selectedSessionTag       by remember { mutableStateOf<String?>(null) }
     val ekagraTags               by viewModel.ekagraTags.collectAsStateWithLifecycle(initialValue = DEFAULT_EKAGRA_TAGS)
+    val ekagraTagColors          by viewModel.ekagraTagColors.collectAsStateWithLifecycle(initialValue = DEFAULT_TAG_COLORS)
     // ── Two-phase session-end flow state ──
     // Phase 2: post-save goal-linking sheet
     var showPostSaveGoalLinking  by remember { mutableStateOf(false) }
@@ -560,8 +568,8 @@ fun EkagraScreen(
     }
 
     LaunchedEffect(selectedTab) {
-        if (selectedTab == EkagraNavTab.TIMER && timerService?.isActive() == false)
-            timerService.setDuration(TimerMode.FOCUS, focusMinutes * 60, breakMinutes * 60)
+        if (selectedTab == EkagraNavTab.TIMER && timerService?.isActive() == false && timerMode != TimerMode.POMODORO && (timerService?.targetPomodoroLoops?.value ?: 0) <= 0)
+            timerService?.setDuration(TimerMode.FOCUS, focusMinutes * 60, breakMinutes * 60)
     }
     LaunchedEffect(initialView) {
         if (initialView == "analytics") onNavigate(Routes.nishthaAnalytics("ekagra"))
@@ -601,6 +609,17 @@ fun EkagraScreen(
         // isActive(), so picking a theme while idle (e.g. before configuring KAVACH's blocked
         // apps) was silently lost the moment the screen was recreated on navigating back.
         timerService?.saveTheme(visualThemes.indexOf(selectedTheme), selectedMusicTrack.name)
+    }
+
+    // ── selectedDisplayMode sync ────────────────────────────────────────────────
+    // When the session ends or resets (service not active), sync the displayed
+    // mode pill back to the actual service mode so the UI stays consistent.
+    // While a session IS active, selectedDisplayMode is intentionally NOT synced
+    // so the user can freely browse other mode tabs without touching the session.
+    LaunchedEffect(timerMode, timerRunning) {
+        if (timerService?.isActive() != true) {
+            selectedDisplayMode = timerMode
+        }
     }
 
     val pipContext   = LocalContext.current
@@ -719,7 +738,7 @@ fun EkagraScreen(
     }
     val mottoText = when {
         timerMode != TimerMode.FOCUS && timerMode != TimerMode.STOPWATCH && timerMode != TimerMode.POMODORO && timerRunning -> "BREAK TIME"
-        timerMode == TimerMode.FOCUS && timerRunning && shieldState.isProtectionActive -> "STUDY TIME - KAVACH ACTIVE"
+        (timerMode == TimerMode.FOCUS || timerMode == TimerMode.POMODORO) && timerRunning && shieldState.isProtectionActive -> "STUDY TIME - KAVACH ACTIVE"
         timerRunning -> "STAY FOCUSED, YOU'RE DOING GREAT!"
         else         -> "READY TO FOCUS?"
     }
@@ -898,7 +917,7 @@ fun EkagraScreen(
                                         endCurrentSession()
                                     }
                                 ) {
-                                    Text("Continue", fontWeight = FontWeight.Bold)
+                                    Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.common_continue), fontWeight = FontWeight.Bold)
                                 }
                             },
                             dismissButton = {
@@ -907,7 +926,81 @@ fun EkagraScreen(
                                         showEndSessionConfirmDialog = false
                                     }
                                 ) {
-                                    Text("No")
+                                    Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.common_no))
+                                }
+                            },
+                        )
+                    }
+                    // ── Mode-switch confirmation dialog ────────────────────────────
+                    // Shown when user browses to a different mode tab (e.g. BREAK or
+                    // STOPWATCH) while a session is running and then presses Play.
+                    val modeSwitchTarget = pendingModeSwitchConfirm
+                    if (modeSwitchTarget != null) {
+                        AlertDialog(
+                            onDismissRequest = { pendingModeSwitchConfirm = null },
+                            shape = RoundedCornerShape(20.dp),
+                            title = {
+                                Text(
+                                    text = "Switch to ${modeSwitchTarget.label}?",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 18.sp,
+                                )
+                            },
+                            text = {
+                                Text(
+                                    text = "Your active ${timerMode.label} session will be saved and ended. Continue?",
+                                    fontSize = 14.sp,
+                                )
+                            },
+                            confirmButton = {
+                                TextButton(
+                                    onClick = {
+                                        pendingModeSwitchConfirm = null
+                                        // End the current session, then start the new mode.
+                                        endCurrentSession()
+                                        // After endCurrentSession() the service is stopped.
+                                        // Configure and start the new mode.
+                                        val mins = when (modeSwitchTarget) {
+                                            TimerMode.FOCUS, TimerMode.POMODORO -> focusMinutes
+                                            TimerMode.BREAK -> breakMinutes
+                                            TimerMode.STOPWATCH -> 0
+                                        }
+                                        timerService?.setDuration(modeSwitchTarget, mins * 60, breakMinutes * 60)
+                                        selectedDisplayMode = modeSwitchTarget
+                                        if (modeSwitchTarget == TimerMode.FOCUS || modeSwitchTarget == TimerMode.STOPWATCH) {
+                                            timerService?.prepareAutoSaveSession(
+                                                taskTitle = associatedGoalTitle ?: associatedTopicTitle ?: taskText.takeIf { it.isNotBlank() },
+                                                goalId = associatedGoalId,
+                                                goalTitle = associatedGoalTitle,
+                                                topicId = associatedTopicId,
+                                                planId = associatedPlanId,
+                                                topicTitle = associatedTopicTitle,
+                                                forceNew = true,
+                                            )
+                                        }
+                                        timerService?.start()
+                                        viewModel.onSessionStarted(
+                                            taskText = taskText,
+                                            totalSeconds = if (modeSwitchTarget == TimerMode.STOPWATCH) 0 else mins * 60,
+                                            goalId = if (modeSwitchTarget == TimerMode.FOCUS || modeSwitchTarget == TimerMode.STOPWATCH) associatedGoalId else null,
+                                            goalTitle = if (modeSwitchTarget == TimerMode.FOCUS || modeSwitchTarget == TimerMode.STOPWATCH) associatedGoalTitle else null,
+                                            mode = modeSwitchTarget.toApiMode(),
+                                            clientSessionId = timerService?.currentSessionId(),
+                                        )
+                                    }
+                                ) {
+                                    Text("Yes, switch", fontWeight = FontWeight.Bold)
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(
+                                    onClick = {
+                                        pendingModeSwitchConfirm = null
+                                        // Snap the pill back to the currently running mode
+                                        selectedDisplayMode = timerMode
+                                    }
+                                ) {
+                                    Text("Keep running")
                                 }
                             },
                         )
@@ -1203,8 +1296,10 @@ fun EkagraScreen(
                             availableTags = ekagraTags,
                             selectedTag   = selectedSessionTag,
                             onSelectTag   = { selectedSessionTag = it },
-                            onAddTag      = { viewModel.addTag(it) },
+                            tagColors     = ekagraTagColors,
+                            onAddTag      = { tag, colorHex -> viewModel.addTag(tag, colorHex) },
                             onDeleteTag   = { viewModel.removeTag(it) },
+                            onSetTagColor = { tag, colorHex -> viewModel.setTagColor(tag, colorHex) },
                             // Swiping the sheet away files the session under its safest
                             // default rather than losing it. The explicit choices below go
                             // through a confirmation because they are final.
@@ -1266,6 +1361,7 @@ fun EkagraScreen(
                             savedDurationSeconds = savedSessionDuration,
                             todayGoals = todayGoals,
                             selectedTheme = selectedTheme,
+                            isDarkTheme = isDarkTheme,
                             onDismiss = {
                                 showPostSaveGoalLinking = false
                                 savedSessionId = null
@@ -1419,7 +1515,7 @@ fun EkagraScreen(
                         Box {
                             var showOverflowMenu by remember { mutableStateOf(false) }
                             IconButton(onClick = { showOverflowMenu = true }) {
-                                Icon(androidx.compose.material.icons.Icons.Default.MoreVert, contentDescription = "More options", tint = tintColor)
+                                Icon(androidx.compose.material.icons.Icons.Default.MoreVert, contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.common_more_options), tint = tintColor)
                             }
                             androidx.compose.material3.DropdownMenu(
                                 expanded = showOverflowMenu,
@@ -1471,7 +1567,7 @@ fun EkagraScreen(
                                 if (!hasAllPermissions) {
                                     EkagraHairline(headerInk.hairline)
                                     androidx.compose.material3.DropdownMenuItem(
-                                        text = { Text("Kavach Setup") },
+                                        text = { Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.ekagra_kavach_setup)) },
                                         onClick = {
                                             onNavigate(com.safarparmar.app.ui.navigation.Routes.FOCUS_SHIELD)
                                             showOverflowMenu = false
@@ -1483,7 +1579,7 @@ fun EkagraScreen(
                                 }
                                 EkagraHairline(headerInk.hairline)
                                 androidx.compose.material3.DropdownMenuItem(
-                                    text = { Text("Apps to Block") },
+                                    text = { Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.ekagra_apps_to_block)) },
                                     onClick = {
                                         onNavigate(Routes.APP_PICKER)
                                         showOverflowMenu = false
@@ -1641,42 +1737,61 @@ fun EkagraScreen(
                                             .padding(top = innerPadding.calculateTopPadding(),
                                                      bottom = innerPadding.calculateBottomPadding()),
                                         timerMode          = timerMode,
+                                        selectedDisplayMode = selectedDisplayMode,
                                         secondsLeft        = secondsLeft,
                                         isRunning          = timerRunning,
                                         progress           = progress,
                                         hasProgress        = if (timerMode == TimerMode.STOPWATCH) secondsLeft > 0 else secondsLeft < totalSeconds,
                                         mottoText          = mottoText,
-                                        kavachActive       = shieldState.isProtectionActive && timerRunning && timerMode == TimerMode.FOCUS,
+                                        kavachActive       = shieldState.isProtectionActive && timerRunning && (timerMode == TimerMode.FOCUS || timerMode == TimerMode.POMODORO),
                                         kavachBlockedCount = blockedHitCount,
                                         controlsVisible    = true,
                                         onOpenKavachSession = { showKavachActiveSession = true },
                                         onModeChange = { mode ->
-                                            if (mode == timerMode) return@TimerFocusTab
+                                            if (mode == selectedDisplayMode) return@TimerFocusTab
                                             haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                            // ── Tab-switch persistence fix ──────────────────────────────
+                                            // If a session is active, ONLY update the displayed pill — do
+                                            // NOT touch the running service. The session keeps ticking.
+                                            // Only when there is no active session do we configure the
+                                            // service for the newly selected mode.
+                                            if (timerService?.isActive() == true) {
+                                                selectedDisplayMode = mode
+                                                return@TimerFocusTab
+                                            }
+                                            // No active session — configure service duration for the new mode.
+                                            selectedDisplayMode = mode
                                             val mins = when (mode) {
                                                 TimerMode.FOCUS, TimerMode.POMODORO -> focusMinutes
                                                 TimerMode.BREAK -> breakMinutes
                                                 TimerMode.STOPWATCH  -> 0
                                             }
-                                            when {
-                                                mode == TimerMode.FOCUS && timerMode != TimerMode.FOCUS ->
-                                                    if (timerService?.switchToFocusFromBreak() != true) timerService?.setDuration(mode, mins * 60, breakMinutes * 60)
-                                                mode != TimerMode.FOCUS && timerMode == TimerMode.FOCUS && timerService?.isActive() == true ->
-                                                    timerService.startBreak(mode, mins * 60)
-                                                else ->
-                                                    timerService?.setDuration(mode, mins * 60, breakMinutes * 60)
+                                            if (mode == TimerMode.FOCUS && timerService?.switchToFocusFromBreak() == true) {
+                                                // switchToFocusFromBreak handled internally; nothing extra to do
+                                            } else {
+                                                timerService?.setDuration(mode, mins * 60, breakMinutes * 60)
                                             }
                                         },
                                         onPlayPause = {
                                             haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                                             val wasRunning  = timerRunning
                                             val wasInactive = timerService?.isActive() == false
-                                            
+
+                                            // ── Mode-switch guard ──────────────────────────────────────
+                                            // If the user has browsed to a different mode tab while a
+                                            // session is already active, pressing Play should ask them
+                                            // whether they want to end the running session before starting
+                                            // the newly selected mode. We must NOT silently reset things.
+                                            if (!wasInactive && selectedDisplayMode != timerMode) {
+                                                pendingModeSwitchConfirm = selectedDisplayMode
+                                                return@TimerFocusTab
+                                            }
+
                                             if (wasInactive && showDurationPrompt && !durationPromptActedOn && (timerMode == TimerMode.FOCUS || timerMode == TimerMode.POMODORO)) {
                                                 showDurationPromptDialog = true
                                                 return@TimerFocusTab
                                             }
-                                            
+
                                             if (wasInactive) {
                                                 requestNotificationPermission()
                                                 if (timerMode == TimerMode.FOCUS || timerMode == TimerMode.POMODORO) {
@@ -1731,11 +1846,8 @@ fun EkagraScreen(
                                         myCircles = myCircles,
                                         selectedStudyCircle = selectedStudyCircle,
                                         onSelectStudyCircle = viewModel::selectStudyCircle,
-                                        // Keep the entry point visible when the user returns with
-                                        // "Not now". Opening setup is not the same as dismissing it.
-                                        // Ignore the legacy bannerDismissed preference, which older
-                                        // builds set as soon as Enable was tapped.
-                                        showYoutubeBanner = !youtubeState.setupCompleted && !youtubeState.accessibilityEnabled,
+                                        // YouTube Focus banner temporarily hidden as requested; code preserved intact.
+                                        showYoutubeBanner = false,
                                         onEnableYoutubeFocus = {
                                             onNavigate(Routes.focusShieldTab(1))
                                         },
@@ -1891,7 +2003,7 @@ fun MusicPromptDialog(
             TextButton(
                 onClick = { onNo(dontShowAgain) }
             ) {
-                Text("No", fontWeight = FontWeight.SemiBold)
+                Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.common_no), fontWeight = FontWeight.SemiBold)
             }
         }
     )
