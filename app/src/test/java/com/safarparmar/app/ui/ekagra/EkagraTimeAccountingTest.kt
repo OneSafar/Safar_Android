@@ -41,6 +41,21 @@ class EkagraTimeAccountingTest {
     }
 
     @Test
+    fun `ending during a pomodoro break preserves completed focus loops`() {
+        val progress = calculateFocusProgress(
+            mode = TimerMode.BREAK,
+            currentPeriodTotalSeconds = 300,
+            currentPeriodRemainingSeconds = 150,
+            pomodoroFocusSeconds = 1500,
+            targetPomodoroLoops = 4,
+            completedPomodoroLoops = 2,
+        )
+
+        assertEquals(6000, progress.plannedSeconds)
+        assertEquals(3000, progress.actualSeconds)
+    }
+
+    @Test
     fun `history detail uses exact seconds instead of rounded zero minutes`() {
         val pending = EkagraAnalyticsFocusSession(
             id = "six-second-session",

@@ -176,6 +176,7 @@ class TimerService : Service() {
     private val rankedTracker by lazy { RankedFocusTracker(focusApi, scope) }
     val rankedStatus: StateFlow<String> get() = rankedTracker.status
     fun currentSessionId(): String? = autoSaveMetadata?.clientSessionId
+    fun currentSessionStartedAt(): String? = autoSaveMetadata?.startedAt
     fun hasQueuedSessionSave(): Boolean = sessionSaveQueuedThisRun
 
     private fun syncRankedFocus(confirm: Boolean = false, close: Boolean = false) {

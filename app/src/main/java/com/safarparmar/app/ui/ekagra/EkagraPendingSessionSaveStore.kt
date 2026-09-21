@@ -19,6 +19,8 @@ data class PendingEkagraSessionSave(
     val topicTitle: String? = null,
     val taskTitle: String,
     val shieldEnabled: Boolean,
+    val markGoalComplete: Boolean = false,
+    val markTopicDone: Boolean = false,
 )
 
 object EkagraPendingSessionSaveStore {
@@ -64,6 +66,8 @@ object EkagraPendingSessionSaveStore {
                             topicTitle = item.optString("topicTitle").takeIf { it.isNotBlank() },
                             taskTitle = item.optString("taskTitle", "Untitled").ifBlank { "Untitled" },
                             shieldEnabled = item.optBoolean("shieldEnabled", false),
+                            markGoalComplete = item.optBoolean("markGoalComplete", false),
+                            markTopicDone = item.optBoolean("markTopicDone", false),
                         ),
                     )
                 }
@@ -89,7 +93,9 @@ object EkagraPendingSessionSaveStore {
                     .put("planId", session.planId)
                     .put("topicTitle", session.topicTitle)
                     .put("taskTitle", session.taskTitle)
-                    .put("shieldEnabled", session.shieldEnabled),
+                    .put("shieldEnabled", session.shieldEnabled)
+                    .put("markGoalComplete", session.markGoalComplete)
+                    .put("markTopicDone", session.markTopicDone),
             )
         }
         // commit() (not apply()) — this queue must survive an immediate process death,

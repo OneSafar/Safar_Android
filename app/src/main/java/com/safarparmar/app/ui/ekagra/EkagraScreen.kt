@@ -433,10 +433,13 @@ fun EkagraScreen(
     fun endCurrentSession() {
         val service = timerService
         val serviceTopic = service?.plannerTopicMetadata()
+        val pomodoroBreak = timerMode == TimerMode.BREAK && (service?.targetPomodoroLoops?.value ?: 0) > 0
+        val endingFocus = pomodoroBreak || timerMode == TimerMode.FOCUS || timerMode == TimerMode.STOPWATCH || timerMode == TimerMode.POMODORO
+        val endingMode = if (pomodoroBreak) TimerMode.POMODORO.toApiMode() else timerMode.toApiMode()
         val endingTopicId = associatedTopicId ?: serviceTopic?.topicId
         val endingPlanId = associatedPlanId ?: serviceTopic?.planId
         val endingTopicTitle = associatedTopicTitle ?: serviceTopic?.topicTitle
-        if (timerMode != TimerMode.FOCUS && timerMode != TimerMode.STOPWATCH && timerMode != TimerMode.POMODORO && service?.switchToFocusFromBreak() == true) {
+        if (!pomodoroBreak && timerMode != TimerMode.FOCUS && timerMode != TimerMode.STOPWATCH && timerMode != TimerMode.POMODORO && service?.switchToFocusFromBreak() == true) {
             activeSession?.let { session ->
                 viewModel.pauseActiveSession(
                     service.totalSeconds.value,
@@ -448,7 +451,7 @@ fun EkagraScreen(
             return
         }
         val session = activeSession
-        if (session != null && (timerMode == TimerMode.FOCUS || timerMode == TimerMode.STOPWATCH || timerMode == TimerMode.POMODORO)) {
+        if (session != null && endingFocus) {
             val progress = service?.focusProgressSnapshot()
             val loggedTotalSeconds: Int
             val loggedSecondsLeft: Int
@@ -467,7 +470,7 @@ fun EkagraScreen(
                 sessionId    = session.id,
                 totalSeconds = loggedTotalSeconds,
                 secondsLeft  = loggedSecondsLeft,
-                mode         = timerMode.toApiMode(),
+                mode         = endingMode,
                 startedAt    = session.sessionStartedAt,
             )
             val rawTitle = session.sessionTitle ?: taskText
@@ -481,7 +484,7 @@ fun EkagraScreen(
         }
         if (
             serviceTopic != null &&
-            (timerMode == TimerMode.FOCUS || timerMode == TimerMode.STOPWATCH || timerMode == TimerMode.POMODORO)
+            endingFocus
         ) {
             val progress = service?.focusProgressSnapshot()
             val plannedSeconds: Int
@@ -501,7 +504,7 @@ fun EkagraScreen(
                         sessionId = serviceTopic.clientSessionId,
                         totalSeconds = plannedSeconds,
                         secondsLeft = remainingSeconds,
-                        mode = timerMode.toApiMode(),
+                        mode = endingMode,
                         startedAt = serviceTopic.startedAt,
                     ),
                 ) > 0
@@ -511,7 +514,7 @@ fun EkagraScreen(
                     sessionId = serviceTopic.clientSessionId,
                     totalSeconds = plannedSeconds,
                     secondsLeft = remainingSeconds,
-                    mode = timerMode.toApiMode(),
+                    mode = endingMode,
                     startedAt = serviceTopic.startedAt,
                     topicId = serviceTopic.topicId,
                     planId = serviceTopic.planId,
@@ -519,6 +522,26 @@ fun EkagraScreen(
                 )
                 topicStudySheetState = TopicStudySheetState.ReadyToSave
                 showTopicStudySheet = true
+                return
+            }
+        }
+        if (pomodoroBreak) {
+            val progress = service?.focusProgressSnapshot()
+            if (progress != null && progress.actualSeconds > 0) {
+                service.pause()
+                pendingEndedSession = PendingEndedEkagraSession(
+                    sessionId = service.currentSessionId()?.takeIf { it.startsWith("local-") }
+                        ?: "local-${java.util.UUID.randomUUID()}",
+                    totalSeconds = progress.plannedSeconds,
+                    secondsLeft = (progress.plannedSeconds - progress.actualSeconds).coerceAtLeast(0),
+                    mode = TimerMode.POMODORO.toApiMode(),
+                    startedAt = service.currentSessionStartedAt()
+                        ?: Instant.now().minusSeconds(progress.actualSeconds.toLong()).toString(),
+                )
+                val (tag, task) = EkagraTagUtils.parseTagAndTask(taskText)
+                selectedSessionTag = tag
+                titleInput = task ?: ""
+                showOrganizeSheet = true
                 return
             }
         }

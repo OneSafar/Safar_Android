@@ -739,8 +739,30 @@ class EkagraViewModel @Inject constructor(
                     loadTasks()
                 }
                 is Resource.Error, is Resource.Loading -> {
-                    // Save failed — keep the local draft intact instead of discarding this
-                    // session's data, so the user can retry ending it later.
+                    // Preserve a confirmed session across process death or lost network.
+                    // The worker retries with the same client ID, so the server deduplicates it.
+                    EkagraPendingSessionSaveStore.enqueue(
+                        appContext,
+                        PendingEkagraSessionSave(
+                            clientSessionId = sessionId,
+                            mode = mode,
+                            startedAt = started,
+                            endedAt = endedAt ?: Instant.now().toString(),
+                            plannedDurationMinutes = plannedMinutes,
+                            actualDurationMinutes = actualMinutes,
+                            actualDurationSeconds = actualSeconds,
+                            goalId = cleanGoalId?.takeIf { it.isNotBlank() && !it.startsWith("named:") },
+                            goalTitle = cleanGoalTitle,
+                            topicId = topicId,
+                            planId = planId,
+                            topicTitle = topicTitle,
+                            taskTitle = cleanTitle,
+                            shieldEnabled = shieldWasActive,
+                            markGoalComplete = markGoalComplete,
+                            markTopicDone = markTopicDone,
+                        ),
+                    )
+                    EkagraSessionSaveWorker.enqueue(appContext)
                 }
             }
         }

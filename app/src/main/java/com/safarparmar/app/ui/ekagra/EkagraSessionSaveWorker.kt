@@ -79,10 +79,8 @@ class EkagraSessionSaveWorker(
                         topicId = session.topicId,
                         planId = session.planId,
                         topicTitle = session.topicTitle,
-                        // Crash-recovery save: the user never confirmed the "mark topic
-                        // done" checkbox, so we preserve the association (crediting the
-                        // time) but never auto-complete the topic.
-                        markTopicDone = false,
+                        markTopicDone = session.markTopicDone,
+                        markGoalComplete = session.markGoalComplete,
                         taskTitle = session.taskTitle,
                         shieldEnabled = session.shieldEnabled,
                     )
