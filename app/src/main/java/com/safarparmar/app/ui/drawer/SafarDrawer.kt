@@ -107,6 +107,11 @@ val drawerSections = listOf(
                 Icons.Default.Leaderboard,
                 Routes.LEADERBOARD,
             ),
+            DrawerItem(
+                R.string.nav_youtube_study_mode,
+                Icons.Default.SmartDisplay,
+                Routes.YOUTUBE_STUDY_MODE_V2,
+            ),
             DrawerItem(R.string.module_courses, Icons.AutoMirrored.Filled.MenuBook, Routes.COURSES),
         ),
     ),
@@ -844,6 +849,24 @@ private fun DrawerNavRow(
                 }
             } else if (item.requiresPremium) {
                 ShimmerProBadge(isPremiumActive = isPremiumActive, isLight = isLight)
+            } else if (item.route == Routes.YOUTUBE_STUDY_MODE_V2) {
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = if (isLight) Color(0xFFF1F5F9) else Color(0xFF1E293B),
+                    border = BorderStroke(
+                        1.dp,
+                        if (isLight) Color(0xFFE2E8F0) else Color(0xFF334155),
+                    ),
+                ) {
+                    Text(
+                        text = "SOON",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isLight) Color(0xFF64748B) else Color(0xFF94A3B8),
+                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp),
+                        letterSpacing = 0.5.sp,
+                    )
+                }
             } else if (item.route == Routes.ADMIN_NOTIFICATIONS) {
                 Icon(
                     imageVector = Icons.Default.ChevronRight,
