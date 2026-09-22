@@ -186,7 +186,6 @@ class TimerService : Service() {
     }
 
     private var presenceSeconds = 0
-    private var presencePlayer: MediaPlayer? = null
     private var tickJob: Job? = null
     private var focusPresenceJob: Job? = null
     private var lastTickElapsedMs: Long = 0L
@@ -308,7 +307,6 @@ class TimerService : Service() {
 
     // ── Audio player (lives in the service — survives navigation) ─────────────
     private var musicPlayer: MediaPlayer? = null
-    private var completionSoundPlayer: MediaPlayer? = null
     private var currentMusicUrl: String   = ""
 
     /**
@@ -408,47 +406,6 @@ class TimerService : Service() {
         }
     }
 
-    private fun releaseCompletionSound() {
-        val player = completionSoundPlayer
-        completionSoundPlayer = null
-        player?.let {
-            runCatching { it.stop() }
-            runCatching { it.release() }
-        }
-    }
-
-    private fun playCompletionSound() {
-        releaseCompletionSound()
-        val player = MediaPlayer()
-        completionSoundPlayer = player
-
-        try {
-            player.setAudioAttributes(
-                AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_ALARM)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                    .build(),
-            )
-            resources.openRawResourceFd(R.raw.timer_completion_twinkle).use { sound ->
-                player.setDataSource(sound.fileDescriptor, sound.startOffset, sound.length)
-            }
-            player.setOnCompletionListener { completedPlayer ->
-                if (completionSoundPlayer === completedPlayer) completionSoundPlayer = null
-                runCatching { completedPlayer.release() }
-            }
-            player.setOnErrorListener { failedPlayer, _, _ ->
-                if (completionSoundPlayer === failedPlayer) completionSoundPlayer = null
-                runCatching { failedPlayer.release() }
-                true
-            }
-            player.prepare()
-            player.start()
-        } catch (error: Exception) {
-            if (completionSoundPlayer === player) completionSoundPlayer = null
-            runCatching { player.release() }
-            error.printStackTrace()
-        }
-    }
 
     private fun timerVibrator(): Vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         getSystemService(VibratorManager::class.java).defaultVibrator
@@ -612,12 +569,9 @@ class TimerService : Service() {
 
     override fun onDestroy() {
         cancelPresenceNotification()
-        presencePlayer?.release()
-        presencePlayer = null
         (application as? Application)?.unregisterActivityLifecycleCallbacks(activityLifecycleCallbacks)
         TimerBubbleOverlay.hide()
         releaseMusic()
-        releaseCompletionSound()
         completionWakeLock?.let { if (it.isHeld) runCatching { it.release() } }
         completionWakeLock = null
         runCatching { timerVibrator().cancel() }
@@ -1372,30 +1326,14 @@ class TimerService : Service() {
     private fun clearPresence() {
         cancelPresenceNotification()
         presenceSeconds = 0
-        presencePlayer?.release()
-        presencePlayer = null
-    }
-
-    private fun playPresenceAlert() {
-        when (timerAlertStyle) {
-            TimerAlertStyle.SOUND -> runCatching {
-                presencePlayer?.release()
-                presencePlayer = MediaPlayer.create(this, R.raw.presence_chime)?.apply {
-                    setVolume(0.6f, 0.6f)
-                    setOnCompletionListener { player ->
-                        if (presencePlayer === player) presencePlayer = null
-                        player.release()
-                    }
-                    start()
-                }
-            }
-            TimerAlertStyle.VIBRATE -> vibrateForTimerCompletion()
-            TimerAlertStyle.OFF -> Unit
-        }
     }
 
     private fun showPresenceReminderNotification() {
-        playPresenceAlert()
+        acquireCompletionWakeLock()
+        val alertChannel = when (timerAlertStyle) {
+            TimerAlertStyle.SOUND, TimerAlertStyle.VIBRATE -> SafarNotificationChannels.EKAGRA_ALERT
+            TimerAlertStyle.OFF -> SafarNotificationChannels.FOCUS_TIMER
+        }
         val openIntent = PendingIntent.getActivity(
             this,
             5,
@@ -1408,7 +1346,7 @@ class TimerService : Service() {
             Intent(this, TimerService::class.java).apply { action = ACTION_CONFIRM_PRESENCE },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
-        val notification = NotificationCompat.Builder(this, SafarNotificationChannels.EKAGRA_CHECK_INS)
+        val notification = NotificationCompat.Builder(this, alertChannel)
             .setContentTitle(getString(R.string.ekagra_presence_question))
             .setContentText(getString(R.string.ekagra_presence_running_body))
             .setShowWhen(false)
@@ -1421,6 +1359,7 @@ class TimerService : Service() {
             .setOnlyAlertOnce(false)
             .setAutoCancel(true)
             .setOngoing(false)
+            .setDefaults(NotificationCompat.DEFAULT_ALL)
             .addAction(android.R.drawable.ic_menu_send, getString(R.string.common_yes), confirmIntent)
             .build()
 
@@ -1502,16 +1441,17 @@ class TimerService : Service() {
         val completedMode = _timerMode.value
 
         // Acquire a brief WakeLock so the CPU and audio subsystem are awake to
-        // play the alert even when the screen is off.
+        // deliver the OS notification sound even when the screen is off.
         acquireCompletionWakeLock()
 
-        when (timerAlertStyle) {
-            TimerAlertStyle.SOUND -> playCompletionSound()
-            TimerAlertStyle.VIBRATE -> {
-                releaseCompletionSound()
-                vibrateForTimerCompletion()
-            }
-            TimerAlertStyle.OFF -> releaseCompletionSound()
+        // Sound and vibration are now handled entirely by the OS notification channel:
+        //   SOUND   → EKAGRA_ALERT channel plays the user's own system notification
+        //             ringtone + vibrates (set in their Android notification settings).
+        //   VIBRATE → same channel; OS vibrates (no custom chime).
+        //   OFF     → silent FOCUS_TIMER channel; notification appears with no sound.
+        val alertChannel = when (timerAlertStyle) {
+            TimerAlertStyle.SOUND, TimerAlertStyle.VIBRATE -> SafarNotificationChannels.EKAGRA_ALERT
+            TimerAlertStyle.OFF -> SafarNotificationChannels.FOCUS_TIMER
         }
 
         scope.launch {
@@ -1525,14 +1465,10 @@ class TimerService : Service() {
                 TimerMode.BREAK,
                 TimerMode.STOPWATCH -> "Break finished. Ready for your next session?"
             }
-            // Use EKAGRA_ALERT (IMPORTANCE_HIGH) so the OS delivers a heads-up popup
-            // with sound + vibration even when the screen is off or the app is in the
-            // background. The in-app MediaPlayer sound above is the premium alert;
-            // this notification is the OS-level fallback that always works.
             SafarNotificationManager(this@TimerService).show(
                 title = if (completedMode == TimerMode.FOCUS || completedMode == TimerMode.POMODORO) "Ekagra session complete" else "Break finished",
                 body = body,
-                channelId = SafarNotificationChannels.EKAGRA_ALERT,
+                channelId = alertChannel,
                 deepLink = "safar://ekagra",
                 notificationId = COMPLETION_NOTIFICATION_ID,
                 priority = NotificationCompat.PRIORITY_HIGH,
@@ -1542,14 +1478,17 @@ class TimerService : Service() {
 
     private fun showPomodoroTransitionNotification(title: String, body: String, canStart: Boolean) {
         // Acquire a brief WakeLock so the CPU and audio subsystem are awake to
-        // play the alert even when the screen is off.
+        // deliver the OS notification sound even when the screen is off.
         acquireCompletionWakeLock()
 
-        when (timerAlertStyle) {
-            TimerAlertStyle.SOUND -> playCompletionSound()
-            TimerAlertStyle.VIBRATE -> vibrateForTimerCompletion()
-            TimerAlertStyle.OFF -> Unit
+        // Channel selection mirrors showCompletionNotification:
+        //   SOUND/VIBRATE → EKAGRA_ALERT (user's system sound + vibration via OS)
+        //   OFF           → FOCUS_TIMER  (silent, no sound)
+        val alertChannel = when (timerAlertStyle) {
+            TimerAlertStyle.SOUND, TimerAlertStyle.VIBRATE -> SafarNotificationChannels.EKAGRA_ALERT
+            TimerAlertStyle.OFF -> SafarNotificationChannels.FOCUS_TIMER
         }
+
         scope.launch {
             if (!safarDataStore.notificationsEnabled.first() ||
                 !safarDataStore.focusTimerNotificationsEnabled.first()) return@launch
@@ -1560,9 +1499,7 @@ class TimerService : Service() {
                 NotificationDeepLinkHandler.activityIntent(this@TimerService, "safar://ekagra"),
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
             )
-            // Use EKAGRA_ALERT instead of the silent POMODORO_TRANSITIONS channel so
-            // the notification delivers sound + vibration even with the screen off.
-            val builder = NotificationCompat.Builder(this@TimerService, SafarNotificationChannels.EKAGRA_ALERT)
+            val builder = NotificationCompat.Builder(this@TimerService, alertChannel)
                 .setContentTitle(title)
                 .setContentText(body)
                 .setSmallIcon(SafarNotificationManager.SafarNotificationStyle.smallIconRes(this@TimerService))
@@ -1570,6 +1507,7 @@ class TimerService : Service() {
                 .setCategory(NotificationCompat.CATEGORY_REMINDER)
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setAutoCancel(true)
+                .setDefaults(NotificationCompat.DEFAULT_ALL)
             if (canStart) {
                 val startIntent = PendingIntent.getService(
                     this@TimerService, 10,

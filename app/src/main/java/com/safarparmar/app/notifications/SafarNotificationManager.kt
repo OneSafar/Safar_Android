@@ -142,6 +142,14 @@ class SafarNotificationManager(
             .setPriority(priority)
             .setGroup(groupKey)
 
+        if (!ongoing &&
+            normalizedChannel != SafarNotificationChannels.FOCUS_TIMER &&
+            normalizedChannel != SafarNotificationChannels.FOCUS_SHIELD_STATUS &&
+            normalizedChannel != SafarNotificationChannels.YOUTUBE_STUDY_V2_STATUS
+        ) {
+            builder.setDefaults(NotificationCompat.DEFAULT_ALL)
+        }
+
         if (imageBitmap != null) {
             builder.setLargeIcon(imageBitmap)
         }

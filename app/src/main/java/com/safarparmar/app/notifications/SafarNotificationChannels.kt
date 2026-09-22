@@ -21,20 +21,18 @@ object SafarNotificationChannels {
     const val FOCUS_SHIELD_BLOCKED = "focus_shield_blocked"
     const val YOUTUBE_STUDY_MODE = "youtube_study_mode"
     const val YOUTUBE_STUDY_V2_STATUS = "youtube_study_v2_status"
-    const val STUDY_REMINDERS = "study_reminders"
+    const val STUDY_REMINDERS = "study_reminders_v2"
     const val COURSE_UPDATES = "course_updates"
-    const val ACHIEVEMENTS = "achievements"
+    const val ACHIEVEMENTS = "achievements_v2"
     const val COMMUNITY = "community"
     const val ACCOUNT_SYSTEM = "account_system"
-    const val ANNOUNCEMENTS = "announcements"
+    const val ANNOUNCEMENTS = "announcements_v2"
     const val MEHFIL_CONNECT = "mehfil_connect"
 
     /**
      * High-importance one-shot alert channel for Ekagra timer completion and Pomodoro
-     * transitions. Unlike [EKAGRA_CHECK_INS] and [POMODORO_TRANSITIONS] (which are
-     * intentionally silent because TimerService plays audio directly when the app is
-     * open), this channel uses the system default sound + vibration so that the alert
-     * fires even when the screen is off or the app is in the background.
+     * transitions. Uses the system default sound + vibration so that the alert
+     * fires with the user's device notification sound even when the screen is off.
      */
     const val EKAGRA_ALERT = "ekagra_alert_v1"
 
@@ -130,7 +128,7 @@ object SafarNotificationChannels {
             NotificationChannel(
                 ACHIEVEMENTS,
                 context.getString(com.safarparmar.app.R.string.channel_achievements),
-                NotificationManager.IMPORTANCE_LOW,
+                NotificationManager.IMPORTANCE_HIGH,
             ).apply {
                 description = context.getString(com.safarparmar.app.R.string.channel_achievements_desc)
             },
@@ -151,14 +149,13 @@ object SafarNotificationChannels {
             NotificationChannel(
                 ANNOUNCEMENTS,
                 context.getString(com.safarparmar.app.R.string.channel_announcements),
-                NotificationManager.IMPORTANCE_LOW,
+                NotificationManager.IMPORTANCE_HIGH,
             ).apply {
                 description = context.getString(com.safarparmar.app.R.string.channel_announcements_desc)
             },
             // High-importance one-shot alert for Ekagra timer completion and Pomodoro
             // transitions — delivers sound + vibration + heads-up even when the phone
-            // screen is off. Distinct from the silent EKAGRA_CHECK_INS / POMODORO_TRANSITIONS
-            // channels that the foreground service uses for its quiet ongoing notification.
+            // screen is off. Uses the user's phone default notification sound.
             NotificationChannel(
                 EKAGRA_ALERT,
                 "Ekagra Timer Alerts",
@@ -166,12 +163,10 @@ object SafarNotificationChannels {
             ).apply {
                 description = "Plays a sound and vibrates when your Ekagra focus session or break ends — even with the screen off."
                 enableVibration(true)
-                // Let the OS use its default notification sound; respects the user's
-                // chosen ringtone and ringer volume so the alert honours Do-Not-Disturb.
                 setSound(
                     android.provider.Settings.System.DEFAULT_NOTIFICATION_URI,
                     android.media.AudioAttributes.Builder()
-                        .setUsage(android.media.AudioAttributes.USAGE_NOTIFICATION_EVENT)
+                        .setUsage(android.media.AudioAttributes.USAGE_NOTIFICATION)
                         .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)
                         .build(),
                 )
@@ -181,8 +176,11 @@ object SafarNotificationChannels {
 
         val notificationManager = context.getSystemService(NotificationManager::class.java)
         notificationManager?.createNotificationChannels(channels)
-        // Clean up legacy Mehfil Connect channel so OS does not hold it
+        // Clean up legacy channels so OS does not hold old silent configurations
         runCatching { notificationManager?.deleteNotificationChannel(MEHFIL_CONNECT) }
+        runCatching { notificationManager?.deleteNotificationChannel("announcements") }
+        runCatching { notificationManager?.deleteNotificationChannel("achievements") }
+        runCatching { notificationManager?.deleteNotificationChannel("study_reminders") }
     }
 
     fun normalize(channelId: String?): String = when (channelId) {
@@ -194,14 +192,17 @@ object SafarNotificationChannels {
         FOCUS_SHIELD_BLOCKED,
         YOUTUBE_STUDY_MODE,
         YOUTUBE_STUDY_V2_STATUS,
-        STUDY_REMINDERS,
         COURSE_UPDATES,
-        ACHIEVEMENTS,
         COMMUNITY,
         ACCOUNT_SYSTEM,
-        ANNOUNCEMENTS,
         EKAGRA_ALERT,
         MEHFIL_CONNECT -> channelId
+        "study_reminders",
+        STUDY_REMINDERS -> STUDY_REMINDERS
+        "achievements",
+        ACHIEVEMENTS -> ACHIEVEMENTS
+        "announcements",
+        ANNOUNCEMENTS -> ANNOUNCEMENTS
         else -> ACCOUNT_SYSTEM
     }
 
