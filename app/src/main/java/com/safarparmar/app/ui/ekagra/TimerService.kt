@@ -18,15 +18,16 @@ import android.net.Uri
 import android.os.Binder
 import android.os.Build
 import android.os.IBinder
+import android.os.PowerManager
 import android.os.SystemClock
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
+import android.util.Log
 import android.content.pm.ServiceInfo
 import androidx.core.app.ServiceCompat
 import androidx.core.app.NotificationCompat
 import com.safarparmar.app.BuildConfig
-import com.safarparmar.app.MainActivity
 import com.safarparmar.app.R
 import com.safarparmar.app.data.local.SafarDataStore
 import com.safarparmar.app.data.local.TimerAlertStyle
@@ -74,9 +75,10 @@ class TimerService : Service() {
         const val COMPLETION_NOTIFICATION_ID = 1002
         const val FOCUS_SHIELD_BLOCKED_NOTIFICATION_ID = 1003
         const val FOCUS_SHIELD_ACTIVE_NOTIFICATION_ID = 1004
+        const val PRESENCE_NOTIFICATION_ID = 1005
+        const val POMODORO_TRANSITION_NOTIFICATION_ID = 1006
         const val ACTION_PLAY_PAUSE = "com.safar.ekagra.ACTION_PLAY_PAUSE"
         const val ACTION_CONFIRM_PRESENCE = "com.safar.ekagra.ACTION_CONFIRM_PRESENCE"
-        const val ACTION_RESUME_PRESENCE = "com.safar.ekagra.ACTION_RESUME_PRESENCE"
         const val ACTION_PAUSE = "com.safar.ekagra.ACTION_PAUSE"
         const val ACTION_RESET      = "com.safar.ekagra.ACTION_RESET"
         const val ACTION_FOCUS_SHIELD_BLOCKED = "com.safar.ekagra.ACTION_FOCUS_SHIELD_BLOCKED"
@@ -86,7 +88,6 @@ class TimerService : Service() {
         private const val KEY_TOTAL_SECONDS = "total_seconds"
         private const val KEY_REMAINING_SECONDS = "remaining_seconds"
         private const val KEY_IS_RUNNING = "is_running"
-        private const val KEY_PRESENCE_PAUSED = "presence_paused"
         private const val KEY_SAVED_AT_MS = "saved_at_ms"
         private const val KEY_SUSPENDED_TOTAL_SECONDS = "suspended_total_seconds"
         private const val KEY_SUSPENDED_REMAINING_SECONDS = "suspended_remaining_seconds"
@@ -185,13 +186,6 @@ class TimerService : Service() {
     }
 
     private var presenceSeconds = 0
-    private val _presenceDeadline = MutableStateFlow(0L)
-    val presenceDeadline: StateFlow<Long> = _presenceDeadline
-    private val _presencePaused = MutableStateFlow(false)
-    val presencePaused: StateFlow<Boolean> = _presencePaused
-    private val _presenceEnded = MutableStateFlow(0)
-    val presenceEnded: StateFlow<Int> = _presenceEnded
-    private var presenceJob: Job? = null
     private var presencePlayer: MediaPlayer? = null
     private var tickJob: Job? = null
     private var focusPresenceJob: Job? = null
@@ -215,8 +209,6 @@ class TimerService : Service() {
             val isRunning: Boolean,
             val savedAtMs: Long,
             val presenceSeconds: Int,
-            val presenceDeadline: Long,
-            val presencePaused: Boolean,
             val suspendedTotal: Int,
             val suspendedRemaining: Int,
             val standardBreakSeconds: Int,
@@ -262,6 +254,8 @@ class TimerService : Service() {
     private val _pomodorosCompleted = MutableStateFlow(0)
     private var pomodoroFocusSeconds = 25 * 60
     private var pomodoroBreakSeconds = 5 * 60
+    private var pomodoroFinalBreakSeconds = 15 * 60
+    private var pomodoroCompletesAfterCurrentBreak = false
 
     val secondsLeft:  StateFlow<Int>       = _secondsLeft
     val totalSeconds: StateFlow<Int>       = _totalSeconds
@@ -312,14 +306,25 @@ class TimerService : Service() {
             FocusShieldEntryPoint::class.java,
         ).focusShieldRepository()
 
-    private fun clearTheme() {
-        persistenceScope.launch { themePrefs().edit().clear().apply() }
-    }
-
     // ── Audio player (lives in the service — survives navigation) ─────────────
     private var musicPlayer: MediaPlayer? = null
     private var completionSoundPlayer: MediaPlayer? = null
     private var currentMusicUrl: String   = ""
+
+    /**
+     * Brief WakeLock acquired when the timer completes so the CPU and audio subsystem
+     * stay awake long enough to play the alert sound when the screen is off.
+     * Auto-released after 10 seconds (well beyond any alert sound duration).
+     */
+    private var completionWakeLock: PowerManager.WakeLock? = null
+
+    private fun acquireCompletionWakeLock() {
+        // Release any lingering lock from a previous completion first
+        completionWakeLock?.let { if (it.isHeld) runCatching { it.release() } }
+        completionWakeLock = (getSystemService(Context.POWER_SERVICE) as? PowerManager)
+            ?.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "safar:EkagraTimerCompletion")
+            ?.also { lock -> lock.acquire(10_000L) }
+    }
 
     fun setMute(mute: Boolean) {
         _isMuted.value = mute
@@ -329,14 +334,46 @@ class TimerService : Service() {
         }
     }
 
-    fun startPomodoroSession(loops: Int, focusMinutes: Int, breakMinutes: Int) {
-        val focusSeconds = focusMinutes.coerceAtLeast(1) * 60
-        val restSeconds = breakMinutes.coerceAtLeast(1) * 60
-        setDuration(TimerMode.POMODORO, focusSeconds)
-        _targetPomodoroLoops.value = loops.coerceAtLeast(1)
-        _pomodorosCompleted.value = 0
-        pomodoroFocusSeconds = focusSeconds
-        pomodoroBreakSeconds = restSeconds
+    internal fun startPomodoroSession(
+        style: PomodoroStyle,
+        loops: Int,
+        focusMinutes: Int,
+        breakMinutes: Int,
+        taskTitle: String?,
+        goalId: String?,
+        goalTitle: String?,
+        topicId: String? = null,
+        planId: String? = null,
+        topicTitle: String? = null,
+    ): String? {
+        if (isActive() || _targetPomodoroLoops.value > 0) return null
+
+        return try {
+            val config = normalizePomodoroConfig(style, loops, focusMinutes, breakMinutes)
+
+            setDuration(TimerMode.POMODORO, config.focusSeconds, config.breakSeconds)
+            _targetPomodoroLoops.value = config.loops
+            _pomodorosCompleted.value = 0
+            pomodoroFocusSeconds = config.focusSeconds
+            pomodoroBreakSeconds = config.breakSeconds
+            pomodoroFinalBreakSeconds = config.finalBreakSeconds
+            pomodoroCompletesAfterCurrentBreak = false
+            prepareAutoSaveSession(
+                taskTitle = taskTitle,
+                goalId = goalId,
+                goalTitle = goalTitle,
+                topicId = topicId,
+                planId = planId,
+                topicTitle = topicTitle,
+                forceNew = true,
+            )
+            start()
+            currentSessionId()?.takeIf { _isRunning.value }
+        } catch (error: Exception) {
+            Log.e("TimerService", "Could not start Pomodoro session", error)
+            runCatching { reset() }
+            null
+        }
     }
 
     fun setMusic(url: String) {
@@ -466,11 +503,7 @@ class TimerService : Service() {
                 totalSeconds = _totalSeconds.value,
                 kavachActive = FocusShieldRepository.ShieldPrefs.isActive(this),
                 isRunning    = _isRunning.value,
-                attention = when {
-                    _presenceDeadline.value > 0L -> TimerBubbleAttention.CHECK_IN
-                    _presencePaused.value -> TimerBubbleAttention.MISSED_CHECK_IN
-                    else -> TimerBubbleAttention.NONE
-                },
+                attention = TimerBubbleAttention.NONE,
             )
         } else {
             TimerBubbleOverlay.hide()
@@ -491,8 +524,8 @@ class TimerService : Service() {
                         .putBoolean(KEY_IS_RUNNING, write.isRunning)
                         .putLong(KEY_SAVED_AT_MS, write.savedAtMs)
                         .putInt("presence_seconds", write.presenceSeconds)
-                        .putLong("presence_deadline", write.presenceDeadline)
-                        .putBoolean(KEY_PRESENCE_PAUSED, write.presencePaused)
+                        .remove("presence_deadline")
+                        .remove("presence_paused")
                         .putInt(KEY_SUSPENDED_TOTAL_SECONDS, write.suspendedTotal)
                         .putInt(KEY_SUSPENDED_REMAINING_SECONDS, write.suspendedRemaining)
                         .putInt(KEY_STANDARD_BREAK_SECONDS, write.standardBreakSeconds)
@@ -564,8 +597,7 @@ class TimerService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
-            ACTION_CONFIRM_PRESENCE -> confirmPresence()
-            ACTION_RESUME_PRESENCE -> resumeAfterPresencePause()
+            ACTION_CONFIRM_PRESENCE -> confirmPresenceReminder()
             ACTION_PLAY_PAUSE -> togglePlayPause()
             ACTION_PAUSE -> if (_isRunning.value) pause()
             ACTION_RESET      -> reset()
@@ -579,15 +611,16 @@ class TimerService : Service() {
     }
 
     override fun onDestroy() {
-        presenceJob?.cancel()
+        cancelPresenceNotification()
         presencePlayer?.release()
         presencePlayer = null
         (application as? Application)?.unregisterActivityLifecycleCallbacks(activityLifecycleCallbacks)
         TimerBubbleOverlay.hide()
         releaseMusic()
         releaseCompletionSound()
+        completionWakeLock?.let { if (it.isHeld) runCatching { it.release() } }
+        completionWakeLock = null
         runCatching { timerVibrator().cancel() }
-        clearTheme()
         focusPresenceJob?.cancel()
         notificationUpdates.close()
         notificationScope.cancel()
@@ -622,19 +655,21 @@ class TimerService : Service() {
     }
 
     fun setDuration(mode: TimerMode, seconds: Int, breakSeconds: Int = 5 * 60) {
+        runCatching { getSystemService(NotificationManager::class.java).cancel(POMODORO_TRANSITION_NOTIFICATION_ID) }
         syncRankedFocus(close = true)
         autoSaveMetadata = null
         clearPresence()
         // Reconfiguring the timer abandons whatever was running — an explicit choice.
         endKavachAnalyticsSession(KavachSessionOutcome.ENDED_EARLY)
         _timerMode.value    = mode
-        val initialSeconds  = if (mode == TimerMode.STOPWATCH) 0 else seconds
+        val initialSeconds = configuredTimerSeconds(mode, seconds)
         _secondsLeft.value  = initialSeconds
         _totalSeconds.value = initialSeconds
         standardBreakSeconds = breakSeconds
         _isRunning.value    = false
         _targetPomodoroLoops.value = 0
         _pomodorosCompleted.value = 0
+        pomodoroCompletesAfterCurrentBreak = false
         sessionSaveQueuedThisRun = false
         suspendedFocusState = null
         tickJob?.cancel()
@@ -724,8 +759,32 @@ class TimerService : Service() {
         completedPomodoroLoops = _pomodorosCompleted.value,
     )
 
+    private fun completePomodoroSeries() {
+        val progress = focusProgressSnapshot()
+        showPomodoroTransitionNotification(
+            title = "Pomodoro complete",
+            body = "${_pomodorosCompleted.value} focus periods and the final break are complete. Your study time has been saved.",
+            canStart = false,
+        )
+        clearPresence()
+        enqueueCompletedFocusSessionSave(
+            totalSeconds = progress.plannedSeconds,
+            actualSeconds = progress.actualSeconds,
+            mode = TimerMode.POMODORO,
+        )
+        endKavachAnalyticsSession(KavachSessionOutcome.COMPLETED)
+        clearPersistedTimerState()
+        _targetPomodoroLoops.value = 0
+        _pomodorosCompleted.value = 0
+        pomodoroCompletesAfterCurrentBreak = false
+        _timerMode.value = TimerMode.FOCUS
+        _totalSeconds.value = pomodoroFocusSeconds
+        _secondsLeft.value = pomodoroFocusSeconds
+        persistTimerState()
+        NotificationShieldPrefs.clear(this)
+    }
+
     fun startBreak(mode: TimerMode, seconds: Int): Boolean {
-        if (_presenceDeadline.value > 0L) return false
         if (mode == TimerMode.FOCUS || mode == TimerMode.POMODORO || seconds <= 0) return false
 
         val focusState = when {
@@ -753,15 +812,11 @@ class TimerService : Service() {
 
     fun start() {
         if (_secondsLeft.value <= 0 && _timerMode.value != TimerMode.STOPWATCH) return
+        runCatching { getSystemService(NotificationManager::class.java).cancel(POMODORO_TRANSITION_NOTIFICATION_ID) }
         if (_timerMode.value != TimerMode.BREAK && (autoSaveMetadata == null || sessionSaveQueuedThisRun)) {
             prepareAutoSaveSession(null, null, null, forceNew = true)
         }
-        val resumingPresencePause = _presencePaused.value
         val resumingPausedSession = timerSessionActive && !_isRunning.value && _timerMode.value != TimerMode.BREAK
-        if (resumingPresencePause) {
-            _presencePaused.value = false
-            presenceSeconds = 0
-        }
         _isRunning.value = true
         // Set before below — its polling loop's while
         // condition reads this on a freshly launched coroutine, so it must already
@@ -781,9 +836,11 @@ class TimerService : Service() {
             } else {
                 startForeground(NOTIFICATION_ID, notification)
             }
-        } catch (e: Exception) {
-            // Android 12+ prevents starting foreground services from the background.
-            // If this happens (e.g., system recreates service), gracefully pause the timer instead of crashing.
+        } catch (e: Throwable) {
+            // Android 12+ prevents starting foreground services from the background,
+            // and OEM runtime/notification errors may throw unhandled Throwables.
+            // Gracefully pause the timer and log instead of crashing the process.
+            Log.e("TimerService", "Failed to start foreground timer service", e)
             pause()
             return
         }
@@ -796,7 +853,7 @@ class TimerService : Service() {
             plannedSeconds = if (_timerMode.value == TimerMode.STOPWATCH) 0 else _totalSeconds.value,
             isFocusPeriod = _timerMode.value != TimerMode.BREAK,
         )
-        syncRankedFocus(confirm = resumingPresencePause)
+        syncRankedFocus()
         startMusic(currentMusicUrl)
         lastTickElapsedMs = SystemClock.elapsedRealtime()
         // A session is now live. The pill shows only while SAFAR is backgrounded (syncBubble).
@@ -808,21 +865,16 @@ class TimerService : Service() {
                 val now = SystemClock.elapsedRealtime()
                 var elapsedSeconds = ((now - lastTickElapsedMs) / 1000L).toInt().coerceAtLeast(1)
                 lastTickElapsedMs = now
-                var expired = false
                 if (_timerMode.value != TimerMode.BREAK) {
-                    val result = advancePresence(presenceSeconds, _presenceDeadline.value, elapsedSeconds,
-                        System.currentTimeMillis(), if (_timerMode.value == TimerMode.STOPWATCH) Int.MAX_VALUE else _secondsLeft.value)
-                    elapsedSeconds = result.creditedSeconds
-                    presenceSeconds += elapsedSeconds
-                    expired = result.expired
-                    if (result.deadline != _presenceDeadline.value) requestPresence(result.deadline, !expired)
+                    val reminder = advancePresenceReminder(presenceSeconds, elapsedSeconds)
+                    presenceSeconds = reminder.secondsSinceReminder
+                    if (reminder.reminderDue) showPresenceReminderNotification()
                 }
                 if (_timerMode.value == TimerMode.STOPWATCH) {
                     _secondsLeft.value = _secondsLeft.value + elapsedSeconds
                 } else {
                     _secondsLeft.value = (_secondsLeft.value - elapsedSeconds).coerceAtLeast(0)
                 }
-                if (expired) { pauseForMissedPresence(); return@launch }
                 persistTimerState(periodic = true)
                 updateNotification()
                 // Refresh the floating pill each tick (no-op when SAFAR is foregrounded).
@@ -831,7 +883,7 @@ class TimerService : Service() {
                     totalSeconds = _totalSeconds.value,
                     kavachActive = FocusShieldRepository.ShieldPrefs.isActive(applicationContext),
                     isRunning    = true,
-                    attention = if (_presenceDeadline.value > 0L) TimerBubbleAttention.CHECK_IN else TimerBubbleAttention.NONE,
+                    attention = TimerBubbleAttention.NONE,
                 )
             }
             if (_secondsLeft.value == 0) {
@@ -868,44 +920,31 @@ class TimerService : Service() {
                 if (completedMode == TimerMode.FOCUS || completedMode == TimerMode.POMODORO) {
                     val completedProgress = focusProgressSnapshot()
                     releaseMusic()
-                    clearTheme()
-                    showCompletionNotification()
+                    if (completedMode != TimerMode.POMODORO) showCompletionNotification()
 
                     // Handle next session based on Pomodoro mode
                     if (completedMode == TimerMode.POMODORO) {
                         _pomodorosCompleted.value += 1
-                        if (_pomodorosCompleted.value >= _targetPomodoroLoops.value) {
-                            clearPresence()
-                            // Save once for the whole logical Pomodoro series. Saving each
-                            // focus loop independently creates duplicate history rows and
-                            // makes an interrupted later loop lose earlier completed time.
-                            enqueueCompletedFocusSessionSave(
-                                totalSeconds = completedProgress.plannedSeconds,
-                                actualSeconds = completedProgress.actualSeconds,
-                                mode = TimerMode.POMODORO,
-                            )
-                            // The whole Pomodoro series finished — this is the one
-                            // point where the Kavach session is genuinely complete.
-                            endKavachAnalyticsSession(KavachSessionOutcome.COMPLETED)
-                            clearPersistedTimerState()
-                            _targetPomodoroLoops.value = 0
-                            _pomodorosCompleted.value = 0
-                            _timerMode.value = TimerMode.FOCUS // Reset to standard focus
-                            _totalSeconds.value = pomodoroFocusSeconds
-                            _secondsLeft.value = pomodoroFocusSeconds
-                            persistTimerState()
-                            // The visible timer is reset for the next session, but this
-                            // Pomodoro set is complete so Notification Shield must end here.
-                            NotificationShieldPrefs.clear(this@TimerService)
-                            return@launch
-                        }
-
+                        val transition = pomodoroBreakTransition(
+                            completedLoops = _pomodorosCompleted.value,
+                            targetLoops = _targetPomodoroLoops.value,
+                            breakSeconds = pomodoroBreakSeconds,
+                            finalBreakSeconds = pomodoroFinalBreakSeconds,
+                        )
+                        pomodoroCompletesAfterCurrentBreak = transition.completesAfterBreak
                         _timerMode.value = TimerMode.BREAK
-                        val breakLength = if (_pomodorosCompleted.value % 4 == 0) 15 * 60 else pomodoroBreakSeconds
+                        val breakLength = transition.breakSeconds
                         _totalSeconds.value = breakLength
                         _secondsLeft.value = breakLength
                         persistTimerState()
-                        start() // Pomodoro always auto-starts break
+                        showPomodoroTransitionNotification(
+                            title = if (pomodoroCompletesAfterCurrentBreak) "Final focus complete"
+                                else "Focus ${_pomodorosCompleted.value} of ${_targetPomodoroLoops.value} complete",
+                            body = if (autoStartBreak) "Break started"
+                                else "Break ready. Tap Start when you're ready.",
+                            canStart = !autoStartBreak,
+                        )
+                        if (autoStartBreak) start() else updateNotification()
                         return@launch
                     } else {
                         clearPresence()
@@ -938,11 +977,21 @@ class TimerService : Service() {
                         actualSeconds = _totalSeconds.value,
                         plannedSeconds = _totalSeconds.value,
                     )
+                    if (pomodoroCompletesAfterCurrentBreak) {
+                        completePomodoroSeries()
+                        return@launch
+                    }
                     _timerMode.value = TimerMode.POMODORO
                     _totalSeconds.value = pomodoroFocusSeconds
                     _secondsLeft.value = pomodoroFocusSeconds
                     persistTimerState()
-                    start()
+                    showPomodoroTransitionNotification(
+                        title = "Break complete",
+                        body = if (autoStartBreak) "Focus ${_pomodorosCompleted.value + 1} of ${_targetPomodoroLoops.value} started"
+                            else "Focus ${_pomodorosCompleted.value + 1} of ${_targetPomodoroLoops.value} ready. Tap Start when you're ready.",
+                        canStart = !autoStartBreak,
+                    )
+                    if (autoStartBreak) start() else updateNotification()
                     return@launch
                 }
                 
@@ -963,8 +1012,7 @@ class TimerService : Service() {
                 _secondsLeft.value = _totalSeconds.value
                 clearPersistedTimerState()
                 releaseMusic()
-                clearTheme()
-                showCompletionNotification()
+                        showCompletionNotification()
                 updateNotification()
             }
         }
@@ -987,6 +1035,7 @@ class TimerService : Service() {
     }
 
     fun reset() {
+        runCatching { getSystemService(NotificationManager::class.java).cancel(POMODORO_TRANSITION_NOTIFICATION_ID) }
         syncRankedFocus(close = true)
         autoSaveMetadata = null
         clearPresence()
@@ -996,12 +1045,12 @@ class TimerService : Service() {
         _secondsLeft.value = if (_timerMode.value == TimerMode.STOPWATCH) 0 else _totalSeconds.value
         _targetPomodoroLoops.value = 0
         _pomodorosCompleted.value = 0
+        pomodoroCompletesAfterCurrentBreak = false
         sessionSaveQueuedThisRun = false
         suspendedFocusState = null
         tickJob?.cancel()
         clearPersistedTimerState()
         releaseMusic()
-        clearTheme()
         updateNotification()
         // Session ended — remove the pill.
         timerSessionActive = false
@@ -1011,6 +1060,7 @@ class TimerService : Service() {
     fun isActive(): Boolean = _isRunning.value || (if (_timerMode.value == TimerMode.STOPWATCH) _secondsLeft.value > 0 else _secondsLeft.value < _totalSeconds.value)
 
     private fun stopBecauseTaskWasRemoved() {
+        runCatching { getSystemService(NotificationManager::class.java).cancel(POMODORO_TRANSITION_NOTIFICATION_ID) }
         val isPomodoroSeries = _targetPomodoroLoops.value > 0
         if ((_timerMode.value == TimerMode.FOCUS || _timerMode.value == TimerMode.STOPWATCH || isPomodoroSeries) && !sessionSaveQueuedThisRun) {
             val progress = focusProgressSnapshot()
@@ -1028,7 +1078,6 @@ class TimerService : Service() {
         suspendedFocusState = null
         clearPersistedTimerState()
         releaseMusic()
-        clearTheme()
         stopForegroundCompat()
         getSystemService(NotificationManager::class.java).cancel(NOTIFICATION_ID)
         stopSelf()
@@ -1091,9 +1140,11 @@ class TimerService : Service() {
         actualSeconds: Int,
         mode: TimerMode,
         endedAtOverride: String? = null,
+        forceUntitled: Boolean = false,
     ) {
         val total = totalSeconds.coerceAtLeast(1)
-        val actual = actualSeconds.coerceIn(0, total)
+        val actual = if (mode == TimerMode.STOPWATCH) actualSeconds.coerceAtLeast(0)
+            else actualSeconds.coerceIn(0, total)
         if (actual == 0) return
         val endedAt = endedAtOverride ?: Instant.now().toString()
         val metadata = autoSaveMetadata ?: AutoSaveMetadata(
@@ -1108,7 +1159,8 @@ class TimerService : Service() {
         )
         // Natural timer completion is always preserved as a plain Untitled
         // Ekagra session. Goal linking is an optional later action from History.
-        val title = metadata.taskTitle?.takeIf { it.isNotBlank() } ?: DEFAULT_UNTITLED_SESSION_TITLE
+        val title = if (forceUntitled) DEFAULT_UNTITLED_SESSION_TITLE
+            else metadata.taskTitle?.takeIf { it.isNotBlank() } ?: DEFAULT_UNTITLED_SESSION_TITLE
         EkagraPendingSessionSaveStore.enqueue(
             this,
             PendingEkagraSessionSave(
@@ -1196,7 +1248,8 @@ class TimerService : Service() {
         }
         val total = if (_timerMode.value == TimerMode.STOPWATCH) _secondsLeft.value else _totalSeconds.value
         val remaining = if (_timerMode.value == TimerMode.STOPWATCH) _secondsLeft.value else _secondsLeft.value.coerceIn(0, total.coerceAtLeast(1))
-        val shouldPersist = _isRunning.value || (_timerMode.value == TimerMode.STOPWATCH && remaining > 0) || (remaining < total)
+        val shouldPersist = _isRunning.value || _targetPomodoroLoops.value > 0 ||
+            (_timerMode.value == TimerMode.STOPWATCH && remaining > 0) || (remaining < total)
         if (!shouldPersist) {
             clearPersistedTimerState()
             return
@@ -1211,8 +1264,6 @@ class TimerService : Service() {
                 isRunning = _isRunning.value,
                 savedAtMs = System.currentTimeMillis(),
                 presenceSeconds = presenceSeconds,
-                presenceDeadline = _presenceDeadline.value,
-                presencePaused = _presencePaused.value,
                 suspendedTotal = suspended?.totalSeconds ?: 0,
                 suspendedRemaining = suspended?.remainingSeconds ?: 0,
                 standardBreakSeconds = standardBreakSeconds,
@@ -1241,15 +1292,13 @@ class TimerService : Service() {
         } else {
             0
         }
-        presenceSeconds = prefs.getInt("presence_seconds", if (mode == TimerMode.STOPWATCH) savedRemaining else total - savedRemaining)
-        _presenceDeadline.value = prefs.getLong("presence_deadline", 0L)
-        _presencePaused.value = prefs.getBoolean(KEY_PRESENCE_PAUSED, false)
-        val presence = if (mode != TimerMode.BREAK) advancePresence(presenceSeconds, _presenceDeadline.value,
-            elapsedWhileRunning, System.currentTimeMillis(), if (mode == TimerMode.STOPWATCH) Int.MAX_VALUE else savedRemaining) else null
-        if (presence != null) {
-            elapsedWhileRunning = presence.creditedSeconds
-            presenceSeconds += elapsedWhileRunning
-            _presenceDeadline.value = presence.deadline
+        // A dead process cannot prove any focus work after its last durable tick.
+        // Save the recorded Pomodoro focus time and stop the series on recovery.
+        if (prefs.getInt(KEY_TARGET_POMODORO_LOOPS, 0) > 0) elapsedWhileRunning = 0
+        presenceSeconds = prefs.getInt("presence_seconds", 0)
+        if (wasRunning && mode != TimerMode.BREAK) {
+            val reminder = advancePresenceReminder(presenceSeconds, elapsedWhileRunning)
+            presenceSeconds = reminder.secondsSinceReminder
         }
         val remaining = if (mode == TimerMode.STOPWATCH) savedRemaining + elapsedWhileRunning else (savedRemaining - elapsedWhileRunning).coerceIn(0, total)
         val suspendedTotal = prefs.getInt(KEY_SUSPENDED_TOTAL_SECONDS, 0)
@@ -1274,12 +1323,19 @@ class TimerService : Service() {
             null
         }
 
-        timerSessionActive = remaining > 0 && (wasRunning || _presencePaused.value || remaining < total || mode == TimerMode.STOPWATCH)
-        if (presence?.expired == true) {
-            pauseForMissedPresence()
+        timerSessionActive = remaining > 0 && (wasRunning || remaining < total || mode == TimerMode.STOPWATCH)
+        if (_targetPomodoroLoops.value > 0) {
+            stopBecauseTaskWasRemoved()
             return
         }
-        if (_presenceDeadline.value > 0) requestPresence(_presenceDeadline.value, true)
+        // Zero is a valid stopwatch starting point, not an expired countdown.
+        // Without this branch, a service recreation during the first second could
+        // enqueue `total` (coerced to 60 above) as a completed stopwatch session.
+        if (mode == TimerMode.STOPWATCH) {
+            timerSessionActive = wasRunning || remaining > 0
+            if (wasRunning) start() else updateNotification()
+            return
+        }
         if (remaining <= 0) {
             if (wasRunning) {
                 if (_targetPomodoroLoops.value > 0) {
@@ -1291,7 +1347,7 @@ class TimerService : Service() {
                         actualSeconds = progress.actualSeconds,
                         mode = TimerMode.POMODORO,
                     )
-                } else if (mode == TimerMode.FOCUS || mode == TimerMode.STOPWATCH) {
+                } else if (mode == TimerMode.FOCUS) {
                     enqueueCompletedFocusSessionSave(
                         totalSeconds = total,
                         actualSeconds = total,
@@ -1314,37 +1370,10 @@ class TimerService : Service() {
 
     // ── Notification ──────────────────────────────────────────────────────────
     private fun clearPresence() {
+        cancelPresenceNotification()
         presenceSeconds = 0
-        _presenceDeadline.value = 0L
-        _presencePaused.value = false
-        presenceJob?.cancel()
-        presenceJob = null
         presencePlayer?.release()
         presencePlayer = null
-    }
-
-    private fun requestPresence(deadline: Long, playSound: Boolean) {
-        _presenceDeadline.value = deadline
-        if (deadline == 0L) return
-        if (playSound) playPresenceAlert()
-        persistTimerState()
-        updateNotification()
-        syncBubble()
-        presenceJob?.cancel()
-        presenceJob = scope.launch {
-            delay((deadline - System.currentTimeMillis()).coerceAtLeast(0))
-            if (_presenceDeadline.value == deadline) {
-                // Account for time since the last tick, bounded by the original deadline.
-                if (_isRunning.value && _timerMode.value != TimerMode.BREAK) {
-                    val seconds = ((SystemClock.elapsedRealtime() - lastTickElapsedMs) / 1000L).toInt().coerceAtLeast(0)
-                    val result = advancePresence(presenceSeconds, deadline, seconds, System.currentTimeMillis(),
-                        if (_timerMode.value == TimerMode.STOPWATCH) Int.MAX_VALUE else _secondsLeft.value)
-                    if (_timerMode.value == TimerMode.STOPWATCH) _secondsLeft.value += result.creditedSeconds
-                    else _secondsLeft.value -= result.creditedSeconds
-                }
-                pauseForMissedPresence()
-            }
-        }
     }
 
     private fun playPresenceAlert() {
@@ -1365,66 +1394,52 @@ class TimerService : Service() {
         }
     }
 
-    fun acknowledgePresenceEnded() { _presenceEnded.value = 0 }
-
-    fun confirmPresence() {
-        val deadline = _presenceDeadline.value
-        if (deadline == 0L) return
-        if (System.currentTimeMillis() >= deadline) {
-            pauseForMissedPresence()
-            return
-        }
-        syncRankedFocus(confirm = true)
-        clearPresence()
-        persistTimerState()
-        updateNotification()
-    }
-
-    fun pauseForPresence() {
-        if (_presenceDeadline.value == 0L) return
-        pauseForMissedPresence()
-    }
-
-    fun resumeAfterPresencePause() {
-        if (!_presencePaused.value) return
-        start()
-    }
-
-    fun savePresencePausedSession() {
-        if (!_presencePaused.value) return
-        val progress = focusProgressSnapshot()
-        if (!sessionSaveQueuedThisRun) {
-            enqueueCompletedFocusSessionSave(
-                totalSeconds = progress.plannedSeconds,
-                actualSeconds = progress.actualSeconds,
-                mode = if (_targetPomodoroLoops.value > 0) TimerMode.POMODORO else _timerMode.value,
-                endedAtOverride = Instant.now().toString(),
-            )
-        }
-        reset()
-        _presenceEnded.value += 1
-        stopForegroundCompat()
-        getSystemService(NotificationManager::class.java).cancel(NOTIFICATION_ID)
-    }
-
-    private fun pauseForMissedPresence() {
-        if (_presencePaused.value) return
-        _isRunning.value = false
-        tickJob?.cancel()
-        presenceJob?.cancel()
-        presenceJob = null
-        presencePlayer?.release()
-        presencePlayer = null
-        _presenceDeadline.value = 0L
-        presenceSeconds = 0
-        _presencePaused.value = true
-        timerSessionActive = true
-        syncRankedFocus()
-        persistTimerState()
-        releaseMusic()
+    private fun showPresenceReminderNotification() {
         playPresenceAlert()
-        updateNotification()
-        syncBubble()
+        val openIntent = PendingIntent.getActivity(
+            this,
+            5,
+            NotificationDeepLinkHandler.activityIntent(this, "safar://ekagra"),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        val confirmIntent = PendingIntent.getService(
+            this,
+            6,
+            Intent(this, TimerService::class.java).apply { action = ACTION_CONFIRM_PRESENCE },
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        val notification = NotificationCompat.Builder(this, SafarNotificationChannels.EKAGRA_CHECK_INS)
+            .setContentTitle(getString(R.string.ekagra_presence_question))
+            .setContentText(getString(R.string.ekagra_presence_running_body))
+            .setShowWhen(false)
+            .setSmallIcon(SafarNotificationManager.SafarNotificationStyle.smallIconRes(this))
+            .setColor(SafarNotificationManager.SafarNotificationStyle.brandColor(this))
+            .setContentIntent(openIntent)
+            .setCategory(NotificationCompat.CATEGORY_REMINDER)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setOnlyAlertOnce(false)
+            .setAutoCancel(true)
+            .setOngoing(false)
+            .addAction(android.R.drawable.ic_menu_send, getString(R.string.common_yes), confirmIntent)
+            .build()
+
+        runCatching {
+            getSystemService(NotificationManager::class.java)
+                .notify(PRESENCE_NOTIFICATION_ID, notification)
+        }
+    }
+
+    private fun confirmPresenceReminder() {
+        syncRankedFocus(confirm = true)
+        cancelPresenceNotification()
+    }
+
+    private fun cancelPresenceNotification() {
+        runCatching {
+            getSystemService(NotificationManager::class.java)
+                .cancel(PRESENCE_NOTIFICATION_ID)
+        }
     }
 
     private fun buildNotification(): Notification {
@@ -1446,49 +1461,16 @@ class TimerService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val resumePresenceIntent = PendingIntent.getService(
-            this, 4,
-            Intent(this, TimerService::class.java).apply { action = ACTION_RESUME_PRESENCE },
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-        )
-
         val s    = _secondsLeft.value
         val mode = _timerMode.value.label
         val time = "%02d:%02d".format(s / 60, s % 60)
         val notificationText = when {
-            _isRunning.value && (_timerMode.value == TimerMode.FOCUS || _timerMode.value == TimerMode.STOPWATCH) -> "Ekagra in progress"
+            _isRunning.value && (_timerMode.value == TimerMode.FOCUS || _timerMode.value == TimerMode.STOPWATCH || _timerMode.value == TimerMode.POMODORO) ->
+                if (_timerMode.value == TimerMode.POMODORO) "Pomodoro in progress" else "Ekagra in progress"
             _isRunning.value -> "Break in progress - KAVACH paused"
             else -> "Timer paused"
         }
 
-        if (_presenceDeadline.value > 0) {
-            val confirmIntent = PendingIntent.getService(this, 3,
-                Intent(this, TimerService::class.java).apply { action = ACTION_CONFIRM_PRESENCE },
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-            return NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentTitle("Are you still studying?")
-                .setContentText("Confirm before the countdown ends or the timer will pause.")
-                .setWhen(_presenceDeadline.value)
-                .setShowWhen(true)
-                .setUsesChronometer(true)
-                .setChronometerCountDown(true)
-                .setSmallIcon(SafarNotificationManager.SafarNotificationStyle.smallIconRes(this))
-                .setContentIntent(openIntent).setOngoing(true).setOnlyAlertOnce(true)
-                .addAction(android.R.drawable.ic_media_play, "Yes", confirmIntent)
-                .build()
-        }
-        if (_presencePaused.value) {
-            return NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentTitle("Ekagra timer paused")
-                .setContentText("We missed your check-in. Resume this same session when you're ready.")
-                .setSmallIcon(SafarNotificationManager.SafarNotificationStyle.smallIconRes(this))
-                .setColor(SafarNotificationManager.SafarNotificationStyle.brandColor(this))
-                .setContentIntent(openIntent)
-                .setOngoing(true)
-                .setOnlyAlertOnce(true)
-                .addAction(android.R.drawable.ic_media_play, "Resume", resumePresenceIntent)
-                .build()
-        }
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("$mode \u00b7 $time")
             .setContentText(personalizeNotificationBody(notificationText))
@@ -1519,6 +1501,10 @@ class TimerService : Service() {
     private fun showCompletionNotification() {
         val completedMode = _timerMode.value
 
+        // Acquire a brief WakeLock so the CPU and audio subsystem are awake to
+        // play the alert even when the screen is off.
+        acquireCompletionWakeLock()
+
         when (timerAlertStyle) {
             TimerAlertStyle.SOUND -> playCompletionSound()
             TimerAlertStyle.VIBRATE -> {
@@ -1539,13 +1525,63 @@ class TimerService : Service() {
                 TimerMode.BREAK,
                 TimerMode.STOPWATCH -> "Break finished. Ready for your next session?"
             }
+            // Use EKAGRA_ALERT (IMPORTANCE_HIGH) so the OS delivers a heads-up popup
+            // with sound + vibration even when the screen is off or the app is in the
+            // background. The in-app MediaPlayer sound above is the premium alert;
+            // this notification is the OS-level fallback that always works.
             SafarNotificationManager(this@TimerService).show(
                 title = if (completedMode == TimerMode.FOCUS || completedMode == TimerMode.POMODORO) "Ekagra session complete" else "Break finished",
                 body = body,
-                channelId = SafarNotificationChannels.FOCUS_TIMER,
+                channelId = SafarNotificationChannels.EKAGRA_ALERT,
                 deepLink = "safar://ekagra",
                 notificationId = COMPLETION_NOTIFICATION_ID,
+                priority = NotificationCompat.PRIORITY_HIGH,
             )
+        }
+    }
+
+    private fun showPomodoroTransitionNotification(title: String, body: String, canStart: Boolean) {
+        // Acquire a brief WakeLock so the CPU and audio subsystem are awake to
+        // play the alert even when the screen is off.
+        acquireCompletionWakeLock()
+
+        when (timerAlertStyle) {
+            TimerAlertStyle.SOUND -> playCompletionSound()
+            TimerAlertStyle.VIBRATE -> vibrateForTimerCompletion()
+            TimerAlertStyle.OFF -> Unit
+        }
+        scope.launch {
+            if (!safarDataStore.notificationsEnabled.first() ||
+                !safarDataStore.focusTimerNotificationsEnabled.first()) return@launch
+            if (canStart && _isRunning.value) return@launch
+
+            val openIntent = PendingIntent.getActivity(
+                this@TimerService, 9,
+                NotificationDeepLinkHandler.activityIntent(this@TimerService, "safar://ekagra"),
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            )
+            // Use EKAGRA_ALERT instead of the silent POMODORO_TRANSITIONS channel so
+            // the notification delivers sound + vibration even with the screen off.
+            val builder = NotificationCompat.Builder(this@TimerService, SafarNotificationChannels.EKAGRA_ALERT)
+                .setContentTitle(title)
+                .setContentText(body)
+                .setSmallIcon(SafarNotificationManager.SafarNotificationStyle.smallIconRes(this@TimerService))
+                .setContentIntent(openIntent)
+                .setCategory(NotificationCompat.CATEGORY_REMINDER)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setAutoCancel(true)
+            if (canStart) {
+                val startIntent = PendingIntent.getService(
+                    this@TimerService, 10,
+                    Intent(this@TimerService, TimerService::class.java).apply { action = ACTION_PLAY_PAUSE },
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+                )
+                builder.addAction(android.R.drawable.ic_media_play, "Start", startIntent)
+            }
+            runCatching {
+                getSystemService(NotificationManager::class.java)
+                    .notify(POMODORO_TRANSITION_NOTIFICATION_ID, builder.build())
+            }
         }
     }
 
