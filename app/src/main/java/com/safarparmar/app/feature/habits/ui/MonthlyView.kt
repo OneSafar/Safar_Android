@@ -38,18 +38,11 @@ fun MonthlyView(
     onCurrent: () -> Unit = {},
     onAdd: () -> Unit = {}
 ) {
-    var selectedHabitId by rememberSaveable { mutableStateOf<Long?>(null) }
-    var showFilterSheet by rememberSaveable { mutableStateOf(false) }
+    var filterState by remember { mutableStateOf(HabitFilterState()) }
+    var showFilterSheet by remember { mutableStateOf(false) }
     var dayDetailDate by remember { mutableStateOf<LocalDate?>(null) }
 
-    LaunchedEffect(habits) {
-        if (selectedHabitId != null && habits.none { it.habit.id == selectedHabitId }) {
-            selectedHabitId = null
-        }
-    }
-
-    val visibleHabits = selectedHabitId?.let { id -> habits.filter { it.habit.id == id } } ?: habits
-    val selectedHabit = visibleHabits.singleOrNull()?.habit
+    val visibleHabits = habits.filterByCriteria(filterState)
     val monthTitle = monthAnchor.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale.getDefault()))
 
     Box(modifier.fillMaxSize()) {
@@ -61,7 +54,7 @@ fun MonthlyView(
             item {
                 ModernPageHeader(
                     eyebrow = monthTitle,
-                    title = "Habit Calendar"
+                    title = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_calendar)
                 )
             }
 
@@ -69,11 +62,19 @@ fun MonthlyView(
                 item { ModernSoftCard { ModernEmptyState("No habits yet", "Tap + New Habit to start tracking your month.") } }
             } else {
                 item {
-                    ModernHabitFilterPicker(
+                    HabitFilterBar(
                         habits = habits,
-                        selectedId = selectedHabitId,
-                        onClick = { showFilterSheet = true },
-                        onEditSelected = selectedHabit?.let { h -> { onEditHabit(h) } }
+                        filterState = filterState,
+                        onOpenFilterSheet = { showFilterSheet = true },
+                        onRemoveHabitId = { id ->
+                            filterState = filterState.copy(selectedHabitIds = filterState.selectedHabitIds - id)
+                        },
+                        onRemoveFrequency = { freq ->
+                            filterState = filterState.copy(selectedFrequencies = filterState.selectedFrequencies - freq)
+                        },
+                        onRemoveStatus = { status ->
+                            filterState = filterState.copy(selectedStatuses = filterState.selectedStatuses - status)
+                        }
                     )
                 }
                 item {
@@ -92,10 +93,10 @@ fun MonthlyView(
         }
 
         if (showFilterSheet) {
-            ModernHabitFilterSheet(
+            HabitFilterTwoPaneSheet(
                 habits = habits,
-                selectedId = selectedHabitId,
-                onSelect = { selectedHabitId = it },
+                currentState = filterState,
+                onApply = { filterState = it },
                 onDismiss = { showFilterSheet = false }
             )
         }

@@ -48,7 +48,7 @@ fun TodayView(
         item {
             ModernPageHeader(
                 eyebrow = date.format(DateTimeFormatter.ofPattern("EEEE, d MMMM", Locale.getDefault())),
-                title = "Today's Habits"
+                title = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_today_title)
             )
         }
 

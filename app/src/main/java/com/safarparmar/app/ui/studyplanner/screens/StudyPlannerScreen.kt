@@ -461,6 +461,8 @@ fun StudyPlannerScreen(
     }.collectAsStateWithLifecycle(initialDetailState)
     val actions: PlannerActions = viewModel
     val snackbar = remember { SnackbarHostState() }
+    val undoLabel = stringResource(R.string.common_undo)
+    val viewLabel = stringResource(R.string.common_view)
     val coroutineScope = rememberCoroutineScope()
     var tourState by remember { mutableStateOf<ButterflyTourState?>(null) }
 
@@ -490,7 +492,7 @@ fun StudyPlannerScreen(
                 withTimeoutOrNull(5_000L) {
                     snackbar.showSnackbar(
                         message = it,
-                        actionLabel = "Undo",
+                        actionLabel = undoLabel,
                         withDismissAction = true,
                         duration = SnackbarDuration.Indefinite,
                     )
@@ -498,7 +500,7 @@ fun StudyPlannerScreen(
             } else {
                 snackbar.showSnackbar(
                     message = it,
-                    actionLabel = if (chromeState.messageOpensUnscheduled) "View" else null,
+                    actionLabel = if (chromeState.messageOpensUnscheduled) viewLabel else null,
                 )
             }
             if (result == SnackbarResult.ActionPerformed) {
@@ -878,7 +880,7 @@ private fun StudyPlansScreen(
     pendingDelete?.let { plan ->
         ConfirmActionDialog(
             title = stringResource(R.string.planner_delete_plan_question),
-            body = "This will delete ${plan.title} and its syllabus.",
+            body = stringResource(R.string.planner_delete_plan_named, plan.title),
             onDismiss = { pendingDelete = null },
             onConfirm = { actions.deletePlan(plan.id); pendingDelete = null },
         )
@@ -984,7 +986,7 @@ private fun StudyPlansScreen(
                     item {
                         PlannerEmptyState(
                             title = stringResource(R.string.planner_no_target_exam),
-                            body = "Plan an exam and it will appear here.",
+                            body = stringResource(R.string.planner_empty_plan_body),
                             action = "Plan Your Exams",
                             isLight = !isDark,
                             onAction = {
@@ -1446,7 +1448,7 @@ private fun RenameExamDialog(
             )
         },
         dismissButton = {
-            PlannerDialogTextAction("Cancel", onClick = onDismiss)
+            PlannerDialogTextAction(stringResource(R.string.common_cancel), onClick = onDismiss)
         },
         confirmButton = {
             PlannerDialogAction(
@@ -2042,7 +2044,7 @@ internal fun PlannerExportButton(onClick: () -> Unit, modifier: Modifier = Modif
             PlannerDialogText(body)
         },
         dismissButton = {
-            PlannerDialogTextAction("Cancel", onClick = onDismiss)
+            PlannerDialogTextAction(stringResource(R.string.common_cancel), onClick = onDismiss)
         },
         confirmButton = {
             // Destructive confirm keeps the error colour, rendered as glass.

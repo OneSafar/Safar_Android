@@ -149,7 +149,7 @@ class HabitExportManager @Inject constructor() {
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
 
-        val chooser = Intent.createChooser(shareIntent, "Export Habit Data").apply {
+        val chooser = Intent.createChooser(shareIntent, context.getString(com.safarparmar.app.R.string.habits_export_data)).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
         context.startActivity(chooser)

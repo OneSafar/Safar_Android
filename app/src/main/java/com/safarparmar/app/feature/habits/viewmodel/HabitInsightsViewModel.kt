@@ -34,6 +34,13 @@ data class HabitInsightsUiState(
     val availableHabits: List<HabitEntity> = emptyList(),
     val currentStreak: Int = 0,
     val bestStreak: Int = 0,
+    val totalCompleted: Int = 0,
+    val totalScheduled: Int = 0,
+    val totalMissed: Int = 0,
+    val completionRate: Float = 0f,
+    val missedRate: Float = 0f,
+    val startedDate: LocalDate? = null,
+    val daysSinceStarted: Long = 0L,
     val canNavigateNextMonth: Boolean = false,
     val canNavigateNextYear: Boolean = false,
     val isLoading: Boolean = false
@@ -90,8 +97,36 @@ class HabitInsightsViewModel @Inject constructor(
         val yDaily = calculator.calculateDailyStats(heatmapHabits, yearStart, yearEnd, today)
         val performance = calculator.calculateHabitPerformance(yearHabits, yearStart, yearEnd, today)
 
-        val overallCurrentStreak = performance.maxOfOrNull { it.currentStreak } ?: 0
-        val overallBestStreak = performance.maxOfOrNull { it.bestStreak } ?: 0
+        val currentHabitStreak = if (habitId == null) {
+            performance.maxOfOrNull { it.currentStreak } ?: 0
+        } else {
+            performance.find { it.habitId == habitId }?.currentStreak ?: 0
+        }
+        val currentHabitBestStreak = if (habitId == null) {
+            performance.maxOfOrNull { it.bestStreak } ?: 0
+        } else {
+            performance.find { it.habitId == habitId }?.bestStreak ?: 0
+        }
+
+        val (totScheduled, totCompleted, habitStartedDate) = if (habitId == null) {
+            val sched = yDaily.filter { !it.date.isAfter(today) }.sumOf { it.scheduledCount }
+            val comp = yDaily.filter { !it.date.isAfter(today) }.sumOf { it.completedCount }
+            val earliest = yearHabits.map { it.habit }.minByOrNull { it.scheduledSince }?.scheduledSince
+            Triple(sched, comp, earliest)
+        } else {
+            val perf = performance.find { it.habitId == habitId }
+            val habit = yearHabits.firstOrNull { it.habit.id == habitId }?.habit
+            val sched = perf?.scheduledCount ?: 0
+            val comp = perf?.completedCount ?: 0
+            Triple(sched, comp, habit?.scheduledSince)
+        }
+
+        val totMissed = (totScheduled - totCompleted).coerceAtLeast(0)
+        val cRate = if (totScheduled > 0) totCompleted.toFloat() / totScheduled.toFloat() else 0f
+        val mRate = if (totScheduled > 0) totMissed.toFloat() / totScheduled.toFloat() else 0f
+        val daysSince = if (habitStartedDate != null) {
+            java.time.temporal.ChronoUnit.DAYS.between(habitStartedDate, today).coerceAtLeast(0L)
+        } else 0L
 
         HabitInsightsUiState(
             selectedMonth = month,
@@ -102,8 +137,15 @@ class HabitInsightsViewModel @Inject constructor(
             yearlyDailyStats = yDaily,
             habitPerformance = performance,
             availableHabits = yearHabits.map { it.habit }.distinctBy { it.id }.sortedBy { it.order },
-            currentStreak = overallCurrentStreak,
-            bestStreak = overallBestStreak,
+            currentStreak = currentHabitStreak,
+            bestStreak = currentHabitBestStreak,
+            totalCompleted = totCompleted,
+            totalScheduled = totScheduled,
+            totalMissed = totMissed,
+            completionRate = cRate,
+            missedRate = mRate,
+            startedDate = habitStartedDate,
+            daysSinceStarted = daysSince,
             canNavigateNextMonth = month.isBefore(currentYm),
             canNavigateNextYear = year < currentYr,
             isLoading = false

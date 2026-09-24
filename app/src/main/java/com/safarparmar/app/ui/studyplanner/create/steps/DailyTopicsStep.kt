@@ -191,7 +191,7 @@ fun DailyTopicsStep(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Close,
-                                contentDescription = "Remove ${topic.name}",
+                                contentDescription = stringResource(R.string.planner_remove_named, topic.name),
                                 tint = muted,
                                 modifier = Modifier.size(18.dp),
                             )

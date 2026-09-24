@@ -208,27 +208,8 @@ fun YoutubeStudyV2Screen(
             )
         },
     ) { padding ->
-        // Temporary launch gate removed. Keep YoutubeFocusComingSoonContent below
-        // so the placeholder can be restored without rebuilding it.
-        YoutubeStudyV2Content(
-            state = state,
+        YoutubeFocusComingSoonContent(
             isLight = isLight,
-            onAgree = {
-                if (state.accessibilityEnabled) viewModel.goToStep2()
-                else FocusShieldPermissionHelper.openAccessibilitySettings(context)
-            },
-            onNotNow = onBack,
-            onSetEnabled = viewModel::setEnabled,
-            onOpenAccessibility = { FocusShieldPermissionHelper.openAccessibilitySettings(context) },
-            onReferenceChanged = viewModel::setReference,
-            onAddChannel = viewModel::resolveAndAllow,
-            onSetClassification = viewModel::setClassification,
-            onToggleAvailable = viewModel::toggleAvailable,
-            onSetAvailableClassification = viewModel::setAvailableClassification,
-            onDeleteChannel = viewModel::deleteChannel,
-            onBackToStep1 = viewModel::returnToStep1,
-            onStart = viewModel::finishSetup,
-            onAcceptDisclosure = viewModel::acceptDisclosure,
             modifier = Modifier.padding(padding).navigationBarsPadding(),
         )
     }
@@ -1226,7 +1207,7 @@ private fun AddChannelCard(
             message?.let {
                 val msgColor = when {
                     isError -> MaterialTheme.colorScheme.error
-                    it.contains("Distracting", ignoreCase = true) -> ChannelColors.distracting(isLight)
+                    it.contains(stringResource(R.string.youtube_distracting), ignoreCase = true) -> ChannelColors.distracting(isLight)
                     else -> ChannelColors.productive(isLight)
                 }
                 Text(

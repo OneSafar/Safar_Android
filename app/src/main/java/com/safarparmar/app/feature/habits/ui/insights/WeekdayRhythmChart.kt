@@ -63,7 +63,7 @@ fun WeekdayRhythmChart(
             .border(1.dp, HabitColors.Outline, RoundedCornerShape(20.dp))
             .padding(18.dp),
     ) {
-        Text("Weekly rhythm", color = HabitColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+        Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_weekly_rhythm), color = HabitColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
         Text(
             "Average completion by weekday",
             color = HabitColors.TextSecondary,

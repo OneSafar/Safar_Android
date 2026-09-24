@@ -71,7 +71,7 @@ fun LiveSessionsHubScreen(
     val bgColor = LiveThemeColors.background(currentIsDark)
 
     SafarDrawerScaffold(
-        title = "Dhyan Live",
+        title = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.live_title),
         subtitle = null,
         currentRoute = currentRoute,
         isDarkTheme = currentIsDark,
@@ -145,14 +145,14 @@ fun DhyanLiveLockOverlay(
             ) {
                 Icon(
                     imageVector = Icons.Default.Lock,
-                    contentDescription = "Dhyan Live locked",
+                    contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.live_locked),
                     tint = primaryColor,
                     modifier = Modifier.size(28.dp),
                 )
             }
             PlanEyebrow("Live access")
             Text(
-                text = "Unlock Dhyan Live",
+                text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.live_unlock),
                 fontFamily = LoraFontFamily,
                 fontSize = 22.sp,
                 fontWeight = FontWeight.Bold,
@@ -160,7 +160,7 @@ fun DhyanLiveLockOverlay(
                 textAlign = TextAlign.Center,
             )
             Text(
-                text = "Get Dhyan Live for 6 months, or choose a Safar Premium bundle with Dhyan Live included.",
+                text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.live_unlock_body),
                 fontSize = 14.sp,
                 textAlign = TextAlign.Center,
                 color = textSecondary,

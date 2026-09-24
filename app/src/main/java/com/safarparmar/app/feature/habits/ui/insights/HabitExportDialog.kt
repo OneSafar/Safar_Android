@@ -59,13 +59,13 @@ fun HabitExportDialog(
                     .verticalScroll(rememberScrollState())
             ) {
                 Text(
-                    text = "Export Habit Data",
+                    text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_export_data),
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = textPrimary
                 )
                 Text(
-                    text = "Download spreadsheet-compatible data",
+                    text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_export_download),
                     fontSize = 12.sp,
                     color = textSecondary
                 )
@@ -74,7 +74,7 @@ fun HabitExportDialog(
 
                 // Date Range Option
                 Text(
-                    text = "Date Range",
+                    text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_date_range),
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = textPrimary
@@ -83,7 +83,7 @@ fun HabitExportDialog(
 
                 listOf(
                     ExportDateRangeOption.THIS_MONTH to "This Month",
-                    ExportDateRangeOption.THIS_YEAR to "This Year",
+                    ExportDateRangeOption.THIS_YEAR to androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_this_year),
                     ExportDateRangeOption.ALL_TIME to "All Time"
                 ).forEach { (opt, label) ->
                     Row(
@@ -111,7 +111,7 @@ fun HabitExportDialog(
 
                 // Habits Filter
                 Text(
-                    text = "Habits",
+                    text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_title_plain),
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = textPrimary
@@ -131,7 +131,7 @@ fun HabitExportDialog(
                         colors = RadioButtonDefaults.colors(selectedColor = purple)
                     )
                     Spacer(Modifier.width(8.dp))
-                    Text(text = "All Habits", fontSize = 14.sp, color = textPrimary)
+                    Text(text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_all), fontSize = 14.sp, color = textPrimary)
                 }
 
                 Row(
@@ -147,7 +147,7 @@ fun HabitExportDialog(
                         colors = RadioButtonDefaults.colors(selectedColor = purple)
                     )
                     Spacer(Modifier.width(8.dp))
-                    Text(text = "Selected Habits", fontSize = 14.sp, color = textPrimary)
+                    Text(text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_selected), fontSize = 14.sp, color = textPrimary)
                 }
 
                 if (!exportAllHabits) {
@@ -191,7 +191,7 @@ fun HabitExportDialog(
 
                 // Format: CSV
                 Text(
-                    text = "Format",
+                    text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_format),
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = textPrimary
@@ -211,7 +211,7 @@ fun HabitExportDialog(
                     )
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        text = "CSV (.csv - Excel & Sheets compatible)",
+                        text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_csv_format),
                         fontSize = 14.sp,
                         color = textPrimary
                     )
@@ -226,7 +226,7 @@ fun HabitExportDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     TextButton(onClick = onDismiss) {
-                        Text("Cancel", color = textSecondary)
+                        Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.common_cancel), color = textSecondary)
                     }
 
                     Spacer(Modifier.width(8.dp))
@@ -240,7 +240,7 @@ fun HabitExportDialog(
                         colors = ButtonDefaults.buttonColors(containerColor = purple),
                         shape = RoundedCornerShape(12.dp)
                     ) {
-                        Text("Export", color = androidx.compose.ui.graphics.Color.White)
+                        Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_export), color = androidx.compose.ui.graphics.Color.White)
                     }
                 }
             }

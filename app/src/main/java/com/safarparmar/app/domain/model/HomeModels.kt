@@ -224,6 +224,9 @@ data class EkagraAnalyticsRecentSession(
 
 @Immutable
 data class EkagraAnalyticsFocusSession(
+    val sourceSessionId: String? = null,
+    val endReason: String? = null,
+    val pendingSync: Boolean = false,
     val id: String = "",
     val startedAt: String? = null,
     val endedAt: String? = null,

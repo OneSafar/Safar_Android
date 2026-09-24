@@ -106,7 +106,7 @@ fun AppCategoryEditorScreen(
                 ) {
                     Icon(
                         Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back",
+                        contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.common_back),
                         tint = Color.White,
                         modifier = Modifier.size(20.dp),
                     )
@@ -130,7 +130,7 @@ fun AppCategoryEditorScreen(
                 value = query,
                 onValueChange = { query = it },
                 singleLine = true,
-                label = { Text("Search apps") },
+                label = { Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.kavach_search_apps)) },
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
             )

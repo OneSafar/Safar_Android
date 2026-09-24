@@ -1367,7 +1367,7 @@ fun DailyTodoSetupSheet(
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Edit,
-                                    contentDescription = "Rename ${todo.name}",
+                                    contentDescription = stringResource(R.string.planner_rename_named, todo.name),
                                     tint = ink,
                                     modifier = Modifier.size(16.dp),
                                 )
@@ -1384,7 +1384,7 @@ fun DailyTodoSetupSheet(
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Close,
-                                    contentDescription = "Remove ${todo.name}",
+                                    contentDescription = stringResource(R.string.planner_remove_named, todo.name),
                                     tint = ink,
                                     modifier = Modifier.size(16.dp),
                                 )
@@ -1673,7 +1673,7 @@ fun DailyTodoSection(
                                     ) {
                                         Icon(
                                             imageVector = Icons.Default.MoreVert,
-                                            contentDescription = "Options for ${todo.name}",
+                                            contentDescription = stringResource(R.string.planner_options_named, todo.name),
                                             tint = scheme.onSurfaceVariant.copy(alpha = 0.7f),
                                             modifier = Modifier.size(18.dp)
                                         )
@@ -1729,8 +1729,8 @@ fun DailyTodoSection(
             title = stringResource(R.string.planner_rename_daily_topic),
             label = stringResource(R.string.planner_topic_name),
             initialValue = todo.name,
-            confirmLabel = "Save",
-            emptyHint = "Topic name cannot be empty",
+            confirmLabel = stringResource(R.string.common_save),
+            emptyHint = stringResource(R.string.planner_topic_name_empty),
             onDismiss = { todoToEdit = null },
             onConfirm = { newName ->
                 val updatedTodos = todos.map { if (it.id == todo.id) it.copy(name = newName) else it }
@@ -1747,7 +1747,7 @@ fun DailyTodoSection(
     todoToDelete?.let { todo ->
         PlanConfirmDialog(
             title = stringResource(R.string.planner_delete_daily_topic_question),
-            body = "Are you sure you want to remove \"${todo.name}\" from your daily to-do list?",
+            body = stringResource(R.string.planner_remove_daily_named, todo.name),
             onDismiss = { todoToDelete = null },
             onConfirm = {
                 val updatedTodos = todos.filter { it.id != todo.id }

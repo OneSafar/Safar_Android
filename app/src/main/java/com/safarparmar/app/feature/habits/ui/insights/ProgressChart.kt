@@ -69,6 +69,18 @@ fun ProgressChart(
     val totalCompleted = visibleDays.sumOf { it.completedCount }
     val overallProgress = if (totalScheduled == 0) 0f else totalCompleted.toFloat() / totalScheduled
     val targetPercentage = (overallProgress * 100f).roundToInt()
+    val weekDescriptions = mutableListOf<String>()
+    for (week in weekRings) {
+        weekDescriptions += androidx.compose.ui.res.stringResource(
+            com.safarparmar.app.R.string.habits_week_completion_a11y,
+            week.number,
+            (week.progress * 100).roundToInt(),
+        )
+    }
+    val chartDescription = androidx.compose.ui.res.stringResource(
+        com.safarparmar.app.R.string.habits_monthly_completion_a11y,
+        targetPercentage,
+    ) + " " + weekDescriptions.joinToString()
     val motion = LocalMotionPolicy.current
     val reveal = remember { Animatable(0f) }
     val percentage by animateIntAsState(
@@ -105,13 +117,13 @@ fun ProgressChart(
             .padding(18.dp),
     ) {
         Text(
-            text = "Monthly Rhythm",
+            text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_monthly_rhythm),
             fontSize = 16.sp,
             fontWeight = FontWeight.Bold,
             color = HabitColors.TextPrimary,
         )
         Text(
-            text = "Each ring shows one week of progress",
+            text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_ring_explanation),
             fontSize = 12.sp,
             color = HabitColors.TextSecondary,
         )
@@ -124,7 +136,7 @@ fun ProgressChart(
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    text = "No scheduled habits in this period",
+                    text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_none_scheduled_period),
                     fontSize = 13.sp,
                     color = HabitColors.TextTertiary,
                 )
@@ -134,12 +146,7 @@ fun ProgressChart(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(224.dp)
-                    .semantics {
-                        contentDescription = "Monthly completion $targetPercentage percent. " +
-                            weekRings.joinToString {
-                                "Week ${it.number}, ${(it.progress * 100).roundToInt()} percent"
-                            }
-                    },
+                    .semantics { contentDescription = chartDescription },
                 contentAlignment = Alignment.Center,
             ) {
                 Canvas(modifier = Modifier.size(218.dp)) {
@@ -189,7 +196,7 @@ fun ProgressChart(
                         letterSpacing = (-1).sp,
                     )
                     Text(
-                        text = "this month",
+                        text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_this_month),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Medium,
                         color = HabitColors.TextSecondary,
@@ -229,7 +236,7 @@ private fun WeekRingLegend(
                         Spacer(Modifier.width(6.dp))
                         Column {
                             Text(
-                                text = "Week ${week.number} · ${(week.progress * 100).roundToInt()}%",
+                                text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_week_progress, week.number, (week.progress * 100).roundToInt()),
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = HabitColors.TextPrimary,

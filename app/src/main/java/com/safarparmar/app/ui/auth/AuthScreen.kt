@@ -116,6 +116,7 @@ fun AuthScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
     val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
     val logoRes = if (isDark) R.drawable.ic_safar_logo_brand_dark else R.drawable.ic_safar_logo_brand_light
     val backgroundRes = if (isDark) R.drawable.auth_bg_dark else R.drawable.auth_bg
 
@@ -125,12 +126,11 @@ fun AuthScreen(
 
     LaunchedEffect(uiState.error) {
         uiState.error?.let { error ->
-            snackbarHostState.showSnackbar(message = error, actionLabel = "OK")
+            snackbarHostState.showSnackbar(message = error, actionLabel = context.getString(R.string.common_ok))
             viewModel.onEvent(AuthEvent.ClearError)
         }
     }
 
-    val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val credentialManager = remember(context) {
         CredentialManager.create(context)
@@ -530,7 +530,7 @@ fun GoogleSignInButton(
             }
             Spacer(modifier = Modifier.width(12.dp))
             Text(
-                text = "Continue with Google",
+                text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.auth_continue_google),
                 color = TextDark,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.SemiBold,
@@ -829,7 +829,7 @@ fun SignupContent(
                     HtmlTextField(
                         value = uiState.customExamType,
                         onValueChange = { onEvent(AuthEvent.CustomExamTypeChanged(it)) },
-                        placeholder = "Enter your exact exam (e.g., RRB NTPC)",
+                        placeholder = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.auth_exam_exact_hint),
                         leadingIcon = Icons.Default.School,
                         isError = !uiState.customExamTypeError.isNullOrBlank(),
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
@@ -931,7 +931,7 @@ fun ForgotPasswordContent(
         val logoRes = if (isDark) R.drawable.ic_safar_logo_brand_dark else R.drawable.ic_safar_logo_brand_light
         AsyncImage(
             model = logoRes,
-            contentDescription = "SAFAR Logo",
+            contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.auth_safar_logo),
             modifier = Modifier.size(96.dp)
         )
         Spacer(modifier = Modifier.height(16.dp))
@@ -967,7 +967,7 @@ fun ForgotPasswordContent(
                 HtmlTextField(
                     value = uiState.email,
                     onValueChange = { onEvent(AuthEvent.EmailChanged(it)) },
-                    placeholder = "Email address",
+                    placeholder = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.auth_email_address),
                     leadingIcon = Icons.Default.Email,
                     isError = !uiState.emailError.isNullOrBlank(),
                     keyboardOptions = KeyboardOptions(
@@ -1008,7 +1008,7 @@ fun ForgotPasswordContent(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
                     HtmlPrimaryButton(
-                        text = "Back to Sign In",
+                        text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.auth_back_sign_in),
                         onClick = onBackToLogin,
                         enabled = true,
                     )
@@ -1016,7 +1016,7 @@ fun ForgotPasswordContent(
                         onClick = { onEvent(AuthEvent.ForgotPassword) },
                     ) {
                         Text(
-                            text = "Didn't receive email? Try again",
+                            text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.auth_email_retry),
                             color = palette.link,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.SemiBold,
@@ -1032,7 +1032,7 @@ fun ForgotPasswordContent(
                         HtmlPasswordField(
                             value = uiState.resetNewPassword,
                             onValueChange = { onEvent(AuthEvent.ResetNewPasswordChanged(it)) },
-                            placeholder = "New Password (min 8 chars)",
+                            placeholder = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.auth_new_password_hint),
                             passwordVisible = passwordVisible,
                             onToggleVisibility = { passwordVisible = !passwordVisible },
                             isError = !uiState.resetNewPasswordError.isNullOrBlank(),
@@ -1057,7 +1057,7 @@ fun ForgotPasswordContent(
                         HtmlPasswordField(
                             value = uiState.resetConfirmPassword,
                             onValueChange = { onEvent(AuthEvent.ResetConfirmPasswordChanged(it)) },
-                            placeholder = "Confirm Password",
+                            placeholder = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.auth_confirm_password),
                             passwordVisible = passwordVisible,
                             onToggleVisibility = { passwordVisible = !passwordVisible },
                             isError = !uiState.resetConfirmPasswordError.isNullOrBlank(),
@@ -1107,7 +1107,7 @@ fun ForgotPasswordContent(
                 modifier = Modifier.padding(end = 4.dp).size(14.dp)
             )
             Text(
-                text = "Back to Sign In",
+                text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.auth_back_sign_in),
                 color = palette.accent,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium

@@ -17,6 +17,7 @@
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.KILL_BACKGROUND_PROCESSES" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <!-- Allow PackageManager to resolve launchable apps for the app picker. -->
@@ -40,9 +41,12 @@
         android:theme="@style/Theme.Safar"
         android:hardwareAccelerated="true">
 
+        <!-- Navigation Compose's predictive-back transition can race with our auth/onboarding
+             stack replacement. Keep normal Back handling while avoiding that transition. -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:enableOnBackInvokedCallback="false"
             android:theme="@style/Theme.App.Starting"
             android:windowSoftInputMode="adjustResize"
             android:screenOrientation="portrait"
@@ -101,6 +105,13 @@
             android:name="com.google.firebase.messaging.default_notification_color"
             android:resource="@color/safar_notification_color" />
 
+        <receiver android:name=".ui.ekagra.EkagraTimerAlarmReceiver" android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED" />
+            </intent-filter>
+        </receiver>
         <service
             android:name=".ui.ekagra.TimerService"
             android:foregroundServiceType="mediaPlayback"

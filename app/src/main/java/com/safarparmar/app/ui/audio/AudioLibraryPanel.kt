@@ -64,6 +64,7 @@ import com.safarparmar.app.ui.ekagra.EkagraDisplayTitle
 import com.safarparmar.app.ui.ekagra.EkagraEyebrow
 import com.safarparmar.app.ui.ekagra.EkagraHairline
 import com.safarparmar.app.ui.ekagra.EkagraInk
+import com.safarparmar.app.ui.theme.shimmer
 import com.safarparmar.app.ui.ekagra.EkagraPill
 import com.safarparmar.app.ui.ekagra.rememberEkagraInk
 import com.safarparmar.app.ui.theme.isLightBackground
@@ -234,14 +235,39 @@ fun AudioLibraryPanel(
             ) {
                 categories.forEach { category ->
                     val selected = selectedCategory == category
-                    val label = category?.displayName ?: "All"
-                    EkagraPill(
-                        label = label,
-                        selected = selected,
-                        accent = colors.accent,
-                        ink = ink,
-                        onClick = { selectedCategory = category },
-                    )
+                    val label = category?.let { androidx.compose.ui.res.stringResource(it.displayNameRes) }
+                        ?: androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.audio_category_all)
+                    if (category == AudioCategory.ORIGINALS) {
+                        Box(
+                            modifier = Modifier
+                                .clip(CircleShape)
+                                .background(
+                                    brush = androidx.compose.ui.graphics.Brush.linearGradient(
+                                        colors = listOf(Color(0xFFF9D423), Color(0xFFFF4E50))
+                                    )
+                                )
+                                .let { if (selected) it.border(2.dp, colors.accent, CircleShape) else it }
+                                .shimmer()
+                                .clickable { selectedCategory = category }
+                                .padding(horizontal = 14.dp, vertical = 7.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                text = label,
+                                fontSize = 12.sp,
+                                fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
+                                color = Color.White,
+                            )
+                        }
+                    } else {
+                        EkagraPill(
+                            label = label,
+                            selected = selected,
+                            accent = colors.accent,
+                            ink = ink,
+                            onClick = { selectedCategory = category },
+                        )
+                    }
                 }
             }
 
@@ -290,7 +316,7 @@ fun AudioLibraryPanel(
                                 } else {
                                     Icon(
                                         imageVector = if (isSelected) Icons.Default.MusicNote else Icons.Default.PlayArrow,
-                                        contentDescription = "Preview",
+                                        contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.audio_preview),
                                         tint = if (isSelected) colors.accent else colors.muted,
                                         modifier = Modifier.size(15.dp),
                                     )
@@ -299,14 +325,15 @@ fun AudioLibraryPanel(
 
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = track.name,
+                                    text = track.nameRes?.let { androidx.compose.ui.res.stringResource(it) } ?: track.name,
                                     fontSize = 14.sp,
                                     fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
                                     color = ink.primaryText,
                                 )
-                                if (track.description != null) {
+                                val desc = track.descriptionRes?.let { androidx.compose.ui.res.stringResource(it) } ?: track.description
+                                if (desc != null) {
                                     Text(
-                                        text = track.description,
+                                        text = desc,
                                         fontSize = 11.5.sp,
                                         color = ink.mutedText,
                                         maxLines = 1,
@@ -319,7 +346,7 @@ fun AudioLibraryPanel(
                             if (isSelected) {
                                 Icon(
                                     imageVector = Icons.Default.Check,
-                                    contentDescription = "Selected",
+                                    contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.common_selected),
                                     tint = colors.accent,
                                     modifier = Modifier.size(16.dp),
                                 )

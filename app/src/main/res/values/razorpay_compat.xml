@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Razorpay checkout 1.6.39 references these fields in com.razorpay.R$string,
+         but its published AAR lists them in R.txt without shipping their values.
+         Keep the names until the SDK includes the missing string resources. -->
+    <string name="activity_result_invalid_parameters">Invalid payment parameters. Please try again.</string>
+    <string name="activity_result_invalid_url">Invalid payment URL. Please try again.</string>
+    <string name="err_name_not_resolved_message">Could not connect to the payment page. Check your internet connection and try again.</string>
+    <string name="err_name_not_resolved_title">Payment page unavailable</string>
+</resources>

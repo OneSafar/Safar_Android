@@ -3,6 +3,7 @@ package com.safarparmar.app.notifications
 import android.content.Context
 import android.util.Log
 import com.safarparmar.app.BuildConfig
+import com.safarparmar.app.R
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
@@ -71,8 +72,12 @@ class PlannerAlertsWorker(
                     val dedupeKey = PlannerAlertDedupe.overdueKey(plan.id, today)
                     if (!dataStore.hasPlannerAlertDedupeKey(dedupeKey)) {
                         notificationManager.showStudyReminder(
-                            title = "Missed topics: ${plan.title}",
-                            body = "You missed ${overdueTopics.size} ${if (overdueTopics.size == 1) "topic" else "topics"}. Tap to fit them back in.",
+                            title = applicationContext.getString(R.string.notifications_missed_topics, plan.title),
+                            body = if (overdueTopics.size == 1) {
+                                applicationContext.getString(R.string.notifications_missed_one_body)
+                            } else {
+                                applicationContext.getString(R.string.notifications_missed_many_body, overdueTopics.size)
+                            },
                             deepLink = "safar://studyplanner",
                             dedupeType = SafarNotificationManager.DedupeType.PLANNER_ALERT,
                             // Falling behind stings — the name softens it.
@@ -92,8 +97,8 @@ class PlannerAlertsWorker(
                             val dedupeKey = PlannerAlertDedupe.examCountdownKey(plan.id, daysUntil)
                             if (!dataStore.hasPlannerAlertDedupeKey(dedupeKey)) {
                                 notificationManager.showStudyReminder(
-                                    title = "Exam approaching!",
-                                    body = "Your exam for ${plan.title} is in $daysUntil days.",
+                                    title = applicationContext.getString(R.string.notifications_exam_approaching),
+                                    body = applicationContext.getString(R.string.notifications_exam_days_body, plan.title, daysUntil),
                                     deepLink = "safar://studyplanner",
                                     dedupeType = SafarNotificationManager.DedupeType.PLANNER_ALERT,
                                 )
@@ -123,7 +128,7 @@ class PlannerAlertsWorker(
                             if (!dataStore.hasPlannerAlertDedupeKey(dedupeKey)) {
                                 notificationManager.showStudyReminder(
                                     title = plan.title,
-                                    body = "You're behind schedule, time to catch up!",
+                                    body = applicationContext.getString(R.string.planner_behind_schedule_notification),
                                     deepLink = "safar://studyplanner",
                                     dedupeType = SafarNotificationManager.DedupeType.PLANNER_ALERT,
                                 )
@@ -145,11 +150,11 @@ class PlannerAlertsWorker(
                     val dedupeKey = PlannerAlertDedupe.revisionReminderKey(plan.id, today)
                     if (!dataStore.hasPlannerAlertDedupeKey(dedupeKey)) {
                         notificationManager.showStudyReminder(
-                            title = "Time to revise",
+                            title = applicationContext.getString(R.string.notifications_time_revise),
                             body = if (revisionTopicsDue.size == 1) {
-                                "Revise ${revisionTopicsDue.first().name} from ${plan.title} today."
+                                applicationContext.getString(R.string.notifications_revise_one_body, revisionTopicsDue.first().name, plan.title)
                             } else {
-                                "You have ${revisionTopicsDue.size} topics ready for revision today."
+                                applicationContext.getString(R.string.notifications_revise_many_body, revisionTopicsDue.size)
                             },
                             // Route straight to this plan's Revision tab so the due
                             // session can actually be ticked (previously landed on a

@@ -7,7 +7,6 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,9 +16,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -153,64 +149,56 @@ internal fun GoalsTab(
         Column(
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Box(
+            Column(
                 modifier = Modifier
                     .padding(horizontal = 20.dp)
                     .fillMaxWidth()
-                    .heightIn(max = 336.dp)
                     .clip(RoundedCornerShape(16.dp))
                     .border(1.5.dp, GoalsFlatColors.Primary, RoundedCornerShape(16.dp))
-                    .background(GoalsFlatColors.Primary.copy(alpha = 0.03f)),
+                    .background(GoalsFlatColors.Primary.copy(alpha = 0.03f))
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
             ) {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(0.dp),
-                ) {
-                    if (filterMode == "today") {
+                if (filterMode == "today") {
                         if (pending.isNotEmpty()) {
-                            item { FlatSectionEyebrow(stringResource(R.string.goals_pending_tasks, pending.size)) }
-                            itemsIndexed(pending, key = { _, g -> g.id }) { index, goal ->
+                            FlatSectionEyebrow(stringResource(R.string.goals_pending_tasks, pending.size))
+                            pending.forEachIndexed { index, goal ->
                                 GoalItem(goal, onComplete = { onComplete(goal) }, onReopen = { onReopen(goal) }, onEdit = { onEdit(goal) }, onDelete = { onDelete(goal) })
                                 if (index < pending.lastIndex) PlanHairline(alpha = 0.5f)
                             }
                         } else {
-                            item { EmptyGoalsCard(stringResource(R.string.goals_all_caught_up), stringResource(R.string.goals_upcoming_stays_help)) }
+                            EmptyGoalsCard(stringResource(R.string.goals_all_caught_up), stringResource(R.string.goals_upcoming_stays_help))
                         }
                         val completedToday = completed.filter { it.anchorDateKey() == todayKey }
                         if (completedToday.isNotEmpty()) {
-                            item {
-                                Spacer(Modifier.height(18.dp))
-                                PlanHairline()
-                                Spacer(Modifier.height(14.dp))
-                                FlatSectionEyebrow(stringResource(R.string.goals_completed_tasks, completedToday.size))
-                            }
-                            itemsIndexed(completedToday, key = { _, g -> g.id }) { index, goal ->
+                            Spacer(Modifier.height(18.dp))
+                            PlanHairline()
+                            Spacer(Modifier.height(14.dp))
+                            FlatSectionEyebrow(stringResource(R.string.goals_completed_tasks, completedToday.size))
+                            completedToday.forEachIndexed { index, goal ->
                                 GoalItem(goal, onComplete = { onComplete(goal) }, onReopen = { onReopen(goal) }, onEdit = { onEdit(goal) }, onDelete = { onDelete(goal) })
                                 if (index < completedToday.lastIndex) PlanHairline(alpha = 0.5f)
                             }
                         }
                     } else if (filterMode == "upcoming") {
                         if (scheduled.isNotEmpty()) {
-                            item { FlatSectionEyebrow(stringResource(R.string.goals_scheduled_tasks, scheduled.size)) }
-                            itemsIndexed(scheduled, key = { _, g -> "scheduled-${g.id}" }) { index, goal ->
+                            FlatSectionEyebrow(stringResource(R.string.goals_scheduled_tasks, scheduled.size))
+                            scheduled.forEachIndexed { index, goal ->
                                 GoalItem(goal, onComplete = { onComplete(goal) }, onReopen = { onReopen(goal) }, onEdit = { onEdit(goal) }, onDelete = { onDelete(goal) })
                                 if (index < scheduled.lastIndex) PlanHairline(alpha = 0.5f)
                             }
                         } else {
-                            item { EmptyGoalsCard(stringResource(R.string.goals_no_upcoming), stringResource(R.string.goals_no_upcoming_help)) }
+                            EmptyGoalsCard(stringResource(R.string.goals_no_upcoming), stringResource(R.string.goals_no_upcoming_help))
                         }
                     } else if (filterMode == "missed") {
                         if (missed.isNotEmpty()) {
-                            item { FlatSectionEyebrow(stringResource(R.string.goals_missed_tasks, missed.size)) }
-                            itemsIndexed(missed, key = { _, g -> "missed-${g.id}" }) { index, goal ->
+                            FlatSectionEyebrow(stringResource(R.string.goals_missed_tasks, missed.size))
+                            missed.forEachIndexed { index, goal ->
                                 GoalItem(goal, onComplete = { onComplete(goal) }, onReopen = { onReopen(goal) }, onEdit = { onEdit(goal) }, onDelete = { onDelete(goal) })
                                 if (index < missed.lastIndex) PlanHairline(alpha = 0.5f)
                             }
                         } else {
-                            item { EmptyGoalsCard(stringResource(R.string.goals_no_missed), stringResource(R.string.goals_no_missed_help)) }
+                            EmptyGoalsCard(stringResource(R.string.goals_no_missed), stringResource(R.string.goals_no_missed_help))
                         }
-                    }
                 }
             }
 

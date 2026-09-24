@@ -161,7 +161,7 @@ fun SplashScreen(
                             ),
                 ) {
                     Text(
-                        text = "Your Marks Matter, But So Does Your Mind",
+                        text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.splash_marks_mind),
                         style = MaterialTheme.typography.bodyLarge.copy(
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onBackground,

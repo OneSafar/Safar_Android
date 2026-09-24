@@ -51,7 +51,7 @@ fun MehfilScreen(
     LaunchedEffect(uiState.postSuccess) {
         if (uiState.postSuccess) {
             showCreatePostSheet = false
-            Toast.makeText(context, "Post shared.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(com.safarparmar.app.R.string.mehfil_post_shared), Toast.LENGTH_SHORT).show()
             viewModel.clearPostSuccess()
         }
     }
@@ -72,7 +72,7 @@ fun MehfilScreen(
 
     LaunchedEffect(uiState.dmState) {
         if (uiState.dmState is DmState.Waiting) {
-            Toast.makeText(context, "Connection request sent!", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(com.safarparmar.app.R.string.mehfil_connection_sent), Toast.LENGTH_SHORT).show()
         }
     }
 

@@ -3,6 +3,7 @@ package com.safarparmar.app.data.local
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.datastore.core.DataStore
+import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import androidx.datastore.preferences.core.*
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.security.crypto.EncryptedSharedPreferences
@@ -19,7 +20,16 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
 
-private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "safar_prefs")
+/** Installed on the single store so reads and edits recover through the same path. */
+internal fun safarPreferencesCorruptionHandler() = ReplaceFileCorruptionHandler<Preferences> { error ->
+    android.util.Log.e("SafarDataStore", "Corrupt local preferences; restoring defaults", error)
+    emptyPreferences()
+}
+
+private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(
+    name = "safar_prefs",
+    corruptionHandler = safarPreferencesCorruptionHandler(),
+)
 
 @Singleton
 class SafarDataStore @Inject constructor(
@@ -165,6 +175,7 @@ class SafarDataStore @Inject constructor(
         val FOCUS_DURATION_MINUTES = intPreferencesKey("ekagra_focus_duration_minutes")
         val BREAK_DURATION_MINUTES = intPreferencesKey("ekagra_break_duration_minutes")
         val EKAGRA_TAGS            = stringPreferencesKey("ekagra_custom_tags_v1")
+        val EKAGRA_TAG_COLORS     = stringPreferencesKey("ekagra_tag_colors_v1")
 
         val NOTIFICATION_BELL_LAST_SEEN_AT = stringPreferencesKey("notification_bell_last_seen_at")
         val NOTIFICATION_BELL_DISMISSED_IDS = stringSetPreferencesKey("notification_bell_dismissed_ids")
@@ -475,6 +486,28 @@ class SafarDataStore @Inject constructor(
             }
         }
 
+    val ekagraTagColors: Flow<Map<String, String>> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { prefs ->
+            val raw = prefs[Keys.EKAGRA_TAG_COLORS]
+            if (raw.isNullOrBlank()) {
+                com.safarparmar.app.ui.ekagra.DEFAULT_TAG_COLORS
+            } else {
+                try {
+                    val json = org.json.JSONObject(raw)
+                    val map = mutableMapOf<String, String>()
+                    val keys = json.keys()
+                    while (keys.hasNext()) {
+                        val k = keys.next()
+                        map[k] = json.getString(k)
+                    }
+                    com.safarparmar.app.ui.ekagra.DEFAULT_TAG_COLORS + map
+                } catch (e: Exception) {
+                    com.safarparmar.app.ui.ekagra.DEFAULT_TAG_COLORS
+                }
+            }
+        }
+
     val isPremium: Flow<Boolean> = context.dataStore.data
         .catch { emit(emptyPreferences()) }
         .map { it[Keys.IS_PREMIUM] ?: false }
@@ -742,9 +775,51 @@ class SafarDataStore @Inject constructor(
         prefs[Keys.EKAGRA_TAGS] = tags.map { it.trim() }.filter { it.isNotEmpty() }.distinct().joinToString("|||")
     }
 
-    suspend fun addEkagraTag(tag: String) {
+    suspend fun setEkagraTagColor(tag: String, colorHex: String) {
+        val cleanTag = tag.trim()
+        val cleanColor = colorHex.trim()
+        if (cleanTag.isEmpty() || cleanColor.isEmpty()) return
+        context.dataStore.edit { prefs ->
+            val raw = prefs[Keys.EKAGRA_TAG_COLORS]
+            val json = if (!raw.isNullOrBlank()) {
+                try { org.json.JSONObject(raw) } catch (e: Exception) { org.json.JSONObject() }
+            } else {
+                org.json.JSONObject()
+            }
+            json.put(cleanTag, cleanColor)
+            prefs[Keys.EKAGRA_TAG_COLORS] = json.toString()
+        }
+    }
+
+    suspend fun removeEkagraTagColor(tag: String) {
+        val cleanTag = tag.trim()
+        context.dataStore.edit { prefs ->
+            val raw = prefs[Keys.EKAGRA_TAG_COLORS] ?: return@edit
+            try {
+                val json = org.json.JSONObject(raw)
+                val keys = json.keys()
+                var matchKey: String? = null
+                while (keys.hasNext()) {
+                    val k = keys.next()
+                    if (k.equals(cleanTag, ignoreCase = true)) {
+                        matchKey = k
+                        break
+                    }
+                }
+                if (matchKey != null) {
+                    json.remove(matchKey)
+                    prefs[Keys.EKAGRA_TAG_COLORS] = json.toString()
+                }
+            } catch (e: Exception) { }
+        }
+    }
+
+    suspend fun addEkagraTag(tag: String, colorHex: String? = null) {
         val clean = tag.trim()
         if (clean.isEmpty()) return
+        if (!colorHex.isNullOrBlank()) {
+            setEkagraTagColor(clean, colorHex)
+        }
         context.dataStore.edit { prefs ->
             val raw = prefs[Keys.EKAGRA_TAGS]
             val current = if (raw.isNullOrBlank()) {
@@ -760,6 +835,7 @@ class SafarDataStore @Inject constructor(
 
     suspend fun removeEkagraTag(tag: String) {
         val clean = tag.trim()
+        removeEkagraTagColor(clean)
         context.dataStore.edit { prefs ->
             val raw = prefs[Keys.EKAGRA_TAGS]
             val current = if (raw.isNullOrBlank()) {

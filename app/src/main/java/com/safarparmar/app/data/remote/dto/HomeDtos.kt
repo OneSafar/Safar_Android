@@ -319,6 +319,8 @@ data class EkagraAnalyticsRecentSessionDto(
 )
 
 data class EkagraAnalyticsFocusSessionDto(
+    val sourceSessionId: String? = null,
+    val endReason: String? = null,
     val id: String? = null,
     val startedAt: String? = null,
     val endedAt: String? = null,

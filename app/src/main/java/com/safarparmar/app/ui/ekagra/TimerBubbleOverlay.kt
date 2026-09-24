@@ -126,7 +126,7 @@ private fun ExpandedPill(
                 Text(
                     text = when (attention) {
                         TimerBubbleAttention.CHECK_IN -> "Check in now"
-                        TimerBubbleAttention.MISSED_CHECK_IN -> "Paused · check-in missed"
+                        TimerBubbleAttention.MISSED_CHECK_IN -> "Are you still there?"
                         TimerBubbleAttention.NONE -> if (isRunning) "Time remaining" else "Paused"
                     },
                     fontSize = 11.sp,
@@ -147,7 +147,7 @@ private fun ExpandedPill(
             ) {
                 Icon(
                     imageVector = Icons.Default.Close,
-                    contentDescription = "Collapse",
+                    contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.ekagra_collapse),
                     tint = Color.White.copy(alpha = 0.7f),
                     modifier = Modifier.size(16.dp),
                 )
@@ -204,7 +204,7 @@ private fun CollapsedTab(
     ) {
         Icon(
             imageVector = Icons.Default.Timer,
-            contentDescription = "Expand timer",
+            contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.ekagra_expand_timer),
             tint = accent,
             modifier = Modifier.size(20.dp),
         )
@@ -569,6 +569,7 @@ object TimerBubbleOverlay {
             try {
                 val intent = Intent(context, TimerService::class.java).apply {
                     action = TimerService.ACTION_PLAY_PAUSE
+                    putExtra("session", TimerService.live?.currentSessionId())
                 }
                 context.startService(intent)
             } catch (_: Exception) {}

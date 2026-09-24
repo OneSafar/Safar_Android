@@ -67,7 +67,7 @@ fun DeleteAccountDialog(
             ) {
                 // Title
                 Text(
-                    text = "Delete Account",
+                    text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.delete_account_title),
                     fontSize = 19.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = PlannerFlatColors.TextDark,
@@ -98,7 +98,7 @@ fun DeleteAccountDialog(
                 // Password Confirmation Field
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(
-                        text = "Confirm password",
+                        text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.delete_account_confirm_password),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium,
                         color = PlannerFlatColors.TextMuted,
@@ -176,7 +176,7 @@ fun DeleteAccountDialog(
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
-                            text = "Cancel",
+                            text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.common_cancel),
                             fontSize = 13.5.sp,
                             fontWeight = FontWeight.Medium,
                             color = PlannerFlatColors.TextDark,
@@ -205,7 +205,7 @@ fun DeleteAccountDialog(
                                     modifier = Modifier.size(14.dp),
                                 )
                                 Text(
-                                    text = "Deleting…",
+                                    text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.delete_account_deleting),
                                     fontSize = 13.5.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     color = Color.White,
@@ -213,7 +213,7 @@ fun DeleteAccountDialog(
                             }
                         } else {
                             Text(
-                                text = "Delete Account",
+                                text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.delete_account_title),
                                 fontSize = 13.5.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = Color.White,

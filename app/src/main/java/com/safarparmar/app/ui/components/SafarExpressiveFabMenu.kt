@@ -102,7 +102,7 @@ fun SafarExpressiveFabMenu(
         ) {
             Icon(
                 imageVector = Icons.Default.Add,
-                contentDescription = "Expand menu",
+                contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.common_expand_menu),
                 modifier = Modifier
                     .size(24.dp)
                     .rotate(rotation)

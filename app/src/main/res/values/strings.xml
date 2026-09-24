@@ -578,4 +578,5 @@
     <string name="update_latest_version">Latest version: %1$s</string>
     <string name="update_safar">Update Safar</string>
     <string name="update_required">This update is required to continue.</string>
+    <string name="ekagra_presence_no">No</string>
 </resources>

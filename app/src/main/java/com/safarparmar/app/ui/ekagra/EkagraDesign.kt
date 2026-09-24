@@ -16,6 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
@@ -131,7 +132,7 @@ internal fun EkagraTopBar(
         IconButton(onClick = onOpenDrawer) {
             Icon(
                 Icons.Default.Menu,
-                contentDescription = "Open menu",
+                contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.common_open_menu),
                 tint = ink.primaryText,
                 modifier = Modifier.size(EkagraChrome.size(24f)),
             )
@@ -288,21 +289,22 @@ internal fun EkagraPrimaryAction(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val bg = if (accent == MaterialTheme.colorScheme.primary) Color(0xFF0F2347) else accent
     Box(
         modifier
-            .height(EkagraChrome.size(48f))
+            .height(EkagraChrome.size(46f))
+            .shadow(elevation = 6.dp, shape = CircleShape)
             .clip(CircleShape)
-            .background(accent)
-            .border(EkagraChrome.stroke(1f), contrastOn(accent).copy(alpha = 0.45f), CircleShape)
+            .background(bg)
             .clickable(interactionSource = remembered(), indication = null) { onClick() }
-            .padding(horizontal = EkagraChrome.size(20f)),
+            .padding(horizontal = EkagraChrome.size(26f)),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text = label,
             fontSize = EkagraChrome.text(14.5f),
             fontWeight = FontWeight.Bold,
-            color = contrastOn(accent),
+            color = Color.White,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
@@ -319,9 +321,10 @@ internal fun EkagraGhostAction(
 ) {
     Box(
         modifier
-            .height(EkagraChrome.size(48f))
+            .height(EkagraChrome.size(46f))
             .clip(CircleShape)
-            .border(EkagraChrome.stroke(1f), ink.hairline, CircleShape)
+            .background(Color.White.copy(alpha = 0.22f))
+            .border(1.dp, Color.White.copy(alpha = 0.40f), CircleShape)
             .clickable(interactionSource = remembered(), indication = null) { onClick() }
             .padding(horizontal = EkagraChrome.size(20f)),
         contentAlignment = Alignment.Center,
@@ -329,7 +332,7 @@ internal fun EkagraGhostAction(
         Text(
             text = label,
             fontSize = EkagraChrome.text(14f),
-            fontWeight = FontWeight.Bold,
+            fontWeight = FontWeight.SemiBold,
             color = ink.primaryText,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,

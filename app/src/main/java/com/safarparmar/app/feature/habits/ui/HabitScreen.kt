@@ -102,26 +102,12 @@ fun HabitScreen(
 
     CompositionLocalProvider(LocalHabitDarkTheme provides isDarkTheme) {
         SafarDrawerScaffold(
-            title = "Habit Tracker",
+            title = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_tracker),
             currentRoute = currentRoute,
             isDarkTheme = isDarkTheme,
             onNavigate = onNavigate,
             onToggleDarkTheme = onToggleDarkTheme,
-            containerColor = HabitColors.Background,
-            topBarActions = {
-                TextButton(
-                    onClick = { onNavigate(Routes.HABIT_INSIGHTS) },
-                    colors = ButtonDefaults.textButtonColors(contentColor = HabitColors.RoyalPurple)
-                ) {
-                    Text("Insights", fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-                    Spacer(Modifier.width(4.dp))
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Rounded.ArrowForward,
-                        contentDescription = "Habit Insights",
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
-            }
+            containerColor = HabitColors.Background
         ) { padding ->
             Box(
                 Modifier
@@ -189,15 +175,21 @@ fun HabitScreen(
                                     onCurrent = viewModel::currentMonth,
                                     onAdd = { showAddHabit = true }
                                 )
+                                HabitTab.INSIGHTS -> com.safarparmar.app.feature.habits.ui.insights.HabitInsightsContent(
+                                    onShowSnackbar = { msg -> scope.launch { snackbar.showSnackbar(msg) } },
+                                    modifier = Modifier.fillMaxSize()
+                                )
                             }
                         }
                     }
                 }
 
-                ModernPrimaryFab(
-                    onClick = { showAddHabit = true },
-                    modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp)
-                )
+                if (pager.currentPage != HabitTab.INSIGHTS.ordinal) {
+                    ModernPrimaryFab(
+                        onClick = { showAddHabit = true },
+                        modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp)
+                    )
+                }
 
                 SnackbarHost(
                     hostState = snackbar,

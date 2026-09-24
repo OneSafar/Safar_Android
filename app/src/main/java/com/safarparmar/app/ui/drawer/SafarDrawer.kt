@@ -103,11 +103,6 @@ val drawerSections = listOf(
                 Routes.FOCUS_SHIELD,
             ),
             DrawerItem(
-                R.string.nav_habit_tracker,
-                Icons.Default.CheckCircle,
-                Routes.HABIT_TRACKER,
-            ),
-            DrawerItem(
                 R.string.nav_leaderboard,
                 Icons.Default.Leaderboard,
                 Routes.LEADERBOARD,
@@ -124,7 +119,6 @@ val drawerSections = listOf(
             DrawerItem(R.string.module_dhyan, Icons.Default.Spa, Routes.DHYAN),
             DrawerItem(R.string.module_mehfil, Icons.Default.Groups, Routes.MEHFIL),
             DrawerItem(R.string.nav_study_circle, Icons.Default.GroupWork, Routes.STUDY_CIRCLES),
-            DrawerItem(R.string.nav_human_support, Icons.Default.VolunteerActivism, Routes.SUPPORT),
         ),
     ),
 )

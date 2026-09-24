@@ -67,17 +67,25 @@ class SafarApplication : Application(), coil.ImageLoaderFactory {
 
     override fun onCreate() {
         super.onCreate()
+        com.safarparmar.app.util.AppForegroundTracker.init(this)
         configureDebugStrictMode()
         configureCrashReporting()
-        SafarNotificationChannels.createAll(this)
-        fetchAndStoreFcmToken()
-        referralManager.checkAndCaptureInstallReferrer()
+        // A cold start may be for KavachAlwaysOnService. Keep notification-manager
+        // Binder calls and Firebase token initialization off the main thread so
+        // the service can reach startForeground() within Android's deadline.
+        // Kavach creates its own status channel before startForegroundService().
+        appScope.launch {
+            SafarNotificationChannels.createAll(this@SafarApplication)
+            fetchAndStoreFcmToken()
+            referralManager.checkAndCaptureInstallReferrer()
+            KavachUsageCollectionWorker.schedule(this@SafarApplication)
+        }
         appScope.launch {
             if (EkagraPendingSessionSaveStore.getAll(this@SafarApplication).isNotEmpty()) {
                 EkagraSessionSaveWorker.enqueue(this@SafarApplication)
+                runCatching { EkagraSessionSaveWorker.drainPendingSaves(this@SafarApplication) }
             }
         }
-        KavachUsageCollectionWorker.schedule(this)
         appScope.launch {
             // A Kavach session still marked active at launch never reached a normal
             // end — the process or the device died under it. Finalise it as
@@ -97,10 +105,12 @@ class SafarApplication : Application(), coil.ImageLoaderFactory {
             }
             runCatching { kavachAnalyticsRepository.refresh() }
         }
-        // Always On is meant to survive a reboot, an app update and a process
-        // death — a blocker the student has to remember to re-arm is not a blocker.
-        // The repository re-checks permissions and the app list before starting.
-        focusShieldRepository.restoreKavachIfEnabled()
+        // Note: Foreground services must NEVER be started from Application.onCreate()
+        // because Application.onCreate() runs for background processes (WorkManager,
+        // FCM receivers, etc.). On Android 12+, calling startForegroundService()
+        // from background triggers ForegroundServiceStartNotAllowedException and fatal
+        // ForegroundServiceDidNotStartInTimeException crashes.
+        // Active Kavach is cleanly restored in MainActivity.onStart() when in foreground.
 
         appScope.launch {
             notificationTokenRegistrar.registerStoredTokenIfNeeded()

@@ -269,7 +269,7 @@ fun LiveClassroomErrorBanner(
                     contentColor = MaterialTheme.colorScheme.onPrimary,
                 ),
             ) {
-                Text("Retry", fontWeight = FontWeight.SemiBold)
+                Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.live_retry), fontWeight = FontWeight.SemiBold)
             }
         }
     }
@@ -293,7 +293,7 @@ fun LiveClassroomTopBar(
     CenterAlignedTopAppBar(
         title = {
             Text(
-                text = "Dhyan Live",
+                text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.live_title),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.SemiBold,
             )
@@ -315,7 +315,7 @@ fun LiveClassroomTopBar(
                     } else {
                         Icon(
                             Icons.Default.Refresh,
-                            contentDescription = "Reload live sessions",
+                            contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.live_reload_sessions),
                         )
                     }
                 }
@@ -324,7 +324,7 @@ fun LiveClassroomTopBar(
                 BadgedBox(
                     badge = { Badge(containerColor = MaterialTheme.colorScheme.error) },
                 ) {
-                    Icon(Icons.Default.Notifications, contentDescription = "Notifications")
+                    Icon(Icons.Default.Notifications, contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.live_notifications))
                 }
             }
         },
@@ -336,7 +336,7 @@ fun LiveClassroomTopBar(
 
 /**
  * Modern search input field matching the design mockup:
- * Rounded box, search icon on left, "Search sessions" hint, clear button when text is present.
+ * Rounded box, search icon on left, androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.live_search_sessions) hint, clear button when text is present.
  */
 @Composable
 fun LiveSessionSearchBar(
@@ -382,7 +382,7 @@ fun LiveSessionSearchBar(
                 Box(modifier = Modifier.weight(1f)) {
                     if (query.isEmpty()) {
                         Text(
-                            text = "Search sessions",
+                            text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.live_search_sessions),
                             style = MaterialTheme.typography.bodyMedium,
                             color = textSecondary,
                             fontSize = 15.sp,
@@ -397,7 +397,7 @@ fun LiveSessionSearchBar(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Close,
-                            contentDescription = "Clear search",
+                            contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.live_clear_search),
                             modifier = Modifier.size(16.dp),
                             tint = textSecondary,
                         )
@@ -487,7 +487,7 @@ fun LiveSessionSegmentedTabs(
                         } else {
                             Icon(
                                 imageVector = Icons.Default.Refresh,
-                                contentDescription = "Reload",
+                                contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.live_reload),
                                 tint = Color.White,
                                 modifier = Modifier.size(14.dp),
                             )
@@ -532,7 +532,7 @@ fun LiveClassroomFilterChips(
  * - Avatar with "PS" (Parmar Sir)
  * - Headline: "Parmar sir isn't live right now"
  * - Subtitle: "Next session: today, 6:00 PM · Quant"
- * - Action button: "Reload" (fetches from backend to check if admin went live)
+ * - Action button: androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.live_reload) (fetches from backend to check if admin went live)
  */
 @Composable
 fun TeacherNotLiveCard(
@@ -583,7 +583,7 @@ fun TeacherNotLiveCard(
 
             // Headline
             Text(
-                text = "Parmar sir isn't live right now",
+                text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.live_not_live_now),
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = textPrimary,
@@ -608,7 +608,7 @@ fun TeacherNotLiveCard(
 
             Spacer(Modifier.height(18.dp))
 
-            // Action Button: "Reload"
+            // Action Button: androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.live_reload)
             Button(
                 onClick = onReload,
                 shape = RoundedCornerShape(50),
@@ -631,13 +631,13 @@ fun TeacherNotLiveCard(
                     } else {
                         Icon(
                             imageVector = Icons.Default.Refresh,
-                            contentDescription = "Reload",
+                            contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.live_reload),
                             modifier = Modifier.size(16.dp),
                             tint = Color.White,
                         )
                     }
                     Text(
-                        text = if (isReloading) "Reloading..." else "Reload",
+                        text = if (isReloading) "Reloading..." else androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.live_reload),
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = Color.White,
@@ -694,7 +694,7 @@ fun LiveStatusBadge(status: String, modifier: Modifier = Modifier) {
 
 /**
  * Hero session card when Parmar Sir IS broadcasting live:
- * Video thumbnail preview, live indicator, title, and "Join Live Session" button in Deep Royal Purple.
+ * Video thumbnail preview, live indicator, title, and androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.live_join_session) button in Deep Royal Purple.
  */
 @Composable
 fun LiveHeroSessionCard(
@@ -762,7 +762,7 @@ fun LiveHeroSessionCard(
                 ) {
                     Icon(
                         Icons.Default.PlayArrow,
-                        contentDescription = "Play",
+                        contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.live_play),
                         modifier = Modifier.size(34.dp),
                         tint = Color.White,
                     )
@@ -795,7 +795,7 @@ fun LiveHeroSessionCard(
                                 tint = Color.White,
                             )
                             Text(
-                                text = "Live now",
+                                text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.live_now),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = Color.White,
                             )
@@ -829,7 +829,7 @@ fun LiveHeroSessionCard(
                         tint = textSecondary,
                     )
                     Text(
-                        text = "Started: ${formatLiveScheduledAt(session.scheduledStartAt)}",
+                        text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.live_started_at, formatLiveScheduledAt(session.scheduledStartAt)),
                         style = MaterialTheme.typography.bodySmall,
                         color = textSecondary,
                     )
@@ -846,7 +846,7 @@ fun LiveHeroSessionCard(
                 ) {
                     Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))
-                    Text("Join Live Session", fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+                    Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.live_join_session), fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
                 }
             }
         }
@@ -912,7 +912,7 @@ fun CompletedSessionCatchUpCard(
             ) {
                 AsyncImage(
                     model = R.drawable.safar_3_0_meditation,
-                    contentDescription = "Dhyan recording",
+                    contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.live_recording_a11y),
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop,
                 )
@@ -927,7 +927,7 @@ fun CompletedSessionCatchUpCard(
             ) {
                 if (isNowPlaying) {
                     Text(
-                        text = "NOW PLAYING",
+                        text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.live_now_playing),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = primaryColor,
@@ -1069,7 +1069,7 @@ fun LiveClassroomEmptyState(
                     shape = RoundedCornerShape(50),
                     border = BorderStroke(1.dp, primaryColor),
                 ) {
-                    Text("Clear filters", color = primaryColor)
+                    Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.live_clear_filters), color = primaryColor)
                 }
             }
         }

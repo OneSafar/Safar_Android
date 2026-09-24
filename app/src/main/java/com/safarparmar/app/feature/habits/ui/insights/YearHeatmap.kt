@@ -87,13 +87,13 @@ fun YearHeatmap(
         ) {
             Column {
                 Text(
-                    text = "Year in Habits",
+                    text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_year_title),
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     color = textPrimary
                 )
                 Text(
-                    text = "Consistency heatmap",
+                    text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_consistency_heatmap),
                     fontSize = 12.sp,
                     color = textSecondary
                 )
@@ -110,7 +110,7 @@ fun YearHeatmap(
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowLeft,
-                        contentDescription = "Previous Year",
+                        contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_previous_year),
                         tint = textPrimary,
                         modifier = Modifier.size(20.dp)
                     )
@@ -131,7 +131,7 @@ fun YearHeatmap(
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
-                        contentDescription = "Next Year",
+                        contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_next_year),
                         tint = if (canNavigateNextYear) textPrimary else textTertiary.copy(alpha = 0.4f),
                         modifier = Modifier.size(20.dp)
                     )
@@ -144,7 +144,7 @@ fun YearHeatmap(
                         modifier = Modifier.height(28.dp)
                     ) {
                         Text(
-                            text = "This Year",
+                            text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_this_year),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = HabitColors.RoyalPurple
@@ -157,7 +157,7 @@ fun YearHeatmap(
         Spacer(Modifier.height(14.dp))
 
         // 2. Habit Filter Dropdown
-        val selectedHabitName = availableHabits.firstOrNull { it.id == selectedHabitId }?.name ?: "All Habits"
+        val selectedHabitName = availableHabits.firstOrNull { it.id == selectedHabitId }?.name ?: androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_all)
 
         Box {
             Surface(
@@ -182,7 +182,7 @@ fun YearHeatmap(
                     )
                     Icon(
                         imageVector = Icons.Rounded.ArrowDropDown,
-                        contentDescription = "Filter Habit",
+                        contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_filter_one),
                         tint = textSecondary,
                         modifier = Modifier.size(18.dp)
                     )
@@ -197,7 +197,7 @@ fun YearHeatmap(
                 DropdownMenuItem(
                     text = {
                         Text(
-                            "All Habits",
+                            androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_all),
                             fontWeight = if (selectedHabitId == null) FontWeight.Bold else FontWeight.Normal,
                             color = if (selectedHabitId == null) HabitColors.RoyalPurple else textPrimary
                         )
@@ -313,7 +313,7 @@ fun YearHeatmap(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Less",
+                text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_less),
                 fontSize = 10.sp,
                 color = textTertiary,
                 modifier = Modifier.padding(end = 6.dp)
@@ -334,7 +334,7 @@ fun YearHeatmap(
             }
 
             Text(
-                text = "More",
+                text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_more),
                 fontSize = 10.sp,
                 color = textTertiary,
                 modifier = Modifier.padding(start = 6.dp)

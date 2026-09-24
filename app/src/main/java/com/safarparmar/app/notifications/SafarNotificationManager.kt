@@ -144,6 +144,8 @@ class SafarNotificationManager(
 
         if (!ongoing &&
             normalizedChannel != SafarNotificationChannels.FOCUS_TIMER &&
+            normalizedChannel != SafarNotificationChannels.EKAGRA_ALERT &&
+            normalizedChannel != SafarNotificationChannels.EKAGRA_VIBRATE_ALERT &&
             normalizedChannel != SafarNotificationChannels.FOCUS_SHIELD_STATUS &&
             normalizedChannel != SafarNotificationChannels.YOUTUBE_STUDY_V2_STATUS
         ) {

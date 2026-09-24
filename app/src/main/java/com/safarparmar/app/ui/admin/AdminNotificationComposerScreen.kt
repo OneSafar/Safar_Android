@@ -421,7 +421,7 @@ fun AdminNotificationComposerScreen(
     when (confirmKind) {
         AdminSendKind.PUSH_BROADCAST -> AlertDialog(
             onDismissRequest = { if (!uiState.isSending) confirmKind = null },
-            title = { Text("Confirm push broadcast") },
+            title = { Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.admin_confirm_push)) },
             text = {
                 Text(
                     "Sends a tray/push notification to all active Android devices. " +
@@ -441,14 +441,14 @@ fun AdminNotificationComposerScreen(
             },
             dismissButton = {
                 TextButton(onClick = { confirmKind = null }, enabled = !uiState.isSending) {
-                    Text("Cancel")
+                    Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.common_cancel))
                 }
             },
         )
         AdminSendKind.BELL_TEST -> Unit
         AdminSendKind.BELL_INBOX -> AlertDialog(
             onDismissRequest = { if (!uiState.isSending) confirmKind = null },
-            title = { Text("Confirm in-app update") },
+            title = { Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.admin_confirm_in_app)) },
             text = {
                 Text(
                     "Adds this message to every user's Home bell (Updates). " +
@@ -468,7 +468,7 @@ fun AdminNotificationComposerScreen(
             },
             dismissButton = {
                 TextButton(onClick = { confirmKind = null }, enabled = !uiState.isSending) {
-                    Text("Cancel")
+                    Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.common_cancel))
                 }
             },
         )
@@ -476,8 +476,8 @@ fun AdminNotificationComposerScreen(
     }
 
     SafarDrawerScaffold(
-        title = "Admin Notifications",
-        subtitle = "Notification Composer",
+        title = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.admin_notifications),
+        subtitle = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.admin_notification_composer),
         currentRoute = currentRoute,
         isDarkTheme = isDarkTheme,
         onNavigate = onNavigate,
@@ -531,12 +531,12 @@ private fun ComposerContent(
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         Text(
-            text = "Compose a notification",
+            text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.admin_compose_notification),
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
         )
         Text(
-            text = "Write the message once, then choose push (tray) or Home bell. Use both if you need both.",
+            text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.admin_compose_help),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -556,7 +556,7 @@ private fun ComposerContent(
             },
         )
         TextButton(onClick = onRefreshAdmin) {
-            Text("Refresh admin status")
+            Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.admin_refresh_status))
         }
 
         Card(
@@ -568,7 +568,7 @@ private fun ComposerContent(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 Text(
-                    text = "Message",
+                    text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.admin_message),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                 )
@@ -583,7 +583,7 @@ private fun ComposerContent(
                         readOnly = true,
                         value = selectedTrigger.label,
                         onValueChange = {},
-                        label = { Text("In-App Bell Destination") },
+                        label = { Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.admin_bell_destination)) },
                         trailingIcon = {
                             ExposedDropdownMenuDefaults.TrailingIcon(expanded = triggerExpanded)
                         },
@@ -607,14 +607,14 @@ private fun ComposerContent(
                     modifier = Modifier.fillMaxWidth(),
                     value = uiState.title,
                     onValueChange = onTitleChange,
-                    label = { Text("Title") },
+                    label = { Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.admin_title)) },
                     singleLine = true,
                 )
                 OutlinedTextField(
                     modifier = Modifier.fillMaxWidth(),
                     value = uiState.body,
                     onValueChange = onBodyChange,
-                    label = { Text("Body") },
+                    label = { Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.admin_body)) },
                     minLines = 4,
                 )
                 val currentDeepLink = deepLinkOptions.firstOrNull { it.path == uiState.deepLink }
@@ -629,7 +629,7 @@ private fun ComposerContent(
                         readOnly = true,
                         value = currentDeepLink?.label ?: uiState.deepLink,
                         onValueChange = {},
-                        label = { Text("Deep link") },
+                        label = { Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.admin_deep_link)) },
                         trailingIcon = {
                             ExposedDropdownMenuDefaults.TrailingIcon(expanded = deepLinkExpanded)
                         },
@@ -648,7 +648,7 @@ private fun ComposerContent(
                             )
                         }
                         DropdownMenuItem(
-                            text = { Text("Custom web link") },
+                            text = { Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.admin_custom_web_link)) },
                             onClick = {
                                 deepLinkExpanded = false
                                 onDeepLinkChange("")
@@ -661,9 +661,9 @@ private fun ComposerContent(
                         modifier = Modifier.fillMaxWidth(),
                         value = uiState.deepLink,
                         onValueChange = onDeepLinkChange,
-                        label = { Text("Custom web link") },
+                        label = { Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.admin_custom_web_link)) },
                         placeholder = { Text("https://example.com/page") },
-                        supportingText = { Text("Only secure https links can be sent.") },
+                        supportingText = { Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.admin_https_hint)) },
                         singleLine = true,
                     )
                 }
@@ -679,12 +679,12 @@ private fun ComposerContent(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 Text(
-                    text = "1. Normal push notification",
+                    text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.admin_normal_push),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                 )
                 Text(
-                    text = "Phone notification tray via FCM. Does not appear under the Home bell.",
+                    text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.admin_normal_push_help),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -714,12 +714,12 @@ private fun ComposerContent(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 Text(
-                    text = "2. In-app bell (Updates)",
+                    text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.admin_in_app_update),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                 )
                 Text(
-                    text = "Home bell only. Test posts to your admin account; post-for-all reaches every user.",
+                    text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.admin_in_app_help),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

@@ -10,12 +10,20 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 /** Events stay ordered. Failed/offline events are never replayed as attendance. */
+sealed interface RankedFocusStatus {
+    data object ConnectionNeeded : RankedFocusStatus
+    data object AttendanceExpired : RankedFocusStatus
+    data class RankedTime(val minutes: Int) : RankedFocusStatus
+    data object Unavailable : RankedFocusStatus
+    data object Offline : RankedFocusStatus
+}
+
 internal class RankedFocusTracker(api: FocusApi, scope: CoroutineScope) {
     private data class Event(val id: String, val running: Boolean, val confirm: Boolean, val close: Boolean, val queuedAt: Long)
     private val events = Channel<Event>(Channel.UNLIMITED)
     private val checkpoints = mutableMapOf<String, String>()
-    private val _status = MutableStateFlow("Personal time is saved. Ranked time needs a connection.")
-    val status: StateFlow<String> = _status
+    private val _status = MutableStateFlow<RankedFocusStatus>(RankedFocusStatus.ConnectionNeeded)
+    val status: StateFlow<RankedFocusStatus> = _status
 
     init {
         scope.launch {
@@ -36,16 +44,16 @@ internal class RankedFocusTracker(api: FocusApi, scope: CoroutineScope) {
                     val state = response.body()
                     if (response.isSuccessful && state != null) {
                         state.checkpoint?.let { checkpoints[event.id] = it }
-                        _status.value = if (state.closed && !event.close)
-                            "Attendance expired. Further time stays in personal history."
-                        else "Ranked time: ${state.rankedSeconds / 60} min · Personal time is saved separately."
+                        _status.value = if (state.attendancePaused && !event.close)
+                            RankedFocusStatus.AttendanceExpired
+                        else RankedFocusStatus.RankedTime(state.rankedSeconds / 60)
                     } else {
-                        _status.value = "Ranked time is unavailable. Your personal time is still saved."
+                        _status.value = RankedFocusStatus.Unavailable
                     }
                     if (event.close) checkpoints.remove(event.id)
                 } catch (error: Exception) {
                     if (error is CancellationException) throw error
-                    _status.value = "Offline: personal time continues; ranked time may be lower."
+                    _status.value = RankedFocusStatus.Offline
                 }
             }
         }

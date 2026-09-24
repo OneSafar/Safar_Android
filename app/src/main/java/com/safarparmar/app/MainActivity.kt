@@ -5,6 +5,8 @@ import android.content.Intent
 import android.content.ServiceConnection
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import android.os.Bundle
 import android.os.IBinder
 import android.util.Log
@@ -37,6 +39,7 @@ import com.safarparmar.app.data.local.SafarDataStore
 import com.safarparmar.app.notifications.NotificationDeepLinkHandler
 import com.safarparmar.app.ui.ekagra.LocalTimerService
 import com.safarparmar.app.ui.ekagra.TimerService
+import com.safarparmar.app.ui.ekagra.EkagraPresencePrompt
 import com.safarparmar.app.ui.ekagra.focusshield.FocusShieldEntryPoint
 import com.safarparmar.app.ui.ekagra.focusshield.FocusShieldRepository
 import dagger.hilt.android.EntryPointAccessors
@@ -68,12 +71,17 @@ class MainActivity : AppCompatActivity(), PaymentResultWithDataListener {
     @Inject
     lateinit var referralManager: com.safarparmar.app.data.repository.ReferralManager
 
+    @Inject
+    lateinit var focusShieldRepository: com.safarparmar.app.ui.ekagra.focusshield.FocusShieldRepository
+
     private var timerService by mutableStateOf<TimerService?>(null)
+    private var timerServiceBound = false
+    var ekagraOpenRequest by mutableStateOf(0L)
+        private set
     var navigateToEkagra by mutableStateOf(false)
         private set
     var notificationRoute by mutableStateOf<String?>(null)
         private set
-
     companion object {
         const val EXTRA_NAVIGATE_EKAGRA = "navigate_to_ekagra"
         private const val TABLET_SMALLEST_WIDTH_DP = 600
@@ -81,7 +89,16 @@ class MainActivity : AppCompatActivity(), PaymentResultWithDataListener {
 
     private val serviceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
-            timerService = (binder as TimerService.TimerBinder).getService()
+            val localBinder = binder as? TimerService.TimerBinder
+            if (localBinder == null) {
+                // A BinderProxy cannot expose TimerService's in-process API. This can
+                // happen if the service is hosted remotely; leave the UI disconnected
+                // instead of crashing the whole activity on an unsafe cast.
+                Log.e("MainActivity", "Unexpected TimerService binder: ${binder?.javaClass?.name}")
+                timerService = null
+                return
+            }
+            timerService = localBinder.getService()
         }
         override fun onServiceDisconnected(name: ComponentName?) {
             timerService = null
@@ -100,10 +117,14 @@ class MainActivity : AppCompatActivity(), PaymentResultWithDataListener {
             } catch (e: Exception) {
                 Log.e("MainActivity", "Failed to start TimerService: ${e.message}")
             }
-            bindService(intent, serviceConnection, BIND_AUTO_CREATE)
+            timerServiceBound = bindService(intent, serviceConnection, BIND_AUTO_CREATE)
+            if (!timerServiceBound) {
+                Log.e("MainActivity", "Failed to bind TimerService")
+            }
         }
 
         if (intent.getBooleanExtra(EXTRA_NAVIGATE_EKAGRA, false)) {
+            ekagraOpenRequest++
             navigateToEkagra = true
         }
         consumeNotificationIntent(intent)
@@ -175,6 +196,7 @@ class MainActivity : AppCompatActivity(), PaymentResultWithDataListener {
                                             isDarkTheme = isDarkTheme,
                                             onToggleDarkTheme = { themeViewModel.toggleDarkTheme() },
                                         )
+                                        EkagraPresencePrompt(timerService)
                                     }
                                 }
                             }
@@ -187,6 +209,16 @@ class MainActivity : AppCompatActivity(), PaymentResultWithDataListener {
 
     fun resetNavigateToEkagra() { navigateToEkagra = false }
     fun resetNotificationRoute() { notificationRoute = null }
+
+    override fun onStart() {
+        super.onStart()
+        lifecycleScope.launch {
+            runCatching {
+                com.safarparmar.app.ui.ekagra.EkagraSessionSaveWorker.drainPendingSaves(applicationContext)
+            }
+        }
+        focusShieldRepository.restoreKavachIfEnabled()
+    }
 
     override fun onResume() {
         super.onResume()
@@ -222,6 +254,7 @@ class MainActivity : AppCompatActivity(), PaymentResultWithDataListener {
         super.onNewIntent(intent)
         setIntent(intent)
         if (intent.getBooleanExtra(EXTRA_NAVIGATE_EKAGRA, false)) {
+            ekagraOpenRequest++
             navigateToEkagra = true
         }
         consumeNotificationIntent(intent)
@@ -247,7 +280,11 @@ class MainActivity : AppCompatActivity(), PaymentResultWithDataListener {
     }
 
     override fun onDestroy() {
-        unbindService(serviceConnection)
+        if (timerServiceBound) {
+            unbindService(serviceConnection)
+            timerServiceBound = false
+        }
+        timerService = null
         super.onDestroy()
     }
 

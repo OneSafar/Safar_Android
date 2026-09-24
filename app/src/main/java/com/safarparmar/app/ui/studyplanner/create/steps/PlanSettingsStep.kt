@@ -99,7 +99,7 @@ fun PlanSettingsStep(
 
     LaunchedEffect(toastTrigger) {
         if (toastTrigger > 0) {
-            Toast.makeText(context, "Please select exam date", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(com.safarparmar.app.R.string.planner_select_exam_date_error), Toast.LENGTH_SHORT).show()
         }
     }
 

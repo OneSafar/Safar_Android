@@ -11,6 +11,8 @@ interface EkagraRepository {
     suspend fun saveSession(
         clientSessionId: String? = null,
         mode: String,
+        endReason: String? = null,
+        ownerId: String? = null,
         startedAt: String,
         endedAt: String?,
         plannedDurationMinutes: Int,

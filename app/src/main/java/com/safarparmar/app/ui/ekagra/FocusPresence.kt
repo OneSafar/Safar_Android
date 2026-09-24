@@ -1,18 +1,22 @@
 package com.safarparmar.app.ui.ekagra
 
-// Temporary QA interval. Restore to `3 * 60 * 60` after the presence flow is approved.
-internal const val PRESENCE_INTERVAL_SECONDS = 30
-internal const val PRESENCE_GRACE_MS = 2 * 60 * 1000L
-internal data class PresenceAdvance(val creditedSeconds: Int, val deadline: Long, val expired: Boolean)
+internal const val PRESENCE_REMINDER_INTERVAL_SECONDS = 4 * 60 * 60
+internal const val PRESENCE_RESPONSE_WINDOW_MS = 30 * 60_000L
+internal const val MAX_EKAGRA_SESSION_SECONDS = 18 * 60 * 60
+internal data class PresenceReminderAdvance(val secondsSinceReminder: Int, val reminderDue: Boolean)
 
-internal fun advancePresence(activeSeconds: Int, deadline: Long, elapsedSeconds: Int, now: Long, remainingSeconds: Int = Int.MAX_VALUE): PresenceAdvance {
-    val elapsed = elapsedSeconds.coerceIn(0, remainingSeconds.coerceAtLeast(0))
-    val untilPrompt = (PRESENCE_INTERVAL_SECONDS - activeSeconds).coerceAtLeast(0)
-    val nextDeadline = if (deadline > 0) deadline else if (elapsed >= untilPrompt && remainingSeconds > untilPrompt)
-        now - (elapsedSeconds - untilPrompt) * 1000L + PRESENCE_GRACE_MS else 0L
-    val expired = nextDeadline > 0 && now >= nextDeadline
-    val credited = if (expired) (elapsedSeconds - ((now - nextDeadline + 999) / 1000).toInt()).coerceIn(0, elapsed) else elapsed
-    return PresenceAdvance(credited, nextDeadline, expired)
+internal fun configuredTimerSeconds(mode: TimerMode, requestedSeconds: Int): Int = when (mode) {
+    TimerMode.STOPWATCH -> 0
+    TimerMode.FOCUS, TimerMode.POMODORO -> requestedSeconds.coerceIn(0, MAX_EKAGRA_SESSION_SECONDS)
+    TimerMode.BREAK -> requestedSeconds.coerceAtLeast(0)
+}
+
+internal fun advancePresenceReminder(activeSeconds: Int, elapsedSeconds: Int): PresenceReminderAdvance {
+    val accumulated = activeSeconds.coerceAtLeast(0) + elapsedSeconds.coerceAtLeast(0)
+    return PresenceReminderAdvance(
+        secondsSinceReminder = accumulated % PRESENCE_REMINDER_INTERVAL_SECONDS,
+        reminderDue = accumulated >= PRESENCE_REMINDER_INTERVAL_SECONDS,
+    )
 }
 
 /** Stopwatch stores elapsed seconds, which must never be clamped to a countdown target. */

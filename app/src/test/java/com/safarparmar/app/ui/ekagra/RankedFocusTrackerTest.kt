@@ -14,6 +14,16 @@ import retrofit2.Response
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class RankedFocusTrackerTest {
+    @Test fun `expired attendance is shown as personal time only`() = runTest {
+        val api = mockk<FocusApi>()
+        coEvery { api.updateRankedFocus(any()) } returns Response.success(RankedFocusResponse("token", false, 16200, true))
+        val tracker = RankedFocusTracker(api, backgroundScope)
+        assertEquals(RankedFocusStatus.ConnectionNeeded, tracker.status.value)
+        tracker.update("local-one", true)
+        runCurrent()
+        assertEquals(RankedFocusStatus.AttendanceExpired, tracker.status.value)
+    }
+
     @Test fun `heartbeats cannot silently confirm attendance`() = runTest {
         val calls = mutableListOf<RankedFocusRequest>()
         val api = mockk<FocusApi>()
@@ -36,6 +46,7 @@ class RankedFocusTrackerTest {
         tracker.update("local-one", true)
         tracker.update("local-one", true, confirm = true)
         runCurrent()
+        assertEquals(RankedFocusStatus.RankedTime(90), tracker.status.value)
         assertEquals("token", calls.last().confirm)
         assertNull(calls.first().confirm)
     }
@@ -59,7 +70,7 @@ class RankedFocusTrackerTest {
         val tracker = RankedFocusTracker(api, backgroundScope)
         tracker.update("local-one", true, confirm = true)
         runCurrent()
-        assertTrue(tracker.status.value.startsWith("Offline"))
+        assertEquals(RankedFocusStatus.Offline, tracker.status.value)
         coEvery { api.updateRankedFocus(capture(calls)) } returns Response.success(RankedFocusResponse("token", false, 0))
         tracker.update("local-one", true)
         runCurrent()

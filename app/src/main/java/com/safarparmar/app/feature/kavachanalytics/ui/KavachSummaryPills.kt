@@ -185,17 +185,17 @@ private fun SummaryPill(
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
-    val shape = RoundedCornerShape(20.dp)
+    val shape = RoundedCornerShape(18.dp)
 
     val normalCardBg = if (isDark) {
-        Color(0xFF1E293B).copy(alpha = 0.70f)
+        Color(0xFF1E293B).copy(alpha = 0.55f)
     } else {
-        Color(0xFFF1F5F9).copy(alpha = 0.95f)
+        Color.White.copy(alpha = 0.32f)
     }
     val pressedCardBg = if (isDark) {
-        Color(0xFF2B3A4F).copy(alpha = 0.85f)
+        Color(0xFF2B3A4F).copy(alpha = 0.70f)
     } else {
-        Color(0xFFE2E8F0).copy(alpha = 0.95f)
+        Color.White.copy(alpha = 0.48f)
     }
 
     val cardColor by animateColorAsState(
@@ -205,15 +205,15 @@ private fun SummaryPill(
     )
 
     val normalBorder = if (isDark) {
-        Color.White.copy(alpha = 0.14f)
+        Color.White.copy(alpha = 0.16f)
     } else {
-        Color(0xFF0F172A).copy(alpha = 0.08f)
+        Color.White.copy(alpha = 0.45f)
     }
     val pressedBorder = accent.copy(alpha = if (isDark) 0.50f else 0.40f)
     val borderColor = if (isPressed) pressedBorder else normalBorder
 
     val textColor = if (isDark) Color.White else Color(0xFF0F172A)
-    val secondaryColor = if (isDark) Color.White.copy(alpha = 0.75f) else Color(0xFF475569)
+    val secondaryColor = if (isDark) Color.White.copy(alpha = 0.75f) else Color(0xFF334155)
 
     Box(
         modifier = modifier
@@ -290,17 +290,17 @@ private fun StudyGroupLivePill(
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     var showDropdown by remember { mutableStateOf(false) }
-    val shape = RoundedCornerShape(20.dp)
+    val shape = RoundedCornerShape(18.dp)
 
     val normalCardBg = if (isDark) {
-        Color(0xFF1E293B).copy(alpha = 0.70f)
+        Color(0xFF1E293B).copy(alpha = 0.55f)
     } else {
-        Color(0xFFF1F5F9).copy(alpha = 0.95f)
+        Color.White.copy(alpha = 0.32f)
     }
     val pressedCardBg = if (isDark) {
-        Color(0xFF2B3A4F).copy(alpha = 0.85f)
+        Color(0xFF2B3A4F).copy(alpha = 0.70f)
     } else {
-        Color(0xFFE2E8F0).copy(alpha = 0.95f)
+        Color.White.copy(alpha = 0.48f)
     }
 
     val cardColor by animateColorAsState(
@@ -310,15 +310,15 @@ private fun StudyGroupLivePill(
     )
 
     val normalBorder = if (isDark) {
-        Color.White.copy(alpha = 0.14f)
+        Color.White.copy(alpha = 0.16f)
     } else {
-        Color(0xFF0F172A).copy(alpha = 0.08f)
+        Color.White.copy(alpha = 0.45f)
     }
     val pressedBorder = accent.copy(alpha = if (isDark) 0.50f else 0.40f)
     val borderColor = if (isPressed) pressedBorder else normalBorder
 
     val textColor = if (isDark) Color.White else Color(0xFF0F172A)
-    val secondaryColor = if (isDark) Color.White.copy(alpha = 0.75f) else Color(0xFF475569)
+    val secondaryColor = if (isDark) Color.White.copy(alpha = 0.75f) else Color(0xFF334155)
 
     val activeCircle = selectedCircle ?: myCircles.firstOrNull()
     val groupName = activeCircle?.name ?: "Study Group"
@@ -381,7 +381,7 @@ private fun StudyGroupLivePill(
                         Spacer(Modifier.width(2.dp))
                         Icon(
                             imageVector = Icons.Default.ArrowDropDown,
-                            contentDescription = "Select Group",
+                            contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.kavach_select_group),
                             tint = secondaryColor,
                             modifier = Modifier.size(16.dp),
                         )
@@ -414,7 +414,7 @@ private fun StudyGroupLivePill(
             modifier = Modifier.widthIn(min = 220.dp, max = 280.dp),
         ) {
             Text(
-                text = "YOUR STUDY GROUPS (${myCircles.size}/5)",
+                text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.kavach_your_study_groups, myCircles.size),
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Black,
                 letterSpacing = 0.8.sp,
@@ -479,7 +479,7 @@ private fun StudyGroupLivePill(
                             if (isSelected) {
                                 Icon(
                                     Icons.Default.Check,
-                                    contentDescription = "Selected",
+                                    contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.common_selected),
                                     tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(18.dp),
                                 )

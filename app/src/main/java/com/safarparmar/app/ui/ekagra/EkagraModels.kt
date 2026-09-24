@@ -48,6 +48,7 @@ import android.util.Rational
 import android.view.TextureView
 import android.graphics.SurfaceTexture
 import androidx.annotation.DrawableRes
+import androidx.annotation.StringRes
 import androidx.compose.ui.draw.alpha
 import com.safarparmar.app.MainActivity
 import com.safarparmar.app.R
@@ -152,24 +153,24 @@ val selectableVisualThemes = visualThemes.filter { !it.hidden }
 
 // ─── Nav tab & Timer mode enums ────────────────────────────────────────────────
 
-internal enum class EkagraNavTab(val icon: ImageVector, val label: String) {
-    TIMER    (Icons.Default.Timer,   "Ekagra"),
-    DURATION (Icons.Default.Tune,    "Settings"),
-    HISTORY  (Icons.Default.History, "History"),
-    MUSIC    (Icons.Default.MusicNote, "Music"),
-    THEME    (Icons.Default.Palette, "Theme"),
+internal enum class EkagraNavTab(val icon: ImageVector, @StringRes val labelRes: Int) {
+    TIMER    (Icons.Default.Timer, R.string.ekagra_title),
+    DURATION (Icons.Default.Tune, R.string.settings_title),
+    HISTORY  (Icons.Default.History, R.string.ekagra_history_title),
+    MUSIC    (Icons.Default.MusicNote, R.string.ekagra_nav_music),
+    THEME    (Icons.Default.Palette, R.string.ekagra_theme_title),
 }
 
 enum class TimerMode(
     @DrawableRes val lightIconRes: Int,
     @DrawableRes val darkIconRes: Int,
-    val label: String,
+    @StringRes val labelRes: Int,
     val showInPill: Boolean = true,
 ) {
-    FOCUS(R.drawable.ic_hourglass_light, R.drawable.ic_hourglass_dark, "Ekagra"),
-    BREAK(R.drawable.ic_ekagra_coffee_light, R.drawable.ic_ekagra_coffee_dark, "Break"),
-    STOPWATCH(R.drawable.ic_ekagra_timer_light, R.drawable.ic_ekagra_timer_dark, "Stopwatch"),
-    POMODORO(R.drawable.ic_ekagra_timer_light, R.drawable.ic_ekagra_timer_dark, "Pomodoro", false)
+    FOCUS(R.drawable.ic_hourglass_light, R.drawable.ic_hourglass_dark, R.string.ekagra_title),
+    BREAK(R.drawable.ic_ekagra_coffee_light, R.drawable.ic_ekagra_coffee_dark, R.string.ekagra_break),
+    STOPWATCH(R.drawable.ic_ekagra_timer_light, R.drawable.ic_ekagra_timer_dark, R.string.ekagra_mode_stopwatch),
+    POMODORO(R.drawable.ic_ekagra_timer_light, R.drawable.ic_ekagra_timer_dark, R.string.ekagra_pomodoro, false),
 }
 
 // ─── Root screen ───────────────────────────────────────────────────────────────

@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Gavel
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Nightlight
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PrivacyTip
@@ -29,6 +30,8 @@ import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material.icons.filled.WorkspacePremium
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.os.LocaleListCompat
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -111,6 +114,7 @@ fun SettingsScreen(
     var hasNotificationShieldPermission by remember { mutableStateOf(false) }
     var showTimePickerDialog by remember { mutableStateOf(false) }
     var showPermissionInfoDialog by remember { mutableStateOf(false) }
+    var showLanguageDialog by remember { mutableStateOf(false) }
 
     fun refreshPermissions() {
         hasUsagePermission = checkUsageStatsPermission(context)
@@ -201,6 +205,16 @@ fun SettingsScreen(
                                 },
                                 icon = if (isDarkTheme) Icons.Default.Nightlight else Icons.Default.WbSunny,
                             )
+                            SettingsNavigationRow(
+                                title = stringResource(R.string.profile_language_title),
+                                subtitle = when (AppCompatDelegate.getApplicationLocales().toLanguageTags()) {
+                                    "hi" -> stringResource(R.string.profile_language_hindi)
+                                    "hi-Latn" -> stringResource(R.string.profile_language_hinglish)
+                                    else -> stringResource(R.string.profile_language_english)
+                                },
+                                icon = Icons.Default.Language,
+                                onClick = { showLanguageDialog = true },
+                            )
                         }
                     }
 
@@ -289,6 +303,36 @@ fun SettingsScreen(
 
             if (showPermissionInfoDialog) {
                 PermissionExplanationDialog(onDismiss = { showPermissionInfoDialog = false })
+            }
+
+            if (showLanguageDialog) {
+                val choices = listOf(
+                    "en" to stringResource(R.string.profile_language_english),
+                    "hi" to stringResource(R.string.profile_language_hindi),
+                    "hi-Latn" to stringResource(R.string.profile_language_hinglish),
+                )
+                AlertDialog(
+                    onDismissRequest = { showLanguageDialog = false },
+                    title = { Text(stringResource(R.string.profile_language_dialog_title)) },
+                    text = {
+                        Column {
+                            choices.forEach { (languageTag, label) ->
+                                TextButton(
+                                    onClick = {
+                                        showLanguageDialog = false
+                                        AppCompatDelegate.setApplicationLocales(
+                                            LocaleListCompat.forLanguageTags(languageTag)
+                                        )
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    Text(label, modifier = Modifier.fillMaxWidth())
+                                }
+                            }
+                        }
+                    },
+                    confirmButton = {},
+                )
             }
         }
     }
@@ -964,6 +1008,6 @@ private fun openUrl(context: Context, url: String) {
         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
         context.startActivity(intent)
     } catch (e: Exception) {
-        Toast.makeText(context, "Could not open link", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, context.getString(com.safarparmar.app.R.string.settings_link_failed), Toast.LENGTH_SHORT).show()
     }
 }

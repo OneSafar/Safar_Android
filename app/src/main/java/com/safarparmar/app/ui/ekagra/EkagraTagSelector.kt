@@ -9,6 +9,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -32,15 +33,20 @@ internal fun EkagraTagSelector(
     availableTags: List<String>,
     selectedTag: String?,
     onSelectTag: (String?) -> Unit,
-    onAddTag: ((String) -> Unit)? = null,
+    tagColors: Map<String, String> = emptyMap(),
+    onAddTag: ((String, String?) -> Unit)? = null,
     onDeleteTag: ((String) -> Unit)? = null,
+    onSetTagColor: ((String, String) -> Unit)? = null,
     accentColor: Color = MaterialTheme.colorScheme.primary,
     isDark: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
     var showAddDialog by remember { mutableStateOf(false) }
     var newTagInput by remember { mutableStateOf("") }
+    var newTagColorHex by remember { mutableStateOf(TAG_COLOR_PALETTE[0]) }
     var tagToDelete by remember { mutableStateOf<String?>(null) }
+    var tagToEditColor by remember { mutableStateOf<String?>(null) }
+    var editColorHex by remember { mutableStateOf("") }
 
     val unselectedBg = if (isDark) Color(0xFF1E2129) else Color(0xFFF1F3F6)
     val unselectedBorder = if (isDark) Color.White.copy(alpha = 0.12f) else Color.Black.copy(alpha = 0.08f)
@@ -68,6 +74,7 @@ internal fun EkagraTagSelector(
                         .clip(RoundedCornerShape(10.dp))
                         .clickable {
                             newTagInput = ""
+                            newTagColorHex = TAG_COLOR_PALETTE[0]
                             showAddDialog = true
                         }
                 ) {
@@ -95,9 +102,11 @@ internal fun EkagraTagSelector(
             // Tag chips
             availableTags.forEach { tag ->
                 val isSelected = tag.equals(selectedTag, ignoreCase = true)
-                val chipBg = if (isSelected) accentColor.copy(alpha = 0.18f) else unselectedBg
-                val chipBorder = if (isSelected) accentColor else unselectedBorder
-                val chipTextColor = if (isSelected) accentColor else unselectedText
+                val tagColorHex = remember(tag, tagColors) { EkagraTagUtils.getTagColorHex(tag, tagColors) }
+                val tagColor = remember(tagColorHex) { EkagraTagUtils.parseHexColor(tagColorHex) }
+                val chipBg = if (isSelected) tagColor.copy(alpha = 0.18f) else unselectedBg
+                val chipBorder = if (isSelected) tagColor else unselectedBorder
+                val chipTextColor = if (isSelected) tagColor else unselectedText
 
                 Box(
                     modifier = Modifier
@@ -124,14 +133,37 @@ internal fun EkagraTagSelector(
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        horizontalArrangement = Arrangement.spacedBy(5.dp)
                     ) {
+                        // Colored dot indicator — click to edit color if onSetTagColor != null
+                        Box(
+                            modifier = Modifier
+                                .size(14.dp)
+                                .clip(CircleShape)
+                                .then(
+                                    if (onSetTagColor != null) {
+                                        Modifier.clickable {
+                                            editColorHex = tagColorHex
+                                            tagToEditColor = tag
+                                        }
+                                    } else Modifier
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(7.dp)
+                                    .clip(CircleShape)
+                                    .background(tagColor)
+                            )
+                        }
+
                         if (isSelected) {
                             Icon(
                                 imageVector = Icons.Default.Check,
                                 contentDescription = null,
-                                tint = accentColor,
-                                modifier = Modifier.size(14.dp)
+                                tint = tagColor,
+                                modifier = Modifier.size(13.dp)
                             )
                         }
                         Text(
@@ -165,21 +197,63 @@ internal fun EkagraTagSelector(
             onDismissRequest = { showAddDialog = false },
             title = { Text(stringResource(R.string.ekagra_add_subject), fontSize = 16.sp, fontWeight = FontWeight.SemiBold) },
             text = {
-                OutlinedTextField(
-                    value = newTagInput,
-                    onValueChange = { newTagInput = it },
-                    label = { Text(stringResource(R.string.ekagra_subject_name)) },
-                    placeholder = { Text(stringResource(R.string.ekagra_subject_examples)) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedTextField(
+                        value = newTagInput,
+                        onValueChange = { newTagInput = it },
+                        label = { Text(stringResource(R.string.ekagra_subject_name)) },
+                        placeholder = { Text(stringResource(R.string.ekagra_subject_examples)) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Text(
+                        text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.ekagra_tag_color),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = if (isDark) Color.White.copy(alpha = 0.7f) else Color(0xFF424750)
+                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        for (colorHex in TAG_COLOR_PALETTE) {
+                            val color = EkagraTagUtils.parseHexColor(colorHex)
+                            val isColorSelected = colorHex.equals(newTagColorHex, ignoreCase = true)
+                            Box(
+                                modifier = Modifier
+                                    .size(28.dp)
+                                    .clip(CircleShape)
+                                    .background(color)
+                                    .border(
+                                        width = if (isColorSelected) 2.dp else 1.dp,
+                                        color = if (isColorSelected) (if (isDark) Color.White else Color.Black) else Color.Transparent,
+                                        shape = CircleShape
+                                    )
+                                    .clickable { newTagColorHex = colorHex },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (isColorSelected) {
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
             },
             confirmButton = {
                 TextButton(
                     onClick = {
                         val trimmed = newTagInput.trim()
                         if (trimmed.isNotEmpty()) {
-                            onAddTag?.invoke(trimmed)
+                            onAddTag?.invoke(trimmed, newTagColorHex)
                             onSelectTag(trimmed)
                         }
                         showAddDialog = false
@@ -191,6 +265,80 @@ internal fun EkagraTagSelector(
             },
             dismissButton = {
                 TextButton(onClick = { showAddDialog = false }) {
+                    Text(stringResource(R.string.common_cancel))
+                }
+            }
+        )
+    }
+
+    // Edit Tag Color Dialog
+    tagToEditColor?.let { tag ->
+        AlertDialog(
+            onDismissRequest = { tagToEditColor = null },
+            title = {
+                Text(
+                    text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.ekagra_tag_color_named, tag),
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.ekagra_select_tag_color),
+                        fontSize = 13.sp,
+                        color = if (isDark) Color.White.copy(alpha = 0.7f) else Color(0xFF424750)
+                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        for (colorHex in TAG_COLOR_PALETTE) {
+                            val color = EkagraTagUtils.parseHexColor(colorHex)
+                            val isColorSelected = colorHex.equals(editColorHex, ignoreCase = true)
+                            Box(
+                                modifier = Modifier
+                                    .size(30.dp)
+                                    .clip(CircleShape)
+                                    .background(color)
+                                    .border(
+                                        width = if (isColorSelected) 2.5.dp else 1.dp,
+                                        color = if (isColorSelected) (if (isDark) Color.White else Color.Black) else Color.Transparent,
+                                        shape = CircleShape
+                                    )
+                                    .clickable { editColorHex = colorHex },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (isColorSelected) {
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (editColorHex.isNotBlank()) {
+                            onSetTagColor?.invoke(tag, editColorHex)
+                        }
+                        tagToEditColor = null
+                    }
+                ) {
+                    Text(stringResource(R.string.common_save))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { tagToEditColor = null }) {
                     Text(stringResource(R.string.common_cancel))
                 }
             }

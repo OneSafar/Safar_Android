@@ -128,7 +128,7 @@ private fun JournalScreenContent(
 
     LaunchedEffect(uiState.journalSaveSuccess) {
         if (uiState.journalSaveSuccess) {
-            Toast.makeText(context, "Journal saved!", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(com.safarparmar.app.R.string.nishtha_journal_saved), Toast.LENGTH_SHORT).show()
             showWriteSheet = false
             titleInput = ""
             bodyInput = ""
@@ -170,7 +170,7 @@ private fun JournalScreenContent(
                 }
                 Spacer(Modifier.height(14.dp))
                 Text(
-                    text = "Journal",
+                    text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.nishtha_journal),
                     fontFamily = LoraFontFamily,
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Normal,
@@ -194,7 +194,7 @@ private fun JournalScreenContent(
                     .padding(top = 18.dp, bottom = 8.dp),
             ) {
                 Text(
-                    text = "Today's Prompt",
+                    text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.nishtha_today_prompt),
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
                     color = PlannerFlatColors.TextDark,
@@ -299,7 +299,7 @@ private fun JournalScreenContent(
         ) {
             Icon(
                 Icons.Default.Add,
-                contentDescription = "New entry",
+                contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.nishtha_new_entry),
                 tint = Color.White,
                 modifier = Modifier.size(26.dp),
             )
@@ -396,7 +396,7 @@ private fun JournalEmptyState(
                 color = PlannerFlatColors.TextDark,
             )
             Text(
-                text = "Swipe the prompt above or tap +",
+                text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.nishtha_prompt_swipe_hint),
                 fontSize = 12.sp,
                 color = PlannerFlatColors.TextMuted,
                 textAlign = TextAlign.Center,
@@ -650,10 +650,10 @@ private fun JournalWriteSheet(
     onSave: () -> Unit,
 ) {
     JournalInlineSheetScaffold(onDismiss = onDismiss) {
-        PlanEyebrow("Journal")
+        PlanEyebrow(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.nishtha_journal))
         Spacer(Modifier.height(10.dp))
         Text(
-            text = "New Entry",
+            text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.nishtha_new_entry),
             fontFamily = LoraFontFamily,
             fontSize = 22.sp,
             fontWeight = FontWeight.Normal,
@@ -700,7 +700,7 @@ private fun JournalWriteSheet(
         FlatJournalField(
             value = titleInput,
             onValueChange = onTitleChange,
-            placeholder = "Give your entry a title...",
+            placeholder = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.nishtha_entry_title_hint),
             accent = accent,
             singleLine = true,
         )
@@ -719,7 +719,7 @@ private fun JournalWriteSheet(
         FlatJournalField(
             value = bodyInput,
             onValueChange = onBodyChange,
-            placeholder = "Start writing...",
+            placeholder = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.nishtha_start_writing_hint),
             accent = accent,
             singleLine = false,
             minHeight = 160.dp,
@@ -800,7 +800,7 @@ private fun JournalDetailSheet(
         PlanHairline()
         Spacer(Modifier.height(16.dp))
         FlatPrimaryButton(
-            label = "Close",
+            label = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.common_close),
             enabled = true,
             loading = false,
             accent = accent,

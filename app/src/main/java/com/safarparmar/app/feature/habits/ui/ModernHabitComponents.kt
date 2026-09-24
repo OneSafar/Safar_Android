@@ -75,48 +75,62 @@ internal fun ModernTabs(
     onSelected: (HabitTab) -> Unit,
     modifier: Modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)
 ) {
+    val tabs = remember {
+        listOf(
+            HabitTab.TODAY to "Daily",
+            HabitTab.WEEKLY to "Weekly",
+            HabitTab.MONTHLY to "Month",
+            HabitTab.INSIGHTS to "Insights"
+        )
+    }
+    val purpleBorder = HabitColors.RoyalPurple
+    val pillShape = CircleShape
+
     Row(
         modifier = modifier
-            .clip(RoundedCornerShape(18.dp))
-            .background(HabitColors.Parchment)
-            .border(1.dp, HabitColors.Outline, RoundedCornerShape(18.dp))
-            .padding(5.dp),
-        horizontalArrangement = Arrangement.spacedBy(5.dp)
+            .height(42.dp)
+            .clip(pillShape)
+            .background(HabitColors.Surface)
+            .border(1.5.dp, purpleBorder, pillShape),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        listOf(
-            HabitTab.TODAY to "Today",
-            HabitTab.WEEKLY to "Weekly",
-            HabitTab.MONTHLY to "Monthly"
-        ).forEach { (tab, label) ->
+        tabs.forEachIndexed { index, (tab, label) ->
+            if (index > 0) {
+                Box(
+                    modifier = Modifier
+                        .width(1.5.dp)
+                        .fillMaxHeight()
+                        .background(purpleBorder)
+                )
+            }
             val active = selected == tab
             val tabBackground by animateColorAsState(
-                targetValue = if (active) HabitColors.Surface else Color.Transparent,
-                animationSpec = tween(180),
+                targetValue = if (active) purpleBorder else Color.Transparent,
+                animationSpec = tween(150),
                 label = "habitTabBackground",
             )
             val tabContent by animateColorAsState(
-                targetValue = if (active) HabitColors.RoyalPurple else HabitColors.TextSecondary,
-                animationSpec = tween(180),
+                targetValue = if (active) Color.White else HabitColors.TextSecondary,
+                animationSpec = tween(150),
                 label = "habitTabContent",
             )
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .heightIn(min = 46.dp)
-                    .clip(RoundedCornerShape(13.dp))
+                    .fillMaxHeight()
                     .background(tabBackground)
-                    .then(
-                        if (active) Modifier.border(1.dp, HabitColors.OutlineStrong, RoundedCornerShape(13.dp))
-                        else Modifier
-                    )
-                    .clickable(role = Role.Tab) { onSelected(tab) },
+                    .clickable(
+                        role = Role.Tab,
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null
+                    ) { onSelected(tab) },
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = label,
                     color = tabContent,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 13.5.sp,
+                    fontWeight = if (active) FontWeight.SemiBold else FontWeight.Medium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -320,7 +334,7 @@ internal fun ModernHabitRow(
             )
         }
         IconButton(onClick = onEdit, modifier = Modifier.size(44.dp)) {
-            Icon(Icons.Default.Edit, contentDescription = "Edit ${habit.name}", tint = HabitColors.TextTertiary, modifier = Modifier.size(18.dp))
+            Icon(Icons.Default.Edit, contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_edit_named, habit.name), tint = HabitColors.TextTertiary, modifier = Modifier.size(18.dp))
         }
         ModernCheckButton(
             completed = completed,
@@ -389,7 +403,7 @@ internal fun ModernHabitIdentity(habit: HabitEntity, onEdit: () -> Unit) {
             Text(if (habit.isEveryDay) "Every day" else scheduleSummary(habit.targetDays), color = HabitColors.TextSecondary, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         IconButton(onClick = onEdit, modifier = Modifier.size(40.dp)) {
-            Icon(Icons.Default.Edit, contentDescription = "Edit ${habit.name}", tint = HabitColors.TextTertiary, modifier = Modifier.size(17.dp))
+            Icon(Icons.Default.Edit, contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_edit_named, habit.name), tint = HabitColors.TextTertiary, modifier = Modifier.size(17.dp))
         }
     }
 }
@@ -485,8 +499,8 @@ internal fun ModernWeeklyProgressCard(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Daily Progress", color = HabitColors.TextPrimary, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-            Text("Completed / Scheduled", color = HabitColors.TextTertiary, fontSize = 10.sp, maxLines = 1)
+            Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_daily_progress), color = HabitColors.TextPrimary, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+            Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_completed_scheduled), color = HabitColors.TextTertiary, fontSize = 10.sp, maxLines = 1)
         }
         Row(
             Modifier.fillMaxWidth().padding(start = 9.dp, end = 9.dp, bottom = 10.dp),
@@ -587,7 +601,7 @@ internal fun ModernHabitFilterPicker(
 
             Column(Modifier.weight(1f)) {
                 Text(
-                    text = selectedItem?.habit?.name ?: "All Habits",
+                    text = selectedItem?.habit?.name ?: androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_all),
                     color = HabitColors.TextPrimary,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
@@ -616,7 +630,7 @@ internal fun ModernHabitFilterPicker(
                 ) {
                     Icon(
                         Icons.Default.Edit,
-                        contentDescription = "Edit habit",
+                        contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_edit),
                         tint = HabitColors.TextTertiary,
                         modifier = Modifier.size(16.dp)
                     )
@@ -702,7 +716,7 @@ internal fun ModernHabitFilterSheet(
                     )
                 }
                 IconButton(onClick = onDismiss, modifier = Modifier.size(40.dp)) {
-                    Icon(Icons.Default.Close, contentDescription = "Close", tint = HabitColors.TextPrimary)
+                    Icon(Icons.Default.Close, contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.common_close), tint = HabitColors.TextPrimary)
                 }
             }
 
@@ -710,7 +724,7 @@ internal fun ModernHabitFilterSheet(
 
             val isAllSelected = selectedId == null
             ModernFilterOptionRow(
-                title = "All Habits",
+                title = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_all),
                 subtitle = "${habits.size} habits combined overview",
                 selected = isAllSelected,
                 leadingIcon = {
@@ -857,7 +871,7 @@ internal fun ModernFilterRow(
         modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        ModernFilterChip("All Habits", selectedId == null) { onSelected(null) }
+        ModernFilterChip(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_all), selectedId == null) { onSelected(null) }
         habits.forEach { item ->
             ModernFilterChip(item.habit.name, selectedId == item.habit.id) { onSelected(item.habit.id) }
         }
@@ -931,7 +945,7 @@ internal fun ModernPrimaryFab(onClick: () -> Unit, modifier: Modifier = Modifier
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Text("＋", color = Color.White, fontSize = 20.sp)
-        Text("New Habit", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+        Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_new), color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
     }
 }
 

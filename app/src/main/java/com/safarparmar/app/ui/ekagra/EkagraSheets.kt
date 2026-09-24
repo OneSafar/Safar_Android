@@ -93,9 +93,9 @@ internal fun VisualThemeDialog(current: VisualTheme, onSelect: (VisualTheme) -> 
         shape = RoundedCornerShape(24.dp),
         title = {
             Column(Modifier.fillMaxWidth()) {
-                EkagraEyebrow("Theme", ink.secondaryText)
+                EkagraEyebrow(stringResource(R.string.ekagra_theme_title), ink.secondaryText)
                 Spacer(Modifier.height(4.dp))
-                EkagraDisplayTitle("Visual theme", ink.primaryText)
+                EkagraDisplayTitle(stringResource(R.string.ekagra_visual_theme_title), ink.primaryText)
             }
         },
         text = {
@@ -170,7 +170,7 @@ internal fun VisualThemeDialog(current: VisualTheme, onSelect: (VisualTheme) -> 
                                                     )
                                                     Icon(
                                                         Icons.Default.CheckCircle,
-                                                        contentDescription = "Selected",
+                                                        contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.common_selected),
                                                         tint = theme.accent,
                                                         modifier = Modifier.size(18.dp)
                                                     )
@@ -219,8 +219,10 @@ internal fun OrganizeFreeFocusSheet(
     availableTags: List<String> = emptyList(),
     selectedTag: String? = null,
     onSelectTag: (String?) -> Unit = {},
-    onAddTag: ((String) -> Unit)? = null,
+    tagColors: Map<String, String> = emptyMap(),
+    onAddTag: ((String, String?) -> Unit)? = null,
     onDeleteTag: ((String) -> Unit)? = null,
+    onSetTagColor: ((String, String) -> Unit)? = null,
 ) {
     val scrollState = rememberScrollState()
     val maxSheetHeight = LocalConfiguration.current.screenHeightDp.dp * 0.85f
@@ -278,7 +280,7 @@ internal fun OrganizeFreeFocusSheet(
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    "Save this session to your Ekagra history.",
+                    stringResource(R.string.ekagra_save_to_history),
                     fontSize = 14.sp,
                     lineHeight = 20.sp,
                     color = secondaryTextColor,
@@ -293,10 +295,10 @@ internal fun OrganizeFreeFocusSheet(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 if (isTopicSession) {
-                    Text("Exam Planner topic", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = primaryTextColor)
-                    Text(pending?.topicTitle ?: "Untitled topic", fontSize = 16.sp, color = primaryTextColor)
+                    Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.ekagra_exam_planner_topic), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = primaryTextColor)
+                    Text(pending?.topicTitle ?: stringResource(R.string.ekagra_untitled_topic), fontSize = 16.sp, color = primaryTextColor)
                     SessionCompletionOption(
-                        label = "Mark topic as completed",
+                        label = stringResource(R.string.ekagra_mark_topic_completed),
                         checked = markTopicDone,
                         onCheckedChange = { markTopicDone = it },
                         accent = accent,
@@ -306,9 +308,9 @@ internal fun OrganizeFreeFocusSheet(
                     OutlinedTextField(
                         value = titleInput,
                         onValueChange = onTitleChange,
-                        label = { Text("Session name", fontSize = 14.sp) },
-                        placeholder = { Text("What did you work on?", fontSize = 14.sp) },
-                        supportingText = { Text("Optional", fontSize = 12.sp) },
+                        label = { Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.ekagra_session_name_sentence), fontSize = 14.sp) },
+                        placeholder = { Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.ekagra_worked_on_hint), fontSize = 14.sp) },
+                        supportingText = { Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.common_optional), fontSize = 12.sp) },
                         singleLine = true,
                         textStyle = androidx.compose.ui.text.TextStyle(fontSize = 16.sp),
                         shape = RoundedCornerShape(12.dp),
@@ -340,8 +342,10 @@ internal fun OrganizeFreeFocusSheet(
                                 availableTags = availableTags,
                                 selectedTag = selectedTag,
                                 onSelectTag = onSelectTag,
+                                tagColors = tagColors,
                                 onAddTag = onAddTag,
                                 onDeleteTag = onDeleteTag,
+                                onSetTagColor = onSetTagColor,
                                 accentColor = accent,
                                 isDark = isThemeDark,
                             )
@@ -373,7 +377,7 @@ internal fun OrganizeFreeFocusSheet(
                         ) {
                             Icon(Icons.Default.Link, contentDescription = null, tint = accent, modifier = Modifier.size(20.dp))
                             Column(Modifier.weight(1f)) {
-                                Text("Link to a goal", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = primaryTextColor)
+                                Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.ekagra_link_goal), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = primaryTextColor)
                                 Text(
                                     selectedGoal?.title ?: "Optional · add this time to today's goal",
                                     fontSize = 12.sp,
@@ -419,7 +423,7 @@ internal fun OrganizeFreeFocusSheet(
                             }
                         }
                         if (selectedGoal != null) {
-                            Text("After saving", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = secondaryTextColor)
+                            Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.ekagra_after_saving), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = secondaryTextColor)
                             Column(Modifier.selectableGroup()) {
                                 GoalSessionSaveChoice.entries.forEach { choice ->
                                     val selected = markGoalDone == choice.marksGoalDone
@@ -467,7 +471,7 @@ internal fun OrganizeFreeFocusSheet(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 TextButton(onClick = onDiscard, modifier = Modifier.heightIn(min = 48.dp)) {
-                    Text("Discard", fontSize = 14.sp, color = secondaryTextColor)
+                    Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.common_discard), fontSize = 14.sp, color = secondaryTextColor)
                 }
                 Button(
                     onClick = {
@@ -482,7 +486,7 @@ internal fun OrganizeFreeFocusSheet(
                     shape = RoundedCornerShape(14.dp),
                     modifier = Modifier.weight(1f).heightIn(min = 52.dp),
                 ) {
-                    Text("Save session", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                    Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.ekagra_save_session), fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                 }
             }
         }
@@ -671,9 +675,9 @@ internal fun EkagraConfirmSaveDialog(
 ) {
     val accent = accentColor
     val ink = rememberEkagraInk(onCanvas = false)
-    val isQuickSave = label.equals("Quick Save", ignoreCase = true) || label.isBlank()
-    val eyebrowText = if (isQuickSave) "CONFIRM SAVE" else "CONFIRM LINK"
-    val titleText = if (isQuickSave) "Save this session?" else "Save to \"$label\"?"
+    val isQuickSave = label.equals(stringResource(R.string.ekagra_quick_save), ignoreCase = true) || label.isBlank()
+    val eyebrowText = if (isQuickSave) stringResource(R.string.ekagra_confirm_save) else stringResource(R.string.ekagra_confirm_link)
+    val titleText = if (isQuickSave) stringResource(R.string.ekagra_save_session_question) else stringResource(R.string.ekagra_save_to_named_question, label)
 
     androidx.compose.ui.window.Dialog(
         onDismissRequest = onCancel,
@@ -710,12 +714,12 @@ internal fun EkagraConfirmSaveDialog(
                 Spacer(Modifier.height(10.dp))
                 Text(
                     text = when {
-                        linksTopic && completesTarget -> "Your study time will be saved and this topic will be marked completed in Exam Planner."
-                        linksTopic -> "Your study time will be saved to this Exam Planner topic. The topic stays open."
-                        completesTarget -> "Your session will appear in Ekagra history, linked to this goal. The goal will also appear in Goals → Completed."
-                        keepsGoalOpen -> "Your session will appear in Ekagra history, linked to this goal. The goal stays active for your next session."
-                        isQuickSave -> "Your study time will be saved to your Ekagra history."
-                        else -> "Your study time will be saved."
+                        linksTopic && completesTarget -> stringResource(R.string.ekagra_save_topic_completed)
+                        linksTopic -> stringResource(R.string.ekagra_save_topic_open)
+                        completesTarget -> stringResource(R.string.ekagra_save_goal_completed)
+                        keepsGoalOpen -> stringResource(R.string.ekagra_save_goal_open)
+                        isQuickSave -> stringResource(R.string.ekagra_save_history_body)
+                        else -> stringResource(R.string.ekagra_save_body)
                     },
                     fontSize = 14.sp,
                     lineHeight = 20.sp,
@@ -727,13 +731,13 @@ internal fun EkagraConfirmSaveDialog(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     EkagraGhostAction(
-                        label = "Cancel",
+                        label = stringResource(R.string.common_cancel),
                         ink = ink,
                         onClick = onCancel,
                         modifier = Modifier.weight(1f),
                     )
                     EkagraPrimaryAction(
-                        label = "Save",
+                        label = stringResource(R.string.ekagra_save_action),
                         accent = accent,
                         onClick = onConfirm,
                         modifier = Modifier.weight(1f),
@@ -759,8 +763,10 @@ internal fun SessionNameDialog(
     onDiscard: () -> Unit,
     availableTags: List<String> = emptyList(),
     initialTag: String? = null,
-    onAddTag: ((String) -> Unit)? = null,
+    tagColors: Map<String, String> = emptyMap(),
+    onAddTag: ((String, String?) -> Unit)? = null,
     onDeleteTag: ((String) -> Unit)? = null,
+    onSetTagColor: ((String, String) -> Unit)? = null,
 ) {
     val accent = PlannerAccent.Amber
     val parsed = remember(initialTitle) { EkagraTagUtils.parseTagAndTask(initialTitle) }
@@ -843,8 +849,10 @@ internal fun SessionNameDialog(
                     availableTags = availableTags,
                     selectedTag = selectedTag,
                     onSelectTag = { selectedTag = it },
+                    tagColors = tagColors,
                     onAddTag = onAddTag,
                     onDeleteTag = onDeleteTag,
+                    onSetTagColor = onSetTagColor,
                     accentColor = accent,
                     isDark = false,
                 )
@@ -890,6 +898,7 @@ internal fun PostSaveGoalLinkingSheet(
     onDismiss: () -> Unit,
     onLinkGoal: (com.safarparmar.app.domain.model.Goal, Boolean) -> Unit,
     selectedTheme: VisualTheme? = null,
+    isDarkTheme: Boolean = false,
 ) {
     val sheetState = rememberModalBottomSheetState(
         skipPartiallyExpanded = true,
@@ -901,22 +910,22 @@ internal fun PostSaveGoalLinkingSheet(
 
     var pendingConfirmation by remember { mutableStateOf<PendingGoalLinkConfirmation?>(null) }
 
-    val ink = rememberEkagraInk(onCanvas = false, theme = selectedTheme, isDarkTheme = false)
+    val ink = rememberEkagraInk(onCanvas = false, theme = selectedTheme, isDarkTheme = isDarkTheme)
     val themeAccent = selectedTheme?.accent ?: MaterialTheme.colorScheme.primary
+    val maxSheetHeight = LocalConfiguration.current.screenHeightDp.dp * 0.85f
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.surface,
+        containerColor = if (isDarkTheme) MaterialTheme.colorScheme.surface else Color.White,
         dragHandle = { BottomSheetDefaults.DragHandle(color = ink.hairline) },
-        modifier = Modifier.fillMaxSize(),
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .wrapContentWidth(Alignment.CenterHorizontally)
                 .widthIn(max = 560.dp)
-                .fillMaxHeight()
+                .heightIn(max = maxSheetHeight)
                 .navigationBarsPadding()
                 .padding(bottom = 16.dp),
         ) {
@@ -926,48 +935,126 @@ internal fun PostSaveGoalLinkingSheet(
                     .fillMaxWidth()
                     .padding(horizontal = 24.dp, vertical = 6.dp),
             ) {
-                EkagraEyebrow(stringResource(R.string.ekagra_session_saved), themeAccent)
-                Spacer(Modifier.height(4.dp))
+                Surface(
+                    shape = CircleShape,
+                    color = Color(0xFF10B981).copy(alpha = 0.12f),
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(5.dp),
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            tint = Color(0xFF10B981),
+                            modifier = Modifier.size(13.dp),
+                        )
+                        Text(
+                            text = stringResource(R.string.ekagra_session_saved).uppercase(),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF10B981),
+                            letterSpacing = 0.8.sp,
+                        )
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
                 EkagraDisplayTitle(stringResource(R.string.ekagra_time_focused, focusedTimeLabel), ink.primaryText)
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    text = stringResource(R.string.ekagra_goal_link_explainer),
+                    text = if (shownGoals.isNotEmpty())
+                        stringResource(R.string.ekagra_goal_link_explainer)
+                    else
+                        "Your session is saved in Ekagra.",
                     fontSize = 13.sp,
                     color = ink.secondaryText,
                 )
             }
 
-            Spacer(Modifier.height(14.dp))
-            EkagraHairline(ink.hairline)
-
-            Text(
-                text = stringResource(R.string.ekagra_goal_link_today_only),
-                fontSize = 12.sp,
-                color = ink.secondaryText,
-                modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp),
-            )
-
-            EkagraHairline(ink.hairline)
-
-            // ── Goal list — scrollable ─────────────────────────────────────────
-            if (shownGoals.isEmpty()) {
-                Box(
+            if (shownGoals.isNotEmpty()) {
+                Spacer(Modifier.height(8.dp))
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = themeAccent.copy(alpha = 0.05f),
+                    border = BorderStroke(1.dp, themeAccent.copy(alpha = 0.12f)),
                     modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth(),
-                    contentAlignment = Alignment.Center,
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp, vertical = 6.dp),
                 ) {
-                    Text(
-                        text = stringResource(R.string.ekagra_no_open_goals_today),
-                        fontSize = 14.sp,
-                        color = ink.mutedText,
-                    )
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Info,
+                            contentDescription = null,
+                            tint = themeAccent,
+                            modifier = Modifier.size(15.dp),
+                        )
+                        Text(
+                            text = stringResource(R.string.ekagra_goal_link_today_only),
+                            fontSize = 12.sp,
+                            color = ink.secondaryText,
+                        )
+                    }
+                }
+                Spacer(Modifier.height(6.dp))
+                EkagraHairline(ink.hairline.copy(alpha = 0.6f))
+            }
+
+            // ── Goal list or Empty State ─────────────────────────────────────────
+            if (shownGoals.isEmpty()) {
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                    border = BorderStroke(1.dp, ink.hairline.copy(alpha = 0.6f)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp, vertical = 16.dp),
+                ) {
+                    Column(
+                        modifier = Modifier.padding(vertical = 24.dp, horizontal = 20.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = themeAccent.copy(alpha = 0.10f),
+                            modifier = Modifier.size(48.dp),
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.Flag,
+                                    contentDescription = null,
+                                    tint = themeAccent,
+                                    modifier = Modifier.size(24.dp),
+                                )
+                            }
+                        }
+                        Text(
+                            text = stringResource(R.string.ekagra_no_open_goals_today),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = ink.primaryText,
+                            textAlign = TextAlign.Center,
+                        )
+                        Text(
+                            text = "To dedicate future sessions to goals, create daily goals in Nishtha.",
+                            fontSize = 12.sp,
+                            color = ink.mutedText,
+                            textAlign = TextAlign.Center,
+                            lineHeight = 16.sp,
+                        )
+                    }
                 }
             } else {
                 LazyColumn(
                     modifier = Modifier
-                        .weight(1f)
+                        .weight(1f, fill = false)
                         .fillMaxWidth()
+                        .heightIn(max = 320.dp)
                         .padding(horizontal = 20.dp),
                 ) {
                     itemsIndexed(shownGoals) { index, goal ->
@@ -1038,40 +1125,55 @@ internal fun PostSaveGoalLinkingSheet(
                 }
             }
 
-            // ── Hairline before action buttons ─────────────────────────────────
-            EkagraHairline(ink.hairline)
+            // ── Hairline before action buttons (only if goals exist) ───────────
+            if (shownGoals.isNotEmpty()) {
+                EkagraHairline(ink.hairline)
+            }
 
-            // ── Action buttons — clean Ekagra capsule pills ────────────────────
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 14.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                val goalSelected = selectedGoal != null
+            // ── Action buttons ────────────────────────────────────────────────
+            if (shownGoals.isEmpty()) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp, vertical = 10.dp),
+                ) {
+                    EkagraPrimaryAction(
+                        label = stringResource(R.string.ekagra_done),
+                        accent = themeAccent,
+                        onClick = onDismiss,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            } else {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    val goalSelected = selectedGoal != null
 
-                // Primary capsule action button
-                EkagraPrimaryAction(
-                    label = if (goalSelected) "Link Goal & Mark Done" else "Select a goal first",
-                    accent = if (goalSelected) themeAccent else themeAccent.copy(alpha = 0.40f),
-                    onClick = {
-                        selectedGoal?.let { goal ->
-                            pendingConfirmation = PendingGoalLinkConfirmation(
-                                goal = goal,
-                                markComplete = true,
-                            )
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                )
+                    EkagraPrimaryAction(
+                        label = if (goalSelected) stringResource(R.string.ekagra_link_goal_mark_done) else stringResource(R.string.ekagra_select_goal_to_link),
+                        accent = if (goalSelected) themeAccent else themeAccent.copy(alpha = 0.40f),
+                        onClick = {
+                            selectedGoal?.let { goal ->
+                                pendingConfirmation = PendingGoalLinkConfirmation(
+                                    goal = goal,
+                                    markComplete = true,
+                                )
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
 
-                // Secondary ghost capsule button
-                EkagraGhostAction(
-                    label = "No thanks, keep in Ekagra",
-                    ink = ink,
-                    onClick = onDismiss,
-                    modifier = Modifier.fillMaxWidth(),
-                )
+                    EkagraGhostAction(
+                        label = stringResource(R.string.ekagra_keep_in_ekagra),
+                        ink = ink,
+                        onClick = onDismiss,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
             }
         }
     }

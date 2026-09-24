@@ -88,8 +88,8 @@ internal fun AnalyticsOverviewSection(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         SectionHeading(
-            title = "Overview",
-            subtitle = "Quick read across goals, ekagra, and the monthly review.",
+            title = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.nishtha_analytics_overview),
+            subtitle = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.nishtha_overview_subtitle),
             isLight = isLight,
         )
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -112,7 +112,7 @@ internal fun AnalyticsOverviewSection(
                 .padding(16.dp)
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("Analytics Home", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = primaryText(isLight))
+                Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.nishtha_analytics_home), fontWeight = FontWeight.Bold, fontSize = 15.sp, color = primaryText(isLight))
                 Text(
                     "Use Goals for completion patterns, Ekagra for timer depth, and Monthly Review for reflection.",
                     fontSize = 12.sp,
@@ -165,8 +165,8 @@ internal fun GoalInsightsSection(goals: List<Goal>) {
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         SectionHeading(
-            title = "Goal Insights",
-            subtitle = "Completion insights and goal progress from Nishtha goals.",
+            title = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.nishtha_goal_insights),
+            subtitle = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.nishtha_goal_insights_subtitle),
             isLight = isLight,
         )
         val greenColor = if (isLight) Color(0xFF045435) else Color(0xFF10B981)
@@ -196,7 +196,7 @@ internal fun GoalInsightsSection(goals: List<Goal>) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Icon(Icons.AutoMirrored.Filled.TrendingUp, contentDescription = null, tint = greenColor, modifier = Modifier.size(18.dp))
                     Column {
-                        Text("Goal Consistency Trend", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = primaryText(isLight))
+                        Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.nishtha_goal_consistency_trend), fontWeight = FontWeight.Bold, fontSize = 15.sp, color = primaryText(isLight))
                         Text(
                             "Your goal completion over the last 7 days",
                             fontSize = 11.sp,
@@ -218,7 +218,7 @@ internal fun GoalInsightsSection(goals: List<Goal>) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Icon(Icons.Default.CalendarToday, contentDescription = null, tint = goalsThemeColor, modifier = Modifier.size(16.dp))
-                        Text("Weekly Growth Pulse", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = primaryText(isLight))
+                        Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.nishtha_weekly_growth_pulse), fontWeight = FontWeight.Bold, fontSize = 15.sp, color = primaryText(isLight))
                     }
                     Text(
                         "$averageDailyCompletion avg/day",
@@ -244,8 +244,8 @@ internal fun FocusInsightsSection(analytics: EkagraAnalyticsStats) {
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         SectionHeading(
-            title = "Ekagra Insights",
-            subtitle = "Focused metrics from Ekagra timer sessions.",
+            title = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.nishtha_ekagra_insights),
+            subtitle = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.nishtha_ekagra_insights_subtitle),
             isLight = isLight,
         )
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -424,7 +424,7 @@ private fun TimerDurationUsageCard(rows: List<EkagraTimerDurationUsage>, accent:
             .padding(16.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("Timer Duration Usage", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = primaryText(isLight))
+            Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.nishtha_timer_duration_usage), fontWeight = FontWeight.Bold, fontSize = 15.sp, color = primaryText(isLight))
             Text(
                 "Includes ekagra timers and both break types.",
                 fontSize = 11.sp,

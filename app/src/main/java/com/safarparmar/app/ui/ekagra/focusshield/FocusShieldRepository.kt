@@ -155,11 +155,13 @@ class FocusShieldRepository @Inject constructor(
             return
         }
         
+        // Starting a break must not issue a second startForegroundService()
+        // request while the existing session's Kavach service is already running.
+        // A fresh start is still required if the service was actually stopped.
+        val alreadyProtectingSession = _sessionActive.value && _protectionActive.value
         _activationBlockedReason.value = null
-        _protectionStarting.value = true
-        _protectionActive.value = false
         activateBlocking(settings, resetUnlocks = isFocusPeriod && !_sessionActive.value)
-        if (!startKavachService(settings.packages)) {
+        if (!alreadyProtectingSession && !startKavachService(settings.packages)) {
             _sessionActive.value = false
             _sessionBlockedPackages.value = emptySet()
             ShieldPrefs.clear(appContext)
@@ -186,7 +188,10 @@ class FocusShieldRepository @Inject constructor(
         Snapshot.packages = emptySet()
         Snapshot.strict = false
         scope.launch {
-            if (!dataStore.focusShieldAlwaysOnMode.first()) {
+            // Reading DataStore may suspend. Pomodoro can activate a new session
+            // before this old deactivation resumes; do not stop its pending FGS.
+            val alwaysOn = dataStore.focusShieldAlwaysOnMode.first()
+            if (!alwaysOn && !_sessionActive.value) {
                 KavachAlwaysOnService.stop(appContext)
             }
         }

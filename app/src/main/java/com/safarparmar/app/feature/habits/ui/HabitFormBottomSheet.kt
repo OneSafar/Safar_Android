@@ -161,7 +161,7 @@ internal fun HabitFormBottomSheet(
             ) {
                 Column(Modifier.weight(1f)) {
                     Text(
-                        if (habit == null) "New Habit" else "Edit Habit",
+                        if (habit == null) androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_new) else "Edit Habit",
                         color = HabitColors.TextPrimary,
                         fontSize = 27.sp,
                         lineHeight = 31.sp,
@@ -178,7 +178,7 @@ internal fun HabitFormBottomSheet(
                     )
                 }
                 IconButton(onClick = ::dismissSafely, enabled = !busy, modifier = Modifier.size(48.dp)) {
-                    Icon(Icons.Default.Close, contentDescription = "Close", tint = HabitColors.TextPrimary)
+                    Icon(Icons.Default.Close, contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.common_close), tint = HabitColors.TextPrimary)
                 }
             }
 
@@ -192,10 +192,10 @@ internal fun HabitFormBottomSheet(
                     },
                     modifier = Modifier.fillMaxWidth(),
                     enabled = !busy,
-                    placeholder = { Text("e.g., Read 20 pages", color = HabitColors.TextSecondary) },
+                    placeholder = { Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_name_example), color = HabitColors.TextSecondary) },
                     singleLine = true,
                     isError = nameError,
-                    supportingText = if (nameError) ({ Text("Please enter a habit name.", color = HabitColors.Error) }) else null,
+                    supportingText = if (nameError) ({ Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_name_required), color = HabitColors.Error) }) else null,
                     keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Done),
                     keyboardActions = KeyboardActions(onDone = { focus.clearFocus() }),
                     shape = RoundedCornerShape(13.dp),
@@ -261,14 +261,14 @@ internal fun HabitFormBottomSheet(
                                 }
                             }
                         }
-                        if (daysError) Text("Please select at least one day.", color = HabitColors.Error, fontSize = 12.sp)
+                        if (daysError) Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_day_required), color = HabitColors.Error, fontSize = 12.sp)
                     }
                 }
 
                 Spacer(Modifier.height(10.dp))
                 Text(
                     text = if (specificDays) {
-                        if (selectedDays.isEmpty()) "Please select at least one day."
+                        if (selectedDays.isEmpty()) androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_day_required)
                         else "Repeats on ${scheduleSummary(selectedDays)}"
                     } else "Repeats every day",
                     color = HabitColors.TextSecondary,
@@ -299,14 +299,14 @@ internal fun HabitFormBottomSheet(
                     TextButton(onClick = { confirmArchive = true }, enabled = !busy, modifier = Modifier.fillMaxWidth()) {
                         Icon(Icons.Default.Archive, contentDescription = null, modifier = Modifier.size(16.dp), tint = HabitColors.TextSecondary)
                         Spacer(Modifier.width(6.dp))
-                        Text("Archive Habit", color = HabitColors.TextSecondary, fontSize = 13.sp)
+                        Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_archive), color = HabitColors.TextSecondary, fontSize = 13.sp)
                     }
                 }
                 if (onDelete != null) {
                     TextButton(onClick = { confirmDelete = true }, enabled = !busy, modifier = Modifier.fillMaxWidth()) {
                         Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(15.dp), tint = HabitColors.Error)
                         Spacer(Modifier.width(5.dp))
-                        Text("Delete Permanently", color = HabitColors.Error, fontSize = 12.sp)
+                        Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_delete_permanently), color = HabitColors.Error, fontSize = 12.sp)
                     }
                 }
             }
@@ -316,19 +316,19 @@ internal fun HabitFormBottomSheet(
     if (confirmArchive) {
         AlertDialog(
             onDismissRequest = { confirmArchive = false },
-            title = { Text("Archive Habit?") },
-            text = { Text("This habit will be removed from your daily list, but your past progress will stay saved.") },
-            confirmButton = { TextButton(onClick = ::runArchive) { Text("Archive") } },
-            dismissButton = { TextButton(onClick = { confirmArchive = false }) { Text("Cancel") } }
+            title = { Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_archive_question)) },
+            text = { Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_archive_explanation)) },
+            confirmButton = { TextButton(onClick = ::runArchive) { Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_archive_action)) } },
+            dismissButton = { TextButton(onClick = { confirmArchive = false }) { Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.common_cancel)) } }
         )
     }
     if (confirmDelete) {
         AlertDialog(
             onDismissRequest = { confirmDelete = false },
-            title = { Text("Delete Permanently?") },
-            text = { Text("This will delete this habit and all its past progress. This cannot be undone.") },
-            confirmButton = { TextButton(onClick = ::runDelete) { Text("Delete", color = HabitColors.Error) } },
-            dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Cancel") } }
+            title = { Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_delete_question)) },
+            text = { Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_delete_explanation)) },
+            confirmButton = { TextButton(onClick = ::runDelete) { Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.common_delete), color = HabitColors.Error) } },
+            dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.common_cancel)) } }
         )
     }
 }

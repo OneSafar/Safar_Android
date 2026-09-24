@@ -26,31 +26,48 @@ class YoutubeStudyV2GuardService : Service() {
             stopSelfResult(startId)
             return START_NOT_STICKY
         }
-        return START_STICKY
+        return START_NOT_STICKY
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
+    override fun onDestroy() {
+        if (isForegroundStarted) {
+            runCatching { ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE) }
+        }
+        super.onDestroy()
+    }
+
     private fun promote(): Boolean {
         if (isForegroundStarted) return true
         return runCatching {
-            // Required for an OS START_STICKY recreation, which bypasses start().
-            SafarNotificationChannels.createAll(this)
+            SafarNotificationChannels.ensureYoutubeStudyV2StatusChannel(this)
             val pendingIntent = android.app.PendingIntent.getActivity(
                 this,
                 NOTIFICATION_ID,
                 NotificationDeepLinkHandler.activityIntent(this, "safar://youtube_study_v2"),
                 android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE,
             )
-            val notification = NotificationCompat.Builder(this, SafarNotificationChannels.YOUTUBE_STUDY_V2_STATUS)
-                .setSmallIcon(R.drawable.ic_safar_notification_sparkle)
-                .setContentTitle(getString(R.string.youtube_focus_is_on))
-                .setContentText(getString(R.string.youtube_focus_protection_active))
-                .setContentIntent(pendingIntent)
-                .setOngoing(true)
-                .setSilent(true)
-                .setPriority(NotificationCompat.PRIORITY_LOW)
-                .build()
+            val notification = try {
+                NotificationCompat.Builder(this, SafarNotificationChannels.YOUTUBE_STUDY_V2_STATUS)
+                    .setSmallIcon(R.drawable.ic_safar_notification_sparkle)
+                    .setContentTitle(getString(R.string.youtube_focus_is_on))
+                    .setContentText(getString(R.string.youtube_focus_protection_active))
+                    .setContentIntent(pendingIntent)
+                    .setOngoing(true)
+                    .setSilent(true)
+                    .setPriority(NotificationCompat.PRIORITY_LOW)
+                    .build()
+            } catch (t: Throwable) {
+                NotificationCompat.Builder(this, SafarNotificationChannels.YOUTUBE_STUDY_V2_STATUS)
+                    .setSmallIcon(R.drawable.ic_safar_notification_sparkle)
+                    .setContentTitle(getString(R.string.youtube_focus_is_on))
+                    .setContentText(getString(R.string.youtube_focus_protection_active))
+                    .setPriority(NotificationCompat.PRIORITY_LOW)
+                    .setOngoing(true)
+                    .build()
+            }
+
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                 ServiceCompat.startForeground(
                     this,
@@ -71,13 +88,20 @@ class YoutubeStudyV2GuardService : Service() {
 
     companion object {
         private const val NOTIFICATION_ID = 2122
+
         fun start(context: Context) {
             val appContext = context.applicationContext
+            // Do not start foreground service from background on Android 12+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+                !com.safarparmar.app.util.AppForegroundTracker.isAppInForeground
+            ) {
+                android.util.Log.w("YoutubeStudyV2", "Deferred guard service start: app in background")
+                return
+            }
+
             val intent = Intent(appContext, YoutubeStudyV2GuardService::class.java)
             runCatching {
-                // Channel creation can cross a Binder boundary. Complete it before
-                // starting Android's foreground-service promotion deadline.
-                SafarNotificationChannels.createAll(appContext)
+                SafarNotificationChannels.ensureYoutubeStudyV2StatusChannel(appContext)
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) appContext.startForegroundService(intent)
                 else appContext.startService(intent)
             }.onFailure { error ->

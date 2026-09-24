@@ -113,7 +113,7 @@ fun SafarCustomTextField(
                 if (!enabled && label.contains("EMAIL")) {
                     Icon(
                         imageVector = Icons.Default.Lock,
-                        contentDescription = "Read-only",
+                        contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.input_read_only),
                         tint = labelColor,
                         modifier = Modifier.size(20.dp)
                     )
@@ -204,7 +204,7 @@ fun SafarCustomDropdownMenu(
                     }
                     Icon(
                         imageVector = Icons.Default.ArrowDropDown,
-                        contentDescription = "Dropdown",
+                        contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.input_dropdown),
                         tint = labelColor,
                         modifier = Modifier.size(24.dp)
                     )

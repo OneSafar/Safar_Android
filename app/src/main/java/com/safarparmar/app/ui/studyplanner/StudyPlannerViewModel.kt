@@ -442,7 +442,7 @@ class StudyPlannerViewModel @Inject constructor(
                         it.copy(
                             selectedPlan = r.data.plan ?: it.selectedPlan,
                             mutating = false,
-                            message = "Missed topics restored",
+                            message = context.getString(com.safarparmar.app.R.string.planner_missed_restored),
                         )
                     }
                     refreshCalendar(planId)
@@ -635,7 +635,7 @@ class StudyPlannerViewModel @Inject constructor(
                     if (_uiState.value.selectedPlan?.id == planId) {
                         savedStateHandle[SELECTED_PLAN_ID_KEY] = null
                     }
-                    _uiState.update { it.copy(mutating = false, selectedPlan = null, message = "Plan deleted") }
+                    _uiState.update { it.copy(mutating = false, selectedPlan = null, message = context.getString(com.safarparmar.app.R.string.planner_plan_deleted)) }
                     refreshPlans()
                 }
                 is Resource.Error -> _uiState.update { it.copy(mutating = false, error = r.message) }
@@ -658,7 +658,7 @@ class StudyPlannerViewModel @Inject constructor(
                         plans = state.plans.map { plan ->
                             if (plan.id == planId) plan.copy(savedSyllabusId = result.data.id) else plan
                         },
-                        message = "Syllabus saved for reuse",
+                        message = context.getString(com.safarparmar.app.R.string.planner_syllabus_saved_reuse),
                     )
                 }
                 is Resource.Error -> _uiState.update { it.copy(mutating = false, error = result.message) }
@@ -689,7 +689,7 @@ class StudyPlannerViewModel @Inject constructor(
                             state.selectedPlan
                         },
                         mutating = false,
-                        message = "Exam renamed",
+                        message = context.getString(com.safarparmar.app.R.string.planner_exam_renamed),
                     )
                 }
                 is Resource.Error -> _uiState.update {
@@ -970,7 +970,7 @@ class StudyPlannerViewModel @Inject constructor(
             //    future days keep their original daily-goal count.
             when (val r = repo.addTopic(planId, subjectId, chapterId, TopicRequest(name = cleaned, plannedDate = todayKey()))) {
                 is Resource.Success -> {
-                    _uiState.update { it.copy(selectedPlan = r.data, mutating = false, message = "Added to today") }
+                    _uiState.update { it.copy(selectedPlan = r.data, mutating = false, message = context.getString(com.safarparmar.app.R.string.planner_added_today)) }
                     refreshCalendar(planId)
                     refreshAnalytics(planId)
                     refreshPlannerAchievements()
@@ -1067,7 +1067,7 @@ class StudyPlannerViewModel @Inject constructor(
                         it.copy(
                             selectedPlan = saved.data,
                             mutating = false,
-                            message = "Revision moved to $newKey",
+                            message = context.getString(com.safarparmar.app.R.string.planner_revision_moved, newKey),
                         )
                     }
                     when (val calendarResult = repo.getCalendar(planId)) {
@@ -1120,7 +1120,7 @@ class StudyPlannerViewModel @Inject constructor(
                         it.copy(
                             selectedPlan = r.data,
                             mutating = false,
-                            message = "Topic deleted",
+                            message = context.getString(com.safarparmar.app.R.string.planner_topic_deleted),
                             // The delete route returns an undoToken; surfacing it lets
                             // the screen offer an "Undo" action on the snackbar.
                             deleteUndoToken = r.data.undoToken?.takeIf { token -> token.isNotBlank() },
@@ -1489,7 +1489,7 @@ class StudyPlannerViewModel @Inject constructor(
                     it.copy(
                         mutating = false,
                         selectedPlan = r.data,
-                        message = "Syllabus order updated",
+                        message = context.getString(com.safarparmar.app.R.string.planner_order_updated),
                         deleteUndoToken = r.data.undoToken?.takeIf { it.isNotBlank() },
                         lastUndoableActionLabel = "Syllabus order",
                     )
@@ -1564,7 +1564,7 @@ class StudyPlannerViewModel @Inject constructor(
                         it.copy(
                             selectedPlan = result.data.plan,
                             mutating = false,
-                            message = "Done for the day. Remaining topics moved to Missed.",
+                            message = context.getString(com.safarparmar.app.R.string.planner_day_finished),
                             finishDayUndo = result.data.undoToken?.let(::FinishDayUndoState),
                             deleteUndoToken = null,
                             lastUndoableActionLabel = null,
@@ -1606,7 +1606,7 @@ class StudyPlannerViewModel @Inject constructor(
                         it.copy(
                             selectedPlan = result.data.plan,
                             mutating = false,
-                            message = "Today's tasks restored",
+                            message = context.getString(com.safarparmar.app.R.string.planner_today_tasks_restored),
                         )
                     }
                     refreshCalendar(plan.id)
@@ -1649,9 +1649,9 @@ class StudyPlannerViewModel @Inject constructor(
                         it.copy(
                             selectedPlan = result.data,
                             mutating = false,
-                            message = "Plan reset",
+                            message = context.getString(com.safarparmar.app.R.string.planner_plan_reset),
                             deleteUndoToken = result.data.undoToken?.takeIf(String::isNotBlank),
-                            lastUndoableActionLabel = "Plan reset",
+                            lastUndoableActionLabel = context.getString(com.safarparmar.app.R.string.planner_plan_reset),
                         )
                     }
                     refreshCalendar(plan.id)
@@ -1832,7 +1832,7 @@ class StudyPlannerViewModel @Inject constructor(
                         it.copy(
                             selectedPlan = r.data,
                             mutating = false,
-                            message = "Topics swapped",
+                            message = context.getString(com.safarparmar.app.R.string.planner_topics_swapped),
                             deleteUndoToken = r.data.undoToken?.takeIf { token -> token.isNotBlank() },
                             lastUndoableActionLabel = "Topic swap",
                         )
@@ -1859,7 +1859,7 @@ class StudyPlannerViewModel @Inject constructor(
             when (val result = repo.batchUpdateTopics(planId, request)) {
                 is Resource.Success -> {
                     _uiState.update {
-                        it.copy(selectedPlan = result.data, mutating = false, message = "Topic replaced")
+                        it.copy(selectedPlan = result.data, mutating = false, message = context.getString(com.safarparmar.app.R.string.planner_topic_replaced))
                     }
                     refreshCalendar(planId)
                     refreshAnalytics(planId)
@@ -1993,7 +1993,7 @@ class StudyPlannerViewModel @Inject constructor(
                         loading = false,
                         selectedPlan = r.data,
                         section = PlannerSection.PLAN,
-                        message = "Plan created",
+                        message = context.getString(com.safarparmar.app.R.string.planner_plan_created),
                         pendingManualSubjectOrder = manualSubjectOrder && r.data.subjects.isNotEmpty(),
                     )
                 }
@@ -2039,7 +2039,7 @@ class StudyPlannerViewModel @Inject constructor(
         _uiState.update { it.copy(mutating = true, error = null) }
         when (val r = call()) {
             is Resource.Success -> {
-                _uiState.update { it.copy(mutating = false, message = "Plan created") }
+                _uiState.update { it.copy(mutating = false, message = context.getString(com.safarparmar.app.R.string.planner_plan_created)) }
                 refreshPlans()
                 _uiState.update {
                     it.copy(
@@ -2142,7 +2142,7 @@ class StudyPlannerViewModel @Inject constructor(
         
         notificationManager.show(
             title = planTitle,
-            body = "You've got this, keep going !",
+            body = context.getString(com.safarparmar.app.R.string.planner_keep_going_notification),
             channelId = SafarNotificationChannels.STUDY_REMINDERS,
             deepLink = "safar://studyplanner"
         )

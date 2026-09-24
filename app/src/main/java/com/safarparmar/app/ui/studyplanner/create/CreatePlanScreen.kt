@@ -1,5 +1,8 @@
 package com.safarparmar.app.ui.studyplanner.create
 
+import androidx.compose.ui.res.stringResource
+import com.safarparmar.app.R
+
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.spring
@@ -412,7 +415,7 @@ private fun CelebrationOverlay(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Text("Your SAFAR plan is ready.", fontWeight = FontWeight.Black, style = MaterialTheme.typography.titleLarge)
+            Text(stringResource(R.string.planner_plan_ready), fontWeight = FontWeight.Black, style = MaterialTheme.typography.titleLarge)
             val topicsLine = if (todayTopicCount > 0) {
                 "Start with today's $todayTopicCount topic${if (todayTopicCount == 1) "" else "s"}. You've got this!"
             } else {

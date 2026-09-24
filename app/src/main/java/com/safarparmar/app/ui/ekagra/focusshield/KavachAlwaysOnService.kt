@@ -1,6 +1,7 @@
 package com.safarparmar.app.ui.ekagra.focusshield
 
 import android.app.Notification
+import android.app.NotificationManager
 import android.app.Service
 import android.app.usage.UsageEvents
 import android.app.usage.UsageStatsManager
@@ -33,6 +34,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * Blocking service used during an Ekagra protection window or continuously under Always On.
@@ -63,22 +65,36 @@ class KavachAlwaysOnService : Service() {
             "com.vivo.launcher", "com.transsion.XOSLauncher",
         )
 
-        fun start(context: Context): Boolean {
+        fun start(context: Context, isBootTrigger: Boolean = false): Boolean {
             val appContext = context.applicationContext
+            // On Android 12+ (API 31+), starting a foreground service while running in the background
+            // is strictly forbidden by the OS unless a recognized system exemption applies.
+            // A rejected background start throws ForegroundServiceStartNotAllowedException.
+            // That is distinct from a timeout after an accepted foreground-service start.
+            // Active Kavach is cleanly restored in MainActivity.onStart() as soon as the app enters foreground.
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+                !com.safarparmar.app.util.AppForegroundTracker.isAppInForeground &&
+                !isBootTrigger
+            ) {
+                if (BuildConfig.DEBUG) {
+                    android.util.Log.w("FocusShield", "Deferred Kavach service start: app is currently in background")
+                }
+                return false
+            }
+
             val intent = Intent(appContext, KavachAlwaysOnService::class.java)
             return runCatching {
-                // Do notification-manager I/O before Android starts the short
-                // startForeground() countdown for this service.
-                SafarNotificationChannels.createAll(appContext)
+                // Ensure only the status channel exists; avoid synchronous 12-channel Binder calls on main thread
+                SafarNotificationChannels.ensureFocusShieldStatusChannel(appContext)
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     appContext.startForegroundService(intent)
                 } else {
                     appContext.startService(intent)
                 }
                 true
-            }.getOrElse {
+            }.getOrElse { e ->
                 if (BuildConfig.DEBUG) {
-                    android.util.Log.e("FocusShield", "Could not start Kavach service", it)
+                    android.util.Log.e("FocusShield", "Could not start Kavach service", e)
                 }
                 false
             }
@@ -112,7 +128,7 @@ class KavachAlwaysOnService : Service() {
     private val foregroundAppTracker = ForegroundAppTracker()
     private var stopReasonAlreadyReported = false
     private var youtubeKavachUnlockTracking = false
-    private var isForegroundStarted = false
+    private val lifecycle = KavachServiceLifecycle()
 
     private fun focusShieldRepository(): FocusShieldRepository =
         dagger.hilt.android.EntryPointAccessors
@@ -126,29 +142,50 @@ class KavachAlwaysOnService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        // Promote before settings, dependency lookup, or monitoring work.
         if (!promoteToForeground()) {
-            // Never leave a startForegroundService() request pending. Android
-            // otherwise terminates the process a few seconds later.
             stopSelf()
         }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (!promoteToForeground()) {
+        if (!lifecycle.start(startId, ::promoteToForeground)) {
             stopSelfResult(startId)
             return START_NOT_STICKY
         }
-        if (monitorJob == null) startMonitoring()
-        return START_STICKY
+        // Foreground promotion has already completed. Enrich the notification only
+        // now, outside Android's startForegroundService() deadline.
+        runCatching {
+            getSystemService(NotificationManager::class.java)
+                .notify(NOTIFICATION_ID, buildStatusNotification())
+        }.onFailure { error ->
+            android.util.Log.w("FocusShield", "Could not update Kavach notification", error)
+        }
+        stopReasonAlreadyReported = false
+        // The old settings read must not stop a newer request or leave a completed
+        // monitorJob attached to an otherwise running service.
+        monitorJob?.cancel()
+        startMonitoring(startId)
+        // Use START_NOT_STICKY so the OS does not resurrect the service with a null intent in
+        // background under heavy memory pressure, avoiding background start crashes.
+        return START_NOT_STICKY
     }
 
     private fun promoteToForeground(): Boolean {
-        if (isForegroundStarted) return true
+        // Every delivered start must acknowledge foreground promotion, including a
+        // start racing with shutdown. A local Boolean cannot represent OS state.
         return runCatching {
-            // Required for an OS START_STICKY recreation, which does not pass
-            // through start(context).
-            SafarNotificationChannels.createAll(this)
-            val notification = buildStatusNotification()
+            // start() creates the channel before asking Android to start us.
+            // Keep the first notification independent of notification-manager I/O,
+            // resource/theme lookup,
+            // PendingIntent creation, settings, and repository initialization.
+            val notification = NotificationCompat.Builder(this, SafarNotificationChannels.FOCUS_SHIELD_STATUS)
+                .setSmallIcon(R.drawable.ic_safar_notification_sparkle)
+                .setContentTitle("KAVACH Protection")
+                .setContentText("Protection is active")
+                .setPriority(NotificationCompat.PRIORITY_LOW)
+                .setOngoing(true)
+                .build()
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                 ServiceCompat.startForeground(
                     this,
@@ -161,12 +198,9 @@ class KavachAlwaysOnService : Service() {
             } else {
                 startForeground(NOTIFICATION_ID, notification)
             }
-            isForegroundStarted = true
             true
         }.getOrElse { e ->
-            if (BuildConfig.DEBUG) {
-                android.util.Log.e("FocusShield", "Failed to promote Kavach to foreground", e)
-            }
+            android.util.Log.e("FocusShield", "Failed to promote Kavach to foreground", e)
             false
         }
     }
@@ -174,6 +208,7 @@ class KavachAlwaysOnService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onDestroy() {
+        runCatching { ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE) }
         blockOverlay.dismiss()
         protectionSource?.let { source ->
             runCatching { KavachAnalyticsRecorder.from(applicationContext).endProtection(source) }
@@ -193,12 +228,12 @@ class KavachAlwaysOnService : Service() {
         super.onDestroy()
     }
 
-    private fun startMonitoring() {
+    private fun startMonitoring(startId: Int) {
         monitorJob = scope.launch {
             var untilSync = 0L
             while (true) {
                 if (untilSync <= 0L) {
-                    if (!syncSettings()) return@launch
+                    if (!syncSettings(startId)) return@launch
                     untilSync = SETTINGS_SYNC_MS
                 }
                 val waitMs = monitorForegroundApp()
@@ -212,7 +247,7 @@ class KavachAlwaysOnService : Service() {
     }
 
     /** @return false when Always On should no longer be running, which stops the service. */
-    private suspend fun syncSettings(): Boolean {
+    private suspend fun syncSettings(startId: Int): Boolean {
         val alwaysOn = dataStore.focusShieldAlwaysOnMode.first()
         val strict = dataStore.focusShieldStrictMode.first()
         val enabled = dataStore.focusShieldEnabled.first()
@@ -229,18 +264,24 @@ class KavachAlwaysOnService : Service() {
 
         val timerLinkedActive = FocusShieldRepository.ShieldPrefs.isActive(this)
         if (!enabled || (!alwaysOn && !timerLinkedActive) || configuredPackages.isEmpty() || !ready) {
-            stopReasonAlreadyReported = true
-            if (enabled && (alwaysOn || timerLinkedActive)) {
-                val warning = when {
-                    configuredPackages.isEmpty() -> "Select at least one app for Kavach to block."
-                    !ready -> "Kavach stopped working. Check Usage Access and Display over other apps."
-                    else -> null
+            withContext(Dispatchers.Main.immediate) {
+                // Serialize with onStartCommand. Android also checks requests accepted
+                // but not yet delivered, which a local generation check cannot see.
+                if (!lifecycle.stopIfCurrent(startId, ::stopSelfResult)) return@withContext
+                stopReasonAlreadyReported = true
+                if (enabled && (alwaysOn || timerLinkedActive)) {
+                    val warning = when {
+                        configuredPackages.isEmpty() -> "Select at least one app for Kavach to block."
+                        !ready -> "Kavach stopped working. Check Usage Access and Display over other apps."
+                        else -> null
+                    }
+                    warning?.let { runCatching { focusShieldRepository().reportProtectionFailure(it) } }
                 }
-                warning?.let { runCatching { focusShieldRepository().reportProtectionFailure(it) } }
+                KavachAlwaysOnPrefs.clear(this@KavachAlwaysOnService)
+                FocusShieldRepository.Snapshot.active = false
+                // Keep the notification until onDestroy: demotion here would create
+                // a window where an incoming start has no foreground service.
             }
-            KavachAlwaysOnPrefs.clear(this)
-            FocusShieldRepository.Snapshot.active = false
-            stopSelf()
             return false
         }
         
@@ -468,37 +509,47 @@ class KavachAlwaysOnService : Service() {
         packageName.contains("launcher", ignoreCase = true) || packageName in KNOWN_HOME_PACKAGES
 
     private fun buildStatusNotification(): Notification {
-        val openKavach = PendingIntent.getActivity(
-            this,
-            0,
-            Intent(this, MainActivity::class.java).apply {
-                data = android.net.Uri.parse("safar://${Routes.FOCUS_SHIELD}")
-                flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
-            },
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-        )
-        val cal = java.util.Calendar.getInstance()
-        val currentMinute = cal.get(java.util.Calendar.HOUR_OF_DAY) * 60 + cal.get(java.util.Calendar.MINUTE)
-        val isScheduleActive = !scheduleEnabled || FocusShieldRepository.ShieldPrefs.isWithinSchedule(currentMinute, scheduleStartMinute, scheduleEndMinute)
+        return try {
+            val openKavach = PendingIntent.getActivity(
+                this,
+                0,
+                Intent(this, MainActivity::class.java).apply {
+                    data = android.net.Uri.parse("safar://${Routes.FOCUS_SHIELD}")
+                    flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                },
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            )
+            val cal = java.util.Calendar.getInstance()
+            val currentMinute = cal.get(java.util.Calendar.HOUR_OF_DAY) * 60 + cal.get(java.util.Calendar.MINUTE)
+            val isScheduleActive = !scheduleEnabled || FocusShieldRepository.ShieldPrefs.isWithinSchedule(currentMinute, scheduleStartMinute, scheduleEndMinute)
 
-        val title = getString(if (isAlwaysOnMode) R.string.kavach_always_on_title else R.string.kavach_active_title)
-        val text = when {
-            !isScheduleActive -> getString(R.string.kavach_outside_active_hours)
-            isAlwaysOnMode -> getString(R.string.kavach_always_on_notification_body)
-            else -> getString(R.string.kavach_active_notification_body)
+            val title = getString(if (isAlwaysOnMode) R.string.kavach_always_on_title else R.string.kavach_active_title)
+            val text = when {
+                !isScheduleActive -> getString(R.string.kavach_outside_active_hours)
+                isAlwaysOnMode -> getString(R.string.kavach_always_on_notification_body)
+                else -> getString(R.string.kavach_active_notification_body)
+            }
+
+            NotificationCompat.Builder(this, SafarNotificationChannels.FOCUS_SHIELD_STATUS)
+                .setSmallIcon(SafarNotificationManager.SafarNotificationStyle.smallIconRes(this))
+                .setColor(SafarNotificationManager.SafarNotificationStyle.brandColor(this))
+                .setContentTitle(title)
+                .setContentText(text)
+                .setContentIntent(openKavach)
+                .setCategory(NotificationCompat.CATEGORY_STATUS)
+                .setPriority(NotificationCompat.PRIORITY_LOW)
+                .setOngoing(true)
+                .setOnlyAlertOnce(true)
+                .build()
+        } catch (t: Throwable) {
+            NotificationCompat.Builder(this, SafarNotificationChannels.FOCUS_SHIELD_STATUS)
+                .setSmallIcon(R.drawable.ic_safar_notification_sparkle)
+                .setContentTitle("KAVACH Protection")
+                .setContentText(getString(R.string.ekagra_protection_active))
+                .setPriority(NotificationCompat.PRIORITY_LOW)
+                .setOngoing(true)
+                .build()
         }
-
-        return NotificationCompat.Builder(this, SafarNotificationChannels.FOCUS_SHIELD_STATUS)
-            .setSmallIcon(SafarNotificationManager.SafarNotificationStyle.smallIconRes(this))
-            .setColor(SafarNotificationManager.SafarNotificationStyle.brandColor(this))
-            .setContentTitle(title)
-            .setContentText(text)
-            .setContentIntent(openKavach)
-            .setCategory(NotificationCompat.CATEGORY_STATUS)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
-            .setOngoing(true)
-            .setOnlyAlertOnce(true)
-            .build()
     }
 }
 

@@ -194,7 +194,7 @@ internal fun ModeTabs(
                     modifier = Modifier.size(14.dp),
                 )
                 Text(
-                    text = mode.label,
+                    text = stringResource(mode.labelRes),
                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                     fontSize = 12.sp,
                     color = contentColor,
@@ -230,6 +230,8 @@ internal fun TimerFocusTab(
     canStartBreak: Boolean,
     onStartBreak: () -> Unit,
     onReset: () -> Unit,
+    isBrowsingOtherMode: Boolean = false,
+    activeModeLabel: String = "",
     onGoToDuration: () -> Unit = {},
     shieldState: com.safarparmar.app.ui.ekagra.focusshield.FocusShieldUiState,
     isDarkTheme: Boolean,
@@ -485,11 +487,13 @@ internal fun TimerFocusTab(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                EkagraGhostAction(
-                    label = if (timerMode == TimerMode.BREAK) stringResource(R.string.ekagra_end_break) else stringResource(R.string.common_end),
-                    ink   = ink,
-                    onClick = onReset,
-                )
+                if (!isBrowsingOtherMode) {
+                    EkagraGhostAction(
+                        label = if (timerMode == TimerMode.BREAK) stringResource(R.string.ekagra_end_break) else stringResource(R.string.common_end),
+                        ink = ink,
+                        onClick = onReset,
+                    )
+                }
                 EkagraPrimaryAction(
                     label = when {
                         isRunning   -> stringResource(R.string.common_pause)
@@ -506,6 +510,16 @@ internal fun TimerFocusTab(
                         onClick = onStartBreak,
                     )
                 }
+            }
+
+            if (isBrowsingOtherMode) {
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    text = stringResource(R.string.ekagra_other_mode_active, activeModeLabel),
+                    fontSize = EkagraChrome.text(12f),
+                    color = ink.secondaryText,
+                    textAlign = TextAlign.Center,
+                )
             }
 
             AnimatedVisibility(

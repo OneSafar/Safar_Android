@@ -1,5 +1,7 @@
 package com.safarparmar.app.ui.studyplanner.screens
 
+import androidx.compose.ui.res.stringResource
+import com.safarparmar.app.R
 import com.safarparmar.app.performance.decorativeFloat
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
@@ -259,7 +261,7 @@ internal fun InsightsOverallProgressRedesign(
                         color = primaryText,
                     )
                     Text(
-                        text = "syllabus done",
+                        text = stringResource(R.string.planner_syllabus_done),
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = secondaryText,
@@ -272,13 +274,13 @@ internal fun InsightsOverallProgressRedesign(
             // be trusted. Now the caption states what is finished and what is
             // left, and one plain line explains why the % isn't just done/total.
             Text(
-                text = "$doneTopics done · ${(totalTopics - doneTopics).coerceAtLeast(0)} to go",
+                text = stringResource(R.string.planner_done_to_go, doneTopics, (totalTopics - doneTopics).coerceAtLeast(0)),
                 style = MaterialTheme.typography.bodySmall,
                 color = secondaryText,
                 textAlign = TextAlign.Center,
             )
             Text(
-                text = "Big topics count more",
+                text = stringResource(R.string.planner_big_topics_count_more),
                 style = MaterialTheme.typography.labelSmall,
                 color = secondaryText,
                 textAlign = TextAlign.Center,
@@ -307,7 +309,7 @@ internal fun InsightsMetricSquares(examDays: Int?, dailyGoal: Int, isLight: Bool
         MetricSquareCard(
             icon = Icons.Default.Timer,
             value = if (examDays == null) "—" else "$daysCounted",
-            label = "days to exam",
+            label = stringResource(R.string.planner_days_to_exam_lower),
             primaryText = primaryText,
             secondaryText = secondaryText,
             tint = tint,
@@ -318,7 +320,7 @@ internal fun InsightsMetricSquares(examDays: Int?, dailyGoal: Int, isLight: Bool
         MetricSquareCard(
             icon = Icons.Default.TrackChanges,
             value = "$goalCounted",
-            label = "daily goal",
+            label = stringResource(R.string.planner_daily_goal_lower),
             primaryText = primaryText,
             secondaryText = secondaryText,
             tint = tint,
@@ -425,9 +427,9 @@ internal fun ConsistencyStreakCard(
                 )
                 Text(
                     text = if (consistency.studyStreak > 0) {
-                        "Studied ${consistency.studyStreak} day${if (consistency.studyStreak == 1) "" else "s"} in a row"
+                        stringResource(R.string.planner_studied_days_row, consistency.studyStreak)
                     } else {
-                        "Study today to begin"
+                        stringResource(R.string.planner_study_today_begin)
                     },
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Black,
@@ -437,7 +439,7 @@ internal fun ConsistencyStreakCard(
                     modifier = Modifier.weight(1f),
                 )
                 Text(
-                    text = "Tap a day",
+                    text = stringResource(R.string.planner_tap_day),
                     style = MaterialTheme.typography.labelSmall,
                     color = secondaryText,
                     maxLines = 1,
@@ -523,7 +525,7 @@ private fun TappableWeekStreak(
                     if (active) {
                         Icon(
                             imageVector = Icons.Default.Check,
-                            contentDescription = "Studied",
+                            contentDescription = stringResource(R.string.planner_studied),
                             tint = Color.White,
                             modifier = Modifier.size(14.dp),
                         )
@@ -628,7 +630,7 @@ internal fun InsightsStudySpeedCard(
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Text(
-                text = "Daily study",
+                text = stringResource(R.string.planner_daily_study),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Black,
                 color = primaryText,
@@ -683,7 +685,7 @@ internal fun InsightsStudySpeedCard(
                     )
                     if (hasRecentPace && !nothingLeft) {
                         Text(
-                            text = "work/day",
+                            text = stringResource(R.string.planner_work_per_day),
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.SemiBold,
                             color = secondaryText,
@@ -734,7 +736,7 @@ internal fun SubjectProgressChart(
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
-                    text = "By subject",
+                    text = stringResource(R.string.planner_by_subject),
                     fontWeight = FontWeight.Black,
                     fontSize = 18.sp,
                     color = primaryText,
@@ -748,7 +750,7 @@ internal fun SubjectProgressChart(
                 }
             }
             if (chartSubjects.isEmpty()) {
-                Text(text = "Add topics to see progress here.", color = secondaryText)
+                Text(text = stringResource(R.string.planner_add_topics_progress), color = secondaryText)
             } else {
                 BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
                     val stackVertically = maxWidth < 340.dp
@@ -1066,7 +1068,7 @@ internal fun InsightsFinishLineCard(
                     modifier = Modifier.size(20.dp),
                 )
                 Text(
-                    text = "When you'll finish",
+                    text = stringResource(R.string.planner_when_finish),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Black,
                     color = primaryText,
@@ -1074,7 +1076,7 @@ internal fun InsightsFinishLineCard(
                 )
                 studyDaysLeft?.let { days ->
                     Text(
-                        text = "$days day${if (days == 1) "" else "s"} left to study",
+                        text = stringResource(R.string.planner_days_left_study, days),
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = secondaryText,
@@ -1084,14 +1086,14 @@ internal fun InsightsFinishLineCard(
             }
 
             Text(
-                text = if (basedOnRecentPace) "Based on your recent study" else "If you complete your daily goal",
+                text = if (basedOnRecentPace) stringResource(R.string.planner_based_recent_study) else stringResource(R.string.planner_if_daily_goal),
                 style = MaterialTheme.typography.bodySmall,
                 color = secondaryText,
             )
 
             if (timeline == null) {
                 Text(
-                    text = "Add exam date to see when you'll finish.",
+                    text = stringResource(R.string.planner_add_exam_date_finish),
                     style = MaterialTheme.typography.bodySmall,
                     color = secondaryText,
                 )
@@ -1120,7 +1122,7 @@ internal fun InsightsFinishLineCard(
                         verticalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
                         Text(
-                            text = "You may not finish the whole syllabus before the exam",
+                            text = stringResource(R.string.planner_may_not_finish),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = FinishLineRed,
@@ -1128,7 +1130,7 @@ internal fun InsightsFinishLineCard(
                         )
                         if (!showLateDetails) {
                             Text(
-                                text = "Tap to know more",
+                                text = stringResource(R.string.planner_tap_know_more),
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Medium,
                                 color = FinishLineRed.copy(alpha = 0.78f),
@@ -1141,9 +1143,9 @@ internal fun InsightsFinishLineCard(
                         ) {
                             Text(
                                 text = if (basedOnRecentPace) {
-                                    "At your current study speed, you may finish about $lateDays day${if (lateDays == 1) "" else "s"} after the exam."
+                                    stringResource(R.string.planner_current_pace_late, lateDays)
                                 } else {
-                                    "Even if you hit your daily goal, you may finish about $lateDays day${if (lateDays == 1) "" else "s"} after the exam."
+                                    stringResource(R.string.planner_goal_pace_late, lateDays)
                                 },
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.Medium,
@@ -1164,7 +1166,7 @@ internal fun InsightsFinishLineCard(
                     }
                     if (aheadDays != null && aheadDays > 0) {
                         Text(
-                            text = "On track — $aheadDays day${if (aheadDays == 1) "" else "s"} before exam",
+                            text = stringResource(R.string.planner_on_track_ahead, aheadDays),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = FinishLineGreen,
@@ -1250,10 +1252,10 @@ private fun FinishLineTimelineCanvas(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.Bottom,
         ) {
-            Text("Today", style = MaterialTheme.typography.labelSmall, color = secondaryText)
+            Text(stringResource(R.string.common_today), style = MaterialTheme.typography.labelSmall, color = secondaryText)
             timeline.examShortLabel?.let { label ->
                 Text(
-                    text = "Exam · $label",
+                    text = stringResource(R.string.planner_exam_label, label),
                     style = MaterialTheme.typography.labelSmall,
                     color = FinishLinePink,
                     fontWeight = FontWeight.SemiBold,
@@ -1265,7 +1267,7 @@ private fun FinishLineTimelineCanvas(
 
         if (timeline.isBehind && timeline.projectedShortLabel != null) {
             Text(
-                text = "Finish · ${timeline.projectedShortLabel}",
+                text = stringResource(R.string.planner_finish_label, timeline.projectedShortLabel),
                 style = MaterialTheme.typography.labelSmall,
                 color = FinishLineRed,
                 fontWeight = FontWeight.Bold,
@@ -1347,18 +1349,18 @@ internal fun InsightsRevisionPulseCard(
                 )
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(
-                        text = "Revision",
+                        text = stringResource(R.string.planner_revision),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Black,
                         color = primaryText,
                     )
                     Text(
                         text = if (towers.isEmpty()) {
-                            "Mark topics to revise. They'll show up here."
+                            stringResource(R.string.planner_mark_topics_revision)
                         } else if (towers.size > 6) {
-                            "Swipe to see all · tap a topic"
+                            stringResource(R.string.planner_swipe_all_tap_topic)
                         } else {
-                            "Each ring is one revision · tap a topic"
+                            stringResource(R.string.planner_ring_revision_tap)
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = secondaryText,
@@ -1449,7 +1451,7 @@ internal fun InsightsRevisionPulseCard(
                     modifier = Modifier.align(Alignment.CenterHorizontally),
                 ) {
                     Text(
-                        text = "See all to revise",
+                        text = stringResource(R.string.planner_see_all_revise),
                         color = PlannerFlatColors.PrimaryAccent,
                         fontWeight = FontWeight.Bold,
                     )

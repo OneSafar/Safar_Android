@@ -107,8 +107,8 @@ fun TemplatePickerStep(
         if (!canUsePremiumPlannerFeatures) {
             PremiumPlannerGateCard(
                 title = stringResource(R.string.planner_templates_premium_title),
-                body = "You can still create a custom plan manually for free.",
-                action = "View Premium",
+                body = stringResource(R.string.planner_template_free_help),
+                action = stringResource(R.string.premium_view),
                 onUpgrade = onUpgrade,
             )
         }

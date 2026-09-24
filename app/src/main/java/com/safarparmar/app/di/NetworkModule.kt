@@ -194,5 +194,8 @@ object NetworkModule {
     @Provides @Singleton fun provideReferralApi(r: Retrofit): com.safarparmar.app.data.remote.api.ReferralApi = r.create(com.safarparmar.app.data.remote.api.ReferralApi::class.java)
     @Provides @Singleton fun provideSupportApi(r: Retrofit): SupportApi = r.create(SupportApi::class.java)
     @Provides @Singleton fun provideGson(): Gson = Gson()
-    @Provides @Singleton fun provideMehfilSocketManager(gson: Gson): MehfilSocketManager = MehfilSocketManager(gson)
+    @Provides @Singleton fun provideMehfilSocketManager(
+        gson: Gson,
+        @ApplicationContext context: Context,
+    ): MehfilSocketManager = MehfilSocketManager(gson, context)
 }

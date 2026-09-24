@@ -109,7 +109,7 @@ fun PodiumVariationArchitecturalStudio(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
-                        text = "Last Week's Champions",
+                        text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.leaderboard_last_week_champions),
                         fontSize = 17.sp,
                         fontWeight = FontWeight.Bold,
                         color = PlannerFlatColors.TextDark,
@@ -126,7 +126,7 @@ fun PodiumVariationArchitecturalStudio(
 
                 if (podium.isEmpty()) {
                     Text(
-                        text = "Podium winners will appear once the weekly cycle completes.",
+                        text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.leaderboard_podium_pending),
                         fontSize = 13.sp,
                         color = PlannerFlatColors.TextMuted,
                         textAlign = TextAlign.Center,

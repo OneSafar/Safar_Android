@@ -186,41 +186,7 @@ fun ProfileScreen(
                         )
                     }
 
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { showLanguageDialog = true },
-                        shape = RoundedCornerShape(14.dp),
-                        color = MaterialTheme.colorScheme.surface,
-                        tonalElevation = 1.dp,
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = stringResource(R.string.profile_language_title),
-                                    fontWeight = FontWeight.Bold,
-                                    color = PlannerFlatColors.TextDark,
-                                )
-                                Text(
-                                    text = stringResource(R.string.profile_language_subtitle),
-                                    fontSize = 12.sp,
-                                    color = PlannerFlatColors.TextMuted,
-                                )
-                            }
-                            Text(
-                                text = when (AppCompatDelegate.getApplicationLocales().toLanguageTags()) {
-                                    "hi" -> stringResource(R.string.profile_language_hindi)
-                                    "hi-Latn" -> stringResource(R.string.profile_language_hinglish)
-                                    else -> stringResource(R.string.profile_language_english)
-                                },
-                                color = SafarSemanticColors.brandPurple(),
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                        }
-                    }
+                    // Language selector hidden from profile as requested.
 
                     StaggeredProfileEntranceBox(index = 0, isVisible = profileVisible) {
                         ProfileHeaderSection(

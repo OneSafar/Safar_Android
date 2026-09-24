@@ -83,13 +83,16 @@ internal fun DurationTab(
     onAutoStartBreakChange: (Boolean) -> Unit,
     timerAlertStyle: com.safarparmar.app.data.local.TimerAlertStyle,
     onTimerAlertStyleChange: (com.safarparmar.app.data.local.TimerAlertStyle) -> Unit,
-    onStartPomodoro: (Int) -> Unit,
+    onStartPomodoro: (PomodoroStartRequest) -> Unit,
     onSave: () -> Unit,
 ) {
     val scheme = MaterialTheme.colorScheme
     val ink = rememberEkagraInk(onCanvas = false)
     var showPomodoroDialog by remember { androidx.compose.runtime.mutableStateOf(false) }
     var pomodoroLoopsInput by remember { androidx.compose.runtime.mutableStateOf("4") }
+    var pomodoroFocusInput by remember(focusMinutes) { androidx.compose.runtime.mutableStateOf(focusMinutes.toString()) }
+    var pomodoroBreakInput by remember(breakMinutes) { androidx.compose.runtime.mutableStateOf(breakMinutes.toString()) }
+    var pomodoroStyle by remember { androidx.compose.runtime.mutableStateOf(PomodoroStyle.TRADITIONAL) }
 
     Column(
         modifier = modifier
@@ -112,9 +115,9 @@ internal fun DurationTab(
             presets       = listOf(15, 25, 45, 60),
             ink           = ink,
             onValueChange = onFocusChange,
-            // 20 hours. Long enough for any real study block; past that the
-            // student is more likely mistyping than planning.
-            customMaxMinutes = 1200,
+            // A single Ekagra countdown may be at most 18 hours. Stopwatch is
+            // intentionally unbounded because it does not use this duration.
+            customMaxMinutes = 18 * 60,
             overLimitMessage = stringResource(R.string.ekagra_take_break_buddy),
         )
         DurationSection(
@@ -145,6 +148,7 @@ internal fun DurationTab(
         )
 
         EkagraHairline(ink.hairline)
+        EkagraAlarmAccessRow()
         TimerAlertStyleRow(
             selectedStyle = timerAlertStyle,
             ink = ink,
@@ -167,7 +171,11 @@ internal fun DurationTab(
             EkagraGhostAction(
                 label   = stringResource(R.string.ekagra_pomodoro),
                 ink     = ink,
-                onClick = { showPomodoroDialog = true },
+                onClick = {
+                    pomodoroFocusInput = focusMinutes.toString()
+                    pomodoroBreakInput = breakMinutes.toString()
+                    showPomodoroDialog = true
+                },
             )
         }
         Spacer(Modifier.height(28.dp))
@@ -196,7 +204,62 @@ internal fun DurationTab(
                 }
             },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(
+                    modifier = Modifier.verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        listOf(
+                            PomodoroStyle.TRADITIONAL to stringResource(R.string.ekagra_pomodoro_traditional),
+                            PomodoroStyle.CUSTOM to stringResource(R.string.ekagra_pomodoro_custom),
+                        ).forEach { (style, label) ->
+                            val selected = pomodoroStyle == style
+                            if (selected) {
+                                Button(
+                                    onClick = { pomodoroStyle = style },
+                                    modifier = Modifier.weight(1f),
+                                ) { Text(label) }
+                            } else {
+                                OutlinedButton(
+                                    onClick = { pomodoroStyle = style },
+                                    modifier = Modifier.weight(1f),
+                                ) { Text(label) }
+                            }
+                        }
+                    }
+                    if (pomodoroStyle == PomodoroStyle.TRADITIONAL) {
+                        Text(
+                            stringResource(R.string.ekagra_pomodoro_traditional_summary),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = scheme.onSurfaceVariant,
+                        )
+                    } else {
+                        Text(
+                            stringResource(R.string.ekagra_pomodoro_custom_summary),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = scheme.onSurfaceVariant,
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedTextField(
+                                value = pomodoroFocusInput,
+                                onValueChange = { pomodoroFocusInput = it.filter(Char::isDigit).take(3) },
+                                label = { Text(stringResource(R.string.ekagra_pomodoro_focus_minutes)) },
+                                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                                singleLine = true,
+                                modifier = Modifier.weight(1f),
+                            )
+                            OutlinedTextField(
+                                value = pomodoroBreakInput,
+                                onValueChange = { pomodoroBreakInput = it.filter(Char::isDigit).take(2) },
+                                label = { Text(stringResource(R.string.ekagra_pomodoro_break_minutes)) },
+                                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                                singleLine = true,
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
                     Text(
                         stringResource(R.string.ekagra_pomodoro_loops_question),
                         style = MaterialTheme.typography.bodyMedium,
@@ -214,6 +277,7 @@ internal fun DurationTab(
                         ),
                         modifier = Modifier.fillMaxWidth()
                     )
+                    }
                 }
             },
             confirmButton = {
@@ -222,7 +286,14 @@ internal fun DurationTab(
                     accent = scheme.primary,
                     onClick = {
                         showPomodoroDialog = false
-                        onStartPomodoro(pomodoroLoopsInput.toIntOrNull() ?: 4)
+                        onStartPomodoro(
+                            PomodoroStartRequest(
+                                style = pomodoroStyle,
+                                loops = pomodoroLoopsInput.toIntOrNull() ?: 4,
+                                focusMinutes = pomodoroFocusInput.toIntOrNull() ?: focusMinutes,
+                                breakMinutes = pomodoroBreakInput.toIntOrNull() ?: breakMinutes,
+                            )
+                        )
                     },
                 )
             },
@@ -395,7 +466,6 @@ private fun TimerAlertStyleRow(
     val selectedLabel = when (selectedStyle) {
         com.safarparmar.app.data.local.TimerAlertStyle.SOUND -> stringResource(R.string.ekagra_alert_sound)
         com.safarparmar.app.data.local.TimerAlertStyle.VIBRATE -> stringResource(R.string.ekagra_alert_vibrate)
-        com.safarparmar.app.data.local.TimerAlertStyle.OFF -> stringResource(R.string.common_off)
     }
 
     Row(
@@ -425,9 +495,8 @@ private fun TimerAlertStyleRow(
             text = {
                 Column {
                     listOf(
-                        com.safarparmar.app.data.local.TimerAlertStyle.VIBRATE to stringResource(R.string.ekagra_alert_vibrate),
                         com.safarparmar.app.data.local.TimerAlertStyle.SOUND to stringResource(R.string.ekagra_alert_sound),
-                        com.safarparmar.app.data.local.TimerAlertStyle.OFF to stringResource(R.string.common_off),
+                        com.safarparmar.app.data.local.TimerAlertStyle.VIBRATE to stringResource(R.string.ekagra_alert_vibrate),
                     ).forEach { (style, label) ->
                         Row(
                             modifier = Modifier
@@ -489,3 +558,27 @@ internal fun SettingToggleRow(
 }
 
 // ─── History tab ───────────────────────────────────────────────────────────────
+
+@Composable
+private fun EkagraAlarmAccessRow() {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val owner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    var allowed by remember { mutableStateOf(EkagraTimerAlarms.exactAllowed(context)) }
+    DisposableEffect(owner) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) allowed = EkagraTimerAlarms.exactAllowed(context)
+        }
+        owner.lifecycle.addObserver(observer)
+        onDispose { owner.lifecycle.removeObserver(observer) }
+    }
+    Column(Modifier.fillMaxWidth().padding(vertical = 12.dp)) {
+        Text(stringResource(R.string.ekagra_alarm_access_title), style = MaterialTheme.typography.titleSmall)
+        Text(if (allowed) stringResource(R.string.ekagra_alarm_access_enabled)
+            else stringResource(R.string.ekagra_alarm_access_needed),
+            style = MaterialTheme.typography.bodySmall)
+        if (!allowed && android.os.Build.VERSION.SDK_INT >= 31) TextButton(onClick = {
+            runCatching { context.startActivity(android.content.Intent(android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,
+                android.net.Uri.parse("package:${context.packageName}"))) }
+        }) { Text(stringResource(R.string.ekagra_allow_alarms)) }
+    }
+}

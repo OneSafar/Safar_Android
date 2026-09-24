@@ -1,11 +1,19 @@
 package com.safarparmar.app.feature.habits.ui.insights
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.KeyboardArrowDown
+import androidx.compose.material.icons.rounded.KeyboardArrowUp
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -19,7 +27,8 @@ import com.safarparmar.app.feature.habits.ui.HabitColors
 @Composable
 fun HabitPerformanceList(
     performanceList: List<HabitPerformance>,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    initialLimit: Int = 3
 ) {
     val outlineColor = HabitColors.Outline
     val surfaceColor = HabitColors.Surface
@@ -29,6 +38,13 @@ fun HabitPerformanceList(
     val purple = HabitColors.RoyalPurple
     val checkDone = HabitColors.CheckDone
 
+    var isExpanded by rememberSaveable { mutableStateOf(false) }
+    val visibleList = if (isExpanded || performanceList.size <= initialLimit) {
+        performanceList
+    } else {
+        performanceList.take(initialLimit)
+    }
+
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -36,6 +52,7 @@ fun HabitPerformanceList(
             .background(surfaceColor)
             .border(1.dp, outlineColor, RoundedCornerShape(20.dp))
             .padding(18.dp)
+            .animateContentSize()
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -44,15 +61,24 @@ fun HabitPerformanceList(
         ) {
             Column {
                 Text(
-                    text = "Habit Performance",
+                    text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_performance),
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     color = textPrimary
                 )
                 Text(
-                    text = "Completion rates and streak records",
+                    text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_performance_subtitle),
                     fontSize = 12.sp,
                     color = textSecondary
+                )
+            }
+
+            if (performanceList.isNotEmpty()) {
+                Text(
+                    text = "${performanceList.size} habits",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = textTertiary
                 )
             }
         }
@@ -67,14 +93,14 @@ fun HabitPerformanceList(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "No habit performance data recorded",
+                    text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_no_performance),
                     fontSize = 13.sp,
                     color = textTertiary
                 )
             }
         } else {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                performanceList.forEach { perf ->
+                visibleList.forEach { perf ->
                     HabitPerformanceRow(
                         performance = perf,
                         outlineColor = outlineColor,
@@ -84,6 +110,36 @@ fun HabitPerformanceList(
                         purple = purple,
                         checkDone = checkDone
                     )
+                }
+
+                // Show more / Show less expand toggle button
+                if (performanceList.size > initialLimit) {
+                    val remainingCount = performanceList.size - initialLimit
+                    TextButton(
+                        onClick = { isExpanded = !isExpanded },
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.textButtonColors(contentColor = purple),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(42.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Text(
+                                text = if (isExpanded) "Show Less" else "Show $remainingCount More Habits",
+                                fontSize = 13.5.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Spacer(Modifier.width(4.dp))
+                            Icon(
+                                imageVector = if (isExpanded) Icons.Rounded.KeyboardArrowUp else Icons.Rounded.KeyboardArrowDown,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -130,7 +186,7 @@ private fun HabitPerformanceRow(
                 if (performance.isArchived) {
                     Spacer(Modifier.width(6.dp))
                     Text(
-                        text = "Archived",
+                        text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_archived),
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Medium,
                         color = textTertiary,
@@ -188,13 +244,13 @@ private fun HabitPerformanceRow(
 
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(
-                    text = "Current: ${performance.currentStreak}d",
+                    text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_current_days_short, performance.currentStreak),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Medium,
                     color = textPrimary
                 )
                 Text(
-                    text = "Best: ${performance.bestStreak}d",
+                    text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_best_days_short, performance.bestStreak),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = purple

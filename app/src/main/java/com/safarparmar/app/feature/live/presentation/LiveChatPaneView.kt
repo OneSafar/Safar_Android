@@ -80,7 +80,7 @@ class LiveChatPaneView(context: Context) : LinearLayout(context) {
         gravity = Gravity.CENTER_VERTICAL
 
         header.apply {
-            text = "Live comments"
+            text = context.getString(com.safarparmar.app.R.string.live_comments)
             setTextColor(TEXT_PRIMARY)
             setTypeface(null, Typeface.BOLD)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
@@ -100,7 +100,7 @@ class LiveChatPaneView(context: Context) : LinearLayout(context) {
         gravity = Gravity.CENTER_VERTICAL
 
         input.apply {
-            hint = "Add a comment…"
+            hint = context.getString(com.safarparmar.app.R.string.live_add_comment)
             setHintTextColor(TEXT_SECONDARY)
             setTextColor(TEXT_PRIMARY)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
@@ -125,7 +125,7 @@ class LiveChatPaneView(context: Context) : LinearLayout(context) {
         addView(input, LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f))
 
         sendButton.apply {
-            text = "Send"
+            text = context.getString(com.safarparmar.app.R.string.live_send)
             isAllCaps = false
             setOnClickListener { submit() }
         }
@@ -162,7 +162,8 @@ class LiveChatPaneView(context: Context) : LinearLayout(context) {
 
     fun setViewerCount(count: Int, isLive: Boolean) {
         viewerLabel.visibility = if (isLive) View.VISIBLE else View.GONE
-        viewerLabel.text = if (count == 1) "● 1 watching" else "● $count watching"
+        viewerLabel.text = if (count == 1) context.getString(com.safarparmar.app.R.string.live_one_watching)
+        else context.getString(com.safarparmar.app.R.string.live_many_watching, count)
     }
 
     fun setCooldown(seconds: Int) {
@@ -189,17 +190,17 @@ class LiveChatPaneView(context: Context) : LinearLayout(context) {
         messagesScroll.visibility = if (hasMessages && isChatOpen) View.VISIBLE else View.GONE
         emptyLabel.text = when {
             !isChatOpen -> closedReason
-            else -> "No comments yet. Say hello!"
+            else -> context.getString(com.safarparmar.app.R.string.live_no_comments)
         }
 
         input.isEnabled = isChatOpen && cooldownRemaining == 0
         input.hint = when {
-            !isChatOpen -> "Comments are closed"
+            !isChatOpen -> context.getString(com.safarparmar.app.R.string.live_comments_closed)
             // Stated plainly, so a disabled Send never reads as a bug.
-            cooldownRemaining > 0 -> "Wait ${cooldownRemaining}s before commenting again"
-            else -> "Add a comment…"
+            cooldownRemaining > 0 -> context.getString(com.safarparmar.app.R.string.live_wait_comment, cooldownRemaining)
+            else -> context.getString(com.safarparmar.app.R.string.live_add_comment)
         }
-        sendButton.text = if (cooldownRemaining > 0) "${cooldownRemaining}s" else "Send"
+        sendButton.text = if (cooldownRemaining > 0) "${cooldownRemaining}s" else context.getString(com.safarparmar.app.R.string.live_send)
         updateSendEnabled()
     }
 

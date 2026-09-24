@@ -200,7 +200,7 @@ fun LiveSessionsScreen(
                     ) {
                         Image(
                             painter = painterResource(id = R.drawable.dhyan_live_hero),
-                            contentDescription = "Dhyan Live",
+                            contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.live_title),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .aspectRatio(16f / 9f)
@@ -215,7 +215,7 @@ fun LiveSessionsScreen(
                             verticalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
                             Text(
-                                text = "Dhyan Live",
+                                text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.live_title),
                                 fontFamily = LoraFontFamily,
                                 fontSize = 24.sp,
                                 fontWeight = FontWeight.Bold,
@@ -223,7 +223,7 @@ fun LiveSessionsScreen(
                                 textAlign = TextAlign.Center,
                             )
                             Text(
-                                text = "Join Parmar sir live for yoga and meditation.",
+                                text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.live_join_intro),
                                 fontSize = 13.sp,
                                 color = LiveThemeColors.textSecondary(isDark),
                                 textAlign = TextAlign.Center,
@@ -233,7 +233,7 @@ fun LiveSessionsScreen(
                 }
             }
 
-            // 1. Search Bar ("Search sessions")
+            // 1. Search Bar (androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.live_search_sessions))
             item(key = "search") {
                 LiveSessionSearchBar(
                     query = searchQuery,
@@ -293,11 +293,11 @@ fun LiveSessionsScreen(
                     }
                 }
 
-                // 4. Section: "Missed a session? Catch up below"
+                // 4. Section: androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.live_catch_up)
                 if (filteredCompletedSessions.isNotEmpty()) {
                     item(key = "missed_header") {
                         Text(
-                            text = "Missed a session? Catch up below",
+                            text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.live_catch_up),
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
                             color = LiveThemeColors.textPrimary(isDark),
@@ -317,7 +317,7 @@ fun LiveSessionsScreen(
                 // 5. Tab: COMPLETED
                 item(key = "completed_header") {
                     Text(
-                        text = "Dhyan recordings",
+                        text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.live_recordings),
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         color = LiveThemeColors.textPrimary(isDark),
@@ -355,7 +355,7 @@ fun LiveSessionsScreen(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
-                            Text("Join the Safar Dhyan community", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = LiveThemeColors.textPrimary(isDark))
+                            Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.live_join_community), fontSize = 22.sp, fontWeight = FontWeight.Bold, color = LiveThemeColors.textPrimary(isDark))
                             Text(
                                 "Join our community to receive friendly reminders and all the latest updates about Safar's yoga and meditation courses.",
                                 fontSize = 14.sp,
@@ -372,7 +372,7 @@ fun LiveSessionsScreen(
                                     modifier = Modifier.size(20.dp),
                                 )
                                 Spacer(Modifier.width(8.dp))
-                                Text("Join our Telegram group")
+                                Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.live_join_telegram))
                             }
                         }
                     }

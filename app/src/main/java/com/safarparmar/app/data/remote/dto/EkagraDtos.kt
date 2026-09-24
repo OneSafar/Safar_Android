@@ -48,6 +48,8 @@ data class EkagraSessionsResponse(
 )
 
 data class SaveEkagraSessionRequest(
+    val endReason: String? = null,
+    val ownerId: String? = null,
     // The save endpoint reads clientSessionId/sourceSessionId for retry deduplication.
     // Sending client_session_id bypasses that guard and creates duplicate history rows.
     val clientSessionId: String? = null,
@@ -171,4 +173,4 @@ data class RecentSession(
 
 // Ranking evidence is recorded live by the server, never uploaded with a saved duration.
 data class RankedFocusRequest(val sessionId: String, val running: Boolean, val confirm: String? = null, val close: Boolean = false)
-data class RankedFocusResponse(val checkpoint: String?, val closed: Boolean, val rankedSeconds: Int)
+data class RankedFocusResponse(val checkpoint: String?, val closed: Boolean, val rankedSeconds: Int, val attendancePaused: Boolean = false)

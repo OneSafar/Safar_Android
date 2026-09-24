@@ -172,15 +172,14 @@ fun KavachAnalyticsSection(
             state.isLoading && report == null -> LoadingRow(isLight)
 
             !state.hasUsageAccess && report == null -> EmptyMessage(
-                title = "Usage access is off",
-                body = "Kavach can't measure app time without it. Turn it on in Kavach settings and " +
-                    "your usage will start showing here.",
+                title = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.kavach_usage_off),
+                body = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.kavach_usage_access_body),
                 isLight = isLight,
             )
 
             report == null -> EmptyMessage(
-                title = "No Kavach data yet",
-                body = state.error ?: "Start a Kavach session and your app time will show up here.",
+                title = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.kavach_no_data),
+                body = state.error ?: androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.kavach_start_session_body),
                 isLight = isLight,
             )
 
@@ -188,7 +187,7 @@ fun KavachAnalyticsSection(
                 Spacer(Modifier.height(20.dp))
                 SectionHeading(
                     title = if (report.coverage == DataCoverage.COMPLETE) "App usage" else "Measured app usage",
-                    subtitle = "Productive, distracting, and other app time",
+                    subtitle = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.kavach_app_time_subtitle),
                     isLight = isLight,
                 )
                 Spacer(Modifier.height(14.dp))
@@ -220,8 +219,8 @@ fun KavachAnalyticsSection(
 
                 Spacer(Modifier.height(30.dp))
                 SectionHeading(
-                    title = "Kavach activity",
-                    subtitle = "Blocked apps and Quick Unlock time",
+                    title = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.kavach_activity),
+                    subtitle = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.kavach_activity_subtitle),
                     isLight = isLight,
                 )
                 Spacer(Modifier.height(14.dp))
@@ -311,7 +310,7 @@ fun YoutubeInsightsDetailSheet(
                     fontWeight = FontWeight.Bold,
                     color = primaryText(isLight)
                 )
-                Text("Total", fontSize = 12.sp, color = secondaryText(isLight))
+                Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.kavach_total), fontSize = 12.sp, color = secondaryText(isLight))
             }
         }
 
@@ -329,9 +328,9 @@ fun YoutubeInsightsDetailSheet(
         }
 
         Spacer(Modifier.height(32.dp))
-        Text("Daily trend", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+        Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.kavach_daily_trend), fontSize = 18.sp, fontWeight = FontWeight.Bold)
         if (state.youtubeTrend.isEmpty()) {
-            Text("No measured YouTube activity for this period.", modifier = Modifier.padding(vertical = 12.dp))
+            Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.kavach_no_youtube_activity), modifier = Modifier.padding(vertical = 12.dp))
         } else {
             Row(
                 Modifier
@@ -408,7 +407,7 @@ fun YoutubeInsightsDetailSheet(
         }
 
         Spacer(Modifier.height(32.dp))
-        Text("Productive channels", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+        Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.kavach_productive_channels), fontSize = 18.sp, fontWeight = FontWeight.Bold)
         Text(
             "Verified channels are shared with SAFAR. Your Productive choices stay on this device.",
             fontSize = 13.sp,
@@ -416,7 +415,7 @@ fun YoutubeInsightsDetailSheet(
             modifier = Modifier.padding(top = 3.dp, bottom = 10.dp),
         )
         if (state.youtubeChannels.isEmpty()) {
-            Text("Watch a YouTube video to discover its channel.", modifier = Modifier.padding(vertical = 18.dp))
+            Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.kavach_discover_channel), modifier = Modifier.padding(vertical = 18.dp))
         } else {
             Column {
                 state.youtubeChannels.forEachIndexed { index, channel ->
@@ -505,7 +504,7 @@ private fun PeriodHeader(
         IconButton(onClick = { onPage(-1) }, enabled = state.canPageBack) {
             Icon(
                 Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-                contentDescription = "Previous period",
+                contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.kavach_previous_period),
                 tint = if (state.canPageBack) secondaryText(isLight) else secondaryText(isLight).copy(alpha = 0.3f),
             )
         }
@@ -565,7 +564,7 @@ private fun PeriodHeader(
         IconButton(onClick = { onPage(1) }, enabled = state.canPageForward) {
             Icon(
                 Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = "Next period",
+                contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.kavach_next_period),
                 tint = if (state.canPageForward) secondaryText(isLight) else secondaryText(isLight).copy(alpha = 0.3f),
             )
         }
@@ -581,7 +580,7 @@ private fun ScopeSwitch(selected: KavachScope, isLight: Boolean, onSelect: (Kava
         Modifier.fillMaxWidth().padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Text("Screen Time Filter", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = secondaryText(isLight))
+        Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.kavach_screen_time_filter), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = secondaryText(isLight))
         Row(
             Modifier
                 .fillMaxWidth()
@@ -1021,7 +1020,7 @@ private fun HeadlineCounters(
         ) { onOpen(KavachActivityDetail.ATTEMPTS) }
         ActivityMetric(
             value = KavachAnalyticsFormat.duration(report.quickUnlockSeconds),
-            label = "Quick Unlock time",
+            label = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.kavach_quick_unlock_time),
             helper = "${report.quickUnlockCount} unlock${if (report.quickUnlockCount == 1) "" else "s"}",
             isLight = isLight,
             modifier = Modifier.weight(1f),
@@ -1089,7 +1088,7 @@ private fun KavachActivityDetailSheet(
     ) {
         when (detail) {
             KavachActivityDetail.ATTEMPTS -> {
-                Text("Apps blocked", fontSize = 19.sp, fontWeight = FontWeight.Bold, color = primaryText(isLight))
+                Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.kavach_apps_blocked), fontSize = 19.sp, fontWeight = FontWeight.Bold, color = primaryText(isLight))
                 Text(
                     "Kavach blocked ${report.blockedAttempts} app open${if (report.blockedAttempts == 1) "" else "s"}: " +
                         "${report.ekagraBlockedAttempts} with Ekagra and ${report.alwaysOnBlockedAttempts} with Always On.",
@@ -1108,7 +1107,7 @@ private fun KavachActivityDetailSheet(
             }
 
             KavachActivityDetail.UNLOCKS -> {
-                Text("Quick Unlock time", fontSize = 19.sp, fontWeight = FontWeight.Bold, color = primaryText(isLight))
+                Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.kavach_quick_unlock_time), fontSize = 19.sp, fontWeight = FontWeight.Bold, color = primaryText(isLight))
                 Text(
                     "You spent ${KavachAnalyticsFormat.duration(report.quickUnlockSeconds)} in " +
                         "${report.quickUnlockCount} Quick Unlock${if (report.quickUnlockCount == 1) "" else "s"}.",
@@ -1214,7 +1213,7 @@ private fun AppList(
             value = state.searchQuery,
             onValueChange = onSearch,
             singleLine = true,
-            placeholder = { Text("Search apps", fontSize = 14.sp) },
+            placeholder = { Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.kavach_search_apps), fontSize = 14.sp) },
             leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp)) },
             shape = RoundedCornerShape(14.dp),
             modifier = Modifier.fillMaxWidth(),
@@ -1283,7 +1282,7 @@ private fun UncategorisedSection(
     onClassify: (String, AppCategory, String?) -> Unit,
 ) {
     Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text("Uncategorised time", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = primaryText(isLight))
+        Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.kavach_uncategorised_time), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = primaryText(isLight))
         Text(
             "SAFAR doesn't guess. Tell it what these are and this time joins your split — " +
                 "including the days already shown above.",
@@ -1330,7 +1329,7 @@ private fun SessionHistory(report: KavachAnalyticsReport, isLight: Boolean) {
     if (sessions.isEmpty()) return
 
     Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text("Recent sessions", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = primaryText(isLight))
+        Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.kavach_recent_sessions), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = primaryText(isLight))
         sessions.forEach { session ->
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -1463,7 +1462,7 @@ private fun AppDetailSheet(
         // apps, so the analytics row and the block list are one decision.
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text("Block during Kavach", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = primaryText(isLight))
+                Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.kavach_block_during), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = primaryText(isLight))
                 Text(
                     "Hides this app while a Kavach session is running.",
                     fontSize = 11.sp,
@@ -1514,7 +1513,7 @@ private fun LoadingRow(isLight: Boolean) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
-        Text("Reading your app time…", fontSize = 13.sp, color = secondaryText(isLight))
+        Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.kavach_reading_app_time), fontSize = 13.sp, color = secondaryText(isLight))
     }
 }
 

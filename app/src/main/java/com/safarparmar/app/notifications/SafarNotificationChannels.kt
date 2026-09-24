@@ -30,11 +30,11 @@ object SafarNotificationChannels {
     const val MEHFIL_CONNECT = "mehfil_connect"
 
     /**
-     * High-importance one-shot alert channel for Ekagra timer completion and Pomodoro
-     * transitions. Uses the system default sound + vibration so that the alert
-     * fires with the user's device notification sound even when the screen is off.
+     * High-importance Ekagra alert channel. Uses the phone's default notification
+     * sound for check-ins, timer completion, and Pomodoro transitions.
      */
-    const val EKAGRA_ALERT = "ekagra_alert_v1"
+    const val EKAGRA_ALERT = "ekagra_sound_alert_v2"
+    const val EKAGRA_VIBRATE_ALERT = "ekagra_vibrate_alert_v1"
 
     fun createAll(context: Context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
@@ -54,8 +54,8 @@ object SafarNotificationChannels {
                 NotificationManager.IMPORTANCE_HIGH,
             ).apply {
                 description = context.getString(com.safarparmar.app.R.string.channel_ekagra_check_ins_desc)
-                // TimerService plays the user's selected Ekagra sound or vibration itself.
-                // Keeping the channel silent avoids a second system alert and honors Off.
+                // Legacy silent check-in channel. TimerService now selects an alert
+                // channel according to the user's sound or vibration preference.
                 setSound(null, null)
                 enableVibration(false)
                 setShowBadge(false)
@@ -153,16 +153,14 @@ object SafarNotificationChannels {
             ).apply {
                 description = context.getString(com.safarparmar.app.R.string.channel_announcements_desc)
             },
-            // High-importance one-shot alert for Ekagra timer completion and Pomodoro
-            // transitions — delivers sound + vibration + heads-up even when the phone
-            // screen is off. Uses the user's phone default notification sound.
+            // Android handles the alert using the phone's default notification sound.
             NotificationChannel(
                 EKAGRA_ALERT,
-                "Ekagra Timer Alerts",
+                "Ekagra sound alerts",
                 NotificationManager.IMPORTANCE_HIGH,
             ).apply {
-                description = "Plays a sound and vibrates when your Ekagra focus session or break ends — even with the screen off."
-                enableVibration(true)
+                description = "Phone notification sound for Ekagra check-ins, session endings, and Pomodoro changes."
+                enableVibration(false)
                 setSound(
                     android.provider.Settings.System.DEFAULT_NOTIFICATION_URI,
                     android.media.AudioAttributes.Builder()
@@ -170,6 +168,16 @@ object SafarNotificationChannels {
                         .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)
                         .build(),
                 )
+                setShowBadge(false)
+            },
+            NotificationChannel(
+                EKAGRA_VIBRATE_ALERT,
+                "Ekagra vibration alerts",
+                NotificationManager.IMPORTANCE_HIGH,
+            ).apply {
+                description = "Vibrates without sound for Ekagra check-ins and timer transitions."
+                setSound(null, null)
+                enableVibration(true)
                 setShowBadge(false)
             },
         )
@@ -181,6 +189,7 @@ object SafarNotificationChannels {
         runCatching { notificationManager?.deleteNotificationChannel("announcements") }
         runCatching { notificationManager?.deleteNotificationChannel("achievements") }
         runCatching { notificationManager?.deleteNotificationChannel("study_reminders") }
+        runCatching { notificationManager?.deleteNotificationChannel("ekagra_alert_v1") }
     }
 
     fun normalize(channelId: String?): String = when (channelId) {
@@ -196,6 +205,7 @@ object SafarNotificationChannels {
         COMMUNITY,
         ACCOUNT_SYSTEM,
         EKAGRA_ALERT,
+        EKAGRA_VIBRATE_ALERT,
         MEHFIL_CONNECT -> channelId
         "study_reminders",
         STUDY_REMINDERS -> STUDY_REMINDERS

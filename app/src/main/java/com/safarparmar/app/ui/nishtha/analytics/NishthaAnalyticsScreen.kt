@@ -128,7 +128,7 @@ fun NishthaAnalyticsScreen(
                     .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                AnalyticsSectionChip("Overview", selectedSection == "overview", Color(0xFF1E3A8A), isLight) { selectedSection = "overview" }
+                AnalyticsSectionChip(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.nishtha_analytics_overview), selectedSection == "overview", Color(0xFF1E3A8A), isLight) { selectedSection = "overview" }
                 AnalyticsSectionChip("Goals", selectedSection == "goals", Color(0xFF065F46), isLight) { selectedSection = "goals" }
                 AnalyticsSectionChip("Ekagra", selectedSection == "ekagra", Color(0xFF9A3412), isLight) { selectedSection = "ekagra" }
                 // Kavach analytics is free for every signed-in student — no premium gate.
@@ -237,7 +237,7 @@ private fun MonthlyReviewSection(
             ) {
                 Icon(
                     Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Previous Month",
+                    contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.nishtha_previous_month),
                     tint = if (canGoPrev) primaryText(isLight) else secondaryText(isLight).copy(alpha = 0.3f),
                     modifier = Modifier.size(18.dp)
                 )
@@ -272,7 +272,7 @@ private fun MonthlyReviewSection(
                     Spacer(Modifier.width(4.dp))
                     Icon(
                         Icons.Default.ArrowDropDown,
-                        contentDescription = "Select Month",
+                        contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.nishtha_select_month),
                         tint = secondaryText(isLight),
                         modifier = Modifier.size(20.dp)
                     )
@@ -289,7 +289,7 @@ private fun MonthlyReviewSection(
             ) {
                 Icon(
                     Icons.AutoMirrored.Filled.ArrowForward,
-                    contentDescription = "Next Month",
+                    contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.nishtha_next_month),
                     tint = if (canGoNext) primaryText(isLight) else secondaryText(isLight).copy(alpha = 0.3f),
                     modifier = Modifier.size(18.dp)
                 )
@@ -909,7 +909,7 @@ private fun MonthSelectionDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                text = "Select Month",
+                text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.nishtha_select_month),
                 fontWeight = FontWeight.Bold,
                 fontSize = 18.sp,
                 color = primaryText(isLight)
@@ -955,7 +955,7 @@ private fun MonthSelectionDialog(
                             if (isSelected) {
                                 Icon(
                                     imageVector = Icons.Default.Check,
-                                    contentDescription = "Selected",
+                                    contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.common_selected),
                                     tint = if (isLight) Color(0xFF5B21B6) else Color(0xFFC084FC),
                                     modifier = Modifier.size(18.dp)
                                 )
@@ -967,7 +967,7 @@ private fun MonthSelectionDialog(
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("Close", fontWeight = FontWeight.SemiBold)
+                Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.common_close), fontWeight = FontWeight.SemiBold)
             }
         },
         shape = RoundedCornerShape(20.dp),

@@ -13,7 +13,7 @@ import java.time.LocalDate
 import java.time.temporal.TemporalAdjusters
 import javax.inject.Inject
 
-enum class HabitTab { TODAY, WEEKLY, MONTHLY }
+enum class HabitTab { TODAY, WEEKLY, MONTHLY, INSIGHTS }
 
 data class HabitPeriod(val anchor: LocalDate, val habits: List<HabitWithCompletions>)
 

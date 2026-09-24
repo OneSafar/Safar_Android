@@ -116,7 +116,7 @@ private fun AuthStitchHero(
             )
             AsyncImage(
                 model = logoRes,
-                contentDescription = "SAFAR Logo",
+                contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.auth_safar_logo),
                 modifier = Modifier.size(72.dp),
             )
         }
@@ -323,14 +323,14 @@ fun AuthStitchRememberRow(
                 ),
             )
             Text(
-                text = "Remember me",
+                text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.auth_remember_me),
                 color = scheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodyMedium,
             )
         }
         TextButton(onClick = onForgotPassword, contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)) {
             Text(
-                text = "Forgot password?",
+                text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.auth_forgot_password_question),
                 color = scheme.primary,
                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
             )
@@ -370,7 +370,7 @@ fun AuthStitchModeSwitch(
 @Composable
 fun AuthStitchFooterTagline(modifier: Modifier = Modifier) {
     Text(
-        text = "KAVACH • WELLNESS FOR EVERY ASPIRANT",
+        text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.auth_footer_tagline),
         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f),
         style = MaterialTheme.typography.labelSmall.copy(
             fontWeight = FontWeight.SemiBold,

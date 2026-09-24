@@ -3,6 +3,7 @@ package com.safarparmar.app.feature.youtubestudyv2
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.safarparmar.app.R
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -134,7 +135,7 @@ class YoutubeStudyV2ViewModel @Inject constructor(
                     local.value = local.value.copy(
                         resolving = false,
                         reference = if (local.value.reference == reference) "" else local.value.reference,
-                        message = "${channel.displayName} is now Productive.",
+                        message = context.getString(R.string.youtube_channel_productive, channel.displayName),
                         isError = false,
                     )
                 }
@@ -157,13 +158,17 @@ class YoutubeStudyV2ViewModel @Inject constructor(
             repository.setAvailableProductive(channel, productive)
                 .onSuccess {
                     local.value = local.value.copy(
-                        message = "${it.displayName} is now ${if (productive) "Productive" else "Distracting"}.",
+                        message = context.getString(
+                            R.string.youtube_channel_classified,
+                            it.displayName,
+                            context.getString(if (productive) R.string.youtube_productive else R.string.youtube_distracting),
+                        ),
                         isError = false,
                     )
                 }
                 .onFailure {
                     local.value = local.value.copy(
-                        message = "Could not update channel. Try again.",
+                        message = context.getString(R.string.youtube_channel_update_failed),
                         isError = true,
                     )
                 }
@@ -185,18 +190,18 @@ class YoutubeStudyV2ViewModel @Inject constructor(
             repository.setAvailableClassification(channel, classification)
                 .onSuccess {
                     val label = when (classification) {
-                        YoutubeChannelClassification.PRODUCTIVE -> "Productive"
-                        YoutubeChannelClassification.DISTRACTING -> "Distracting"
+                        YoutubeChannelClassification.PRODUCTIVE -> context.getString(R.string.youtube_productive)
+                        YoutubeChannelClassification.DISTRACTING -> context.getString(R.string.youtube_distracting)
                         else -> null
                     }
                     local.value = local.value.copy(
-                        message = label?.let { "${channel.displayName} is now $it." },
+                        message = label?.let { context.getString(R.string.youtube_channel_classified, channel.displayName, it) },
                         isError = false,
                     )
                 }
                 .onFailure {
                     local.value = local.value.copy(
-                        message = "Could not update channel. Try again.",
+                        message = context.getString(R.string.youtube_channel_update_failed),
                         isError = true,
                     )
                 }

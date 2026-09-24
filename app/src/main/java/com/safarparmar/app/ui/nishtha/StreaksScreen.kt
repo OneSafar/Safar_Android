@@ -554,14 +554,14 @@ private fun CalendarSection(
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Box(Modifier.size(10.dp).clip(CircleShape).background(accent))
-            Text("Today", fontSize = 10.sp, color = PlannerFlatColors.TextMuted)
+            Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.nishtha_today), fontSize = 10.sp, color = PlannerFlatColors.TextMuted)
         }
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Box(Modifier.size(10.dp).clip(CircleShape).background(accent.copy(0.28f)))
-            Text("Logged in", fontSize = 10.sp, color = PlannerFlatColors.TextMuted)
+            Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.nishtha_logged_in), fontSize = 10.sp, color = PlannerFlatColors.TextMuted)
         }
     }
 }

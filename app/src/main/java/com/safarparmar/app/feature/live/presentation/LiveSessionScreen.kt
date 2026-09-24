@@ -155,7 +155,7 @@ fun LiveSessionScreen(
         onToggleDarkTheme = onToggleDarkTheme,
         topBarActions = {
             IconButton(onClick = { viewModel.loadSession(sessionId) }) {
-                Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                Icon(Icons.Default.Refresh, contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.live_refresh))
             }
         }
     ) { padding ->
@@ -189,18 +189,18 @@ fun LiveSessionScreen(
 
             uiState.errorMessage != null -> SafarErrorState(
                 message = when (uiState.errorCode) {
-                    401 -> "Your session has expired. Please sign in again."
-                    403 -> "You don't have access to this live session."
-                    404 -> "This live session could not be found."
-                    in 500..599 -> "We're experiencing technical difficulties. Please try again shortly."
-                    else -> uiState.errorMessage ?: "Failed to load session."
+                    401 -> androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.live_error_expired)
+                    403 -> androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.live_error_forbidden)
+                    404 -> androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.live_error_not_found)
+                    in 500..599 -> androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.live_error_technical)
+                    else -> uiState.errorMessage ?: androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.live_error_load)
                 },
                 onRetry = { viewModel.loadSession(sessionId) },
                 modifier = Modifier.padding(padding)
             )
 
             uiState.session == null -> SafarErrorState(
-                message = "Session not found",
+                message = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.live_session_not_found),
                 onRetry = { viewModel.loadSession(sessionId) },
                 modifier = Modifier.padding(padding)
             )
@@ -300,13 +300,13 @@ private fun LiveClassPlayerChat(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.PlayArrow,
-                                contentDescription = "Play ${session.title}",
+                                contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.live_play_named, session.title),
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.padding(14.dp).size(34.dp),
                             )
                         }
                         Text(
-                            text = "Tap to watch live",
+                            text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.live_tap_watch),
                             color = Color.White,
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.SemiBold,
@@ -323,7 +323,7 @@ private fun LiveClassPlayerChat(
                     if (thumbnailUrl != null) {
                         AsyncImage(
                             model = thumbnailUrl,
-                            contentDescription = "Video Thumbnail",
+                            contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.live_video_thumbnail),
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Crop
                         )
@@ -482,7 +482,7 @@ private fun LiveChatPanel(
             )
             Spacer(Modifier.width(8.dp))
             Text(
-                text = "Live comments",
+                text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.live_comments),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
@@ -490,7 +490,7 @@ private fun LiveChatPanel(
             )
             if (chatState.isConnecting) {
                 Text(
-                    text = "Connecting…",
+                    text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.live_connecting),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -529,7 +529,7 @@ private fun LiveChatPanel(
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    text = "No comments yet. Say hello!",
+                    text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.live_no_comments),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -618,7 +618,7 @@ private fun LiveChatPanel(
                 } else {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.Send,
-                        contentDescription = "Send comment",
+                        contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.live_send_comment),
                         tint = if (draft.isNotBlank()) {
                             MaterialTheme.colorScheme.onPrimary
                         } else {
@@ -735,7 +735,7 @@ private fun CompletedSessionPlayback(
                     if (thumbnailUrl != null) {
                         AsyncImage(
                             model = thumbnailUrl,
-                            contentDescription = "Video Thumbnail",
+                            contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.live_video_thumbnail),
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Crop
                         )
@@ -758,7 +758,7 @@ private fun CompletedSessionPlayback(
                     ) {
                         Icon(
                             imageVector = Icons.Default.PlayArrow,
-                            contentDescription = "Play Video",
+                            contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.live_play_video),
                             tint = Color.White,
                             modifier = Modifier.size(36.dp)
                         )
@@ -837,7 +837,7 @@ private fun CompletedSessionPlayback(
                 // Playlist / Completed Sessions
                 item {
                     Text(
-                        text = "Playlist",
+                        text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.live_playlist),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface,
@@ -886,7 +886,7 @@ private fun CompletedSessionPlayback(
                 ) {
                     Icon(
                         imageVector = Icons.Default.ArrowBack,
-                        contentDescription = "Exit Fullscreen",
+                        contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.live_exit_fullscreen),
                         tint = Color.White
                     )
                 }

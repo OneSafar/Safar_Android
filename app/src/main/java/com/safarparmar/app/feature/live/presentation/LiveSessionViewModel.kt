@@ -184,7 +184,7 @@ class LiveSessionViewModel @Inject constructor(
             } else {
                 // Nothing else opens the socket for this screen. It used to be
                 // connected only by MehfilViewModel, so a student who came
-                // straight to a live session sat on "Connecting…" forever and
+                // straight to a live session sat on androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.live_connecting) forever and
                 // every send failed with "chat is temporarily unavailable".
                 _liveChatState.update { it.copy(isConnecting = true, socketError = null) }
                 connectSocket()

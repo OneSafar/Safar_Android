@@ -2,6 +2,7 @@ package com.safarparmar.app.ui.dashboard
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.safarparmar.app.R
 import com.safarparmar.app.data.local.SafarDataStore
 import com.safarparmar.app.domain.model.*
 import com.safarparmar.app.domain.repository.HomeRepository
@@ -167,8 +168,8 @@ class DashboardViewModel @Inject constructor(
         val enabled = dataStore.notificationsEnabled.first() && dataStore.achievementsEnabled.first()
         for (achievement in newlyEarned) {
             if (enabled) SafarNotificationManager(context).show(
-                title = "Achievement Unlocked! 🏆",
-                body = "You unlocked: ${achievement.name}",
+                title = context.getString(R.string.achievement_unlocked_title),
+                body = context.getString(R.string.achievement_unlocked_body, achievement.name),
                 channelId = SafarNotificationChannels.ACHIEVEMENTS,
                 deepLink = "safar://achievements",
                 personalize = true,

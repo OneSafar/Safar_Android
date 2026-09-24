@@ -219,6 +219,7 @@ fun LedgerSegmentedTabs(
                 HabitTab.TODAY -> "Today"
                 HabitTab.WEEKLY -> "Weekly"
                 HabitTab.MONTHLY -> "Monthly"
+                HabitTab.INSIGHTS -> "Insights"
             }
 
             Box(
@@ -261,6 +262,10 @@ internal fun HabitIdentity(
 ) {
     val interactions = remember { MutableInteractionSource() }
     val focused by interactions.collectIsFocusedAsState()
+    val editDescription = androidx.compose.ui.res.stringResource(
+        com.safarparmar.app.R.string.habits_edit_name_schedule,
+        habit.name,
+    )
 
     Row(
         modifier = modifier
@@ -277,7 +282,7 @@ internal fun HabitIdentity(
                 interactionSource = interactions,
                 indication = ripple(),
                 role = Role.Button,
-                onClickLabel = "Edit name and schedule for ${habit.name}",
+                onClickLabel = editDescription,
                 onClick = onEdit
             )
             .padding(horizontal = 14.dp, vertical = 10.dp),
@@ -353,7 +358,7 @@ internal fun HabitIdentity(
         ) {
             Icon(
                 Icons.Default.Edit,
-                contentDescription = "Edit name and schedule for ${habit.name}",
+                contentDescription = editDescription,
                 tint = HabitColors.TextTertiary,
                 modifier = Modifier.size(16.dp)
             )
@@ -626,6 +631,13 @@ internal fun PeriodNavigation(
     onCurrent: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val previousDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_previous_unit, unit)
+    val nextDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_next_unit, unit)
+    val currentLabel = if (unit == "week") {
+        androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_this_week)
+    } else {
+        androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_this_month)
+    }
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -656,7 +668,7 @@ internal fun PeriodNavigation(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = if (unit == "week") "This week" else "This month",
+                    text = currentLabel,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = HabitColors.RoyalPurple
@@ -671,7 +683,7 @@ internal fun PeriodNavigation(
                     .background(HabitColors.Parchment)
                     .border(1.dp, HabitColors.Outline, RoundedCornerShape(6.dp))
                     .clickable(onClick = onPrevious)
-                    .semantics { contentDescription = "Previous $unit" },
+                    .semantics { contentDescription = previousDescription },
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -690,7 +702,7 @@ internal fun PeriodNavigation(
                     .background(HabitColors.Parchment)
                     .border(1.dp, HabitColors.Outline, RoundedCornerShape(6.dp))
                     .clickable(onClick = onNext)
-                    .semantics { contentDescription = "Next $unit" },
+                    .semantics { contentDescription = nextDescription },
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -773,7 +785,7 @@ internal fun HabitEmptyState(
             shape = RoundedCornerShape(8.dp),
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
         ) {
-            Text("Add a habit", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+            Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_add), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
         }
     }
 }

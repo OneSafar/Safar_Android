@@ -140,4 +140,56 @@ class HabitInsightsViewModelTest {
         val stateAll = viewModel.uiState.first { it.selectedHabitId == null }
         assertEquals(null, stateAll.selectedHabitId)
     }
+
+    @Test
+    fun `bento metrics compute accurately for all habits and single habit`() = runTest {
+        val today = LocalDate.now()
+        val habit1 = HabitEntity(id = 1L, name = "Reading", scheduledSince = today.minusDays(10))
+        val habit2 = HabitEntity(id = 2L, name = "Workout", scheduledSince = today.minusDays(5))
+
+        val hwc1 = HabitWithCompletions(
+            habit = habit1,
+            completionByDate = mapOf(
+                today.minusDays(2) to true,
+                today.minusDays(1) to true,
+                today to true
+            )
+        )
+        val hwc2 = HabitWithCompletions(
+            habit = habit2,
+            completionByDate = mapOf(
+                today.minusDays(1) to false,
+                today to true
+            )
+        )
+
+        val repository = mockk<HabitRepository>()
+        every {
+            repository.observeHabitsWithCompletionsForRange(any(), any())
+        } returns MutableStateFlow(listOf(hwc1, hwc2))
+
+        val calculator = HabitAnalyticsCalculator()
+        val featureAccess = DefaultFeatureAccessManager()
+        val viewModel = HabitInsightsViewModel(repository, calculator, featureAccess)
+
+        backgroundScope.launch(testDispatcher) { viewModel.uiState.collect() }
+
+        val allState = viewModel.uiState.first { !it.isLoading }
+        assertEquals(4, allState.totalCompleted)
+        assertEquals(5, allState.totalScheduled)
+        assertEquals(1, allState.totalMissed)
+        assertEquals(0.8f, allState.completionRate, 0.01f)
+        assertEquals(today.minusDays(10), allState.startedDate)
+        assertEquals(10L, allState.daysSinceStarted)
+
+        // Select habit 2
+        viewModel.selectHabit(2L)
+        val habit2State = viewModel.uiState.first { it.selectedHabitId == 2L }
+        assertEquals(1, habit2State.totalCompleted)
+        assertEquals(2, habit2State.totalScheduled)
+        assertEquals(1, habit2State.totalMissed)
+        assertEquals(0.5f, habit2State.completionRate, 0.01f)
+        assertEquals(today.minusDays(5), habit2State.startedDate)
+        assertEquals(5L, habit2State.daysSinceStarted)
+    }
 }

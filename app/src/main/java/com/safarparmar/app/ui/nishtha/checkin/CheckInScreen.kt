@@ -232,7 +232,7 @@ private fun CheckInScreenContent(
 
     LaunchedEffect(uiState.checkInSuccess) {
         if (uiState.checkInSuccess) {
-            Toast.makeText(context, "Check-in saved!", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(com.safarparmar.app.R.string.nishtha_checkin_saved), Toast.LENGTH_SHORT).show()
             selectedMood = null
             intensity = 0.5f
             note = ""
