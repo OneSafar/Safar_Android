@@ -93,8 +93,8 @@ android {
         applicationId = "com.safarparmar.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 63
-        versionName = "1.6.63"
+        versionCode = 64
+        versionName = "1.6.64"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         // Compile-time override for manual comparison; normal builds select by device capabilities.
         val effects = providers.gradleProperty("safarEffects").getOrElse("auto")

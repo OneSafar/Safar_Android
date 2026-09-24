@@ -37,6 +37,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
@@ -46,7 +47,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.safarparmar.app.R
 import com.safarparmar.app.feature.kavachanalytics.ui.primaryText
 import com.safarparmar.app.feature.kavachanalytics.ui.secondaryText
-import com.safarparmar.app.feature.youtubestudyv2.YoutubeFocusComingSoonContent
+import com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2Content
 import com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ViewModel
 import com.safarparmar.app.ui.drawer.SafarDrawerScaffold
 import com.safarparmar.app.ui.navigation.Routes
@@ -68,17 +69,20 @@ fun FocusShieldStandaloneScreen(
     youtubeViewModel: YoutubeStudyV2ViewModel = hiltViewModel(),
 ) {
     val shieldState by viewModel.shieldState.collectAsStateWithLifecycle()
+    val youtubeState by youtubeViewModel.state.collectAsStateWithLifecycle()
     val accent = KavachDesign.Primary
     val scheme = MaterialTheme.colorScheme
     val owner = LocalLifecycleOwner.current
     val isLight = !isDarkTheme
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     val pagerState = rememberPagerState(initialPage = initialTab.coerceIn(0, 1)) { 2 }
 
     DisposableEffect(owner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 viewModel.refreshPermissions()
+                youtubeViewModel.refreshPermission()
             }
         }
         owner.lifecycle.addObserver(observer)
@@ -232,8 +236,25 @@ fun FocusShieldStandaloneScreen(
                         )
                     }
                     1 -> {
-                        YoutubeFocusComingSoonContent(
+                        YoutubeStudyV2Content(
+                            state = youtubeState,
                             isLight = isLight,
+                            onAgree = {
+                                if (youtubeState.accessibilityEnabled) youtubeViewModel.goToStep2()
+                                else FocusShieldPermissionHelper.openAccessibilitySettings(context)
+                            },
+                            onNotNow = { scope.launch { pagerState.animateScrollToPage(0) } },
+                            onSetEnabled = youtubeViewModel::setEnabled,
+                            onOpenAccessibility = { FocusShieldPermissionHelper.openAccessibilitySettings(context) },
+                            onReferenceChanged = youtubeViewModel::setReference,
+                            onAddChannel = youtubeViewModel::resolveAndAllow,
+                            onSetClassification = youtubeViewModel::setClassification,
+                            onToggleAvailable = youtubeViewModel::toggleAvailable,
+                            onSetAvailableClassification = youtubeViewModel::setAvailableClassification,
+                            onDeleteChannel = youtubeViewModel::deleteChannel,
+                            onBackToStep1 = youtubeViewModel::returnToStep1,
+                            onStart = youtubeViewModel::finishSetup,
+                            onAcceptDisclosure = youtubeViewModel::acceptDisclosure,
                             modifier = Modifier.fillMaxSize(),
                         )
                     }

@@ -208,8 +208,25 @@ fun YoutubeStudyV2Screen(
             )
         },
     ) { padding ->
-        YoutubeFocusComingSoonContent(
+        YoutubeStudyV2Content(
+            state = state,
             isLight = isLight,
+            onAgree = {
+                if (state.accessibilityEnabled) viewModel.goToStep2()
+                else FocusShieldPermissionHelper.openAccessibilitySettings(context)
+            },
+            onNotNow = onBack,
+            onSetEnabled = viewModel::setEnabled,
+            onOpenAccessibility = { FocusShieldPermissionHelper.openAccessibilitySettings(context) },
+            onReferenceChanged = viewModel::setReference,
+            onAddChannel = viewModel::resolveAndAllow,
+            onSetClassification = viewModel::setClassification,
+            onToggleAvailable = viewModel::toggleAvailable,
+            onSetAvailableClassification = viewModel::setAvailableClassification,
+            onDeleteChannel = viewModel::deleteChannel,
+            onBackToStep1 = viewModel::returnToStep1,
+            onStart = viewModel::finishSetup,
+            onAcceptDisclosure = viewModel::acceptDisclosure,
             modifier = Modifier.padding(padding).navigationBarsPadding(),
         )
     }
