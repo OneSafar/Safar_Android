@@ -205,16 +205,7 @@ fun SettingsScreen(
                                 },
                                 icon = if (isDarkTheme) Icons.Default.Nightlight else Icons.Default.WbSunny,
                             )
-                            SettingsNavigationRow(
-                                title = stringResource(R.string.profile_language_title),
-                                subtitle = when (AppCompatDelegate.getApplicationLocales().toLanguageTags()) {
-                                    "hi" -> stringResource(R.string.profile_language_hindi)
-                                    "hi-Latn" -> stringResource(R.string.profile_language_hinglish)
-                                    else -> stringResource(R.string.profile_language_english)
-                                },
-                                icon = Icons.Default.Language,
-                                onClick = { showLanguageDialog = true },
-                            )
+                            // Language selector hidden from settings as requested.
                         }
                     }
 
