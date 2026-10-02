@@ -7,8 +7,8 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
-    entities = [HabitEntity::class, HabitCompletionEntity::class, HabitScheduleRevisionEntity::class],
-    version = 4,
+    entities = [HabitEntity::class, HabitCompletionEntity::class, HabitScheduleRevisionEntity::class, HabitPendingMutationEntity::class, HabitSyncStateEntity::class],
+    version = 6,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -53,4 +53,31 @@ val MIGRATION_3_4 = object : Migration(3, 4) {
             """.trimIndent()
         )
     }
+}
+
+/** Upgrade older local-only installs without losing any habit or completion rows. */
+val MIGRATION_4_6 = object : Migration(4, 6) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE habits ADD COLUMN remote_id TEXT")
+        db.execSQL("ALTER TABLE habits ADD COLUMN owner_user_id TEXT")
+        db.execSQL("ALTER TABLE habits ADD COLUMN reminder_time TEXT")
+        db.execSQL("CREATE UNIQUE INDEX index_habits_owner_user_id_remote_id ON habits(owner_user_id, remote_id)")
+        db.execSQL("CREATE INDEX index_habits_owner_user_id ON habits(owner_user_id)")
+        db.execSQL("""CREATE TABLE habit_pending_mutations (
+            sequence INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+            mutation_id TEXT NOT NULL, owner_user_id TEXT NOT NULL,
+            payload TEXT NOT NULL, created_at INTEGER NOT NULL
+        )""")
+        db.execSQL("CREATE UNIQUE INDEX index_habit_pending_mutations_mutation_id ON habit_pending_mutations(mutation_id)")
+        db.execSQL("CREATE INDEX index_habit_pending_mutations_owner_user_id ON habit_pending_mutations(owner_user_id)")
+        db.execSQL("""CREATE TABLE habit_sync_state (
+            owner_user_id TEXT NOT NULL PRIMARY KEY, version INTEGER NOT NULL,
+            last_synced_at INTEGER, last_error TEXT
+        )""")
+    }
+}
+
+/** Version five already has this schema. Keep its metadata and queued changes intact. */
+val MIGRATION_5_6 = object : Migration(5, 6) {
+    override fun migrate(db: SupportSQLiteDatabase) = Unit
 }

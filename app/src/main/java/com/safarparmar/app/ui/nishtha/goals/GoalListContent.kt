@@ -28,8 +28,17 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material.icons.filled.Timer
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
+import com.composables.ui.components.ButtonSize
+import com.composables.ui.components.ButtonStyle
+import com.composables.ui.components.DropdownMenu
+import com.composables.ui.components.DropdownMenuAlignment
+import com.composables.ui.components.DropdownMenuItem
+import com.composables.ui.components.DropdownMenuItemStyle
+import com.composables.ui.components.DropdownMenuPanel
+import com.composables.ui.components.HorizontalSeparator
+import com.composables.ui.components.IconButton as ComposablesIconButton
+import com.composables.ui.components.Icon as ComposablesIcon
+import com.composables.ui.components.Text as ComposablesText
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -492,45 +501,97 @@ internal fun GoalItem(
                 )
             }
         }
-        Box {
-            IconButton(onClick = { showMenu = true }, modifier = Modifier.size(28.dp)) {
-                Icon(
-                    Icons.Default.MoreVert,
-                    contentDescription = stringResource(R.string.common_more_options),
-                    modifier = Modifier.size(18.dp),
-                    tint = GoalsFlatColors.Muted,
-                )
-            }
-            DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-                if (!goal.completed) {
+        DropdownMenu(
+            expanded = showMenu,
+            onExpandedChange = { showMenu = it },
+            alignment = DropdownMenuAlignment.End,
+            panel = {
+                DropdownMenuPanel {
+                    if (!goal.completed) {
+                        DropdownMenuItem(
+                            onClick = {
+                                showMenu = false
+                                onComplete()
+                            },
+                            leading = {
+                                ComposablesIcon(
+                                    imageVector = Icons.Default.CheckCircle,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp),
+                                    tint = GoalsFlatColors.Primary,
+                                )
+                            },
+                        ) {
+                            ComposablesText(stringResource(R.string.goals_mark_done))
+                        }
+                        DropdownMenuItem(
+                            onClick = {
+                                showMenu = false
+                                onEdit()
+                            },
+                            leading = {
+                                ComposablesIcon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp),
+                                )
+                            },
+                        ) {
+                            ComposablesText(stringResource(R.string.common_edit))
+                        }
+                    } else if (onReopen != null) {
+                        DropdownMenuItem(
+                            onClick = {
+                                showMenu = false
+                                onReopen()
+                            },
+                            leading = {
+                                ComposablesIcon(
+                                    imageVector = Icons.Default.Restore,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp),
+                                    tint = GoalsFlatColors.Primary,
+                                )
+                            },
+                        ) {
+                            ComposablesText(stringResource(R.string.goals_reopen))
+                        }
+                    }
                     DropdownMenuItem(
-                        text = { Text(stringResource(R.string.goals_mark_done)) },
-                        leadingIcon = { Icon(Icons.Default.CheckCircle, null, tint = GoalsFlatColors.Primary) },
-                        onClick = { showMenu = false; onComplete() },
-                    )
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.common_edit)) },
-                        leadingIcon = { Icon(Icons.Default.Edit, null) },
-                        onClick = { showMenu = false; onEdit() },
-                    )
-                } else if (onReopen != null) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.goals_reopen)) },
-                        leadingIcon = { Icon(Icons.Default.Restore, null, tint = GoalsFlatColors.Primary) },
-                        onClick = { showMenu = false; onReopen() },
+                        onClick = {
+                            showMenu = false
+                            onDelete()
+                        },
+                        style = DropdownMenuItemStyle.Destructive,
+                        leading = {
+                            ComposablesIcon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                                tint = GoalsFlatColors.Danger,
+                            )
+                        },
+                    ) {
+                        ComposablesText(stringResource(R.string.common_delete))
+                    }
+                }
+            },
+            anchor = {
+                ComposablesIconButton(
+                    onClick = { showMenu = showMenu.not() },
+                    style = ButtonStyle.Ghost,
+                    buttonSize = ButtonSize.Small,
+                    modifier = Modifier.size(28.dp),
+                ) {
+                    ComposablesIcon(
+                        imageVector = Icons.Default.MoreVert,
+                        contentDescription = stringResource(R.string.common_more_options),
+                        modifier = Modifier.size(18.dp),
+                        tint = GoalsFlatColors.Muted,
                     )
                 }
-                // "Repeat Task" lived here. Removed: it was a third way to say
-                // "repeat", it cloned goals one at a time with no dedupe (the source
-                // of duplicated goals), and the "Bring forward" picker covers the
-                // single-goal case by simply ticking one row.
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.common_delete), color = GoalsFlatColors.Danger) },
-                    leadingIcon = { Icon(Icons.Default.Delete, null, tint = GoalsFlatColors.Danger) },
-                    onClick = { showMenu = false; onDelete() },
-                )
-            }
-        }
+            },
+        )
     }
 }
 

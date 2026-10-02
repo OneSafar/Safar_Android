@@ -1,4 +1,6 @@
 package com.safarparmar.app.ui.dashboard
+import com.composables.ui.components.ButtonStyle
+import com.composables.ui.components.Button as ComposablesButton
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
@@ -374,12 +376,12 @@ fun DashboardScreen(
 
             // ── Interactive Detail Bottom Sheets ─────────────────────────────
             if (activeSheet != DashboardSheetType.NONE) {
-                ModalBottomSheet(
+                com.composables.ui.components.BottomSheet(
+                    state = com.composables.ui.components.rememberBottomSheetState(initialDetent = com.composables.ui.components.BottomSheetDetent.FullyExpanded),
                     onDismissRequest = { activeSheet = DashboardSheetType.NONE },
-                    containerColor = DashboardFlatColors.Bg,
+                    backgroundColor = DashboardFlatColors.Bg,
                     contentColor = DashboardFlatColors.Text,
                     shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-                    dragHandle = { BottomSheetDefaults.DragHandle(color = DashboardFlatColors.Hairline) },
                 ) {
                     Box(
                         modifier = Modifier
@@ -812,10 +814,11 @@ private fun TodayGoalsSheetContent(
             Text("$completed / ${goals.size} Done", fontSize = 13.sp, color = macSubtitleColor(isDark), fontWeight = FontWeight.SemiBold)
         }
 
-        LinearProgressIndicator(
-            progress = { progress },
-            modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
-            color = macAccentBlue(),
+        com.composables.ui.components.ProgressIndicator(
+            progress = progress,
+            modifier = Modifier.fillMaxWidth(),
+            height = 8.dp,
+            indicatorColor = macAccentBlue(),
             trackColor = if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.05f),
         )
 
@@ -1233,7 +1236,7 @@ private fun DashboardWelcomeOverlay(userName: String, isDark: Boolean, onDismiss
 
                 Spacer(Modifier.height(4.dp))
 
-                Button(
+                com.safarparmar.app.ui.components.SafarButton(
                     onClick = onDismiss,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -1457,7 +1460,7 @@ private fun CelebrationDialog(
 
                     Spacer(Modifier.height(8.dp))
 
-                    Button(
+                    com.safarparmar.app.ui.components.SafarButton(
                         onClick = onDismiss,
                         modifier = Modifier
                             .fillMaxWidth()
@@ -1542,8 +1545,8 @@ private fun DashboardSectionContent(
         if (missing.isEmpty()) content()
         else if (missing.any { it !in state.sectionErrors }) StatCardSkeleton()
         if (errors.isNotEmpty()) {
-            androidx.compose.material3.TextButton(onClick = onRetry, enabled = !state.isLoading) {
-                Text("${errors.first()} Tap to retry.")
+            ComposablesButton(onClick = onRetry, enabled = !state.isLoading, style = ButtonStyle.Ghost) {
+                com.composables.ui.components.Text("${errors.first()} Tap to retry.")
             }
         }
     }

@@ -9,4 +9,8 @@
         <item name="windowSplashScreenAnimatedIcon">@drawable/ic_safar_launcher_foreground</item>
         <item name="postSplashScreenTheme">@style/Theme.Safar</item>
     </style>
+    <style name="ThemeOverlay.Safar.ToppersPicker" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">
+        <item name="colorPrimary">#BE185D</item>
+        <item name="colorSecondary">#BE185D</item>
+    </style>
 </resources>

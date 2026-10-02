@@ -522,33 +522,33 @@ private fun UserSummaryCard(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp),
-        shape = RoundedCornerShape(18.dp),
+            .padding(horizontal = 12.dp),
+        shape = RoundedCornerShape(16.dp),
         color = cardBg,
         border = BorderStroke(1.dp, borderColor),
     ) {
         Row(
-            modifier = Modifier.padding(18.dp),
+            modifier = Modifier.padding(14.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             // Big Rank Typography
             Text(
                 text = if (isRanked) "#$rank" else "—",
-                fontSize = if ((rank ?: 0) >= 1000) 26.sp else 34.sp,
+                fontSize = if ((rank ?: 0) >= 1000) 22.sp else 28.sp,
                 fontWeight = FontWeight.Black,
                 letterSpacing = (-0.5).sp,
                 color = if (isRanked) accentCoral else textMuted,
-                modifier = Modifier.widthIn(min = 60.dp),
+                modifier = Modifier.widthIn(min = 52.dp),
             )
 
-            Spacer(Modifier.width(14.dp))
+            Spacer(Modifier.width(10.dp))
 
             Column(Modifier.weight(1f)) {
                 Text(
                     text = stringResource(
                         if (isRanked) R.string.leaderboard_your_position else R.string.leaderboard_not_ranked
                     ),
-                    fontSize = 14.sp,
+                    fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
                     color = textColor,
                 )
@@ -558,7 +558,7 @@ private fun UserSummaryCard(
                     } else {
                         stringResource(R.string.leaderboard_enter_rankings_help)
                     },
-                    fontSize = 12.sp,
+                    fontSize = 11.sp,
                     color = textMuted,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -569,7 +569,7 @@ private fun UserSummaryCard(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(5.dp)
+                            .height(4.dp)
                             .clip(CircleShape)
                             .background(borderColor),
                     ) {
@@ -577,7 +577,7 @@ private fun UserSummaryCard(
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth(progress)
-                                    .height(5.dp)
+                                    .height(4.dp)
                                     .clip(CircleShape)
                                     .background(accentCoral),
                             )
@@ -599,19 +599,19 @@ private fun LiveRankingsHeader() {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp),
+            .padding(horizontal = 16.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
             text = stringResource(R.string.leaderboard_live_rankings),
-            fontSize = 17.sp,
+            fontSize = 15.sp,
             fontWeight = FontWeight.Bold,
             color = textColor,
         )
         Text(
             text = stringResource(R.string.leaderboard_ekagra_focus_time),
-            fontSize = 12.sp,
+            fontSize = 11.sp,
             fontWeight = FontWeight.Medium,
             color = textMuted,
         )
@@ -639,7 +639,7 @@ private fun LeaderboardRow(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 2.dp),
+            .padding(horizontal = 12.dp, vertical = 2.dp),
         shape = RoundedCornerShape(12.dp),
         color = rowBg,
         border = if (isCurrentUser) BorderStroke(1.dp, accentCoral.copy(alpha = 0.35f)) else null,
@@ -647,7 +647,7 @@ private fun LeaderboardRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 10.dp),
+                .padding(horizontal = 10.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             // Colored Rank Numeral Box (Golden, Silver, Bronze)
@@ -675,12 +675,12 @@ private fun LeaderboardRow(
                 shape = RoundedCornerShape(8.dp),
                 color = rankBg,
                 border = rankBorder,
-                modifier = Modifier.size(28.dp),
+                modifier = Modifier.size(24.dp),
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Text(
                         text = entry.rank.takeIf { it > 0 }?.toString() ?: "—",
-                        fontSize = 12.sp,
+                        fontSize = 11.sp,
                         fontWeight = if (entry.rank <= 3) FontWeight.ExtraBold else FontWeight.SemiBold,
                         color = rankTextColor,
                     )
@@ -692,7 +692,7 @@ private fun LeaderboardRow(
             // Avatar
             Box(
                 modifier = Modifier
-                    .size(38.dp)
+                    .size(32.dp)
                     .clip(CircleShape)
                     .background(bg),
                 contentAlignment = Alignment.Center,
@@ -708,7 +708,7 @@ private fun LeaderboardRow(
                 } else {
                     Text(
                         text = entry.name.take(2).uppercase(),
-                        fontSize = 12.sp,
+                        fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         color = textColor,
                     )
@@ -724,7 +724,7 @@ private fun LeaderboardRow(
             ) {
                 Text(
                     text = if (isCurrentUser) stringResource(R.string.study_circle_you) else entry.name,
-                    fontSize = 14.sp,
+                    fontSize = 13.sp,
                     fontWeight = if (isCurrentUser) FontWeight.Bold else FontWeight.Medium,
                     color = textColor,
                     maxLines = 1,
@@ -754,7 +754,7 @@ private fun LeaderboardRow(
             // Focus Time
             Text(
                 text = formatMinutes(entry.totalFocusMinutes),
-                fontSize = 13.sp,
+                fontSize = 11.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = if (isCurrentUser) accentCoral else textColor,
             )

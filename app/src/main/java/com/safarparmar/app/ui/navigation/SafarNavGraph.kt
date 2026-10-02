@@ -35,6 +35,7 @@ import com.safarparmar.app.ui.profile.ProfileScreen
 import com.safarparmar.app.ui.settings.SettingsScreen
 import com.safarparmar.app.ui.splash.SplashScreen
 import com.safarparmar.app.ui.studyplanner.StudyPlannerScreen
+import com.safarparmar.app.feature.toppersbatch.ToppersBatchScreen
 import com.safarparmar.app.ui.launch.LaunchUsageQuestionnaireScreen
 import com.safarparmar.app.ui.studyplanner.screens.SyllabusSubjectsScreen
 import com.safarparmar.app.ui.ekagra.focusshield.FocusShieldStandaloneScreen
@@ -108,6 +109,7 @@ fun SafarNavGraph(
         Routes.STUDY_PLANNER,
         Routes.FOCUS_SHIELD,
         Routes.NISHTHA,
+        Routes.ANALYTICS,
         Routes.EKAGRA,
         Routes.MEHFIL,
         Routes.STUDY_CIRCLES,
@@ -286,15 +288,14 @@ fun SafarNavGraph(
             )
         }
 
-        composable(Routes.ACHIEVEMENTS) {
-            // getBackStackEntry(DASHBOARD) throws IllegalArgumentException if the parent
-            // isn't on the back stack (stack cleared by an auth redirect, a direct deep
-            // link, or a final recompose during the exit animation). Bail out of rendering
-            // rather than crashing — the screen is on its way out in that state anyway.
-            val parentEntry = remember(currentEntry) {
+        composable(Routes.ACHIEVEMENTS) { achievementsEntry ->
+            // Reuse Dashboard state when available. Analytics and direct entry also
+            // open this screen, so absence of Dashboard must not suppress rendering.
+            val stateOwner = remember(achievementsEntry) {
                 runCatching { navController.getBackStackEntry(Routes.DASHBOARD) }.getOrNull()
-            } ?: return@composable
-            val dashVm = androidx.hilt.navigation.compose.hiltViewModel<com.safarparmar.app.ui.dashboard.DashboardViewModel>(parentEntry)
+                    ?: achievementsEntry
+            }
+            val dashVm = androidx.hilt.navigation.compose.hiltViewModel<com.safarparmar.app.ui.dashboard.DashboardViewModel>(stateOwner)
             val uiState by dashVm.uiState.collectAsStateWithLifecycle()
             AchievementsScreen(
                 achievements = uiState.allAchievements,
@@ -334,6 +335,20 @@ fun SafarNavGraph(
                 onToggleDarkTheme = onToggleDarkTheme,
                 initialTab = entry.arguments?.getInt("tab") ?: 0,
                 analyticsInitialSection = entry.arguments?.getString("section") ?: "overview",
+            )
+        }
+
+        composable(
+            route = Routes.ANALYTICS_ROUTE,
+            arguments = listOf(
+                navArgument("section") { type = NavType.StringType; defaultValue = "overview" },
+            ),
+        ) { entry ->
+            com.safarparmar.app.ui.nishtha.analytics.AnalyticsScreen(
+                isDarkTheme = isDarkTheme,
+                onNavigate = ::navigate,
+                onToggleDarkTheme = onToggleDarkTheme,
+                initialSection = entry.arguments?.getString("section") ?: "overview",
             )
         }
 
@@ -425,6 +440,20 @@ fun SafarNavGraph(
         }
 
         // ── Study Planner ─────────────────────────────────────────────────────
+
+        composable(
+            route = Routes.TOPPERS_BATCH,
+            deepLinks = listOf(navDeepLink { uriPattern = "$DEEP_LINK_BASE/toppers_batch" }),
+        ) {
+            ToppersBatchScreen(
+                isDarkTheme = isDarkTheme,
+                onNavigate = ::navigate,
+                onBack = {
+                    if (!navController.popBackStack()) navigate(Routes.STUDY_PLANNER)
+                },
+                onToggleDarkTheme = onToggleDarkTheme,
+            )
+        }
 
         composable(Routes.STUDY_PLANNER) {
             StudyPlannerScreen(

@@ -31,9 +31,11 @@ import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Text
+import com.composables.ui.components.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -222,7 +224,19 @@ private fun CheckInScreenContent(
     var causedBy by remember { mutableStateOf("") }
     var selectedTags by remember { mutableStateOf(setOf<String>()) }
     var showHistory by remember { mutableStateOf(false) }
-    val moodTags = remember { listOf("Work", "Family", "Sleep", "Health", "Relationship", "Finance", "Study", "Other") }
+    // Keep stored tag values stable; only the visible labels follow the app language.
+    val moodTags = remember {
+        listOf(
+            "Work" to R.string.checkin_reason_work,
+            "Family" to R.string.checkin_reason_family,
+            "Sleep" to R.string.checkin_reason_sleep,
+            "Health" to R.string.checkin_reason_health,
+            "Relationship" to R.string.checkin_reason_relationship,
+            "Finance" to R.string.checkin_reason_finance,
+            "Study" to R.string.checkin_reason_study,
+            "Other" to R.string.checkin_reason_other,
+        )
+    }
 
     val context = LocalContext.current
     val scrollState = rememberScrollState()
@@ -410,7 +424,7 @@ private fun CheckInScreenContent(
                 Spacer(Modifier.height(18.dp))
                 CheckInSectionLabel(stringResource(R.string.checkin_note_hint))
                 Spacer(Modifier.height(10.dp))
-                OutlinedTextField(
+                com.safarparmar.app.ui.components.SafarRichTextField(
                     value = note,
                     onValueChange = { note = it },
                     modifier = Modifier.fillMaxWidth(),
@@ -430,16 +444,16 @@ private fun CheckInScreenContent(
                 Spacer(Modifier.height(22.dp))
                 PlanHairline(alpha = 0.6f)
                 Spacer(Modifier.height(18.dp))
-                CheckInSectionLabel("Due to")
+                CheckInSectionLabel(stringResource(R.string.checkin_due_to))
                 Spacer(Modifier.height(12.dp))
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    moodTags.forEach { tag ->
+                    moodTags.forEach { (tag, labelRes) ->
                         FlatTagPill(
-                            label = tag,
+                            label = stringResource(labelRes),
                             selected = tag in selectedTags,
                             accent = accent,
                             onClick = {
@@ -499,7 +513,7 @@ private fun CheckInScreenContent(
                         horizontalArrangement = Arrangement.Center,
                     ) {
                         if (uiState.isCheckingIn) {
-                            CircularProgressIndicator(
+                            com.safarparmar.app.ui.components.SafarCircularProgressIndicator(
                                 modifier = Modifier.size(16.dp),
                                 color = Color.White,
                                 strokeWidth = 2.dp,
@@ -590,86 +604,199 @@ private fun FlatTagPill(
     }
 }
 
+private data class ParsedMoodDetails(
+    val userNote: String?,
+    val reasons: List<String>,
+    val causedByText: String?,
+)
+
+private fun parseMoodNotes(rawNotes: String?): ParsedMoodDetails {
+    if (rawNotes.isNullOrBlank()) return ParsedMoodDetails(null, emptyList(), null)
+
+    var text = rawNotes.trim()
+    var extractedDueTo: String? = null
+    var extractedCausedBy: String? = null
+    var extractedTags: List<String> = emptyList()
+
+    // 1. Check for "Tags: ..." line
+    val tagsMatch = Regex("""(?i)Tags:\s*([^\n]+)""").find(text)
+    if (tagsMatch != null) {
+        extractedTags = tagsMatch.groupValues[1].split(",").map { it.trim() }.filter { it.isNotEmpty() }
+        text = text.replace(tagsMatch.value, "").trim()
+    }
+
+    // 2. Check for "Caused by: ..." line
+    val causedMatch = Regex("""(?i)Caused by:\s*([^\n]+)""").find(text)
+    if (causedMatch != null) {
+        extractedCausedBy = causedMatch.groupValues[1].trim()
+        text = text.replace(causedMatch.value, "").trim()
+    }
+
+    // 3. Check for "Due to: ..." or "Due to" (case-insensitive)
+    val dueToMatch = Regex("""(?i)Due to:\s*(.+)""", RegexOption.DOT_MATCHES_ALL).find(text)
+    if (dueToMatch != null) {
+        extractedDueTo = dueToMatch.groupValues[1].trim()
+        text = text.substring(0, dueToMatch.range.first).trim()
+    }
+
+    // Parse all reasons into a combined list of tag strings
+    val allReasons = mutableListOf<String>()
+    if (!extractedDueTo.isNullOrBlank()) {
+        allReasons.addAll(extractedDueTo.split(",").map { it.trim() }.filter { it.isNotEmpty() })
+    }
+    allReasons.addAll(extractedTags)
+
+    val cleanNote = text.replace(Regex("""\n+"""), " ").trim().ifBlank { null }
+    val cleanCausedBy = extractedCausedBy?.ifBlank { null }
+
+    return ParsedMoodDetails(
+        userNote = cleanNote,
+        reasons = allReasons.distinct(),
+        causedByText = cleanCausedBy
+    )
+}
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun HistoryMoodRow(mood: Mood) {
+    val details = remember(mood.notes) { parseMoodNotes(mood.notes) }
+    val isLight = MaterialTheme.colorScheme.background.isLightBackground()
+
+    // Standout reason color scheme: Rich Purple / Lilac accents
+    val reasonBadgeBg = if (!isLight) Color(0xFF311E52) else Color(0xFFF3E8FF)
+    val reasonTextTint = if (!isLight) Color(0xFFD8B4FE) else Color(0xFF7C3AED)
+    val reasonLabelColor = if (!isLight) Color(0xFFC084FC) else Color(0xFF6B21A8)
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 14.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
+        // ── Top Row: Emoji + Mood Name & Intensity + Timestamp ──────────────
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text(moodEmoji(mood.mood), fontSize = 24.sp)
-            Column(Modifier.weight(1f)) {
+            Box(
+                modifier = Modifier
+                    .size(42.dp)
+                    .clip(CircleShape)
+                    .background(PlannerFlatColors.BorderSoft.copy(alpha = 0.35f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(moodEmoji(mood.mood), fontSize = 22.sp)
+            }
+
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = mood.mood.replaceFirstChar { it.uppercase() },
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp,
+                        color = PlannerFlatColors.TextDark,
+                    )
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = PlannerFlatColors.BorderSoft.copy(alpha = 0.4f),
+                    ) {
+                        Text(
+                            text = stringResource(R.string.checkin_intensity_value, mood.intensity),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = PlannerFlatColors.TextMuted,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+            }
+
+            Text(
+                text = mood.timestamp.take(10),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+                color = PlannerFlatColors.TextMuted,
+            )
+        }
+
+        // ── User's Custom Note (if any) ─────────────────────────────────────
+        if (!details.userNote.isNullOrBlank()) {
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = PlannerFlatColors.BorderSoft.copy(alpha = 0.25f),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 54.dp),
+            ) {
                 Text(
-                    mood.mood.replaceFirstChar { it.uppercase() },
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 14.sp,
+                    text = details.userNote,
+                    fontSize = 13.sp,
                     color = PlannerFlatColors.TextDark,
-                )
-                Text(
-                    stringResource(R.string.checkin_intensity_value, mood.intensity),
-                    fontSize = 11.sp,
-                    color = PlannerFlatColors.TextMuted,
+                    lineHeight = 18.sp,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                 )
             }
-            Text(
-                mood.timestamp.take(10),
-                fontSize = 11.sp,
-                color = PlannerFlatColors.TextMuted,
-            )
         }
 
-        val notes = mood.notes.orEmpty()
-        val causedByLine = notes.lines().firstOrNull { it.startsWith("Caused by:") }?.removePrefix("Caused by:")?.trim()
-        val tagsLine = notes.lines().firstOrNull { it.startsWith("Tags:") }?.removePrefix("Tags:")?.trim()
-        val tags = tagsLine?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() }.orEmpty()
-        val plainNote = notes.lines()
-            .filter { !it.startsWith("Caused by:") && !it.startsWith("Tags:") }
-            .joinToString(" ")
-            .trim()
-
-        if (plainNote.isNotBlank()) {
-            Text(
-                plainNote,
-                fontSize = 12.sp,
-                color = PlannerFlatColors.TextMuted,
-                modifier = Modifier.padding(start = 34.dp),
-                lineHeight = 16.sp,
-            )
-        }
-        if (!causedByLine.isNullOrBlank()) {
+        // ── Caused By / Explanation (if any) ─────────────────────────────────
+        if (!details.causedByText.isNullOrBlank()) {
             Row(
-                modifier = Modifier.padding(start = 34.dp),
+                modifier = Modifier.padding(start = 54.dp),
                 verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Icon(
                     painter = painterResource(id = R.drawable.ic_chat),
                     contentDescription = null,
-                    modifier = Modifier.size(12.dp),
-                    tint = PlannerFlatColors.TextMuted,
+                    modifier = Modifier.size(14.dp),
+                    tint = reasonLabelColor,
                 )
-                Spacer(Modifier.width(4.dp))
-                Text(causedByLine, fontSize = 11.sp, color = PlannerFlatColors.TextMuted)
+                Text(
+                    text = details.causedByText,
+                    fontSize = 12.sp,
+                    color = PlannerFlatColors.TextDark,
+                    fontWeight = FontWeight.Medium
+                )
             }
         }
-        if (tags.isNotEmpty()) {
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-                modifier = Modifier.padding(start = 34.dp, top = 4.dp),
+
+        // ── "Due to" Reasons / Tags (Highlighted in distinct reason color!) ───
+        if (details.reasons.isNotEmpty()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 54.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                tags.forEach { tag ->
-                    Box(
-                        modifier = Modifier
-                            .border(1.dp, PlannerFlatColors.BorderSoft, CircleShape)
-                            .padding(horizontal = 10.dp, vertical = 4.dp),
-                    ) {
-                        Text(tag, fontSize = 10.sp, color = PlannerFlatColors.TextMuted)
+                Text(
+                    text = "Due to:",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = reasonLabelColor,
+                )
+
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    details.reasons.forEach { reason ->
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = reasonBadgeBg,
+                            border = BorderStroke(0.8.dp, reasonTextTint.copy(alpha = 0.35f)),
+                        ) {
+                            Text(
+                                text = reason,
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = reasonTextTint,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                            )
+                        }
                     }
                 }
             }

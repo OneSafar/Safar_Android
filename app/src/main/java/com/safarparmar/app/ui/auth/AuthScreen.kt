@@ -491,7 +491,7 @@ fun GoogleSignInButton(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(64.dp)
+            .height(44.dp)
             .shadow(
                 elevation = shadowElevation,
                 shape = shape,

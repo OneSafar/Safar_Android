@@ -30,15 +30,16 @@ object NotificationDeepLinkHandler {
     }
 
     fun isExternalWebLink(uri: Uri?): Boolean =
-        uri?.scheme.equals("https", ignoreCase = true) && !uri?.host.isNullOrBlank()
+        uri?.scheme.equals("https", ignoreCase = true) && !uri?.host.isNullOrBlank() && !isToppersBatchLink(uri)
 
     fun isExternalWebLink(urlStr: String?): Boolean {
         val trimmed = urlStr?.trim().orEmpty()
-        return trimmed.startsWith("https://", ignoreCase = true)
+        return isExternalWebLink(runCatching { Uri.parse(trimmed) }.getOrNull())
     }
 
     fun routeFor(deepLink: String?): String {
         val trimmed = deepLink?.trim().orEmpty()
+        if (isToppersBatchLink(runCatching { Uri.parse(trimmed) }.getOrNull())) return Routes.TOPPERS_BATCH
         if (!trimmed.startsWith("safar://")) return Routes.HOME
 
         // Query params (e.g. planId/tab) are used by some hosts and stripped by the
@@ -62,6 +63,7 @@ object NotificationDeepLinkHandler {
                 "app_picker" -> Routes.APP_PICKER
                 else -> Routes.EKAGRA
             }
+            "toppers_batch" -> Routes.TOPPERS_BATCH
             "home" -> Routes.HOME
             "dashboard" -> Routes.DASHBOARD
             "nishtha" -> when (firstSegment) {
@@ -128,6 +130,11 @@ object NotificationDeepLinkHandler {
             else -> Routes.HOME
         }
     }
+
+    private fun isToppersBatchLink(uri: Uri?): Boolean =
+        uri?.scheme.equals("https", ignoreCase = true) &&
+            uri?.host.equals("safar.parmarssc.in", ignoreCase = true) &&
+            uri?.path?.trimEnd('/') == "/study/toppers-batch"
 
     private fun decodePathSegment(value: String): String =
         URLDecoder.decode(value, StandardCharsets.UTF_8.name())

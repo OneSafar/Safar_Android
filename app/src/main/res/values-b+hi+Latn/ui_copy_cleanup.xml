@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="dhyan_deep_breaths">Deep breaths</string>
+    <string name="dhyan_courses_label">Courses</string>
+    <string name="dhyan_live_sessions_label">Live sessions</string>
+    <string name="ekagra_background_audio">Background audio</string>
+    <string name="ekagra_completion_sound">Ekagra completion sound</string>
+    <string name="ekagra_timer_heading">EKAGRA TIMER</string>
+    <string name="ekagra_dismiss_youtube_shortcut">Dismiss YouTube Focus shortcut</string>
+</resources>

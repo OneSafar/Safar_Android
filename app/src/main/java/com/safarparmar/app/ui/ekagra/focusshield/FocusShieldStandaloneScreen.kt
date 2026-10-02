@@ -20,11 +20,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.SmartDisplay
-import androidx.compose.material3.HorizontalDivider
+import com.composables.ui.components.HorizontalSeparator as HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import com.composables.ui.components.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -46,7 +46,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.safarparmar.app.R
 import com.safarparmar.app.feature.kavachanalytics.ui.primaryText
 import com.safarparmar.app.feature.kavachanalytics.ui.secondaryText
-import com.safarparmar.app.feature.youtubestudyv2.YoutubeFocusComingSoonContent
+import com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2FeatureContent
 import com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ViewModel
 import com.safarparmar.app.ui.drawer.SafarDrawerScaffold
 import com.safarparmar.app.ui.navigation.Routes
@@ -68,6 +68,7 @@ fun FocusShieldStandaloneScreen(
     youtubeViewModel: YoutubeStudyV2ViewModel = hiltViewModel(),
 ) {
     val shieldState by viewModel.shieldState.collectAsStateWithLifecycle()
+    val youtubeState by youtubeViewModel.state.collectAsStateWithLifecycle()
     val accent = KavachDesign.Primary
     val scheme = MaterialTheme.colorScheme
     val owner = LocalLifecycleOwner.current
@@ -79,6 +80,7 @@ fun FocusShieldStandaloneScreen(
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 viewModel.refreshPermissions()
+                youtubeViewModel.refreshPermission()
             }
         }
         owner.lifecycle.addObserver(observer)
@@ -94,7 +96,7 @@ fun FocusShieldStandaloneScreen(
         onToggleDarkTheme = onToggleDarkTheme,
         emphasizeTopBar = true,
         topBarActions = {
-            IconButton(
+            com.composables.ui.components.IconButton(style = com.composables.ui.components.ButtonStyle.Ghost,
                 onClick = { onNavigate(Routes.KAVACH_ABOUT) },
                 modifier = Modifier.size(48.dp),
             ) {
@@ -232,7 +234,10 @@ fun FocusShieldStandaloneScreen(
                         )
                     }
                     1 -> {
-                        YoutubeFocusComingSoonContent(
+                        YoutubeStudyV2FeatureContent(
+                            state = youtubeState,
+                            viewModel = youtubeViewModel,
+                            onNotNow = { scope.launch { pagerState.animateScrollToPage(0) } },
                             isLight = isLight,
                             modifier = Modifier.fillMaxSize(),
                         )

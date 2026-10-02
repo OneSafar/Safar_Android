@@ -160,6 +160,7 @@ fun EkagraScreen(
     val ekagraScope              = rememberCoroutineScope()
     val selectedTab              = tabBackStack.currentTab
     var showKavachActiveSession  by remember { mutableStateOf(false) }
+    var showYoutubeShortcut by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(true) }
     var showThemeDialog          by remember { mutableStateOf(false) }
     var showEndSessionConfirmDialog by remember { mutableStateOf(false) }
     var showAudioLibraryPanel    by remember { mutableStateOf(false) }
@@ -848,7 +849,8 @@ fun EkagraScreen(
                             showThemeDialog = false 
                         }, onDismiss = { showThemeDialog = false })
                     if (showEndSessionConfirmDialog) {
-                        AlertDialog(
+                        com.composables.ui.components.AlertDialog(
+                            visible = true,
                             onDismissRequest = { showEndSessionConfirmDialog = false },
                             shape = RoundedCornerShape(20.dp),
                             title = {
@@ -864,8 +866,8 @@ fun EkagraScreen(
                                     fontSize = 14.sp
                                 )
                             },
-                            confirmButton = {
-                                TextButton(
+                            positiveButton= {
+                                com.composables.ui.components.Button(style = com.composables.ui.components.ButtonStyle.Ghost,
                                     onClick = {
                                         showEndSessionConfirmDialog = false
                                         endCurrentSession()
@@ -874,8 +876,8 @@ fun EkagraScreen(
                                     Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.common_continue), fontWeight = FontWeight.Bold)
                                 }
                             },
-                            dismissButton = {
-                                TextButton(
+                            negativeButton= {
+                                com.composables.ui.components.Button(style = com.composables.ui.components.ButtonStyle.Ghost,
                                     onClick = {
                                         showEndSessionConfirmDialog = false
                                     }
@@ -890,7 +892,8 @@ fun EkagraScreen(
                     // STOPWATCH) while a session is running and then presses Play.
                     val modeSwitchTarget = pendingModeSwitchConfirm
                     if (modeSwitchTarget != null) {
-                        AlertDialog(
+                        com.composables.ui.components.AlertDialog(
+                            visible = true,
                             onDismissRequest = { pendingModeSwitchConfirm = null },
                             shape = RoundedCornerShape(20.dp),
                             title = {
@@ -906,8 +909,8 @@ fun EkagraScreen(
                                     fontSize = 14.sp,
                                 )
                             },
-                            confirmButton = {
-                                TextButton(
+                            positiveButton= {
+                                com.composables.ui.components.Button(style = com.composables.ui.components.ButtonStyle.Ghost,
                                     onClick = {
                                         pendingModeSwitchConfirm = null
                                         // End the current session, then start the new mode.
@@ -947,8 +950,8 @@ fun EkagraScreen(
                                     Text(stringResource(R.string.ekagra_yes_switch), fontWeight = FontWeight.Bold)
                                 }
                             },
-                            dismissButton = {
-                                TextButton(
+                            negativeButton= {
+                                com.composables.ui.components.Button(style = com.composables.ui.components.ButtonStyle.Ghost,
                                     onClick = {
                                         pendingModeSwitchConfirm = null
                                         // Snap the pill back to the currently running mode
@@ -962,7 +965,10 @@ fun EkagraScreen(
                     }
                     // ── Overlay bubble permission prompt (shown once) ─────────────
                     if (showOverlayPermPrompt) {
-                        androidx.compose.material3.ModalBottomSheet(
+                        com.composables.ui.components.BottomSheet(
+                            state = com.composables.ui.components.rememberBottomSheetState(
+                                initialDetent = com.composables.ui.components.BottomSheetDetent.FullyExpanded,
+                            ),
                             onDismissRequest = {
                                 showOverlayPermPrompt = false
                                 ekagraScope.launch {
@@ -1084,7 +1090,8 @@ fun EkagraScreen(
                     if (showTopicStudySheet) {
                         val pending = pendingEndedSession
                         if (pending != null && pending.topicId != null && pending.planId != null) {
-                            val topicSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+                            @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+                            val topicSheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
                             fun closeTopicSheet() {
                                 showTopicStudySheet = false
@@ -1137,7 +1144,7 @@ fun EkagraScreen(
                     }
                     if (showOrganizeSheet) {
                         val pending = pendingEndedSession
-                        val organizeSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+                        val organizeSheetState = com.composables.ui.components.rememberBottomSheetState(initialDetent = com.composables.ui.components.BottomSheetDetent.FullyExpanded)
                         val organizeSheetScope = rememberCoroutineScope()
                         // Hold the exact save choice until the student confirms it.
                         // Linking study time and finishing a goal must stay separate.
@@ -1389,14 +1396,12 @@ fun EkagraScreen(
                                             .padding(vertical = 2.dp),
                                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                                     ) {
-                                        Checkbox(
+                                        com.safarparmar.app.ui.components.SafarColoredCheckbox(
                                             checked = dontShowDurationPromptAgain,
                                             onCheckedChange = { dontShowDurationPromptAgain = it },
-                                            colors = CheckboxDefaults.colors(
-                                                checkedColor = dialogAccent,
-                                                uncheckedColor = dialogBody,
-                                                checkmarkColor = Color.White,
-                                            ),
+                                            checkedColor = dialogAccent,
+                                            uncheckedColor = dialogBody,
+                                            checkmarkColor = Color.White,
                                         )
                                         Text(
                                             text = stringResource(R.string.common_do_not_show_again),
@@ -1467,84 +1472,43 @@ fun EkagraScreen(
                     // out of the old glass bar and into EkagraTopBar's trailing slot.
                     val ekagraTopBarActions: @Composable RowScope.() -> Unit = {
                         val tintColor = topBarTint
-                        Box {
-                            var showOverflowMenu by remember { mutableStateOf(false) }
-                            IconButton(onClick = { showOverflowMenu = true }) {
-                                Icon(androidx.compose.material.icons.Icons.Default.MoreVert, contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.common_more_options), tint = tintColor)
-                            }
-                            androidx.compose.material3.DropdownMenu(
-                                expanded = showOverflowMenu,
-                                onDismissRequest = { showOverflowMenu = false },
-                                modifier = Modifier.border(1.dp, headerInk.hairline, RoundedCornerShape(16.dp)),
-                                shape = RoundedCornerShape(16.dp),
-                            ) {
-                                androidx.compose.material3.DropdownMenuItem(
-                                    text = { Text(stringResource(if (isMuted) R.string.ekagra_volume_on else R.string.ekagra_volume_off)) },
+                        var showOverflowMenu by remember { mutableStateOf(false) }
+                        com.safarparmar.app.ui.components.SafarOverflowMenu(
+                            expanded = showOverflowMenu,
+                            onExpandedChange = { showOverflowMenu = it },
+                            actions = buildList {
+                                add(com.safarparmar.app.ui.components.SafarMenuAction(
+                                    label = stringResource(if (isMuted) R.string.ekagra_volume_on else R.string.ekagra_volume_off),
+                                    onClick = { timerService?.setMute(!isMuted) },
+                                    icon = if (isMuted) androidx.compose.material.icons.Icons.Default.VolumeUp else androidx.compose.material.icons.Icons.Default.VolumeOff,
+                                ))
+                                add(com.safarparmar.app.ui.components.SafarMenuAction(
+                                    label = if (overlayGranted.value) "Floating timer settings" else "Enable floating timer",
                                     onClick = {
-                                        timerService?.setMute(!isMuted)
-                                        showOverflowMenu = false
+                                        if (overlayGranted.value) TimerBubbleOverlay.openOverlayPermissionSettings(pipContext)
+                                        else showOverlayPermPrompt = true
                                     },
-                                    leadingIcon = {
-                                        Icon(if (isMuted) androidx.compose.material.icons.Icons.Default.VolumeUp else androidx.compose.material.icons.Icons.Default.VolumeOff, contentDescription = null)
-                                    }
-                                )
-                                EkagraHairline(headerInk.hairline)
-                                androidx.compose.material3.DropdownMenuItem(
-                                    text = {
-                                        Text(
-                                            if (overlayGranted.value) "Floating timer settings"
-                                            else "Enable floating timer"
-                                        )
-                                    },
-                                    onClick = {
-                                        showOverflowMenu = false
-                                        if (overlayGranted.value) {
-                                            TimerBubbleOverlay.openOverlayPermissionSettings(pipContext)
-                                        } else {
-                                            showOverlayPermPrompt = true
-                                        }
-                                    },
-                                    leadingIcon = {
-                                        Icon(
-                                            androidx.compose.material.icons.Icons.Default.PictureInPictureAlt,
-                                            contentDescription = null,
-                                        )
-                                    },
-                                    trailingIcon = {
-                                        androidx.compose.material3.Switch(
-                                            checked = overlayGranted.value,
-                                            onCheckedChange = null,
-                                        )
-                                    },
-                                )
-                                val hasAllPermissions = shieldState.hasUsageStats &&
-                                                        shieldState.hasOverlayPermission
-                                if (!hasAllPermissions) {
-                                    EkagraHairline(headerInk.hairline)
-                                    androidx.compose.material3.DropdownMenuItem(
-                                        text = { Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.ekagra_kavach_setup)) },
-                                        onClick = {
-                                            onNavigate(com.safarparmar.app.ui.navigation.Routes.FOCUS_SHIELD)
-                                            showOverflowMenu = false
-                                        },
-                                        leadingIcon = {
-                                            Icon(androidx.compose.material.icons.Icons.Default.Shield, contentDescription = null)
-                                        }
-                                    )
+                                    icon = androidx.compose.material.icons.Icons.Default.PictureInPictureAlt,
+                                ))
+                                if (!shieldState.hasUsageStats || !shieldState.hasOverlayPermission) {
+                                    add(com.safarparmar.app.ui.components.SafarMenuAction(
+                                        label = stringResource(R.string.ekagra_kavach_setup),
+                                        onClick = { onNavigate(com.safarparmar.app.ui.navigation.Routes.FOCUS_SHIELD) },
+                                        icon = androidx.compose.material.icons.Icons.Default.Shield,
+                                    ))
                                 }
-                                EkagraHairline(headerInk.hairline)
-                                androidx.compose.material3.DropdownMenuItem(
-                                    text = { Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.ekagra_apps_to_block)) },
-                                    onClick = {
-                                        onNavigate(Routes.APP_PICKER)
-                                        showOverflowMenu = false
-                                    },
-                                    leadingIcon = {
-                                        Icon(androidx.compose.material.icons.Icons.Default.Apps, contentDescription = null)
-                                    }
-                                )
-                            }
-                        }
+                                add(com.safarparmar.app.ui.components.SafarMenuAction(
+                                    label = stringResource(R.string.ekagra_apps_to_block),
+                                    onClick = { onNavigate(Routes.APP_PICKER) },
+                                    icon = androidx.compose.material.icons.Icons.Default.Apps,
+                                ))
+                            },
+                            anchor = {
+                                com.composables.ui.components.IconButton(style = com.composables.ui.components.ButtonStyle.Ghost, onClick = { showOverflowMenu = !showOverflowMenu }) {
+                                    Icon(androidx.compose.material.icons.Icons.Default.MoreVert, contentDescription = stringResource(R.string.common_more_options), tint = tintColor)
+                                }
+                            },
+                        )
                     }
 
                     Box(
@@ -1634,25 +1598,11 @@ fun EkagraScreen(
                                 contentWindowInsets = WindowInsets.safeDrawing,
                                 snackbarHost        = { SnackbarHost(snackbarHostState) },
                                 topBar = {
-                                    Column {
                                     EkagraTopBar(
                                         ink = headerInk,
                                         onOpenDrawer = { openDrawer() },
                                         trailing = ekagraTopBarActions,
                                     )
-                                        if (selectedTab == EkagraNavTab.TIMER) Text(
-                                            text = when (val status = rankedStatus) {
-                                                RankedFocusStatus.ConnectionNeeded -> stringResource(R.string.ekagra_ranked_connection_needed)
-                                                RankedFocusStatus.AttendanceExpired -> stringResource(R.string.ekagra_ranked_attendance_expired)
-                                                is RankedFocusStatus.RankedTime -> stringResource(R.string.ekagra_ranked_time_status, status.minutes)
-                                                RankedFocusStatus.Unavailable -> stringResource(R.string.ekagra_ranked_unavailable)
-                                                RankedFocusStatus.Offline -> stringResource(R.string.ekagra_ranked_offline)
-                                            },
-                                            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 4.dp),
-                                            fontSize = 11.sp,
-                                            color = headerInk.mutedText,
-                                        )
-                                    }
                                 },
                                 bottomBar = {
                                     androidx.compose.animation.AnimatedVisibility(
@@ -1810,8 +1760,8 @@ fun EkagraScreen(
                                         myCircles = myCircles,
                                         selectedStudyCircle = selectedStudyCircle,
                                         onSelectStudyCircle = viewModel::selectStudyCircle,
-                                        // YouTube Focus banner temporarily hidden as requested; code preserved intact.
-                                        showYoutubeBanner = false,
+                                        showYoutubeBanner = showYoutubeShortcut,
+                                        onDismissYoutubeFocus = { showYoutubeShortcut = false },
                                         onEnableYoutubeFocus = {
                                             onNavigate(Routes.focusShieldTab(1))
                                         },
@@ -1937,7 +1887,8 @@ fun MusicPromptDialog(
 ) {
     var dontShowAgain by remember { mutableStateOf(false) }
 
-    AlertDialog(
+    com.composables.ui.components.AlertDialog(
+        visible = true,
         onDismissRequest = onDismiss,
         shape = RoundedCornerShape(24.dp),
         title = {
@@ -1960,9 +1911,12 @@ fun MusicPromptDialog(
                         .clickable { dontShowAgain = !dontShowAgain }
                         .padding(vertical = 4.dp)
                 ) {
-                    Checkbox(
+                    com.safarparmar.app.ui.components.SafarColoredCheckbox(
                         checked = dontShowAgain,
-                        onCheckedChange = { dontShowAgain = it }
+                        onCheckedChange = { dontShowAgain = it },
+                        checkedColor = MaterialTheme.colorScheme.primary,
+                        uncheckedColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        checkmarkColor = MaterialTheme.colorScheme.onPrimary,
                     )
                     Spacer(modifier = androidx.compose.ui.Modifier.width(8.dp))
                     Text(
@@ -1972,15 +1926,15 @@ fun MusicPromptDialog(
                 }
             }
         },
-        confirmButton = {
-            Button(
+        positiveButton= {
+            com.composables.ui.components.Button(
                 onClick = { onYes(dontShowAgain) }
             ) {
                 Text(stringResource(R.string.common_yes), fontWeight = FontWeight.SemiBold)
             }
         },
-        dismissButton = {
-            TextButton(
+        negativeButton= {
+            com.composables.ui.components.Button(style = com.composables.ui.components.ButtonStyle.Ghost,
                 onClick = { onNo(dontShowAgain) }
             ) {
                 Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.common_no), fontWeight = FontWeight.SemiBold)

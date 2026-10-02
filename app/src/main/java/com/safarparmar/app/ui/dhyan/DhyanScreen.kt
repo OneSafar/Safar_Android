@@ -1,5 +1,7 @@
 
 package com.safarparmar.app.ui.dhyan
+import com.composables.ui.components.ButtonStyle
+import com.composables.ui.components.IconButton as ComposablesIconButton
 
 import android.media.MediaPlayer
 import android.net.Uri
@@ -540,13 +542,7 @@ fun DhyanScreen(
     CompositionLocalProvider(LocalPlannerIsDarkTheme provides isDarkTheme) {
     Box(Modifier.fillMaxSize()) {
         SafarDrawerScaffold(
-            title = stringResource(
-                when (selectedTab) {
-                    DhyanTab.DHYAN -> R.string.module_dhyan
-                    DhyanTab.COURSES -> R.string.dhyan_courses_tab
-                    DhyanTab.LIVE -> R.string.dhyan_live_tab
-                }
-            ),
+            title = stringResource(R.string.module_dhyan),
             subtitle = null,
             currentRoute      = currentRoute,
             isDarkTheme       = isDarkTheme,
@@ -558,11 +554,12 @@ fun DhyanScreen(
             topBarActions = {
                 if (selectedTab == DhyanTab.LIVE) {
                     val liveUiState by liveSessionVm.liveSessionsState.collectAsStateWithLifecycle()
-                    IconButton(
+                    ComposablesIconButton(
                         onClick = { liveSessionVm.loadSessions(courseId, status = null) },
+                        style = ButtonStyle.Ghost,
                     ) {
                         if (liveUiState.isLoading) {
-                            CircularProgressIndicator(
+                            com.safarparmar.app.ui.components.SafarCircularProgressIndicator(
                                 modifier = Modifier.size(19.dp),
                                 strokeWidth = 2.dp,
                                 color = if (isDarkTheme) Color(0xFFC084FC) else Color(0xFF6B21A8),
@@ -1129,14 +1126,7 @@ private fun BreathingOptionsSheet(
 ) {
     val isDarkTheme = !MaterialTheme.colorScheme.background.isLightBackground()
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        containerColor = DhyanFlatColors.Bg,
-        scrimColor = Color.Black.copy(alpha = 0.45f),
-        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        dragHandle = { BottomSheetDefaults.DragHandle(color = DhyanFlatColors.Hairline) },
-    ) {
+    DhyanSheet(onDismiss = onDismiss) {
         Column(
             Modifier
                 .fillMaxWidth()
@@ -1225,14 +1215,7 @@ private fun BreathingSoundSheet(
 ) {
     val isDarkTheme = !MaterialTheme.colorScheme.background.isLightBackground()
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        containerColor = DhyanFlatColors.Bg,
-        scrimColor = Color.Black.copy(alpha = 0.45f),
-        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        dragHandle = { BottomSheetDefaults.DragHandle(color = DhyanFlatColors.Hairline) },
-    ) {
+    DhyanSheet(onDismiss = onDismiss) {
         Column(
             Modifier
                 .fillMaxWidth()
@@ -1297,6 +1280,27 @@ private fun BreathingSoundSheet(
                     PlanHairline(alpha = 0.55f)
                 }
             }
+        }
+    }
+}
+
+
+/** Composables UI sheet with Dhyan's existing black 45% scrim. */
+@Composable
+private fun DhyanSheet(onDismiss: () -> Unit, content: @Composable () -> Unit) {
+    CompositionLocalProvider(
+        com.safarparmar.app.ui.theme.LocalSafarComposablesScrim provides Color.Black.copy(alpha = 0.45f),
+    ) {
+        com.safarparmar.app.ui.theme.SafarComposablesTheme {
+            com.composables.ui.components.BottomSheet(
+                onDismissRequest = onDismiss,
+                state = com.composables.ui.components.rememberBottomSheetState(
+                    initialDetent = com.composables.ui.components.BottomSheetDetent.FullyExpanded,
+                ),
+                backgroundColor = DhyanFlatColors.Bg,
+                contentColor = DhyanFlatColors.Text,
+                shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+            ) { content() }
         }
     }
 }

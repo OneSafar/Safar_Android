@@ -188,7 +188,8 @@ object YoutubeStudyV2Parser {
                     regularPlaybackRegion.width >= snapshot.screenWidth * 0.85f &&
                     regularPlaybackRegion.height >= snapshot.screenHeight * 0.85f)
             val fullscreenSidePanel = if (fullscreen) detectFullscreenSidePanel(snapshot, visible) else YoutubeFullscreenSidePanel.NONE
-            val watchMetadata = watchHeaderMetadata(nodes)
+            val metadataNodes = watchMetadataNodes(snapshot, visible)
+            val watchMetadata = watchHeaderMetadata(nodes, metadataNodes)
             val hudMetadata = if (fullscreen) fullscreenHudMetadata(snapshot, visible) else null
             // YouTube can leave a visible title-only portrait watch header in
             // the tree after rotation. Merge that partial result with the
@@ -201,7 +202,7 @@ object YoutubeStudyV2Parser {
                     handle = hudMetadata.handle ?: watchMetadata.handle,
                 )
             }
-            val title = if (metadata != null) metadata.title else visible.asSequence()
+            val title = if (metadata != null || nodes.any { it.viewId?.substringAfterLast('/') == "watch_list" }) metadata?.title else metadataNodes.asSequence()
                 .map(nodes::get)
                 .firstOrNull { node -> titleIds.any(node.viewId.orEmpty().lowercase()::contains) }
                 ?.let { cleanText(it.text ?: it.contentDescription) }
@@ -210,7 +211,7 @@ object YoutubeStudyV2Parser {
                     // Some builds expose the title with no resource id at all. Fall back to
                     // the first substantial text node directly under the player that isn't
                     // itself uploader/engagement metadata.
-                    visible.asSequence()
+                    metadataNodes.asSequence()
                         .map(nodes::get)
                         .filter { node ->
                             node.top >= regularPlaybackRegion!!.bottom - 8 * snapshot.density &&
@@ -226,8 +227,8 @@ object YoutubeStudyV2Parser {
                         }
                 }
 
-            val owner = findOwnerRow(snapshot, visible.filterNot { isExcludedMetadataNode(nodes, it) }, regularPlaybackRegion!!.bottom, title)
-            val ownerChannelIds = visible.asSequence().filter { index ->
+            val owner = findOwnerRow(snapshot, metadataNodes, regularPlaybackRegion!!.bottom, title)
+            val ownerChannelIds = metadataNodes.asSequence().filter { index ->
                 val node = nodes[index]
                 node.top >= regularPlaybackRegion.bottom - 24 * snapshot.density &&
                     node.top <= regularPlaybackRegion.bottom + 260 * snapshot.density &&
@@ -334,12 +335,12 @@ object YoutubeStudyV2Parser {
      * Its descendants remain owner metadata even when the drawing surface
      * overlaps them. Later list items are actions, comments or recommendations.
      */
-    private fun watchHeaderMetadata(nodes: List<YoutubeV2Node>): WatchHeaderMetadata? {
+    private fun watchHeaderMetadata(nodes: List<YoutubeV2Node>, metadataNodes: List<Int>): WatchHeaderMetadata? {
         val list = nodes.indexOfFirst { it.viewId?.substringAfterLast('/') == "watch_list" }
         if (list < 0) return null
         val header = nodes.indices.firstOrNull { nodes[it].parentIndex == list } ?: return null
         if (!nodes[header].visibleToUser || nodes[header].height <= 0) return null
-        val members = nodes.indices.filter { index ->
+        val members = metadataNodes.filter { index ->
             var ancestor: Int? = index
             var found = false
             repeat(8) {
@@ -382,6 +383,35 @@ object YoutubeStudyV2Parser {
             ancestor = node.parentIndex
         }
         return false
+    }
+
+    /** Exclude whole recommendation items, even when their thumbnails scroll offscreen. */
+    private fun watchMetadataNodes(snapshot: YoutubeV2Snapshot, visible: List<Int>): List<Int> {
+        val nodes = snapshot.nodes
+        val listItems = nodes.indices.filter { index ->
+            nodes[index].parentIndex?.let { nodes[it].viewId?.substringAfterLast('/') == "watch_list" } == true
+        }.toSet()
+        fun listItem(index: Int): Int? {
+            var current: Int? = index
+            repeat(32) {
+                val at = current?.takeIf(nodes.indices::contains) ?: return null
+                if (at in listItems) return at
+                current = nodes[at].parentIndex
+            }
+            return null
+        }
+        val itemByNode = nodes.indices.associateWith(::listItem)
+        val recommendationItems = nodes.indices.filter { index ->
+            val node = nodes[index]
+            val id = node.viewId.orEmpty().lowercase()
+            NON_OWNER_TEXT_IDS.any(id::contains) || id.contains("thumbnail") ||
+                (node.className.orEmpty().contains("ImageView", true) &&
+                    node.width >= snapshot.screenWidth * 0.45f &&
+                    node.height >= 90 * snapshot.density)
+        }.mapNotNull { itemByNode[it] }.toSet()
+        return visible.filter { index ->
+            !isExcludedMetadataNode(nodes, index) && itemByNode[index] !in recommendationItems
+        }
     }
 
     private data class OwnerEvidence(val handle: String?, val displayName: String?)
@@ -687,7 +717,7 @@ object YoutubeStudyV2Parser {
     internal fun isPlausibleOwnerLabel(value: String): Boolean {
         if (value.length !in 2..120) return false
         val lower = value.lowercase()
-        if (lower in setOf("exit full screen", "enter full screen", "full screen", "fullscreen", "play", "pause", "next video", "previous video", "close player")) return false
+        if (lower in setOf("exit full screen", "enter full screen", "full screen", "fullscreen", "play", "pause", "next video", "previous video", "close player", "close", "dismiss", "back", "quote", "description", "बंद करें", "वापस")) return false
         return INVALID_OWNER_WORDS.none(lower::contains)
     }
 
@@ -742,7 +772,7 @@ object YoutubeStudyV2Parser {
     private val LIVE_CHAT_PANEL_MARKERS = listOf(
         "live chat", "live_chat", "chat panel", "chat_panel",
     )
-    private val NON_OWNER_TEXT_IDS = listOf("comment", "recommend", "suggest", "transcript")
+    private val NON_OWNER_TEXT_IDS = listOf("comment", "recommend", "suggest", "transcript", "description_panel", "description_sheet", "engagement_panel", "video_card", "compact_video", "chip_cloud")
     private val UPLOADER_ENGAGEMENT_MARKERS = listOf(" view", " views", " like", " likes")
     private val UPLOADER_CONTEXT_MARKERS = listOf(" ago", " watching", " subscriber", " subscribers")
     private val METADATA_SUFFIX = Regex(

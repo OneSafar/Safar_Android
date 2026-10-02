@@ -50,9 +50,7 @@ object FocusShieldPermissionHelper {
         }
         val opened = runCatching { context.startActivity(perApp) }.isSuccess
         if (!opened) {
-            context.startActivity(
-                Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-            )
+            openSettingsPage(context, Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
         }
     }
 
@@ -89,8 +87,30 @@ object FocusShieldPermissionHelper {
         }
     }
 
+    /** OEMs can omit individual Settings activities. Keep permission taps recoverable. */
+    private fun openSettingsPage(context: Context, intent: Intent) {
+        try {
+            context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        } catch (error: android.content.ActivityNotFoundException) {
+            openGeneralSettings(context, error)
+        } catch (error: SecurityException) {
+            openGeneralSettings(context, error)
+        }
+    }
+
+    private fun openGeneralSettings(context: Context, cause: Exception) {
+        android.util.Log.w("FocusShieldPermissions", "Permission settings unavailable", cause)
+        try {
+            context.startActivity(Intent(Settings.ACTION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        } catch (error: android.content.ActivityNotFoundException) {
+            android.util.Log.e("FocusShieldPermissions", "Settings unavailable", error)
+        } catch (error: SecurityException) {
+            android.util.Log.e("FocusShieldPermissions", "Settings access denied", error)
+        }
+    }
+
     fun openAccessibilitySettings(context: Context) {
-        context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        openSettingsPage(context, Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
     }
 
     /** Display over other apps ("draw overlay") — required to show the KAVACH block screen. */
@@ -105,9 +125,7 @@ object FocusShieldPermissionHelper {
         runCatching {
             context.startActivity(intent)
         }.getOrElse {
-            context.startActivity(
-                Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-            )
+            openSettingsPage(context, Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION))
         }
     }
 
@@ -147,10 +165,7 @@ object FocusShieldPermissionHelper {
             val opened = runCatching { context.startActivity(detail) }.isSuccess
             if (opened) return
         }
-        context.startActivity(
-            Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-        )
+        openSettingsPage(context, Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
     }
 
     fun requestNotificationListenerRebind(context: Context) {

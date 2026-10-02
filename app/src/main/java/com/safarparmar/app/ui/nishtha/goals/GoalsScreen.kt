@@ -56,6 +56,14 @@ import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
+import com.composables.ui.components.Button
+import com.composables.ui.components.ButtonSize
+import com.composables.ui.components.ButtonStyle
+import com.composables.ui.components.HorizontalSeparator
+import com.composables.ui.components.Tab
+import com.composables.ui.components.TabList
+import com.composables.ui.components.Tabs
+import com.composables.ui.components.Icon as ComposablesIcon
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -471,20 +479,29 @@ private fun GoalsScreenContent(
     }
 
     deleteGoal?.let { goal ->
-        AlertDialog(
+        com.composables.ui.components.AlertDialog(
+            visible = true,
             onDismissRequest = { deleteGoal = null },
             title = { Text(stringResource(R.string.goals_delete_title)) },
             text = { Text(stringResource(R.string.goals_delete_body, goal.title)) },
-            confirmButton = {
-                TextButton(
+            positiveButton = {
+                Button(
                     enabled = !uiState.isSavingGoal,
                     onClick = { viewModel.deleteGoal(goal.id) },
+                    style = ButtonStyle.Destructive,
+                    modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text(if (uiState.isSavingGoal) stringResource(R.string.common_moving) else stringResource(R.string.goals_move_to_recently_deleted), color = GoalsFlatColors.Danger)
+                    Text(if (uiState.isSavingGoal) stringResource(R.string.common_moving) else stringResource(R.string.goals_move_to_recently_deleted))
                 }
             },
-            dismissButton = {
-                TextButton(onClick = { deleteGoal = null }) { Text(stringResource(R.string.goals_keep_it)) }
+            negativeButton = {
+                Button(
+                    onClick = { deleteGoal = null },
+                    style = ButtonStyle.Ghost,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(stringResource(R.string.goals_keep_it))
+                }
             },
         )
     }
@@ -1114,83 +1131,108 @@ private fun GoalsScreenContent(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                // Keep the primary action visible on narrow screens; secondary
-                // utilities may scroll, but creating a goal must never be clipped.
-                FlatActionChip(
-                    label = stringResource(R.string.goals_add_goal),
-                    icon = {
-                        Icon(
-                            Icons.Default.Add,
-                            null,
-                            modifier = Modifier.size(16.dp),
-                            tint = Color.White,
-                        )
-                    },
-                    filled = true,
+                Button(
                     onClick = { showAddSheet = true },
-                )
-                FlatActionChip(
-                    label = stringResource(R.string.goals_status),
-                    icon = {
-                        Icon(
-                            Icons.Default.BarChart,
-                            null,
-                            modifier = Modifier.size(16.dp),
-                            tint = GoalsFlatColors.Muted,
-                        )
-                    },
-                    filled = false,
+                    style = ButtonStyle.Ghost,
+                    buttonSize = ButtonSize.Small,
+                    modifier = Modifier.background(GoalsFlatColors.Primary, RoundedCornerShape(20.dp)),
+                    contentColor = Color.White,
+                ) {
+                    ComposablesIcon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        stringResource(R.string.goals_add_goal),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+                Button(
                     onClick = { showStatusSheet = true },
-                )
-                // Deliberately NOT called "Repeat": that word already names a goal
-                // TYPE (auto-recurring) and the badge on each row. Reusing it for a
-                // one-off bulk action made four unrelated things share one label.
-                FlatActionChip(
-                    label = stringResource(R.string.goals_repeat_goals),
-                    icon = {
-                        Icon(
-                            Icons.Default.Repeat,
-                            null,
-                            modifier = Modifier.size(16.dp),
-                            tint = GoalsFlatColors.Muted,
-                        )
-                    },
-                    filled = false,
+                    style = ButtonStyle.Ghost,
+                    buttonSize = ButtonSize.Small,
+                    modifier = Modifier.border(1.dp, GoalsFlatColors.Hairline, RoundedCornerShape(20.dp)),
+                    contentColor = GoalsFlatColors.Text,
+                ) {
+                    ComposablesIcon(
+                        imageVector = Icons.Default.BarChart,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        stringResource(R.string.goals_status),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+                Button(
                     onClick = { showRepeatPicker = true },
-                )
-                FlatActionChip(
-                    label = stringResource(R.string.goals_insights),
-                    icon = {
-                        Icon(
-                            Icons.AutoMirrored.Filled.TrendingUp,
-                            null,
-                            modifier = Modifier.size(16.dp),
-                            tint = GoalsFlatColors.Muted,
-                        )
-                    },
-                    filled = false,
+                    style = ButtonStyle.Ghost,
+                    buttonSize = ButtonSize.Small,
+                    modifier = Modifier.border(1.dp, GoalsFlatColors.Hairline, RoundedCornerShape(20.dp)),
+                    contentColor = GoalsFlatColors.Text,
+                ) {
+                    ComposablesIcon(
+                        imageVector = Icons.Default.Repeat,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        stringResource(R.string.goals_repeat_goals),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+                Button(
                     onClick = { onNavigate(Routes.nishthaAnalytics("goals")) },
-                )
-                FlatActionChip(
-                    label = stringResource(R.string.goals_recently_deleted),
-                    icon = {
-                        Icon(
-                            Icons.Default.DeleteSweep,
-                            null,
-                            modifier = Modifier.size(16.dp),
-                            tint = GoalsFlatColors.Muted,
-                        )
-                    },
-                    filled = false,
+                    style = ButtonStyle.Ghost,
+                    buttonSize = ButtonSize.Small,
+                    modifier = Modifier.border(1.dp, GoalsFlatColors.Hairline, RoundedCornerShape(20.dp)),
+                    contentColor = GoalsFlatColors.Text,
+                ) {
+                    ComposablesIcon(
+                        imageVector = Icons.AutoMirrored.Filled.TrendingUp,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        stringResource(R.string.goals_insights),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+                Button(
                     onClick = {
                         showDeletedSheet = true
                         viewModel.loadRecentlyDeletedGoals()
                     },
-                )
+                    style = ButtonStyle.Ghost,
+                    buttonSize = ButtonSize.Small,
+                    modifier = Modifier.border(1.dp, GoalsFlatColors.Hairline, RoundedCornerShape(20.dp)),
+                    contentColor = GoalsFlatColors.Text,
+                ) {
+                    ComposablesIcon(
+                        imageVector = Icons.Default.DeleteSweep,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        stringResource(R.string.goals_recently_deleted),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
             }
 
             Spacer(Modifier.height(18.dp))
-            PlanHairline()
+            HorizontalSeparator(color = GoalsFlatColors.Hairline)
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1210,7 +1252,7 @@ private fun GoalsScreenContent(
                     color = GoalsFlatColors.Muted,
                 )
             }
-            PlanHairline()
+            HorizontalSeparator(color = GoalsFlatColors.Hairline)
 
             Spacer(Modifier.height(14.dp))
             GoalsUnderlineTabs(
@@ -1269,81 +1311,31 @@ private fun GoalsScreenContent(
 }
 
 @Composable
-private fun FlatActionChip(
-    label: String,
-    icon: @Composable () -> Unit,
-    filled: Boolean,
-    onClick: () -> Unit,
-) {
-    val shape = RoundedCornerShape(20.dp)
-    Box(
-        modifier = Modifier
-            .heightIn(min = 40.dp)
-            .clip(shape)
-            .then(
-                if (filled) {
-                    Modifier.background(GoalsFlatColors.Primary)
-                } else {
-                    Modifier.border(1.dp, GoalsFlatColors.Hairline, shape)
-                },
-            )
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = onClick,
-            )
-            .padding(horizontal = 14.dp, vertical = 8.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            icon()
-            Spacer(Modifier.width(if (filled) 4.dp else 6.dp))
-            Text(
-                label,
-                fontSize = 13.sp,
-                maxLines = 1,
-                overflow = TextOverflow.Clip,
-                fontWeight = FontWeight.SemiBold,
-                color = if (filled) Color.White else GoalsFlatColors.Text,
-            )
-        }
-    }
-}
-
-@Composable
 private fun GoalsUnderlineTabs(
     tabs: List<String>,
     selectedTab: Int,
     onTabSelected: (Int) -> Unit,
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(26.dp),
+    Tabs(
+        selectedTab = selectedTab,
+        onSelectedTabChange = onTabSelected,
+        orderedTabs = tabs.indices.toList(),
+        modifier = Modifier.fillMaxWidth(),
     ) {
-        tabs.forEachIndexed { i, title ->
-            val selected = selectedTab == i
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier
-                    .width(IntrinsicSize.Min)
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = { onTabSelected(i) },
-                    ),
-            ) {
-                Text(
-                    text = title,
-                    fontSize = 13.sp,
-                    fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
-                    color = if (selected) GoalsFlatColors.Text else GoalsFlatColors.Muted,
-                )
-                Spacer(Modifier.height(10.dp))
-                Box(
-                    Modifier
-                        .fillMaxWidth()
-                        .height(2.dp)
-                        .background(if (selected) GoalsFlatColors.Primary else Color.Transparent),
+        TabList(
+            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+            dividerColor = GoalsFlatColors.Hairline,
+        ) {
+            tabs.forEachIndexed { i, title ->
+                Tab(
+                    key = i,
+                    text = {
+                        Text(
+                            text = title,
+                            fontSize = 13.sp,
+                            fontWeight = if (selectedTab == i) FontWeight.Bold else FontWeight.Medium,
+                        )
+                    },
                 )
             }
         }

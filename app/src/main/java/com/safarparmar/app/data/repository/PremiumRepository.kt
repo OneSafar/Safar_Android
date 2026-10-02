@@ -18,7 +18,7 @@ class PremiumRepository @Inject constructor(
     private val api: PremiumApi,
     private val dataStore: SafarDataStore,
 ) {
-    val cachedStatus: Flow<PremiumStatus> = combine(
+    val cachedStatus: Flow<PremiumStatus> = combine<Any?, PremiumStatus>(
         dataStore.isPremium,
         dataStore.premiumPlanType,
         dataStore.premiumExpiresAt,

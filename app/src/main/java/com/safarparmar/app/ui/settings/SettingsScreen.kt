@@ -27,6 +27,14 @@ import androidx.compose.material.icons.filled.Nightlight
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PrivacyTip
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.rounded.WorkspacePremium
+import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.School
+import androidx.compose.material.icons.filled.Forum
+import androidx.compose.material.icons.filled.QueryStats
+import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material.icons.filled.WorkspacePremium
@@ -54,7 +62,9 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import com.safarparmar.app.data.local.SafarDataStore
+import com.safarparmar.app.ui.components.LanguageSelectionDialog
 import com.safarparmar.app.ui.components.DeleteAccountDialog
 import com.safarparmar.app.ui.drawer.SafarDrawerScaffold
 import com.safarparmar.app.ui.navigation.Routes
@@ -65,6 +75,7 @@ import com.safarparmar.app.ui.studyplanner.plan.PlanHairline
 import com.safarparmar.app.ui.theme.LoraFontFamily
 import com.safarparmar.app.ui.theme.SafarSemanticColors
 import com.safarparmar.app.R
+import com.composables.ui.components.Switch as ComposablesSwitch
 
 private const val URL_PRIVACY_POLICY = "https://safarapp.in/privacy"
 private const val URL_TERMS = "https://safarapp.in/terms"
@@ -74,17 +85,28 @@ private fun SettingsSheetSection(
     title: String,
     content: @Composable () -> Unit,
 ) {
+    val isDark = LocalPlannerIsDarkTheme.current == true
     Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        modifier = Modifier.fillMaxWidth()
     ) {
         Text(
             text = title,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Bold,
-            color = PlannerFlatColors.TextDark,
+            modifier = Modifier.padding(start = 14.dp, bottom = 6.dp),
+            fontSize = 13.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = if (isDark) Color(0xFFA0A0A0) else Color(0xFF6B7280)
         )
-        content()
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            color = if (isDark) Color(0xFF1E1E1E) else Color.White,
+            shape = RoundedCornerShape(16.dp),
+        ) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                ) {
+                content()
+            }
+        }
     }
 }
 
@@ -141,7 +163,7 @@ fun SettingsScreen(
             isDarkTheme = isDarkTheme,
             onNavigate = onNavigate,
             onToggleDarkTheme = onToggleDarkTheme,
-            containerColor = SafarSemanticColors.plannerBackground(),
+            containerColor = if (LocalPlannerIsDarkTheme.current == true) Color(0xFF111111) else Color(0xFFF7F8FA),
         ) { paddingValues ->
             var settingsVisible by remember { mutableStateOf(false) }
             LaunchedEffect(Unit) {
@@ -177,7 +199,7 @@ fun SettingsScreen(
                     }
 
                     if (canAccessAdminComposer) {
-                        PlanHairline(alpha = 0.5f)
+                        
                         StaggeredSettingsEntranceBox(index = 1, isVisible = settingsVisible) {
                             SettingsSheetSection(title = stringResource(R.string.settings_admin_tools)) {
                                 SettingsNavigationRow(
@@ -190,10 +212,19 @@ fun SettingsScreen(
                         }
                     }
 
-                    PlanHairline(alpha = 0.5f)
+                    
 
                     StaggeredSettingsEntranceBox(index = 2, isVisible = settingsVisible) {
                         val haptic = LocalHapticFeedback.current
+                        val isDark = LocalPlannerIsDarkTheme.current == true
+                        val currentLanguageLabel = when {
+                            AppCompatDelegate.getApplicationLocales().toLanguageTags().startsWith("hi-Latn") ->
+                                stringResource(R.string.profile_language_hinglish)
+                            AppCompatDelegate.getApplicationLocales().toLanguageTags().startsWith("hi") ->
+                                stringResource(R.string.profile_language_hindi)
+                            else -> stringResource(R.string.profile_language_english)
+                        }
+
                         SettingsSheetSection(title = stringResource(R.string.settings_preferences_appearance)) {
                             SettingsSwitchRow(
                                 title = stringResource(R.string.settings_dark_theme),
@@ -205,11 +236,67 @@ fun SettingsScreen(
                                 },
                                 icon = if (isDarkTheme) Icons.Default.Nightlight else Icons.Default.WbSunny,
                             )
-                            // Language selector hidden from settings as requested.
+
+                            GroupDivider()
+
+                            // App Language row with Globe icon, title "App Language", NO subtext, and purple pill
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { showLanguageDialog = true }
+                                    .padding(vertical = 10.dp, horizontal = 14.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    SettingsSquircleIcon(
+                                        icon = Icons.Default.Language,
+                                        iconTint = if (isDark) Color(0xFFE5E7EB) else Color(0xFF4B5563),
+                                        backgroundColor = if (isDark) Color(0xFF2D2D2D) else Color(0xFFF3F4F6)
+                                    )
+                                    Text(
+                                        text = stringResource(R.string.profile_language_title),
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = PlannerFlatColors.TextDark
+                                    )
+                                }
+
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(20.dp))
+                                        .background(SafarSemanticColors.brandPurple())
+                                        .clickable { showLanguageDialog = true }
+                                        .padding(horizontal = 14.dp, vertical = 7.dp),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                    ) {
+                                        Text(
+                                            text = currentLanguageLabel,
+                                            fontSize = 13.5.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = Color.White,
+                                        )
+                                        Icon(
+                                            imageVector = Icons.Default.KeyboardArrowDown,
+                                            contentDescription = null,
+                                            tint = Color.White,
+                                            modifier = Modifier.size(18.dp),
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
 
-                    PlanHairline(alpha = 0.5f)
+                    
 
                     StaggeredSettingsEntranceBox(index = 3, isVisible = settingsVisible) {
                         SettingsSheetSection(title = stringResource(R.string.settings_study_notifications)) {
@@ -221,7 +308,7 @@ fun SettingsScreen(
                         }
                     }
 
-                    PlanHairline(alpha = 0.5f)
+                    
 
                     val grantedCount = listOf(hasUsagePermission, hasOverlayPermission, hasNotificationPermission, hasNotificationShieldPermission).count { it }
                     StaggeredSettingsEntranceBox(index = 4, isVisible = settingsVisible) {
@@ -236,7 +323,7 @@ fun SettingsScreen(
                         }
                     }
 
-                    PlanHairline(alpha = 0.5f)
+                    
 
                     StaggeredSettingsEntranceBox(index = 5, isVisible = settingsVisible) {
                         SettingsSheetSection(title = stringResource(R.string.settings_legal_information)) {
@@ -247,7 +334,7 @@ fun SettingsScreen(
                         }
                     }
 
-                    PlanHairline(alpha = 0.5f)
+                    
 
                     StaggeredSettingsEntranceBox(index = 6, isVisible = settingsVisible) {
                         SettingsSheetSection(title = stringResource(R.string.settings_account_data)) {
@@ -297,33 +384,7 @@ fun SettingsScreen(
             }
 
             if (showLanguageDialog) {
-                val choices = listOf(
-                    "en" to stringResource(R.string.profile_language_english),
-                    "hi" to stringResource(R.string.profile_language_hindi),
-                    "hi-Latn" to stringResource(R.string.profile_language_hinglish),
-                )
-                AlertDialog(
-                    onDismissRequest = { showLanguageDialog = false },
-                    title = { Text(stringResource(R.string.profile_language_dialog_title)) },
-                    text = {
-                        Column {
-                            choices.forEach { (languageTag, label) ->
-                                TextButton(
-                                    onClick = {
-                                        showLanguageDialog = false
-                                        AppCompatDelegate.setApplicationLocales(
-                                            LocaleListCompat.forLanguageTags(languageTag)
-                                        )
-                                    },
-                                    modifier = Modifier.fillMaxWidth(),
-                                ) {
-                                    Text(label, modifier = Modifier.fillMaxWidth())
-                                }
-                            }
-                        }
-                    },
-                    confirmButton = {},
-                )
+                LanguageSelectionDialog(onDismiss = { showLanguageDialog = false })
             }
         }
     }
@@ -335,67 +396,48 @@ private fun PremiumStatusSection(
     onExplorePremium: () -> Unit,
     onRestoreStatus: () -> Unit,
 ) {
-    val scheme = MaterialTheme.colorScheme
+    val isDark = LocalPlannerIsDarkTheme.current == true
     val statusTitle = stringResource(if (isPremiumActive) R.string.settings_premium_active else R.string.settings_plus_plan)
     val statusSubtitle = stringResource(if (isPremiumActive) R.string.settings_premium_unlocked else R.string.settings_free_active)
 
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onExplorePremium)
+            .padding(vertical = 10.dp, horizontal = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
             modifier = Modifier.weight(1f)
         ) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(if (isPremiumActive) SafarSemanticColors.brandPurple().copy(alpha = 0.12f) else PlannerFlatColors.TextMuted.copy(alpha = 0.1f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.WorkspacePremium,
-                    contentDescription = null,
-                    tint = if (isPremiumActive) SafarSemanticColors.brandPurple() else PlannerFlatColors.TextMuted,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-            Column {
+            SettingsSquircleIcon(
+                icon = androidx.compose.material.icons.Icons.Rounded.WorkspacePremium,
+                iconTint = SafarSemanticColors.brandPurple(),
+                backgroundColor = if (isDark) SafarSemanticColors.brandPurple().copy(alpha = 0.15f) else Color(0xFFF3E8FF)
+            )
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
                     text = statusTitle,
-                    fontSize = 15.5.sp,
+                    fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                     color = PlannerFlatColors.TextDark
                 )
                 Text(
                     text = statusSubtitle,
-                    fontSize = 12.5.sp,
-                    color = if (isPremiumActive) SafarSemanticColors.brandPurple() else PlannerFlatColors.TextMuted
+                    fontSize = 12.sp,
+                    color = PlannerFlatColors.TextMuted
                 )
             }
         }
-
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(SafarSemanticColors.brandPurple().copy(alpha = 0.08f))
-                    .border(1.dp, SafarSemanticColors.brandPurple().copy(alpha = 0.3f), RoundedCornerShape(10.dp))
-                    .clickable(onClick = onExplorePremium)
-                    .padding(vertical = 8.dp, horizontal = 12.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = stringResource(if (isPremiumActive) R.string.settings_manage else R.string.settings_explore),
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = SafarSemanticColors.brandPurple()
-                )
-            }
-        }
+        Icon(
+            imageVector = androidx.compose.material.icons.Icons.Default.ChevronRight,
+            contentDescription = null,
+            tint = PlannerFlatColors.TextMuted,
+            modifier = Modifier.size(20.dp)
+        )
     }
 }
 
@@ -415,13 +457,14 @@ private fun NotificationsSection(
         )
 
         if (uiState.notificationsEnabled) {
-            PlanHairline(alpha = 0.4f)
+            GroupDivider()
 
             SettingsSwitchRow(
                 title = stringResource(R.string.settings_timer_updates),
                 subtitle = stringResource(R.string.settings_timer_updates_subtitle),
                 checked = uiState.focusTimerNotificationsEnabled,
                 onCheckedChange = { onEvent(SettingsEvent.ToggleFocusTimerNotifications(it)) },
+                icon = Icons.Default.Timer,
             )
 
             SettingsSwitchRow(
@@ -429,6 +472,7 @@ private fun NotificationsSection(
                 subtitle = stringResource(R.string.settings_daily_reminder_subtitle),
                 checked = uiState.dailyStudyReminderEnabled,
                 onCheckedChange = { onEvent(SettingsEvent.ToggleDailyStudyReminder(it)) },
+                icon = Icons.Default.Schedule,
             )
 
             if (uiState.dailyStudyReminderEnabled) {
@@ -473,6 +517,7 @@ private fun NotificationsSection(
                 subtitle = stringResource(R.string.settings_streak_warning_subtitle),
                 checked = uiState.streakReminderEnabled,
                 onCheckedChange = { onEvent(SettingsEvent.ToggleStreakReminder(it)) },
+                icon = Icons.Default.LocalFireDepartment,
             )
 
             SettingsSwitchRow(
@@ -480,6 +525,7 @@ private fun NotificationsSection(
                 subtitle = stringResource(R.string.settings_course_updates_subtitle),
                 checked = uiState.courseUpdatesEnabled,
                 onCheckedChange = { onEvent(SettingsEvent.ToggleCourseUpdates(it)) },
+                icon = Icons.Default.School,
             )
 
             SettingsSwitchRow(
@@ -487,6 +533,7 @@ private fun NotificationsSection(
                 subtitle = stringResource(R.string.settings_mehfil_replies_subtitle),
                 checked = uiState.communityRepliesEnabled,
                 onCheckedChange = { onEvent(SettingsEvent.ToggleCommunityReplies(it)) },
+                icon = Icons.Default.Forum,
             )
         }
     }
@@ -505,6 +552,7 @@ private fun PermissionsSection(
             title = stringResource(R.string.settings_usage_access),
             subtitle = stringResource(R.string.settings_usage_access_subtitle),
             isGranted = hasUsagePermission,
+            icon = Icons.Default.QueryStats,
             onGrantClick = {
                 val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS).apply {
                     data = Uri.fromParts("package", context.packageName, null)
@@ -517,6 +565,7 @@ private fun PermissionsSection(
             title = stringResource(R.string.settings_display_over_apps),
             subtitle = stringResource(R.string.settings_display_over_apps_subtitle),
             isGranted = hasOverlayPermission,
+            icon = Icons.Default.Layers,
             onGrantClick = {
                 val intent = Intent(
                     Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
@@ -531,6 +580,7 @@ private fun PermissionsSection(
                 title = stringResource(R.string.settings_system_notifications),
                 subtitle = stringResource(R.string.settings_system_notifications_subtitle),
                 isGranted = hasNotificationPermission,
+                icon = Icons.Default.Notifications,
                 onGrantClick = {
                     val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
                         putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
@@ -586,88 +636,14 @@ private fun PermissionRow(
     subtitle: String,
     isGranted: Boolean,
     onGrantClick: () -> Unit,
+    icon: ImageVector = androidx.compose.material.icons.Icons.Default.Security
 ) {
-    val scheme = MaterialTheme.colorScheme
-
+    val isDark = LocalPlannerIsDarkTheme.current == true
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onGrantClick),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(3.dp)
-        ) {
-            Text(
-                text = title,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = PlannerFlatColors.TextDark
-            )
-            Text(
-                text = subtitle,
-                fontSize = 13.5.sp,
-                color = PlannerFlatColors.TextMuted
-            )
-        }
-
-        if (isGranted) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.CheckCircle,
-                    contentDescription = null,
-                    tint = Color(0xFF10B981),
-                    modifier = Modifier.size(18.dp)
-                )
-                Text(
-                    text = stringResource(R.string.settings_granted),
-                    fontSize = 13.5.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF10B981)
-                )
-            }
-        } else {
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(SafarSemanticColors.brandPurple())
-                    .padding(vertical = 7.dp, horizontal = 14.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = stringResource(R.string.settings_grant),
-                    fontSize = 13.5.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = SafarSemanticColors.brandOnPurple()
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun SettingsSwitchRow(
-    title: String,
-    subtitle: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-    icon: ImageVector? = null,
-) {
-    val scheme = MaterialTheme.colorScheme
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onCheckedChange(!checked) }
-            .padding(vertical = 6.dp),
+            .clickable(onClick = onGrantClick)
+            .padding(vertical = 10.dp, horizontal = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
@@ -676,70 +652,10 @@ private fun SettingsSwitchRow(
             horizontalArrangement = Arrangement.spacedBy(14.dp),
             modifier = Modifier.weight(1f)
         ) {
-            if (icon != null) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = SafarSemanticColors.brandPurple(),
-                    modifier = Modifier.size(22.dp)
-                )
-            }
-            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text(
-                    text = title,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = PlannerFlatColors.TextDark
-                )
-                Text(
-                    text = subtitle,
-                    fontSize = 13.5.sp,
-                    color = PlannerFlatColors.TextMuted
-                )
-            }
-        }
-
-        Switch(
-            checked = checked,
-            onCheckedChange = onCheckedChange,
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = scheme.onPrimary,
-                checkedTrackColor = SafarSemanticColors.brandPurple(),
-                uncheckedTrackColor = PlannerFlatColors.BorderSoft,
-                uncheckedThumbColor = PlannerFlatColors.TextMuted,
-            )
-        )
-    }
-}
-
-@Composable
-private fun SettingsNavigationRow(
-    title: String,
-    subtitle: String,
-    icon: ImageVector,
-    onClick: () -> Unit,
-) {
-    val scheme = MaterialTheme.colorScheme
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
-            .clickable(onClick = onClick)
-            .padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.weight(1f)
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = SafarSemanticColors.brandPurple(),
-                modifier = Modifier.size(20.dp)
+            SettingsSquircleIcon(
+                icon = icon,
+                iconTint = if (isDark) Color(0xFFE5E7EB) else Color(0xFF4B5563),
+                backgroundColor = if (isDark) Color(0xFF2D2D2D) else Color(0xFFF3F4F6)
             )
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
@@ -756,8 +672,156 @@ private fun SettingsNavigationRow(
             }
         }
 
+        if (isGranted) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color(0xFF10B981).copy(alpha = 0.1f))
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
+            ) {
+                Icon(
+                    imageVector = androidx.compose.material.icons.Icons.Default.CheckCircle,
+                    contentDescription = null,
+                    tint = Color(0xFF10B981),
+                    modifier = Modifier.size(16.dp)
+                )
+                Text(
+                    text = stringResource(R.string.settings_granted),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF10B981)
+                )
+            }
+        } else {
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(SafarSemanticColors.brandPurple())
+                    .padding(vertical = 6.dp, horizontal = 12.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = stringResource(R.string.settings_grant),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = SafarSemanticColors.brandOnPurple()
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingsSwitchRow(
+    title: String,
+    subtitle: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    icon: ImageVector? = null,
+) {
+    val isDark = LocalPlannerIsDarkTheme.current == true
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onCheckedChange(!checked) }
+            .padding(vertical = 10.dp, horizontal = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            modifier = Modifier.weight(1f)
+        ) {
+            if (icon != null) {
+                SettingsSquircleIcon(
+                    icon = icon,
+                    iconTint = if (isDark) Color(0xFFE5E7EB) else Color(0xFF4B5563),
+                    backgroundColor = if (isDark) Color(0xFF2D2D2D) else Color(0xFFF3F4F6)
+                )
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = title,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = PlannerFlatColors.TextDark
+                )
+                if (subtitle.isNotEmpty()) {
+                    Text(
+                        text = subtitle,
+                        fontSize = 12.sp,
+                        color = PlannerFlatColors.TextMuted
+                    )
+                }
+            }
+        }
+
+        ComposablesSwitch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            accessibilityLabel = title,
+        )
+    }
+}
+
+@Composable
+private fun SettingsNavigationRow(
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    onClick: () -> Unit,
+    iconTint: Color? = null,
+    iconBg: Color? = null
+) {
+    val isDark = LocalPlannerIsDarkTheme.current == true
+    val defaultIconTint = if (isDark) Color(0xFFE5E7EB) else Color(0xFF4B5563)
+    val defaultIconBg = if (isDark) Color(0xFF2D2D2D) else Color(0xFFF3F4F6)
+    
+    val finalIconTint = iconTint ?: defaultIconTint
+    val finalIconBg = iconBg ?: defaultIconBg
+    
+    val isDelete = title.contains("Delete", ignoreCase = true)
+    val activeTint = if (isDelete) Color(0xFFEF4444) else finalIconTint
+    val activeBg = if (isDelete) Color(0xFFFEE2E2) else finalIconBg
+    val activeTitleColor = if (isDelete) Color(0xFFEF4444) else PlannerFlatColors.TextDark
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 10.dp, horizontal = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            modifier = Modifier.weight(1f)
+        ) {
+            SettingsSquircleIcon(
+                icon = icon,
+                iconTint = activeTint,
+                backgroundColor = if (isDark && isDelete) Color(0xFF5F1717) else activeBg
+            )
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = title,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = activeTitleColor
+                )
+                Text(
+                    text = subtitle,
+                    fontSize = 12.sp,
+                    color = PlannerFlatColors.TextMuted
+                )
+            }
+        }
         Icon(
-            imageVector = Icons.Default.ChevronRight,
+            imageVector = androidx.compose.material.icons.Icons.Default.ChevronRight,
             contentDescription = null,
             tint = PlannerFlatColors.TextMuted,
             modifier = Modifier.size(20.dp)
@@ -781,7 +845,7 @@ private fun TimePickerDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = SafarSemanticColors.plannerBackground(),
+        containerColor = if (LocalPlannerIsDarkTheme.current == true) Color(0xFF111111) else Color(0xFFF7F8FA),
         title = {
             Text(
                 text = stringResource(R.string.settings_select_reminder_time),
@@ -842,7 +906,7 @@ private fun TimePickerDialog(
 private fun PermissionExplanationDialog(onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = SafarSemanticColors.plannerBackground(),
+        containerColor = if (LocalPlannerIsDarkTheme.current == true) Color(0xFF111111) else Color(0xFFF7F8FA),
         icon = { Icon(Icons.Default.Security, null, tint = SafarSemanticColors.brandPurple()) },
         title = {
             Text(
@@ -1000,5 +1064,38 @@ private fun openUrl(context: Context, url: String) {
         context.startActivity(intent)
     } catch (e: Exception) {
         Toast.makeText(context, context.getString(com.safarparmar.app.R.string.settings_link_failed), Toast.LENGTH_SHORT).show()
+    }
+}
+
+
+@Composable
+private fun GroupDivider() {
+    val isDark = LocalPlannerIsDarkTheme.current == true
+    HorizontalDivider(
+        modifier = Modifier.padding(start = 54.dp, end = 0.dp),
+        thickness = 0.6.dp,
+        color = if (isDark) Color.White.copy(alpha = 0.06f) else Color.Black.copy(alpha = 0.06f)
+    )
+}
+
+@Composable
+fun SettingsSquircleIcon(
+    icon: ImageVector,
+    iconTint: Color,
+    backgroundColor: Color,
+) {
+    Box(
+        modifier = Modifier
+            .size(32.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(backgroundColor),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = iconTint,
+            modifier = Modifier.size(18.dp)
+        )
     }
 }

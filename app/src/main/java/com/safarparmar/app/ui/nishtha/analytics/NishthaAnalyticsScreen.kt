@@ -125,8 +125,8 @@ fun NishthaAnalyticsScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .horizontalScroll(rememberScrollState())
-                    .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    .padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 AnalyticsSectionChip(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.nishtha_analytics_overview), selectedSection == "overview", Color(0xFF1E3A8A), isLight) { selectedSection = "overview" }
                 AnalyticsSectionChip("Goals", selectedSection == "goals", Color(0xFF065F46), isLight) { selectedSection = "goals" }
@@ -677,13 +677,13 @@ private fun ScoreCard(
             .background(secondaryText(isLight).copy(alpha = 0.06f))
     ) {
         Row(
-            Modifier.padding(14.dp),
+            Modifier.padding(10.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(14.dp)
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Box(
                 modifier = Modifier
-                    .size(40.dp)
+                    .size(32.dp)
                     .clip(CircleShape)
                     .background(accentColor.copy(alpha = if (isLight) 0.12f else 0.2f)),
                 contentAlignment = Alignment.Center
@@ -691,7 +691,7 @@ private fun ScoreCard(
                 Icon(
                     painter = androidx.compose.ui.res.painterResource(id = iconRes),
                     contentDescription = null,
-                    modifier = Modifier.size(20.dp),
+                    modifier = Modifier.size(16.dp),
                     tint = accentColor
                 )
             }
@@ -705,7 +705,7 @@ private fun ScoreCard(
                 )
                 Text(
                     value,
-                    fontSize = 24.sp,
+                    fontSize = 20.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color = primaryText(isLight)
                 )
@@ -713,9 +713,9 @@ private fun ScoreCard(
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         message,
-                        fontSize = 11.sp,
+                        fontSize = 10.sp,
                         color = secondaryText(isLight),
-                        lineHeight = 15.sp
+                        lineHeight = 14.sp
                     )
                 }
             }
@@ -733,9 +733,9 @@ private fun GoalsCountCard(
 ) {
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(12.dp))
             .background(secondaryText(isLight).copy(alpha = 0.06f))
-            .padding(14.dp)
+            .padding(10.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
@@ -746,7 +746,7 @@ private fun GoalsCountCard(
             )
             Text(
                 value,
-                fontSize = 22.sp,
+                fontSize = 18.sp,
                 fontWeight = FontWeight.ExtraBold,
                 color = accentColor
             )

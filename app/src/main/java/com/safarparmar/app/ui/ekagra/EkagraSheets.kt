@@ -1,4 +1,5 @@
 package com.safarparmar.app.ui.ekagra
+import com.composables.ui.components.HorizontalSeparator as HorizontalDivider
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.selection.selectable
@@ -87,9 +88,10 @@ internal fun VisualThemeDialog(current: VisualTheme, onSelect: (VisualTheme) -> 
     val ink = rememberEkagraInk(onCanvas = false)
     val dialogBg = scheme.background
 
-    AlertDialog(
+    com.composables.ui.components.AlertDialog(
+        visible = true,
         onDismissRequest = onDismiss,
-        containerColor = dialogBg,
+        backgroundColor= dialogBg,
         shape = RoundedCornerShape(24.dp),
         title = {
             Column(Modifier.fillMaxWidth()) {
@@ -113,7 +115,7 @@ internal fun VisualThemeDialog(current: VisualTheme, onSelect: (VisualTheme) -> 
                 val chunks = selectableVisualThemes.chunked(2)
                 Column(
                     verticalArrangement = Arrangement.spacedBy(10.dp),
-                    modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState())
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     chunks.forEach { pair ->
                         Row(
@@ -195,7 +197,7 @@ internal fun VisualThemeDialog(current: VisualTheme, onSelect: (VisualTheme) -> 
                 }
             }
         },
-        confirmButton = {},
+        positiveButton= {},
     )
 }
 
@@ -204,7 +206,7 @@ internal fun VisualThemeDialog(current: VisualTheme, onSelect: (VisualTheme) -> 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun OrganizeFreeFocusSheet(
-    sheetState: SheetState,
+    sheetState: com.composables.ui.components.BottomSheetState,
     pending: PendingEndedEkagraSession?,
     todayGoals: List<com.safarparmar.app.domain.model.Goal>,
     titleInput: String,
@@ -247,11 +249,10 @@ internal fun OrganizeFreeFocusSheet(
     var markTopicDone by remember(pending?.sessionId) { mutableStateOf(false) }
     val isTopicSession = pending?.topicId != null
 
-    ModalBottomSheet(
+    com.composables.ui.components.BottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = containerColor,
-        dragHandle = { BottomSheetDefaults.DragHandle(color = secondaryTextColor.copy(alpha = 0.4f)) },
+        state = sheetState,
+        backgroundColor = containerColor,
     ) {
         Column(
             modifier = Modifier
@@ -305,7 +306,7 @@ internal fun OrganizeFreeFocusSheet(
                         textColor = primaryTextColor,
                     )
                 } else {
-                    OutlinedTextField(
+                    com.safarparmar.app.ui.components.SafarRichTextField(
                         value = titleInput,
                         onValueChange = onTitleChange,
                         label = { Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.ekagra_session_name_sentence), fontSize = 14.sp) },
@@ -408,7 +409,7 @@ internal fun OrganizeFreeFocusSheet(
                                         .heightIn(min = 48.dp),
                                     verticalAlignment = Alignment.CenterVertically,
                                 ) {
-                                    RadioButton(
+                                    com.safarparmar.app.ui.components.SafarRadioIndicator(
                                         selected = selected,
                                         onClick = null,
                                         colors = RadioButtonDefaults.colors(selectedColor = accent, unselectedColor = secondaryTextColor),
@@ -438,7 +439,7 @@ internal fun OrganizeFreeFocusSheet(
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                                     ) {
-                                        RadioButton(
+                                        com.safarparmar.app.ui.components.SafarRadioIndicator(
                                             selected = selected,
                                             onClick = null,
                                             colors = RadioButtonDefaults.colors(selectedColor = accent, unselectedColor = secondaryTextColor),
@@ -470,10 +471,10 @@ internal fun OrganizeFreeFocusSheet(
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                TextButton(onClick = onDiscard, modifier = Modifier.heightIn(min = 48.dp)) {
+                com.composables.ui.components.Button(style = com.composables.ui.components.ButtonStyle.Ghost, onClick = onDiscard, modifier = Modifier.heightIn(min = 48.dp)) {
                     Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.common_discard), fontSize = 14.sp, color = secondaryTextColor)
                 }
-                Button(
+                com.safarparmar.app.ui.components.SafarButton(
                     onClick = {
                         val goal = selectedGoal
                         when {
@@ -508,7 +509,13 @@ private fun SessionCompletionOption(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Checkbox(checked = checked, onCheckedChange = null, colors = CheckboxDefaults.colors(checkedColor = accent))
+        com.safarparmar.app.ui.components.SafarColoredCheckbox(
+            checked = checked,
+            onCheckedChange = {},
+            checkedColor = accent,
+            uncheckedColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            checkmarkColor = MaterialTheme.colorScheme.onPrimary,
+        )
         Text(label, fontSize = 14.sp, color = textColor)
     }
 }
@@ -900,8 +907,8 @@ internal fun PostSaveGoalLinkingSheet(
     selectedTheme: VisualTheme? = null,
     isDarkTheme: Boolean = false,
 ) {
-    val sheetState = rememberModalBottomSheetState(
-        skipPartiallyExpanded = true,
+    val sheetState = com.composables.ui.components.rememberBottomSheetState(
+        initialDetent = com.composables.ui.components.BottomSheetDetent.FullyExpanded,
     )
     val focusedTimeLabel = formatTopicStudyTime(savedDurationSeconds)
 
@@ -914,11 +921,10 @@ internal fun PostSaveGoalLinkingSheet(
     val themeAccent = selectedTheme?.accent ?: MaterialTheme.colorScheme.primary
     val maxSheetHeight = LocalConfiguration.current.screenHeightDp.dp * 0.85f
 
-    ModalBottomSheet(
+    com.composables.ui.components.BottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = if (isDarkTheme) MaterialTheme.colorScheme.surface else Color.White,
-        dragHandle = { BottomSheetDefaults.DragHandle(color = ink.hairline) },
+        state = sheetState,
+        backgroundColor = if (isDarkTheme) MaterialTheme.colorScheme.surface else Color.White,
     ) {
         Column(
             modifier = Modifier

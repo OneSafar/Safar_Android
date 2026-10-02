@@ -26,6 +26,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material3.*
+import com.composables.ui.components.AlertDialog as UiAlertDialog
+import com.composables.ui.components.Button as UiButton
+import com.composables.ui.components.ButtonStyle as UiButtonStyle
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -219,7 +222,7 @@ private fun NotificationRationaleDialog(
                         Spacer(Modifier.height(24.dp))
 
                         // Allow button
-                        Button(
+                        com.safarparmar.app.ui.components.SafarButton(
                             onClick = onAllow,
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -240,7 +243,7 @@ private fun NotificationRationaleDialog(
                         Spacer(Modifier.height(8.dp))
 
                         // Dismiss link
-                        TextButton(
+                        com.composables.ui.components.Button(style = com.composables.ui.components.ButtonStyle.Ghost,
                             onClick = onDismiss,
                             modifier = Modifier.fillMaxWidth(),
                         ) {
@@ -263,7 +266,8 @@ private fun NotificationSettingsDialog(
     onOpenSettings: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    AlertDialog(
+    UiAlertDialog(
+        visible = true,
         onDismissRequest = onDismiss,
         icon = {
             Icon(
@@ -275,13 +279,13 @@ private fun NotificationSettingsDialog(
         text = {
             Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.notifications_off_body))
         },
-        confirmButton = {
-            TextButton(onClick = onOpenSettings) {
+        positiveButton = {
+            UiButton(onClick = onOpenSettings) {
                 Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.notifications_open_settings))
             }
         },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
+        negativeButton = {
+            UiButton(onClick = onDismiss, style = UiButtonStyle.Ghost) {
                 Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.common_not_now))
             }
         },

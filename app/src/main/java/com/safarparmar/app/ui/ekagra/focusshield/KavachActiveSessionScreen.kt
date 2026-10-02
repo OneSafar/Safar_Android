@@ -26,10 +26,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Shield
-import androidx.compose.material3.Icon
+import com.composables.ui.components.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Text
+import com.composables.ui.components.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -146,7 +146,7 @@ fun KavachActiveSessionScreen(
             }
         }
 
-        OutlinedButton(
+        com.safarparmar.app.ui.components.SafarOutlinedButton(
             onClick = onEndSession,
             modifier = Modifier
                 .align(Alignment.BottomCenter)

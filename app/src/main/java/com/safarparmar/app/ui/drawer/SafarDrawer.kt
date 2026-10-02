@@ -1,6 +1,9 @@
 package com.safarparmar.app.ui.drawer
+import com.composables.ui.components.HorizontalSeparator as HorizontalDivider
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -42,6 +45,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalHapticFeedback
 import coil.compose.AsyncImage
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -97,6 +101,7 @@ val drawerSections = listOf(
                 requiresPremium = true,
             ),
             DrawerItem(R.string.module_ekagra, Icons.Default.Timer, Routes.EKAGRA),
+            DrawerItem(R.string.nav_habit_tracker, Icons.Default.CheckCircle, Routes.HABIT_TRACKER),
             DrawerItem(
                 R.string.nav_focus_shield,
                 Icons.Default.Shield,
@@ -107,7 +112,6 @@ val drawerSections = listOf(
                 Icons.Default.Leaderboard,
                 Routes.LEADERBOARD,
             ),
-            DrawerItem(R.string.module_courses, Icons.AutoMirrored.Filled.MenuBook, Routes.COURSES),
         ),
     ),
     DrawerSection(
@@ -142,40 +146,44 @@ val drawerItems: List<DrawerItem> =
 // COLOR TOKENS (CHARCOAL MATTE BLACK + UNIFIED DEEP PURPLE ACCENT)
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ─────────────────────────────────────────────────────────────────────────────
+// COLOR TOKENS & M3 GOOGLE NOTES SIDEBAR THEME
+// ─────────────────────────────────────────────────────────────────────────────
+
 private object DarkFlat {
-    val bg            = Color(0xFF141416)
-    val cardBg        = Color(0xFF1E1F24)
-    val textPrimary   = Color(0xFFF3F4F6)
-    val textSecondary = Color(0xFF9CA3AF)
-    val iconIndigo    = Color(0xFF818CF8)
-    val selBg         = Color(0xFF2E1065)
-    val selText       = Color(0xFFC084FC)
-    val selIcon       = Color(0xFFC084FC)
-    val border        = Color(0xFF27272A)
-    val chipBg        = Color(0xFF064E3B)
-    val chipBorder    = Color(0xFF059669).copy(alpha = 0.5f)
-    val chipText      = Color(0xFF34D399)
-    val chipIcon      = Color(0xFF34D399)
+    val bg            = Color(0xFF1B1B1F) // M3 Dark Surface
+    val cardBg        = Color(0xFF2B2B30)
+    val textPrimary   = Color(0xFFE3E2E6)
+    val textSecondary = Color(0xFFC7C5D0)
+    val iconIndigo    = Color(0xFFC084FC)
+    val selBg         = Color(0xFF381E72) // M3 Deep Purple Container
+    val selText       = Color(0xFFE8DEF8)
+    val selIcon       = Color(0xFFD0BCFF)
+    val border        = Color(0xFF44474E)
+    val chipBg        = Color(0xFF0F5223)
+    val chipBorder    = Color(0xFF299947).copy(alpha = 0.5f)
+    val chipText      = Color(0xFF6CFF95)
+    val chipIcon      = Color(0xFF6CFF95)
 }
 
 private object LightFlat {
-    val bg            = Color(0xFFFFFFFF)
-    val cardBg        = Color(0xFFFFFFFF)
-    val textPrimary   = Color(0xFF111827)
-    val textSecondary = Color(0xFF6B7280)
-    val iconIndigo    = Color(0xFF3730A3)
-    val selBg         = Color(0xFFF3E8FF)
-    val selText       = Color(0xFF6D28D9)
-    val selIcon       = Color(0xFF6D28D9)
-    val border        = Color(0xFFF3F4F6)
-    val chipBg        = Color(0xFFEBFBF3)
-    val chipBorder    = Color(0xFFD1F4E0)
-    val chipText      = Color(0xFF059669)
-    val chipIcon      = Color(0xFF059669)
+    val bg            = Color(0xFFFEF7FF) // M3 Light Surface
+    val cardBg        = Color(0xFFF3EDF7)
+    val textPrimary   = Color(0xFF1D1B20)
+    val textSecondary = Color(0xFF49454F)
+    val iconIndigo    = Color(0xFF581C87)
+    val selBg         = Color(0xFFE8DEF8) // M3 Light Purple Container
+    val selText       = Color(0xFF1D192B)
+    val selIcon       = Color(0xFF581C87)
+    val border        = Color(0xFFE7E0EC)
+    val chipBg        = Color(0xFFE8F5E9)
+    val chipBorder    = Color(0xFFA5D6A7)
+    val chipText      = Color(0xFF1B5E20)
+    val chipIcon      = Color(0xFF1B5E20)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SIDEBAR NAVIGATION DRAWER WITH 24.DP RIGHT CORNER SHAPE & GROUPED CARDS
+// SIDEBAR NAVIGATION DRAWER (GOOGLE NOTES M3 DESIGN SPECIFICATION)
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
@@ -196,8 +204,8 @@ fun SafarDrawer(
     val lt = LightFlat
     val currentBase = currentRoute.substringBefore("?")
 
-    // Rounded 24.dp corners on top-right and bottom-right as per design
-    val drawerShape = RoundedCornerShape(topEnd = 24.dp, bottomEnd = 24.dp, topStart = 0.dp, bottomStart = 0.dp)
+    // Google Notes Drawer signature right-rounded 28.dp shape
+    val drawerShape = RoundedCornerShape(topEnd = 28.dp, bottomEnd = 28.dp, topStart = 0.dp, bottomStart = 0.dp)
 
     val expandedSections = rememberSaveable(
         saver = listSaver(
@@ -235,19 +243,17 @@ fun SafarDrawer(
     val containerBgColor = if (isLight) lt.bg else dk.bg
     val containerBorderColor = if (isLight) lt.border else dk.border
 
-    ModalDrawerSheet(
-        modifier = Modifier
-            .fillMaxHeight()
-            .widthIn(max = 420.dp)
-            .fillMaxWidth(0.88f),
-        drawerContainerColor = containerBgColor,
-        drawerContentColor   = if (isLight) lt.textPrimary else dk.textPrimary,
-        drawerTonalElevation = 0.dp,
-        drawerShape          = drawerShape,
+    Surface(
+        modifier = Modifier.fillMaxHeight().fillMaxWidth(0.75f),
+        color = containerBgColor,
+        contentColor = if (isLight) lt.textPrimary else dk.textPrimary,
+        tonalElevation = 1.dp,
+        shape = drawerShape,
     ) {
         Column(
             modifier = Modifier
                 .fillMaxHeight()
+                .fillMaxWidth()
                 .navigationBarsPadding(),
         ) {
 
@@ -271,14 +277,17 @@ fun SafarDrawer(
 
                 // 2. NAV LIST IN EDGE-TO-EDGE STYLE WITH HAIRLINE DIVIDERS
                 LazyColumn(
-                    modifier       = Modifier.weight(1f),
+                    modifier       = Modifier.weight(1f).fillMaxWidth(),
                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
                     verticalArrangement = Arrangement.spacedBy(2.dp),
                 ) {
                     // Pinned Top Items (Home, Dashboard)
                     item(key = "pinned-top") {
                         StaggeredEntranceBox(index = 1, isVisible = entranceVisible) {
-                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalArrangement = Arrangement.spacedBy(2.dp),
+                            ) {
                                 drawerPinnedTop.forEach { item ->
                                     DrawerNavRow(
                                         item            = item,
@@ -312,7 +321,7 @@ fun SafarDrawer(
 
                         item(key = "section-${section.id}") {
                             StaggeredEntranceBox(index = 2 + sIdx, isVisible = entranceVisible) {
-                                Column {
+                                Column(modifier = Modifier.fillMaxWidth()) {
                                     DrawerSectionHeader(
                                         label = stringResource(section.labelRes),
                                         icon = section.icon,
@@ -342,7 +351,9 @@ fun SafarDrawer(
                                         ) + fadeOut(animationSpec = tween(180)),
                                     ) {
                                         Column(
-                                            modifier = Modifier.padding(top = 2.dp),
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(top = 2.dp),
                                             verticalArrangement = Arrangement.spacedBy(2.dp),
                                         ) {
                                             section.items.forEach { item ->
@@ -376,7 +387,10 @@ fun SafarDrawer(
 
                     item(key = "pinned-bottom") {
                         StaggeredEntranceBox(index = 4, isVisible = entranceVisible) {
-                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalArrangement = Arrangement.spacedBy(2.dp),
+                            ) {
                                 drawerPinnedBottom.filter { !it.requiresAdmin || isAdmin }.forEach { item ->
                                     DrawerNavRow(
                                         item            = item,
@@ -443,6 +457,7 @@ private fun StaggeredEntranceBox(
 
     Box(
         modifier = Modifier
+            .fillMaxWidth()
             .graphicsLayer {
                 translationX = slideOffset.toPx()
                 alpha = alphaAnim
@@ -486,7 +501,7 @@ private fun GroupedSurfaceCard(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// USER PROFILE HEADER BLOCK
+// USER PROFILE HEADER BLOCK (GOOGLE NOTES M3 STYLE)
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
@@ -510,28 +525,21 @@ private fun DrawerUserProfileHeader(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(
-                if (isLight) Brush.verticalGradient(
-                    colors = listOf(Color(0xFFF5F3FF), Color.White)
-                ) else Brush.verticalGradient(
-                    colors = listOf(Color(0xFF1E1F24), dk.bg)
-                )
-            )
             .statusBarsPadding()
-            .padding(horizontal = 20.dp, vertical = 20.dp)
+            .padding(horizontal = 20.dp, vertical = 18.dp)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Box(
                 modifier = Modifier
-                    .size(56.dp)
+                    .size(48.dp)
                     .clip(CircleShape)
-                    .background(if (isLight) Color(0xFF6366F1) else Color(0xFF4F46E5))
+                    .background(if (isLight) lt.selBg else dk.selBg)
                     .border(
-                        width = 3.dp,
-                        color = if (isLight) Color.White else Color(0xFF1E1F24),
+                        width = 1.5.dp,
+                        color = if (isLight) lt.border else dk.border,
                         shape = CircleShape,
                     ),
                 contentAlignment = Alignment.Center,
@@ -546,11 +554,11 @@ private fun DrawerUserProfileHeader(
                 } else {
                     Text(
                         text = displayName.take(1).uppercase(),
-                        style = MaterialTheme.typography.titleLarge.copy(
+                        style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold,
-                            fontSize = 22.sp,
+                            fontSize = 20.sp,
                         ),
-                        color = Color.White,
+                        color = if (isLight) lt.selText else dk.selText,
                     )
                 }
             }
@@ -558,49 +566,35 @@ private fun DrawerUserProfileHeader(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = displayName,
-                    style = MaterialTheme.typography.titleLarge.copy(
+                    style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp,
+                        fontSize = 16.sp,
                     ),
                     color = if (isLight) lt.textPrimary else dk.textPrimary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
                 )
-                if (displayEmail.isNotBlank()) {
-                    Spacer(Modifier.height(2.dp))
-                    Text(
-                        text = displayEmail,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Normal,
-                        color = if (isLight) lt.textSecondary else dk.textSecondary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
                 if (isPremiumActive) {
-                    Spacer(Modifier.height(6.dp))
+                    Spacer(Modifier.height(4.dp))
                     Surface(
-                        shape = RoundedCornerShape(20.dp),
+                        shape = RoundedCornerShape(12.dp),
                         color = if (isLight) lt.chipBg else dk.chipBg,
                         border = BorderStroke(1.dp, if (isLight) lt.chipBorder else dk.chipBorder),
                     ) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
                             Icon(
                                 imageVector = Icons.Default.CheckCircle,
                                 contentDescription = null,
                                 tint = if (isLight) lt.chipIcon else dk.chipIcon,
-                                modifier = Modifier.size(14.dp),
+                                modifier = Modifier.size(12.dp),
                             )
                             Text(
                                 text = stringResource(R.string.drawer_premium_active),
-                                style = MaterialTheme.typography.labelMedium.copy(
+                                style = MaterialTheme.typography.labelSmall.copy(
                                     fontWeight = FontWeight.SemiBold,
-                                    fontSize = 12.sp,
+                                    fontSize = 11.sp,
                                 ),
                                 color = if (isLight) lt.chipText else dk.chipText,
                             )
@@ -613,7 +607,7 @@ private fun DrawerUserProfileHeader(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ACCORDION FEATURE CATEGORY HEADER
+// ACCORDION FEATURE CATEGORY HEADER (GOOGLE NOTES M3 STYLE)
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
@@ -627,8 +621,8 @@ private fun DrawerSectionHeader(
     lt: LightFlat,
     onToggle: () -> Unit,
 ) {
-    val textColor = if (isLight) Color(0xFF4B5563) else Color(0xFF9CA3AF)
-    val iconColor = if (isLight) lt.iconIndigo else dk.iconIndigo
+    val textColor = if (isLight) lt.textSecondary else dk.textSecondary
+    val iconColor = if (isLight) lt.textSecondary else dk.textSecondary
 
     val rotationDegrees by animateFloatAsState(
         targetValue = if (expanded) 180f else 0f,
@@ -642,7 +636,7 @@ private fun DrawerSectionHeader(
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scaleAnim by animateFloatAsState(
-        targetValue = if (isPressed) 0.97f else 1f,
+        targetValue = if (isPressed) 0.98f else 1f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessHigh),
         label = "headerScale",
     )
@@ -650,24 +644,24 @@ private fun DrawerSectionHeader(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(48.dp)
+            .heightIn(min = 44.dp)
             .graphicsLayer {
                 scaleX = scaleAnim
                 scaleY = scaleAnim
             }
-            .clip(RoundedCornerShape(10.dp))
+            .clip(RoundedCornerShape(24.dp))
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
                 onClick = onToggle,
             )
-            .padding(horizontal = 12.dp, vertical = 10.dp),
+            .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
             modifier = Modifier.weight(1f),
         ) {
             Icon(
@@ -678,21 +672,20 @@ private fun DrawerSectionHeader(
             )
             Text(
                 text = label.uppercase(Locale.US),
+                modifier = Modifier.weight(1f),
                 style = MaterialTheme.typography.labelMedium.copy(
                     fontWeight = FontWeight.Bold,
-                    fontSize = 12.sp,
-                    letterSpacing = 0.8.sp,
+                    fontSize = 11.sp,
+                    letterSpacing = 1.sp,
                 ),
                 color = textColor,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
             )
             if (hasSelectedChild) {
                 Box(
                     modifier = Modifier
                         .size(6.dp)
                         .clip(CircleShape)
-                        .background(if (isLight) lt.selText else dk.selText),
+                        .background(if (isLight) lt.selBg else dk.selBg),
                 )
             }
         }
@@ -708,7 +701,7 @@ private fun DrawerSectionHeader(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SUBFEATURE NAVIGATION ROW
+// SUBFEATURE NAVIGATION ROW (GOOGLE NOTES M3 STYLE 24.DP PILL)
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
@@ -743,23 +736,25 @@ private fun DrawerNavRow(
         selected && isLight -> lt.selIcon
         selected -> dk.selIcon
         item.route == Routes.PREMIUM -> Color(0xFFE08A3C)
-        isLight -> lt.iconIndigo
-        else -> dk.iconIndigo
+        isLight -> lt.textSecondary
+        else -> dk.textSecondary
     }
 
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val itemScale by animateFloatAsState(
-        targetValue = if (isPressed) 0.97f else 1f,
+        targetValue = if (isPressed) 0.98f else 1f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessHigh),
         label = "itemScale",
     )
 
-    val capsuleShape = RoundedCornerShape(12.dp)
+    // Google Notes M3 selection container pill shape
+    val capsuleShape = RoundedCornerShape(24.dp)
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
+            .heightIn(min = 48.dp)
             .graphicsLayer {
                 scaleX = itemScale
                 scaleY = itemScale
@@ -773,48 +768,34 @@ private fun DrawerNavRow(
                 onNavigate(item.route)
                 onCloseDrawer()
             }
-            .padding(horizontal = 12.dp, vertical = 10.dp)
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        contentAlignment = Alignment.CenterStart
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
-            if (selected) {
-                val barHeight by animateDpAsState(
-                    targetValue = if (selected) 18.dp else 0.dp,
-                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-                    label = "barHeight",
-                )
-                Box(
-                    modifier = Modifier
-                        .width(4.dp)
-                        .height(barHeight)
-                        .clip(CircleShape)
-                        .background(if (isLight) lt.selText else dk.selText)
-                )
-            }
-
             Icon(
                 imageVector = item.icon,
                 contentDescription = label,
                 tint = iconColor,
-                modifier = Modifier.size(20.dp),
+                modifier = Modifier.size(22.dp),
             )
 
             Text(
                 text = label,
                 modifier = Modifier.weight(1f),
-                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                    fontSize = 14.sp,
+                ),
                 color = textColor,
-                fontSize = 14.sp,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
             )
 
             if (item.route == Routes.PREMIUM) {
                 Surface(
-                    shape = RoundedCornerShape(8.dp),
+                    shape = RoundedCornerShape(12.dp),
                     color = if (isPremiumActive) {
                         if (isLight) Color(0xFFEBFBF3) else Color(0xFF064E3B)
                     } else {
@@ -831,14 +812,14 @@ private fun DrawerNavRow(
                 ) {
                     Text(
                         text = if (isPremiumActive) "PRO" else stringResource(R.string.drawer_upgrade),
-                        fontSize = 10.sp,
+                        fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         color = if (isPremiumActive) {
                             if (isLight) Color(0xFF059669) else Color(0xFF34D399)
                         } else {
                             Color(0xFFC85A32)
                         },
-                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp),
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                         letterSpacing = 0.5.sp,
                     )
                 }
@@ -848,7 +829,7 @@ private fun DrawerNavRow(
                 Icon(
                     imageVector = Icons.Default.ChevronRight,
                     contentDescription = null,
-                    tint = Color(0xFF9CA3AF),
+                    tint = if (isLight) lt.textSecondary else dk.textSecondary,
                     modifier = Modifier.size(18.dp),
                 )
             } else if (showLock) {
@@ -904,7 +885,7 @@ private fun ShimmerProBadge(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// DARK MODE SWITCH FOOTER CARD
+// DARK MODE SWITCH FOOTER CARD (GOOGLE NOTES M3 STYLE)
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
@@ -915,69 +896,119 @@ private fun DrawerDarkModeCard(
     dk: DarkFlat,
     lt: LightFlat,
 ) {
-    val iconRotation by animateFloatAsState(
-        targetValue = if (isDarkTheme) 180f else 0f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessLow,
-        ),
-        label = "iconRotation",
-    )
-
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .heightIn(min = 56.dp)
+            .clip(RoundedCornerShape(28.dp))
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
             ) { onToggleDarkTheme() }
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+            .padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        Text(
+            text = stringResource(if (isDarkTheme) R.string.drawer_dark_mode else R.string.drawer_light_mode),
+            style = MaterialTheme.typography.bodyMedium.copy(
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 14.sp,
+            ),
+            color = if (isLight) lt.textPrimary else dk.textPrimary,
+        )
+
+        JetCoSwitchButton(
+            checked = isDarkTheme,
+            onCheckedChange = { onToggleDarkTheme() },
+        )
+    }
+}
+
+/**
+ * JetCo-inspired animated switch button with sliding knob, 360° icon rotation,
+ * and day/night crossfade matching developerchunk/JetCo switch_button animation.
+ */
+@Composable
+fun JetCoSwitchButton(
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+    buttonWidth: androidx.compose.ui.unit.Dp = 56.dp,
+    buttonHeight: androidx.compose.ui.unit.Dp = 32.dp,
+    switchPadding: androidx.compose.ui.unit.Dp = 3.dp,
+    selectedTrackColor: Color = Color(0xFF1E90FF),
+    unselectedTrackColor: Color = Color(0xFF636B7B),
+    knobColor: Color = Color.White,
+    iconColor: Color = Color(0xFF16212B),
+    animationDuration: Int = 600,
+) {
+    val knobSize = buttonHeight - (switchPadding * 2)
+    val maxOffset = buttonWidth - knobSize - (switchPadding * 2)
+
+    val animatedOffset by animateDpAsState(
+        targetValue = if (checked) maxOffset else 0.dp,
+        animationSpec = tween(durationMillis = animationDuration, easing = FastOutSlowInEasing),
+        label = "jetCoSwitchSlide",
+    )
+
+    val animatedBgColor by animateColorAsState(
+        targetValue = if (checked) selectedTrackColor else unselectedTrackColor,
+        animationSpec = tween(durationMillis = animationDuration, easing = FastOutSlowInEasing),
+        label = "jetCoSwitchBgColor",
+    )
+
+    val rotation by animateFloatAsState(
+        targetValue = if (checked) 360f else 0f,
+        animationSpec = tween(durationMillis = animationDuration, easing = FastOutSlowInEasing),
+        label = "jetCoSwitchRotation",
+    )
+
+    val interactionSource = remember { MutableInteractionSource() }
+
+    Box(
+        modifier = modifier
+            .size(width = buttonWidth, height = buttonHeight)
+            .clip(CircleShape)
+            .background(animatedBgColor)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+            ) { onCheckedChange(!checked) }
+            .padding(switchPadding),
+        contentAlignment = Alignment.CenterStart,
+    ) {
+        Box(
+            modifier = Modifier
+                .offset(x = animatedOffset)
+                .size(knobSize)
+                .shadow(elevation = 2.dp, shape = CircleShape)
+                .clip(CircleShape)
+                .background(knobColor),
+            contentAlignment = Alignment.Center,
         ) {
-            Icon(
-                imageVector = if (isDarkTheme) Icons.Default.Nightlight else Icons.Default.WbSunny,
-                contentDescription = null,
-                tint = if (isDarkTheme) Color(0xFF818CF8) else Color(0xFFF59E0B),
-                modifier = Modifier
-                    .size(22.dp)
-                    .graphicsLayer { rotationZ = iconRotation },
-            )
-            Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                Text(
-                    text = stringResource(if (isDarkTheme) R.string.drawer_dark_mode else R.string.drawer_light_mode),
-                    style = MaterialTheme.typography.labelLarge.copy(
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp,
+            Crossfade(
+                targetState = checked,
+                animationSpec = tween(durationMillis = animationDuration, easing = FastOutSlowInEasing),
+                label = "jetCoSwitchCrossfade",
+            ) { isDark ->
+                Icon(
+                    painter = painterResource(
+                        id = if (isDark) {
+                            R.drawable.ic_switch_partly_cloudy_night
+                        } else {
+                            R.drawable.ic_switch_partly_cloudy_day
+                        }
                     ),
-                    color = if (isLight) lt.textPrimary else dk.textPrimary,
-                )
-                Text(
-                    text = stringResource(
-                        if (isDarkTheme) R.string.drawer_dark_theme_enabled else R.string.drawer_light_theme_enabled
-                    ),
-                    style = MaterialTheme.typography.bodySmall,
-                    fontSize = 12.sp,
-                    color = if (isLight) lt.textSecondary else dk.textSecondary,
+                    contentDescription = null,
+                    tint = iconColor,
+                    modifier = Modifier
+                        .size(16.dp)
+                        .graphicsLayer {
+                            rotationZ = rotation
+                        },
                 )
             }
         }
-
-        Switch(
-            checked = isDarkTheme,
-            onCheckedChange = { onToggleDarkTheme() },
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = Color.White,
-                checkedTrackColor = if (isLight) Color(0xFF6D28D9) else Color(0xFF38BDF8),
-                uncheckedThumbColor = Color.White,
-                uncheckedTrackColor = if (isLight) Color(0xFFE2E8F0) else Color(0xFF475569),
-                uncheckedBorderColor = Color.Transparent,
-                checkedBorderColor = Color.Transparent,
-            ),
-        )
     }
 }

@@ -37,13 +37,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material3.BottomSheetDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
+import com.composables.ui.components.BottomSheet
+import com.composables.ui.components.BottomSheetDetent
+import com.composables.ui.components.rememberBottomSheetState
+import com.composables.ui.components.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
+import com.composables.ui.components.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -109,7 +108,6 @@ private fun rememberAudioLibraryColors(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AudioLibraryPanel(
     selectedTrackId: String,
@@ -206,12 +204,11 @@ fun AudioLibraryPanel(
         )
     }
 
-    ModalBottomSheet(
+    BottomSheet(
+        state = rememberBottomSheetState(initialDetent = BottomSheetDetent.FullyExpanded),
         onDismissRequest = onDismiss,
-        containerColor = colors.bg,
+        backgroundColor = colors.bg,
         shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        dragHandle = { BottomSheetDefaults.DragHandle(color = colors.hairline) },
     ) {
         Column(
             modifier = Modifier

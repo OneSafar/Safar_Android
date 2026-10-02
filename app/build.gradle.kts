@@ -1,6 +1,5 @@
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.hilt.android)
     alias(libs.plugins.ksp)
@@ -65,7 +64,7 @@ gradle.taskGraph.whenReady {
 
 android {
     namespace = "com.safarparmar.app"
-    compileSdk = 36
+    compileSdk = 37
     val defaultApiRoot = providers.gradleProperty("SAFAR_PROD_BASE_URL").orNull
         ?: providers.environmentVariable("SAFAR_PROD_BASE_URL").orNull
         ?: localProps.getProperty("SAFAR_PROD_BASE_URL")
@@ -93,8 +92,8 @@ android {
         applicationId = "com.safarparmar.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 65
-        versionName = "1.6.65"
+        versionCode = 64
+        versionName = "1.6.64"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         // Compile-time override for manual comparison; normal builds select by device capabilities.
         val effects = providers.gradleProperty("safarEffects").getOrElse("auto")
@@ -176,13 +175,10 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
-    }
-
     buildFeatures {
         compose = true
         buildConfig = true
+        resValues = true
     }
 
     testOptions {
@@ -190,10 +186,28 @@ android {
     }
 }
 
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+    }
+}
+
+configurations.all {
+    resolutionStrategy.eachDependency {
+        if (requested.group == "org.jetbrains.kotlin" && requested.name == "kotlin-metadata-jvm") {
+            useVersion("2.4.0")
+        }
+    }
+}
+
 dependencies {
+    implementation("com.composables:ui:0.2.0")
+    implementation("com.composables:composeunstyled:2.7.0")
+    implementation("com.composables:compose-interaction-capabilities:1.1.0")
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.vico.compose)
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.ui)
@@ -217,6 +231,8 @@ dependencies {
     //di
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
+    ksp("org.jetbrains.kotlin:kotlin-metadata-jvm:2.4.0")
+    annotationProcessor("org.jetbrains.kotlin:kotlin-metadata-jvm:2.4.0")
     implementation(libs.androidx.hilt.navigation.compose)
 
     //networking

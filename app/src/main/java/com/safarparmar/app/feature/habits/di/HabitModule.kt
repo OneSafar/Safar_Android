@@ -6,6 +6,8 @@ import com.safarparmar.app.feature.habits.data.HabitDao
 import com.safarparmar.app.feature.habits.data.HabitDatabase
 import com.safarparmar.app.feature.habits.data.MIGRATION_2_3
 import com.safarparmar.app.feature.habits.data.MIGRATION_3_4
+import com.safarparmar.app.feature.habits.data.MIGRATION_4_6
+import com.safarparmar.app.feature.habits.data.MIGRATION_5_6
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -21,7 +23,7 @@ object HabitModule {
     @Singleton
     fun provideHabitDatabase(@ApplicationContext context: Context): HabitDatabase =
         Room.databaseBuilder(context, HabitDatabase::class.java, "habits.db")
-            .addMigrations(MIGRATION_2_3, MIGRATION_3_4)
+            .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_6, MIGRATION_5_6)
             .build()
 
     @Provides

@@ -38,6 +38,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Flag
@@ -102,6 +104,16 @@ fun NishthaScreen(
     analyticsInitialSection: String = "overview",
     viewModel: NishthaViewModel = hiltViewModel(),
 ) {
+    // Legacy tab-4 entries also display the independent Analytics shell.
+    if (initialTab == NishthaTab.ANALYTICS.ordinal) {
+        com.safarparmar.app.ui.nishtha.analytics.AnalyticsScreen(
+            isDarkTheme = isDarkTheme,
+            onNavigate = onNavigate,
+            onToggleDarkTheme = onToggleDarkTheme,
+            initialSection = analyticsInitialSection,
+        )
+        return
+    }
     val initialNishthaTab = NishthaTab.entries.getOrElse(initialTab) { NishthaTab.CHECK_IN }
     // Shared bottom-nav back model: Back from any tab returns to Check-in (start)
     // in a single press, then the NavController takes over (→ Home). Matches the
@@ -131,10 +143,7 @@ fun NishthaScreen(
         val tabArg = if (route.contains("tab=")) route.substringAfter("tab=").substringBefore("&").toIntOrNull() else null
         when {
             routeBase == Routes.NISHTHA && tabArg == 4 -> {
-                // Intercept analytics navigation — switch the tab in-place instead of
-                // pushing a new nav entry (prevents back-stack pollution)
-                analyticsSection = android.net.Uri.decode(route.substringAfter("section=", "overview"))
-                tabBackStack.select(NishthaTab.ANALYTICS)
+                onNavigate(Routes.normalizeFeatureRoute(route))
             }
             routeBase == Routes.NISHTHA && tabArg != null -> {
                 // Handle other tab index navigations (from deep links / notifications)
@@ -229,9 +238,8 @@ fun NishthaScreen(
 }
 
 /**
- * Same macOS glass bottom-bar recipe as Exam Planner [PlannerBottomBar]:
- * top-arch floating surface + single sliding translucent glass indicator pill,
- * per-tab accent icon/label colors.
+ * Modern Motion Bottom Navigation Bar with hardware-accelerated graphicsLayer slide,
+ * per-tab accent transitions, and bouncy spring micro-interactions.
  */
 @Composable
 private fun NishthaBottomBar(
@@ -246,139 +254,138 @@ private fun NishthaBottomBar(
 
     val isAnalyticsSelected = selected == NishthaTab.ANALYTICS
     val selectedIndex = tabs.indexOf(selected).takeIf { it >= 0 } ?: 0
+
+    // High-performance spring slide animation for the sliding indicator pill
     val animatedIndex by animateFloatAsState(
         targetValue = selectedIndex.toFloat(),
         animationSpec = spring(
-            dampingRatio = Spring.DampingRatioLowBouncy,
+            dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = Spring.StiffnessMediumLow,
         ),
-        label = "nishthaMacOSGlassTabSlide",
+        label = "nishthaMotionTabSlide",
     )
 
-    // macOS Glass Pill Recipe colors (identical to PlannerBottomBar)
-    val glassBodyColor = if (isLight) Color(0xFFF9F9FB) else Color(0xFF2C2C2E).copy(alpha = 0.65f)
-    val glassBorderBrush = if (!isLight) {
-        Brush.verticalGradient(
-            colors = listOf(Color.White.copy(alpha = 0.25f), Color.White.copy(alpha = 0.02f)),
-        )
-    } else {
-        Brush.verticalGradient(
-            colors = listOf(Color(0xFFE5E5EA), Color(0xFFD1D1D6)),
-        )
-    }
-    val shadowElevation = if (isLight) 6.dp else 14.dp
-    val shadowColor = if (isLight) Color.Black.copy(alpha = 0.14f) else Color.Black.copy(alpha = 0.85f)
+    val currentAccent = nishthaTabAccent(tabs.getOrElse(selectedIndex) { NishthaTab.CHECK_IN }, isDark)
+    val animatedAccent by animateColorAsState(
+        targetValue = currentAccent,
+        animationSpec = tween(250),
+        label = "nishthaMotionAccent",
+    )
 
-    // macOS Top-Arch Floating Surface Shape
-    val barShape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
-    val topBorderBrush = if (!isLight) {
-        Brush.verticalGradient(
-            colors = listOf(Color.White.copy(alpha = 0.18f), Color.Transparent),
-        )
-    } else {
-        Brush.verticalGradient(
-            colors = listOf(Color(0xFFE5E5EA), Color.Transparent),
-        )
-    }
+    val barShape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
 
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .shadow(
-                elevation = shadowElevation,
-                shape = barShape,
-                spotColor = shadowColor,
-                ambientColor = shadowColor,
-            )
             .border(
-                width = 0.5.dp,
-                brush = topBorderBrush,
+                width = 1.dp,
+                color = if (isDark) Color(0xFF2C2C2E) else Color(0xFFE5E7EB),
                 shape = barShape,
             ),
-        color = scheme.surface,
+        color = if (isDark) Color(0xFF161618) else Color.White,
         shape = barShape,
+        shadowElevation = 0.dp,
     ) {
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxWidth()
                 .navigationBarsPadding()
-                .padding(vertical = 6.dp, horizontal = 6.dp),
+                .height(56.dp)
+                .padding(vertical = 4.dp, horizontal = 8.dp),
         ) {
             val totalWidth = maxWidth
             val itemWidth = totalWidth / tabs.size
-            val pillShape = RoundedCornerShape(20.dp)
+            val density = LocalDensity.current
 
-            // ── Single Sliding macOS Translucent Glass Indicator Pill ──
+            // ── Sliding Pill Indicator (Evaluated in draw phase via graphicsLayer) ──
             Box(
                 modifier = Modifier
-                    .graphicsLayer { alpha = if (isAnalyticsSelected) 0f else 1f }
-                    .offset(x = itemWidth * animatedIndex)
+                    .graphicsLayer {
+                        alpha = if (isAnalyticsSelected) 0f else 1f
+                        translationX = with(density) { (itemWidth * animatedIndex).toPx() }
+                    }
                     .width(itemWidth)
-                    .height(56.dp)
+                    .fillMaxHeight()
                     .padding(horizontal = 4.dp, vertical = 2.dp)
-                    .shadow(
-                        elevation = shadowElevation,
-                        shape = pillShape,
-                        spotColor = shadowColor,
-                        ambientColor = shadowColor,
-                    )
-                    .clip(pillShape)
-                    .background(glassBodyColor)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(animatedAccent.copy(alpha = if (isDark) 0.18f else 0.12f))
                     .border(
-                        width = 0.5.dp,
-                        brush = glassBorderBrush,
-                        shape = pillShape,
+                        width = 1.dp,
+                        color = animatedAccent.copy(alpha = if (isDark) 0.35f else 0.25f),
+                        shape = RoundedCornerShape(14.dp),
                     ),
             )
 
-            // ── Tab Items ──
+            // ── Interactive Tab Items with Motion Scale & Bounce ──
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp),
+                    .fillMaxHeight(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                tabs.forEach { tab ->
+                tabs.forEachIndexed { index, tab ->
                     val isSelected = selected == tab
                     val tabAccent = nishthaTabAccent(tab, isDark)
+
+                    val iconScale by animateFloatAsState(
+                        targetValue = if (isSelected) 1.15f else 1.0f,
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            stiffness = Spring.StiffnessMedium,
+                        ),
+                        label = "nishthaTabIconScale_${tab.name}",
+                    )
+
                     val contentColor by animateColorAsState(
                         targetValue = if (isSelected) {
                             tabAccent
                         } else {
-                            scheme.onSurfaceVariant.copy(alpha = 0.6f)
+                            if (isDark) Color(0xFF9CA3AF) else Color(0xFF6B7280)
                         },
                         animationSpec = tween(200),
-                        label = "nishthaTabContentColor",
+                        label = "nishthaTabContentColor_${tab.name}",
                     )
                     val label = stringResource(tab.labelRes)
 
-                    Column(
+                    Box(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight()
-                            .clip(pillShape)
-                            .clickable {
+                            .clip(RoundedCornerShape(14.dp))
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null,
+                            ) {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 onSelect(tab)
                             },
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center,
+                        contentAlignment = Alignment.Center,
                     ) {
-                        Icon(
-                            imageVector = tab.icon,
-                            contentDescription = label,
-                            tint = contentColor,
-                            modifier = Modifier.size(22.dp),
-                        )
-                        Spacer(Modifier.height(3.dp))
-                        Text(
-                            text = label,
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                            color = contentColor,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center,
+                        ) {
+                            Icon(
+                                imageVector = tab.icon,
+                                contentDescription = label,
+                                tint = contentColor,
+                                modifier = Modifier
+                                    .size(18.dp)
+                                    .graphicsLayer {
+                                        scaleX = iconScale
+                                        scaleY = iconScale
+                                    },
+                            )
+                            Spacer(Modifier.height(2.dp))
+                            Text(
+                                text = label,
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                color = contentColor,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
                     }
                 }
             }

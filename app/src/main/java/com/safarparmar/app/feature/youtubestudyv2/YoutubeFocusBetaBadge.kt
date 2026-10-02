@@ -29,7 +29,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import com.composables.ui.components.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -140,7 +140,7 @@ fun YoutubeFocusBetaBadge(
                                 color = titleClr,
                             )
                         }
-                        IconButton(
+                        com.composables.ui.components.IconButton(style = com.composables.ui.components.ButtonStyle.Ghost,
                             onClick = { tooltipExpanded = false },
                             modifier = Modifier.size(24.dp),
                         ) {
@@ -166,14 +166,11 @@ fun YoutubeFocusBetaBadge(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.End,
                     ) {
-                        TextButton(
+                        com.composables.ui.components.Button(style = com.composables.ui.components.ButtonStyle.Ghost,
                             onClick = { tooltipExpanded = false },
                             shape = RoundedCornerShape(8.dp),
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 2.dp),
-                            colors = ButtonDefaults.textButtonColors(
-                                containerColor = purpleAccent.copy(alpha = if (isLight) 0.12f else 0.20f),
-                                contentColor = purpleAccent,
-                            ),
+                            contentColor = purpleAccent,
                             modifier = Modifier.height(28.dp),
                         ) {
                             Text(

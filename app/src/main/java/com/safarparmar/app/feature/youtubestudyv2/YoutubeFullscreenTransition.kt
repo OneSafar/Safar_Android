@@ -8,11 +8,27 @@ internal class YoutubeFullscreenTransition {
     fun clear() { owner = null }
 
     fun observe(current: YoutubeV2Observation, now: Long): YoutubeV2Observation {
-        if (current.kind != YoutubeV2ContentKind.VIDEO || !current.watchScreenConfirmed) return current
+        if (current.kind != YoutubeV2ContentKind.VIDEO || !current.watchScreenConfirmed || current.adPlaying) {
+            clear()
+            return current
+        }
         if (!current.fullscreen) {
-            if (current.exactHandle != null || current.exactChannelId != null) {
+            val previous = owner
+            // Hidden portrait metadata does not mean another video started.
+            if (!current.hasOwnerEvidence && previous != null &&
+                (current.title.isNullOrBlank() || current.title == previous.title)) {
+                return current.copy(
+                    title = current.title ?: previous.title,
+                    exactHandle = previous.exactHandle,
+                    exactChannelId = previous.exactChannelId,
+                    displayName = previous.displayName,
+                )
+            }
+            if (current.hasOwnerEvidence) {
                 owner = current
                 observedAt = now
+            } else if (!current.title.isNullOrBlank() && current.title != previous?.title) {
+                clear()
             }
             return current
         }

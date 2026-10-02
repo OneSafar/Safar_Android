@@ -53,4 +53,35 @@ class YoutubeWatchMetadataTest {
         nodes[5] = nodes[5].copy(text = null)
         assertNull(parse(nodes).title)
     }
+
+    @Test fun `scrolled anonymous recommendation cannot become the playing owner`() {
+        val nodes = listOf(
+            node(null, top = 0, bottom = 2400),
+            node(0, "watch_player", top = 100, bottom = 710),
+            node(0, "watch_list", top = 710, bottom = 2400),
+            node(2, top = 710, bottom = 1400),
+            node(3, top = 300, bottom = 700, clazz = "android.widget.ImageView").copy(visibleToUser = false),
+            node(3, text = "Recommended entertainment video", top = 720, bottom = 790),
+            node(3, top = 800, bottom = 1020, right = 220, clazz = "android.widget.ImageView"),
+            node(3, text = "Shark Tank India", top = 800, bottom = 920, left = 230),
+            node(3, text = "@sharktankindia 100K views 1 day ago", top = 930, bottom = 1000),
+        )
+        val result = parse(nodes)
+        assertTrue(result.watchScreenConfirmed)
+        assertNull(result.title)
+        assertFalse(result.hasOwnerEvidence)
+    }
+
+    @Test fun `description close button is never an owner card`() {
+        val nodes = watch().mapIndexed { index, node ->
+            if (index >= 4) node.copy(visibleToUser = false) else node
+        } + listOf(
+            node(0, "engagement_panel", top = 710, bottom = 2400),
+            node(14, text = "Close", top = 740, bottom = 880, left = 920).copy(clickable = true),
+            node(15, top = 760, bottom = 850, left = 940, clazz = "android.widget.ImageView"),
+        )
+        assertFalse(parse(nodes).hasOwnerEvidence)
+        assertFalse(YoutubeStudyV2Parser.isPlausibleOwnerLabel("Close"))
+        assertFalse(YoutubeStudyV2Parser.isPlausibleOwnerLabel("Quote"))
+    }
 }

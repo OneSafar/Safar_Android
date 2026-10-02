@@ -9,16 +9,16 @@ object Routes {
     const val SETTINGS  = "settings"
     const val ACHIEVEMENTS = "achievements"
     const val NISHTHA           = "nishtha"
-    // Single Nishtha destination. `tab` selects the bottom-nav tab (4 = Analytics),
-    // `section` picks the analytics sub-section. Both optional so plain "nishtha",
-    // "nishtha?tab=N", and analytics deep-links all resolve to the SAME destination
-    // (one ViewModel, no duplicate back-stack entries).
+    const val ANALYTICS = "analytics"
+    const val ANALYTICS_ROUTE = "analytics?section={section}"
+    // Nishtha tabs share one destination. Legacy tab-4 links normalize to Analytics.
     const val NISHTHA_ROUTE     = "nishtha?tab={tab}&section={section}"
     const val EKAGRA = "ekagra"
     // Single Ekagra destination — goal-linked, topic-linked, and plain launches all
     // resolve here (one ViewModel / TimerService binding).
     const val EKAGRA_ROUTE = "ekagra?goalId={goalId}&goalTitle={goalTitle}&view={view}&topicId={topicId}&topicTitle={topicTitle}&planId={planId}"
     const val STUDY_PLANNER = "study_planner"
+    const val TOPPERS_BATCH = "study_planner/toppers_batch"
     const val STUDY_PLANNER_ROUTE = "study_planner?planId={planId}&showDailyTodoSetup={showDailyTodoSetup}&openTab={openTab}"
     const val CREATE_PLAN = "study_planner/create"
     const val MEHFIL = "mehfil"
@@ -63,6 +63,11 @@ object Routes {
 
     /** Normalize legacy/plain feature routes to their registered destination patterns. */
     fun normalizeFeatureRoute(route: String): String = when {
+        route.substringBefore("?") == NISHTHA && Regex("(?:[?&])tab=4(?:&|$)").containsMatchIn(route) -> {
+            val section = Regex("(?:[?&])section=([^&]+)").find(route)?.groupValues?.get(1)
+                ?.let { decodeParam(it) } ?: "overview"
+            nishthaAnalytics(section)
+        }
         route == NISHTHA || (route.substringBefore("?") == NISHTHA && !route.contains("tab=")) ->
             nishthaRoot()
         route.startsWith("nishtha?") && !route.contains("section=") -> {
@@ -119,9 +124,9 @@ object Routes {
             (wantsSection != null && wantsSection != "overview")
     }
 
-    // Analytics is Nishtha tab index 4; resolves to the single NISHTHA_ROUTE.
+    // Analytics has its own destination; this helper also supports existing callers.
     fun nishthaAnalytics(section: String = "overview"): String =
-        "nishtha?tab=4&section=${encodeParam(section)}"
+        "analytics?section=${encodeParam(section)}"
 
     fun ekagraAnalytics(): String = nishthaAnalytics("ekagra")
 
