@@ -86,8 +86,31 @@ class EkagraSessionSaveWorker(
         suspend fun uploadOne(context: Context, session: PendingEkagraSessionSave): Resource<com.safarparmar.app.data.remote.dto.EkagraSession> =
             drainLock.withLock { uploadPending(context, session) }
 
-        private suspend fun uploadPending(context: Context, session: PendingEkagraSessionSave): Resource<com.safarparmar.app.data.remote.dto.EkagraSession> {
-            if (session.ownerId != SafarDataStore(context).userId.first()) return Resource.Error("Session belongs to another account")
+        suspend fun linkLocalSession(context: Context, id: String, goalId: String, goalTitle: String?, markComplete: Boolean): Resource<Unit> = drainLock.withLock {
+            val account = SafarDataStore(context).userId.first().orEmpty()
+            val journal = EkagraSessionJournal.get(context)
+            val session = journal.find(id, account) ?: return@withLock Resource.Error("Session not found")
+            if (journal.setPendingGoal(id, account, goalId, goalTitle, markComplete)) {
+                // The choice is durable even when offline; the worker retries the save.
+                uploadPending(context, session)
+                Resource.Success(Unit)
+            } else {
+                val serverId = session.serverId ?: return@withLock Resource.Error("Session has not uploaded")
+                EntryPointAccessors.fromApplication(context, EkagraSessionSaveEntryPoint::class.java)
+                    .getEkagraRepository().linkSessionToGoal(serverId, goalId, markComplete)
+            }
+        }
+
+        private suspend fun uploadPending(context: Context, requested: PendingEkagraSessionSave): Resource<com.safarparmar.app.data.remote.dto.EkagraSession> {
+            val account = SafarDataStore(context).userId.first().orEmpty()
+            if (requested.ownerId != account) return Resource.Error("Session belongs to another account")
+            // Re-read under the upload lock: another caller may have uploaded while
+            // this caller waited. Acknowledged rows remain durable deduplication records.
+            val session = EkagraSessionJournal.get(context).find(requested.clientSessionId, account)
+                ?: return Resource.Error("Session is not in the durable journal")
+            session.serverId?.takeIf { it.isNotBlank() }?.let {
+                return Resource.Success(com.safarparmar.app.data.remote.dto.EkagraSession(id = it))
+            }
             val repository = EntryPointAccessors
                 .fromApplication(context, EkagraSessionSaveEntryPoint::class.java)
                 .getEkagraRepository()

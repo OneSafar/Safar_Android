@@ -41,7 +41,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Restore
-import androidx.compose.material3.AlertDialog
+import com.safarparmar.app.ui.nishtha.goals.GoalDialog as AlertDialog
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
@@ -50,7 +50,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
+import com.safarparmar.app.ui.nishtha.goals.GoalInput as OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.SnackbarHost
@@ -64,9 +64,9 @@ import com.composables.ui.components.Tab
 import com.composables.ui.components.TabList
 import com.composables.ui.components.Tabs
 import com.composables.ui.components.Icon as ComposablesIcon
-import androidx.compose.material3.Switch
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import com.composables.ui.components.Switch
+import com.composables.ui.components.Text
+import com.safarparmar.app.ui.nishtha.goals.GoalTextButton as TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -259,10 +259,8 @@ private fun GoalsScreenContent(
             mutableStateListOf<String>().apply { addAll(candidates.map { it.id }) }
         }
 
-        ModalBottomSheet(
-            onDismissRequest = { showRepeatPicker = false },
-            containerColor = GoalsFlatColors.Bg,
-        ) {
+        com.composables.ui.components.AlertDialog(visible = true, onDismissRequest = { showRepeatPicker = false },
+            paneTitle = "Goals", modifier = Modifier.heightIn(max = (androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp * 0.8f).dp)) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -398,11 +396,8 @@ private fun GoalsScreenContent(
     }
 
     if (showDeletedSheet) {
-        ModalBottomSheet(
-            onDismissRequest = { showDeletedSheet = false },
-            containerColor = GoalsFlatColors.Bg,
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        ) {
+        com.composables.ui.components.AlertDialog(visible = true, onDismissRequest = { showDeletedSheet = false },
+            paneTitle = "Goals", modifier = Modifier.heightIn(max = (androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp * 0.8f).dp)) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -483,7 +478,7 @@ private fun GoalsScreenContent(
             visible = true,
             onDismissRequest = { deleteGoal = null },
             title = { Text(stringResource(R.string.goals_delete_title)) },
-            text = { Text(stringResource(R.string.goals_delete_body, goal.title)) },
+            text = { Text(stringResource(R.string.goals_delete_body, goal.title), textAlign = TextAlign.Center) },
             positiveButton = {
                 Button(
                     enabled = !uiState.isSavingGoal,
@@ -491,7 +486,8 @@ private fun GoalsScreenContent(
                     style = ButtonStyle.Destructive,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text(if (uiState.isSavingGoal) stringResource(R.string.common_moving) else stringResource(R.string.goals_move_to_recently_deleted))
+                    Text(if (uiState.isSavingGoal) stringResource(R.string.common_moving) else stringResource(R.string.common_delete),
+                        modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             },
             negativeButton = {
@@ -753,15 +749,8 @@ private fun GoalsScreenContent(
 
     // Edit sheet
     editGoal?.let { goal ->
-        ModalBottomSheet(
-            onDismissRequest = { editGoal = null },
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-            containerColor = GoalsFlatColors.Bg,
-            shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-            dragHandle = {
-                BottomSheetDefaults.DragHandle(color = GoalsFlatColors.Hairline)
-            },
-        ) {
+        com.composables.ui.components.AlertDialog(visible = true, onDismissRequest = { editGoal = null },
+            paneTitle = "Goals", modifier = Modifier.heightIn(max = (androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp * 0.8f).dp)) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -838,15 +827,7 @@ private fun GoalsScreenContent(
                     colors = fieldColors,
                 )
                 val saveEnabled = editTitle.isNotBlank() && !uiState.isSavingGoal
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(
-                            if (saveEnabled) GoalsFlatColors.Primary
-                            else GoalsFlatColors.Hairline.copy(alpha = 0.55f),
-                        )
-                        .clickable(enabled = saveEnabled) {
+                Button(onClick = {
                             val scheduledDate = if (!editScheduleChanged) null else when (editGoalKind) {
                                 "today" -> IstDateUtils.todayKey()
                                 "scheduled" -> selectedDate.toString()
@@ -870,10 +851,8 @@ private fun GoalsScreenContent(
                                 status = if (editScheduleChanged && editStatus in listOf("missed", "expired")) "not_started" else editStatus,
                                 carryForwardMode = if (editGoalKind == "scheduled" || editGoalKind == "one_time") "none" else editCarryForward
                             )
-                        }
-                        .padding(vertical = 14.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
+                        
+                }, enabled = saveEnabled, modifier = Modifier.fillMaxWidth()) {
                     Text(stringResource(R.string.goals_save_changes), fontWeight = FontWeight.Bold, color = Color.White, fontSize = 14.sp)
                 }
             }
@@ -885,15 +864,8 @@ private fun GoalsScreenContent(
     }
 
     if (showAddSheet) {
-        ModalBottomSheet(
-            onDismissRequest = { showAddSheet = false },
-            sheetState = sheetState,
-            containerColor = GoalsFlatColors.Bg,
-            shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-            dragHandle = {
-                BottomSheetDefaults.DragHandle(color = GoalsFlatColors.Hairline)
-            },
-        ) {
+        com.composables.ui.components.AlertDialog(visible = true, onDismissRequest = { showAddSheet = false },
+            paneTitle = "Goals", modifier = Modifier.heightIn(max = (androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp * 0.8f).dp)) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -968,15 +940,7 @@ private fun GoalsScreenContent(
                     Text(uiState.goalError!!, color = GoalsFlatColors.Danger, fontSize = 13.sp)
                 }
                 val createEnabled = newTitle.isNotBlank() && !uiState.isSavingGoal
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(
-                            if (createEnabled) GoalsFlatColors.Primary
-                            else GoalsFlatColors.Hairline.copy(alpha = 0.55f),
-                        )
-                        .clickable(enabled = createEnabled) {
+                Button(onClick = {
                             val scheduledDate = if (newGoalKind == "scheduled") selectedDate.toString() else IstDateUtils.todayKey()
                             viewModel.addGoal(
                                 title = newTitle.trim(),
@@ -994,10 +958,8 @@ private fun GoalsScreenContent(
                                 status = "not_started",
                                 carryForwardMode = newCarryForward
                             )
-                        }
-                        .padding(vertical = 14.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
+                        
+                }, enabled = createEnabled, modifier = Modifier.fillMaxWidth()) {
                     if (uiState.isSavingGoal) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(16.dp),
@@ -1148,6 +1110,7 @@ private fun GoalsScreenContent(
                         stringResource(R.string.goals_add_goal),
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold,
+                        color = Color.White,
                     )
                 }
                 Button(

@@ -83,9 +83,9 @@ fun SafarDrawerScaffold(
     // This guarantees we're always toggling the SAME instance that
     // drives SafarTheme in MainActivity — no matter how deeply nested.
     val context = LocalContext.current
-    val activity = context as? Activity
+    val activity = context as? androidx.activity.ComponentActivity
     val themeVm: ThemeViewModel = if (activity != null) {
-        hiltViewModel(activity as androidx.activity.ComponentActivity)
+        hiltViewModel(activity)
     } else {
         hiltViewModel()
     }
@@ -95,7 +95,7 @@ fun SafarDrawerScaffold(
     val userEmail by themeVm.dataStore.userEmail.collectAsStateWithLifecycle(initialValue = null)
     val userAvatar by themeVm.dataStore.userAvatar.collectAsStateWithLifecycle(initialValue = null)
     val premiumVm: PremiumViewModel = if (activity != null) {
-        hiltViewModel(activity as androidx.activity.ComponentActivity)
+        hiltViewModel(activity)
     } else {
         hiltViewModel()
     }

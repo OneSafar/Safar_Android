@@ -722,6 +722,7 @@ fun LiveHeroSessionCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .aspectRatio(16f / 9f)
+                    .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
                     .clickable(onClick = onPlay),
             ) {
                 if (!session.thumbnailUrl.isNullOrBlank()) {

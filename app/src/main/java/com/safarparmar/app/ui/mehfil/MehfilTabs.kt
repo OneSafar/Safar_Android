@@ -413,7 +413,11 @@ private fun StudyCircleShelf(
                 CircularProgressIndicator(Modifier.size(24.dp), color = Color(0xFF6B168D), strokeWidth = 2.dp)
             }
             visibleCircles.isEmpty() -> Row(
-                Modifier.fillMaxWidth().clickable(onClick = onViewAll).padding(vertical = 10.dp),
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .clickable(onClick = onViewAll)
+                    .padding(vertical = 10.dp, horizontal = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
@@ -629,7 +633,10 @@ private fun SandeshAnnouncementCard(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Spacer(Modifier.weight(1f))
             Row(
-                Modifier.clickable { onReact(sandesh.id) }.padding(end = 16.dp),
+                Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable { onReact(sandesh.id) }
+                    .padding(horizontal = 6.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(5.dp),
             ) {
@@ -641,7 +648,15 @@ private fun SandeshAnnouncementCard(
                 )
                 Text("${sandesh.reactionCount}", fontSize = 11.sp, color = if (isReacted) MehfilFlatColors.Like else MehfilFlatColors.Muted)
             }
-            Row(Modifier.clickable { onCommentClick(sandesh.id) }, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+            Spacer(Modifier.width(8.dp))
+            Row(
+                Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable { onCommentClick(sandesh.id) }
+                    .padding(horizontal = 6.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(5.dp),
+            ) {
                 Icon(Icons.Default.ChatBubbleOutline, contentDescription = null, modifier = Modifier.size(14.dp), tint = MehfilFlatColors.Primary)
                 Text("${sandesh.commentCount}", fontSize = 11.sp, color = MehfilFlatColors.Primary)
             }

@@ -561,6 +561,7 @@ internal fun ModernHabitFilterPicker(
     ModernSoftCard(
         modifier = modifier
             .fillMaxWidth()
+            .clip(ModernCardShape)
             .clickable(role = Role.Button, onClick = onClick)
     ) {
         Row(

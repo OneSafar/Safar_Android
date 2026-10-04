@@ -1,5 +1,9 @@
 package com.safarparmar.app.ui.nishtha.goals
 
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -41,8 +45,8 @@ import com.composables.ui.components.Icon as ComposablesIcon
 import com.composables.ui.components.Text as ComposablesText
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.Text
+import com.safarparmar.app.ui.nishtha.goals.GoalProgress as LinearProgressIndicator
+import com.composables.ui.components.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -88,6 +92,9 @@ internal fun GoalsTab(
     onEdit: (Goal) -> Unit,
     onDelete: (Goal) -> Unit,
 ) {
+    val goalListScroll = rememberScrollState()
+    val goalContainerHeight = (LocalConfiguration.current.screenHeightDp * 0.5f).coerceIn(280f, 480f).dp
+    LaunchedEffect(filterMode) { goalListScroll.scrollTo(0) }
     val todayKey = IstDateUtils.todayKey()
     val standardGoals = goals.filter { it.isVisibleInGoals() }
     val pending = standardGoals.filter { it.isTodayGoal(todayKey) }
@@ -162,9 +169,11 @@ internal fun GoalsTab(
                 modifier = Modifier
                     .padding(horizontal = 20.dp)
                     .fillMaxWidth()
+                    .height(goalContainerHeight)
                     .clip(RoundedCornerShape(16.dp))
                     .border(1.5.dp, GoalsFlatColors.Primary, RoundedCornerShape(16.dp))
                     .background(GoalsFlatColors.Primary.copy(alpha = 0.03f))
+                    .verticalScroll(goalListScroll)
                     .padding(horizontal = 16.dp, vertical = 8.dp),
             ) {
                 if (filterMode == "today") {
@@ -410,34 +419,17 @@ internal fun GoalItem(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Box(
-            Modifier
-                .size(22.dp)
-                .clip(CircleShape)
-                .border(
-                    1.5.dp,
-                    if (goal.completed) GoalsFlatColors.Done else GoalsFlatColors.Hairline,
-                    CircleShape,
-                )
-                .background(if (goal.completed) GoalsFlatColors.Done else Color.Transparent)
-                .clickable(
-                    enabled = !goal.completed,
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                ) { onComplete() },
-            contentAlignment = Alignment.Center,
-        ) {
-            if (goal.completed) {
-                Text("✓", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-            }
-        }
+        com.composables.ui.components.Checkbox(checked = goal.completed,
+            enabled = !goal.completed || onReopen != null,
+            onCheckedChange = { checked -> if (checked) onComplete() else onReopen?.invoke() },
+            modifier = Modifier.size(48.dp))
         Column(Modifier.weight(1f)) {
             Text(
                 text = goal.title,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 14.sp,
                 color = if (goal.completed) GoalsFlatColors.Muted else GoalsFlatColors.Text,
-                textDecoration = if (goal.completed) TextDecoration.LineThrough else null,
+                style = androidx.compose.ui.text.TextStyle(textDecoration = if (goal.completed) TextDecoration.LineThrough else null),
             )
             if (!goal.description.isNullOrBlank()) {
                 Text(goal.description, fontSize = 12.sp, color = GoalsFlatColors.Muted, maxLines = 2)
@@ -650,15 +642,8 @@ internal fun FlatFilledAction(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(accent)
-            .clickable(onClick = onClick)
-            .padding(vertical = 11.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(label, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
+    com.composables.ui.components.Button(onClick = onClick, modifier = modifier) {
+        ComposablesText(label)
     }
 }
 
@@ -668,14 +653,7 @@ internal fun FlatOutlineAction(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
-            .border(1.dp, GoalsFlatColors.Hairline, RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick)
-            .padding(vertical = 11.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(label, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = GoalsFlatColors.Muted)
+    com.composables.ui.components.Button(onClick = onClick, modifier = modifier, style = ButtonStyle.Outlined) {
+        ComposablesText(label)
     }
 }

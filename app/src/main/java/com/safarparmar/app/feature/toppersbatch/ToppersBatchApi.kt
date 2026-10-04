@@ -1,5 +1,6 @@
 package com.safarparmar.app.feature.toppersbatch
 
+import androidx.annotation.Keep
 import okhttp3.RequestBody
 import retrofit2.Response
 import retrofit2.http.Body
@@ -10,64 +11,106 @@ import retrofit2.http.POST
 import retrofit2.http.Path
 import retrofit2.http.Query
 
+// Gson reads these wire models by reflection, including in optimized release builds.
+@Keep
 data class BatchStatus(val available: Boolean = false, val enabled: Boolean = false)
+@Keep
 data class BatchSubject(
     val id: String = "", val key: String = "", val name: String = "", val enabled: Boolean = true,
-    val color: String? = null, val externalUrl: String? = null, val externalProvider: String? = null,
+    val color: String? = null, val defaultColor: String? = null, val externalUrl: String? = null, val externalProvider: String? = null,
 )
+@Keep
 data class ReviewSession(val date: String = "", val completedAt: String? = null)
+@Keep
 data class BatchLecture(
-    val id: String = "", val subjectId: String = "", val subjectKey: String = "", val chapterId: String? = null,
+    val legacyLocalId: String? = null, val id: String = "", val subjectId: String = "", val subjectKey: String = "", val chapterId: String? = null,
     val lectureNumber: Int = 0, val order: Int = 0, val originalTopic: String = "", val displayTopic: String = "",
     val section: String? = null, val sourceMonth: String = "", val sourceWeek: String = "",
     val completedAt: String? = null, val scheduledFor: String? = null, val classTime: String? = null,
     val liveYoutubeUrl: String? = null, val recordedUrl: String? = null,
+    val releaseState: String? = null, val isAvailable: Boolean? = null,
     val backlogAddedAt: String? = null, val backlogResolvedAt: String? = null,
     val revisionDate: String? = null, val revisionCompletedAt: String? = null,
     val revisionMode: String? = null, val revisionSessions: List<ReviewSession>? = null,
     val legacyRevisionMode: String? = null, val legacyRevisionSessions: List<ReviewSession>? = null,
     val color: String? = null,
 ) {
+    fun isLocked(today: String): Boolean {
+        if (completedAt != null) return false
+        isAvailable?.let { return !it }
+        if (releaseState == "locked") return true
+        if (releaseState == "released") return false
+        return scheduledFor?.take(10)?.let { date ->
+            runCatching { java.time.LocalDate.parse(date).isAfter(java.time.LocalDate.parse(today)) }.getOrDefault(false)
+        } == true
+    }
     val sessions: List<ReviewSession> get() = revisionSessions ?: legacyRevisionSessions.orEmpty()
-    fun olderWork(today: String): Boolean = completedAt == null &&
+    fun olderWork(today: String): Boolean = completedAt == null && !isLocked(today) &&
         ((backlogAddedAt != null && backlogResolvedAt == null) || (scheduledFor != null && scheduledFor < today))
-    val pendingRevision: Boolean get() = revisionDate != null && revisionCompletedAt == null
+    val pendingRevision: Boolean get() = completedAt != null && revisionDate != null && revisionCompletedAt == null
 }
+@Keep
 data class BatchChapter(
     val id: String = "", val subjectId: String = "", val title: String = "",
     val firstLectureNumber: Int = 0, val lastLectureNumber: Int = 0,
     val completedAt: String? = null, val externalChapterUrl: String? = null,
 )
+@Keep
 data class SubjectProgress(
     val subjectId: String = "", val completed: Int = 0, val total: Int = 0,
     val backlog: Int = 0, val behind: Int = 0, val batchAt: Int = 0,
 )
+@Keep
 data class BatchProgress(
     val completed: Int = 0, val total: Int = 0, val backlog: Int = 0, val behind: Int = 0,
     val bySubject: List<SubjectProgress> = emptyList(),
 )
-data class BatchCourse(val id: String = "", val name: String = "")
+@Keep
+data class BatchCourse(val id: String = "", val name: String = "", val officialStartDate: String? = null)
+@Keep
+data class BatchStudyPlan(val startDate: String = "", val targetDate: String? = null, val weeklyGoal: Int = 7)
+@Keep
 data class BatchSubjectWatch(val subjectId: String = "", val nextLectureId: String? = null,
                              val backlogLectureIds: List<String> = emptyList())
+@Keep
+data class BatchLectureControl(
+    val subjectKey: String = "", val lectureNumber: Int = 0,
+    val scheduledDate: String? = null, val classTime: String? = null,
+    val releaseState: String = "scheduled", val isAvailable: Boolean = false,
+)
+@Keep
+data class BatchTrackerContent(val copy: Map<String, String> = emptyMap())
+
+internal fun BatchOverview.copyText(key: String, fallback: String) = content.copy[key] ?: fallback
+
+@Keep
 data class BatchOverview(
-    val course: BatchCourse = BatchCourse(), val subjects: List<BatchSubject> = emptyList(),
+    val content: BatchTrackerContent = BatchTrackerContent(),
+    val lectureControls: List<BatchLectureControl> = emptyList(), val serverDay: String? = null,
+    val studyPlan: BatchStudyPlan? = null, val course: BatchCourse = BatchCourse(), val subjects: List<BatchSubject> = emptyList(),
     val removedSubjects: List<BatchSubject> = emptyList(), val removedLectures: List<BatchLecture> = emptyList(),
     val lectures: List<BatchLecture> = emptyList(), val chapters: List<BatchChapter> = emptyList(),
     val progress: BatchProgress = BatchProgress(), val watchList: List<BatchSubjectWatch> = emptyList(),
 )
+@Keep
 data class BatchToday(val date: String = "", val lectures: List<BatchLecture> = emptyList(), val backlogPick: BatchLecture? = null)
+@Keep
 data class BatchCalendar(
     val month: String = "", val days: Map<String, List<BatchLecture>> = emptyMap(),
     val classes: Map<String, List<BatchLecture>> = emptyMap(),
 )
+@Keep
 data class LectureResult(val lecture: BatchLecture = BatchLecture(), val chapterCompleted: BatchChapter? = null)
+@Keep
 data class RemoveResult(val removed: Boolean = false)
 
 /** Same account-backed API used by the web Toppers Batch tracker. */
 interface ToppersBatchApi {
     @GET("plans/toppers-batch/v2/status") suspend fun status(): Response<BatchStatus>
     @POST("plans/toppers-batch/v2/activate") suspend fun activate(): Response<BatchOverview>
+    @POST("plans/toppers-batch/v2/import-local-progress") suspend fun importLocalProgress(@Body body: RequestBody): Response<BatchOverview>
     @GET("plans/toppers-batch/v2") suspend fun overview(): Response<BatchOverview>
+    @PATCH("plans/toppers-batch/v2/study-plan") suspend fun studyPlan(@Body body: RequestBody): Response<BatchOverview>
     @GET("plans/toppers-batch/v2/today") suspend fun today(@Query("date") date: String): Response<BatchToday>
     @GET("plans/toppers-batch/v2/calendar") suspend fun calendar(
         @Query("month") month: String, @Query("offsetMinutes") offsetMinutes: Int,

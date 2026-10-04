@@ -23,7 +23,7 @@ import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
+import com.composables.ui.components.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
@@ -174,8 +174,9 @@ internal fun HistoryTab(
                         fontWeight = FontWeight.Bold,
                         color = GoalsFlatColors.Scheduled,
                         modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
                             .clickable { selectedDate = today }
-                            .padding(8.dp),
+                            .padding(horizontal = 8.dp, vertical = 4.dp),
                     )
                 }
             }

@@ -465,6 +465,7 @@ private fun GranularityTabs(
             Column(
                 modifier = Modifier
                     .weight(1f)
+                    .clip(RoundedCornerShape(8.dp))
                     .clickable { onSelect(granularity) }
                     .padding(vertical = 12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -1236,8 +1237,9 @@ private fun AppList(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
                     .clickable { onOpen(row) }
-                    .padding(vertical = 10.dp),
+                    .padding(vertical = 10.dp, horizontal = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 AppIcon(
@@ -1366,7 +1368,11 @@ private fun FooterLinks(isLight: Boolean, onNavigate: (String) -> Unit) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
-            modifier = Modifier.fillMaxWidth().clickable { onNavigate(Routes.KAVACH_APP_CATEGORIES) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .clickable { onNavigate(Routes.KAVACH_APP_CATEGORIES) }
+                .padding(vertical = 8.dp, horizontal = 6.dp),
         ) {
             Icon(Icons.Default.Tune, contentDescription = null, tint = secondaryText(isLight), modifier = Modifier.size(18.dp))
             Text(

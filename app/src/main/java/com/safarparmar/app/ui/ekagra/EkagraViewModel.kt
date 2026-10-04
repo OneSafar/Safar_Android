@@ -586,17 +586,22 @@ class EkagraViewModel @Inject constructor(
         sessionId: String,
         goal: Goal,
         markGoalComplete: Boolean,
+        onResult: (Boolean) -> Unit = {},
     ) {
         viewModelScope.launch {
-            when (repo.linkSessionToGoal(sessionId, goal.id, markGoalComplete)) {
+            val result = if (sessionId.startsWith("local-")) {
+                EkagraSessionSaveWorker.linkLocalSession(appContext, sessionId, goal.id, goal.title.ifBlank { goal.text }, markGoalComplete)
+            } else repo.linkSessionToGoal(sessionId, goal.id, markGoalComplete)
+            when (result) {
                 is Resource.Success -> {
+                    onResult(true)
                     com.safarparmar.app.ui.nishtha.goals.GoalEventBus.postGoalUpdated(goal.id)
                     homeRepo.invalidateReadSnapshots()
                     loadStats()
                     refreshEkagra()
                     loadTasks()
                 }
-                is Resource.Error, is Resource.Loading -> Unit
+                is Resource.Error, is Resource.Loading -> onResult(false)
             }
         }
     }

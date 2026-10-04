@@ -188,6 +188,7 @@ fun KavachStitchSecondaryButton(
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = 48.dp)
+            .clip(RoundedCornerShape(16.dp))
             .glassSurface(shape = RoundedCornerShape(16.dp), isDarkTheme = isDark)
             .clickable(
                 enabled = enabled,

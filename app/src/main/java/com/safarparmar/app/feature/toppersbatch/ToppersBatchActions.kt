@@ -56,6 +56,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -74,12 +75,19 @@ import java.time.ZoneId
 
 @Composable
 internal fun LectureCard(lecture: BatchLecture, subject: BatchSubject?, state: BatchUiState,
-                         vm: ToppersBatchViewModel, focused: Boolean = false) {
+                         vm: ToppersBatchViewModel, focused: Boolean = false, flat: Boolean = false) {
+    BatchClampedContent { LectureCardContent(lecture, subject, state, vm, focused, flat) }
+}
+
+@Composable
+private fun LectureCardContent(lecture: BatchLecture, subject: BatchSubject?, state: BatchUiState,
+                               vm: ToppersBatchViewModel, focused: Boolean, flat: Boolean) {
     val pink = Color(0xFFBE185D)
-    val lectureColour = (lecture.color ?: subject?.color)?.takeIf { it.matches(Regex("^#[0-9a-fA-F]{6}$")) }
+    val lectureColour = (lecture.color ?: subject?.color ?: subject?.defaultColor)?.takeIf { it.matches(Regex("^#[0-9a-fA-F]{6}$")) }
         ?.let { runCatching { Color(android.graphics.Color.parseColor(it)) }.getOrNull() }
-    val accent = lectureColour ?: pink
-    val cardColour = lectureColour?.let { lerp(MaterialTheme.colorScheme.surface, it, 0.10f) }
+    val locked = lecture.isLocked(ToppersBatchViewModel.indiaDay())
+    val accent = if (locked) MaterialTheme.colorScheme.onSurfaceVariant else lectureColour ?: pink
+    val cardColour = if (locked) MaterialTheme.colorScheme.surfaceVariant else lectureColour?.let { lerp(MaterialTheme.colorScheme.surface, it, 0.10f) }
         ?: MaterialTheme.colorScheme.surface
     val busy = lecture.id in state.busyIds
     var menu by remember { mutableStateOf(false) }
@@ -103,19 +111,19 @@ internal fun LectureCard(lecture: BatchLecture, subject: BatchSubject?, state: B
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        border = BorderStroke(1.dp, lectureColour ?: if (lecture.completedAt == null)
+        border = if (flat) null else BorderStroke(1.dp, if (locked) MaterialTheme.colorScheme.outlineVariant else lectureColour ?: if (lecture.completedAt == null)
             MaterialTheme.colorScheme.outlineVariant else Color(0xFF198754)),
         colors = CardDefaults.cardColors(
-            containerColor = cardColour,
-            contentColor = MaterialTheme.colorScheme.onSurface,
+            containerColor = if (flat) MaterialTheme.colorScheme.surface else cardColour,
+            contentColor = if (locked) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (flat) 0.dp else 1.dp),
     ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(Modifier.padding(if (flat) 0.dp else 16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 IconButton(
                     onClick = { haptics.performHapticFeedback(HapticFeedbackType.LongPress); vm.toggleDone(lecture) },
-                    enabled = !busy,
+                    enabled = !busy && !locked,
                     modifier = Modifier.size(44.dp).semantics { contentDescription =
                         "${if (lecture.completedAt == null) "Mark as done" else "Mark as not done"}: ${lecture.displayTopic}" },
                 ) {
@@ -139,13 +147,13 @@ internal fun LectureCard(lecture: BatchLecture, subject: BatchSubject?, state: B
                     expanded = menu,
                     onExpandedChange = { menu = it },
                     alignment = DropdownMenuAlignment.End,
-                    panel = { DropdownMenuPanel {
+                    panel = { BatchDropdownMenuPanel {
                         fun close() { menu = false }
                         val manuallyOlder = lecture.backlogAddedAt != null && lecture.backlogResolvedAt == null
                         if (lecture.completedAt != null) UiDropdownMenuItem(onClick = { close(); vm.toggleDone(lecture) }) {
                             UiText("Undo Completion")
                         }
-                        UiDropdownMenuItem(onClick = { close(); vm.lectureAction(lecture, "backlog", remove = manuallyOlder) }) {
+                        UiDropdownMenuItem(enabled = !locked, onClick = { close(); vm.lectureAction(lecture, "backlog", remove = manuallyOlder) }) {
                             UiText(if (manuallyOlder) "Remove from backlog" else "Add to backlog")
                         }
                         if (lecture.completedAt != null || lecture.revisionDate != null) {
@@ -168,22 +176,24 @@ internal fun LectureCard(lecture: BatchLecture, subject: BatchSubject?, state: B
             }
             Surface(color = if (lecture.completedAt == null) MaterialTheme.colorScheme.surfaceVariant else Color(0xFF198754).copy(alpha = 0.16f),
                 shape = RoundedCornerShape(20.dp)) {
-                Text(if (lecture.completedAt == null) "Not completed" else "Completed",
+                Text(if (locked) "Class not started" else if (lecture.completedAt == null) "To do" else "Done",
                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
                     style = MaterialTheme.typography.labelMedium,
                     color = if (lecture.completedAt == null) MaterialTheme.colorScheme.onSurfaceVariant else Color(0xFF198754))
             }
-            if (!focused && lecture.section != null) Text(lecture.section, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            UiButton(onClick = { sourceChooser = true; sourceError = false }, style = ButtonStyle.Primary,
-                modifier = Modifier.fillMaxWidth()) { Text("Open Lecture") }
-            if (!focused && lecture.scheduledFor != null) Text("Parmar class: ${lecture.scheduledFor}" +
-                (lecture.classTime?.let { " at $it" } ?: ""), color = MaterialTheme.colorScheme.onSurfaceVariant)
-            if (lecture.completedAt != null) Text("Finished on ${runCatching {
-                Instant.parse(lecture.completedAt).atZone(ZoneId.of("Asia/Kolkata")).toLocalDate().toString()
-            }.getOrDefault(lecture.completedAt.take(10))}", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            if (lecture.revisionDate != null) Text("Revision: ${lecture.sessions.count { it.completedAt != null }} of ${lecture.sessions.size} done" +
-                if (lecture.pendingRevision) " · Next: ${lecture.revisionDate}" else " · Done",
+            UiButton(onClick = { sourceChooser = true; sourceError = false }, style = if (locked) ButtonStyle.Secondary else ButtonStyle.Primary,
+                enabled = !locked, modifier = Modifier.fillMaxWidth()) { Text(if (locked) "Class not started" else "Open lecture") }
+            val scheduleLabel = lecture.scheduledFor?.take(10)?.let { date ->
+                runCatching { java.time.LocalDate.parse(date).format(
+                    java.time.format.DateTimeFormatter.ofPattern("EEE, d MMM yyyy", java.util.Locale.ENGLISH))
+                }.getOrDefault(date)
+            } ?: listOf(lecture.sourceMonth, lecture.sourceWeek).filter { it.isNotBlank() }.joinToString(" · ")
+            if (scheduleLabel.isNotBlank()) Text(scheduleLabel +
+                (lecture.classTime?.let { " · $it" } ?: ""),
+                style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (lecture.revisionDate != null) Text("Revision ${lecture.sessions.count { it.completedAt != null }}/${lecture.sessions.size} · ${lecture.revisionDate}",
+                style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (lecture.completedAt != null && lecture.revisionDate == null) {
                 OutlinedButton(onClick = { revise = true }, enabled = !busy) { Text("Plan revision") }
             }
@@ -211,7 +221,7 @@ internal fun LectureCard(lecture: BatchLecture, subject: BatchSubject?, state: B
     if (edit) TextEditDialog("Change lecture name", "Lecture name", lecture.displayTopic, 300,
         onDismiss = { edit = false }, error = state.error) { title -> vm.editLecture(lecture, title) { edit = false } }
     if (revise) RevisionDialog(lecture, vm) { revise = false }
-    if (changeColour) ColourDialog(lecture.color ?: subject?.color, "Lecture colour", onDismiss = { changeColour = false }, error = state.error) {
+    if (changeColour) ColourDialog(lecture.color ?: subject?.color ?: subject?.defaultColor, "Lecture colour", onDismiss = { changeColour = false }, error = state.error) {
         vm.lectureColor(lecture, it); changeColour = false
     }
     if (delete) ConfirmDeleteDialog("Delete this lecture?", "Your work will stay saved. Restore it in Lectures.",
@@ -230,7 +240,7 @@ internal fun SubjectOptions(subject: BatchSubject, state: BatchUiState, vm: Topp
         OutlinedButton(onClick = { link = true }) { Text("Change course link") }
         OutlinedButton(onClick = { delete = true }) { Text("Delete subject") }
     }
-    if (colour) ColourDialog(subject.color, "Subject colour", onDismiss = { colour = false }, error = state.error) {
+    if (colour) ColourDialog(subject.color ?: subject.defaultColor, "Subject colour", onDismiss = { colour = false }, error = state.error) {
         vm.subjectColor(subject, it); colour = false
     }
     if (link) LinkDialog(subject, vm) { link = false }
@@ -264,7 +274,8 @@ private fun DateButton(value: String, label: String, enabled: Boolean = true, on
     val context = LocalContext.current
     OutlinedButton(onClick = {
         val date = runCatching { LocalDate.parse(value) }.getOrDefault(LocalDate.now())
-        DatePickerDialog(ContextThemeWrapper(context, R.style.ThemeOverlay_Safar_ToppersPicker), { _, year, month, day ->
+        val pickerContext = batchPickerContext(context)
+        DatePickerDialog(pickerContext, { _, year, month, day ->
             onChange(LocalDate.of(year, month + 1, day).toString())
         }, date.year, date.monthValue - 1, date.dayOfMonth).show()
     }, enabled = enabled, modifier = Modifier.semantics { contentDescription = "$label, ${value.ifBlank { "no date selected" }}" }) {
@@ -407,3 +418,11 @@ private fun LinkDialog(subject: BatchSubject, vm: ToppersBatchViewModel, onDismi
 @Composable private fun DialogError(message: String?) {
     if (message != null) Text(message, color = MaterialTheme.colorScheme.error)
 }
+
+/** Keep the Activity theme when overriding font scale for a framework picker. */
+internal fun batchPickerContext(context: android.content.Context): ContextThemeWrapper =
+    ContextThemeWrapper(context, R.style.ThemeOverlay_Safar_ToppersPicker).apply {
+        applyOverrideConfiguration(android.content.res.Configuration().apply {
+            fontScale = context.resources.configuration.fontScale.coerceIn(0.85f, 1.05f)
+        })
+    }

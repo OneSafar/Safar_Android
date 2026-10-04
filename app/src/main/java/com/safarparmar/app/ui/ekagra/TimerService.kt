@@ -270,6 +270,12 @@ class TimerService : Service() {
     private val _isMuted      = MutableStateFlow(false)
     private val _targetPomodoroLoops = MutableStateFlow(0)
     private val _pomodorosCompleted = MutableStateFlow(0)
+    private val _completedSession = MutableStateFlow<PendingEkagraSessionSave?>(null)
+    val completedSession: StateFlow<PendingEkagraSessionSave?> = _completedSession
+    fun acknowledgeCompletedSession(id: String) {
+        if (_completedSession.value?.clientSessionId == id) _completedSession.value = null
+    }
+
     private val _pomodoroCompletionEvent = MutableStateFlow(0)
     private var pomodoroFocusSeconds = 25 * 60
     private var pomodoroBreakSeconds = 5 * 60
@@ -549,6 +555,7 @@ class TimerService : Service() {
         }
         scope.launch {
             safarDataStore.userId.collect { user ->
+                if (_completedSession.value?.ownerId != user) _completedSession.value = null
                 if (sessionOwnerId != null && sessionOwnerId != user && timerSessionActive) endAndSave()
                 signedInUserId = user
                 recoveryReady = false
@@ -1155,8 +1162,7 @@ class TimerService : Service() {
             planId = null,
             topicTitle = null,
         )
-        // Natural timer completion is always preserved as a plain Untitled
-        // Ekagra session. Goal linking is an optional later action from History.
+        // The service owns finalization; the screen can organize this same saved identity.
         val title = if (forceUntitled) DEFAULT_UNTITLED_SESSION_TITLE
             else metadata.taskTitle?.takeIf { it.isNotBlank() } ?: DEFAULT_UNTITLED_SESSION_TITLE
         val durableSave = EkagraPendingSessionSaveStore.enqueue(
@@ -1184,7 +1190,11 @@ class TimerService : Service() {
         scope.launch {
             runCatching { durableSave.await() }.onSuccess {
                 EkagraDiagnostics.record(applicationContext, "finalized", endReason)
-                if (endReason == "completed") showCompletionNotification(mode)
+                if (endReason == "completed") {
+                    _completedSession.value = EkagraSessionJournal.get(applicationContext)
+                        .find(metadata.clientSessionId, sessionOwnerId.orEmpty())
+                    showCompletionNotification(mode)
+                }
                 flushPendingSavesNow()
             }.onFailure { saveFailure = "Study time could not be saved. Please free up storage and retry." }
         }

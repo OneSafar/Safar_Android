@@ -151,6 +151,7 @@ fun EkagraScreen(
     val timerMode         by (timerService?.timerMode          ?: fallbackTimerMode).collectAsStateWithLifecycle()
     val isMuted           by (timerService?.isMuted            ?: MutableStateFlow(false)).collectAsStateWithLifecycle()
     val rankedStatus by (timerService?.rankedStatus ?: remember { MutableStateFlow<RankedFocusStatus>(RankedFocusStatus.ConnectionNeeded) }).collectAsStateWithLifecycle()
+    val completedSession by (timerService?.completedSession ?: remember { MutableStateFlow<PendingEkagraSessionSave?>(null) }).collectAsStateWithLifecycle()
     val pomodoroCompletionEvent by (timerService?.pomodoroCompletionEvent ?: remember { MutableStateFlow(0) }).collectAsStateWithLifecycle()
     val blockedHitCount   by focusShieldViewModel.blockedHitCount.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -455,16 +456,16 @@ fun EkagraScreen(
                 return
             }
         }
-        if (pomodoroBreak) {
+        if (endingFocus) {
             val progress = service?.focusProgressSnapshot()
             if (progress != null && progress.actualSeconds > 0) {
                 service.pause()
                 pendingEndedSession = PendingEndedEkagraSession(
                     sessionId = service.currentSessionId()?.takeIf { it.startsWith("local-") }
                         ?: "local-${java.util.UUID.randomUUID()}",
-                    totalSeconds = progress.plannedSeconds,
-                    secondsLeft = (progress.plannedSeconds - progress.actualSeconds).coerceAtLeast(0),
-                    mode = TimerMode.POMODORO.toApiMode(),
+                    totalSeconds = if (timerMode == TimerMode.STOPWATCH) progress.actualSeconds else progress.plannedSeconds,
+                    secondsLeft = if (timerMode == TimerMode.STOPWATCH) progress.actualSeconds else (progress.plannedSeconds - progress.actualSeconds).coerceAtLeast(0),
+                    mode = endingMode,
                     startedAt = service.currentSessionStartedAt()
                         ?: Instant.now().minusSeconds(progress.actualSeconds.toLong()).toString(),
                 )
@@ -577,88 +578,16 @@ fun EkagraScreen(
         }
     }
 
-    LaunchedEffect(timerRunning, secondsLeft) {
-        if (!timerRunning && secondsLeft == 0 && totalSeconds > 0) {
-            val completedMode = timerMode
-            if (completedMode != TimerMode.FOCUS && completedMode != TimerMode.POMODORO) return@LaunchedEffect
-            // ── Pomodoro auto-break guard ────────────────────────────────────────
-            // TimerService sets _isRunning=false momentarily, then immediately
-            // switches to BREAK mode and calls start() — this all happens on the
-            // Main dispatcher without suspension. Wait 500 ms for the service's
-            // StateFlows to settle so we can tell whether an auto-break started.
-            delay(500L)
-            if (timerMode != TimerMode.FOCUS || timerRunning) {
-                if (completedMode == TimerMode.POMODORO && timerMode == TimerMode.BREAK) {
-                    // An intermediate loop ended. Keep the logical session draft and
-                    // its associations alive for the next focus loop.
-                    return@LaunchedEffect
-                }
-                // Auto 5-minute break is now running. The service already saved the
-                // completed focus session via enqueueCompletedFocusSessionSave().
-                // Just discard the stale ViewModel draft and refresh analytics —
-                // do NOT call timerService?.reset() or the break will be killed.
-                activeSession?.id?.let { viewModel.discardSession(it) }
-                viewModel.loadEkagraAnalytics()
-                associatedGoalId = null
-                associatedGoalTitle = null
-                associatedTopicId = null; associatedTopicTitle = null; associatedPlanId = null
-                return@LaunchedEffect
-            }
-            if (timerService?.hasQueuedSessionSave() == true) {
-                activeSession?.id?.let { viewModel.discardSession(it) }
-                viewModel.loadEkagraAnalytics()
-                timerService?.reset()
-                associatedGoalId = null; associatedGoalTitle = null
-                associatedTopicId = null; associatedTopicTitle = null; associatedPlanId = null
-                return@LaunchedEffect
-            }
-            // No auto-break started — normal focus-end cleanup.
-            val session = activeSession
-            if (session != null) {
-                // Natural completion is saved immediately as an unlinked Untitled
-                // session. The user can long-press it in History to link it later.
-                val endedAt = Instant.now().toString()
-                viewModel.saveSessionImmediately(
-                    sessionId = session.id,
-                    totalSeconds = totalSeconds,
-                    secondsLeft = 0,
-                    mode = completedMode.toApiMode(),
-                    startedAt = session.sessionStartedAt,
-                    endedAt = endedAt,
-                    taskTitle = null,
-                    isAutoComplete = true,
-                ) { _, _ ->
-                    viewModel.loadEkagraAnalytics()
-                }
-                timerService?.reset()
-                associatedGoalId = null; associatedGoalTitle = null
-                associatedTopicId = null; associatedTopicTitle = null; associatedPlanId = null
-                return@LaunchedEffect
-            } else if (totalSeconds > 0) {
-                val endedAt = Instant.now().toString()
-                val fallbackId = "local-${java.util.UUID.randomUUID()}"
-                viewModel.saveSessionImmediately(
-                    sessionId = fallbackId,
-                    totalSeconds = totalSeconds,
-                    secondsLeft = 0,
-                    mode = completedMode.toApiMode(),
-                    startedAt = Instant.now().minusSeconds(totalSeconds.toLong()).toString(),
-                    endedAt = endedAt,
-                    taskTitle = null,
-                    isAutoComplete = true,
-                ) { _, _ ->
-                    viewModel.loadEkagraAnalytics()
-                }
-                timerService?.reset()
-                associatedGoalId = null; associatedGoalTitle = null
-                associatedTopicId = null; associatedTopicTitle = null; associatedPlanId = null
-                return@LaunchedEffect
-            }
-            viewModel.loadEkagraAnalytics()
-            timerService?.reset()
-            associatedGoalId = null; associatedGoalTitle = null
-            associatedTopicId = null; associatedTopicTitle = null; associatedPlanId = null
-        }
+    LaunchedEffect(completedSession?.clientSessionId) {
+        val completed = completedSession ?: return@LaunchedEffect
+        activeSession?.id?.takeIf { it == completed.clientSessionId }?.let { viewModel.discardSession(it) }
+        savedSessionId = completed.clientSessionId
+        savedSessionDuration = completed.actualDurationSeconds ?: completed.actualDurationMinutes * 60
+        showPostSaveGoalLinking = completed.topicId == null
+        if (!showPostSaveGoalLinking) timerService?.acknowledgeCompletedSession(completed.clientSessionId)
+        associatedGoalId = null; associatedGoalTitle = null
+        associatedTopicId = null; associatedTopicTitle = null; associatedPlanId = null
+        viewModel.loadEkagraAnalytics()
     }
 
     LaunchedEffect(pomodoroCompletionEvent) {
@@ -721,8 +650,17 @@ fun EkagraScreen(
         }
     }
 
-    val themeColorScheme = remember(selectedTheme, isDarkTheme) {
-        val seed = if (isDarkTheme) {
+    val isBreakActive = timerMode == TimerMode.BREAK && (timerRunning || (totalSeconds > 0 && secondsLeft < totalSeconds))
+    val breakSaturation by animateFloatAsState(
+        targetValue = if (isBreakActive) 0f else 1f,
+        animationSpec = tween(durationMillis = 600, easing = FastOutSlowInEasing),
+        label = "breakSaturation",
+    )
+
+    val themeColorScheme = remember(selectedTheme, isDarkTheme, isBreakActive) {
+        val seed = if (isBreakActive) {
+            if (isDarkTheme) Color(0xFFE2E8F0) else Color(0xFF1E293B)
+        } else if (isDarkTheme) {
             val darkGradient = selectedTheme.gradientColors
             if (darkGradient != null && darkGradient.isNotEmpty()) {
                 darkGradient.first()
@@ -1325,16 +1263,22 @@ fun EkagraScreen(
                             selectedTheme = selectedTheme,
                             isDarkTheme = isDarkTheme,
                             onDismiss = {
+                                savedSessionId?.let { timerService?.acknowledgeCompletedSession(it) }
                                 showPostSaveGoalLinking = false
                                 savedSessionId = null
                                 viewModel.loadEkagraAnalytics()
                             },
                             onLinkGoal = { goal, markComplete ->
                                 val sessionId = savedSessionId!!
-                                viewModel.linkSavedSessionToGoal(sessionId, goal, markComplete)
-                                showPostSaveGoalLinking = false
-                                savedSessionId = null
-                                viewModel.loadEkagraAnalytics()
+                                viewModel.linkSavedSessionToGoal(sessionId, goal, markComplete) { saved ->
+                                    if (saved) {
+                                        timerService?.acknowledgeCompletedSession(sessionId)
+                                        showPostSaveGoalLinking = false
+                                        savedSessionId = null
+                                    } else {
+                                        ekagraScope.launch { snackbarHostState.showSnackbar("Could not update the goal. Please try again.") }
+                                    }
+                                }
                             },
                         )
                     }
@@ -1512,7 +1456,9 @@ fun EkagraScreen(
                     }
 
                     Box(
-                        Modifier.fillMaxSize()
+                        Modifier
+                            .fillMaxSize()
+                            .saturation(breakSaturation)
                     ) {
                         SafarDrawerScaffold(
                             title              = stringResource(R.string.module_ekagra),
@@ -1530,15 +1476,22 @@ fun EkagraScreen(
                             if (selectedTab == EkagraNavTab.TIMER) {
                                 val colors = selectedTheme.gradientColors
                                 if (colors != null) {
+                                    val targetTopColor = if (isBreakActive) {
+                                        if (isDarkTheme) Color(0xFF1E2024) else Color(0xFFD4D8DF)
+                                    } else colors[0]
+                                    val targetBottomColor = if (isBreakActive) {
+                                        if (isDarkTheme) Color(0xFF0D0E11) else Color(0xFFECEFF3)
+                                    } else colors[1]
+
                                     // Cross-fade palette swaps when the user picks a new
                                     // visual theme instead of snapping to the new colours.
                                     val topColor by animateColorAsState(
-                                        targetValue = colors[0],
+                                        targetValue = targetTopColor,
                                         animationSpec = tween(1200),
                                         label = "bgTopColor",
                                     )
                                     val bottomColor by animateColorAsState(
-                                        targetValue = colors[1],
+                                        targetValue = targetBottomColor,
                                         animationSpec = tween(1200),
                                         label = "bgBottomColor",
                                     )

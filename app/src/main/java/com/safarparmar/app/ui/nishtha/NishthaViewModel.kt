@@ -35,10 +35,12 @@ class NishthaViewModel @Inject constructor(
     /** A failed API result is not an app exception. Keep a privacy-safe breadcrumb
      * for diagnostics without manufacturing a Crashlytics non-fatal event. */
     private fun recordGoalOperationFailure(operation: String, error: Resource.Error<*>) {
-        FirebaseCrashlytics.getInstance().log(
-            "goal_operation_failed operation=$operation http_status=${error.code ?: "network_or_client"} " +
-                "api_code=${error.errorCode ?: "none"}"
-        )
+        runCatching {
+            FirebaseCrashlytics.getInstance().log(
+                "goal_operation_failed operation=$operation http_status=${error.code ?: "network_or_client"} " +
+                    "api_code=${error.errorCode ?: "none"}"
+            )
+        }.onFailure { android.util.Log.w("NishthaViewModel", "Crash reporting unavailable", it) }
     }
 
     // Monthly report is NOT loaded here — it's month-scoped and only the Analytics

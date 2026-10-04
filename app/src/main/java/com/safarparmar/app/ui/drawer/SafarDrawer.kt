@@ -204,8 +204,8 @@ fun SafarDrawer(
     val lt = LightFlat
     val currentBase = currentRoute.substringBefore("?")
 
-    // Google Notes Drawer signature right-rounded 28.dp shape
-    val drawerShape = RoundedCornerShape(topEnd = 28.dp, bottomEnd = 28.dp, topStart = 0.dp, bottomStart = 0.dp)
+    // Drawer signature right-rounded 14.dp shape (reduced by 50% from 28.dp)
+    val drawerShape = RoundedCornerShape(topEnd = 14.dp, bottomEnd = 14.dp, topStart = 0.dp, bottomStart = 0.dp)
 
     val expandedSections = rememberSaveable(
         saver = listSaver(
@@ -244,7 +244,7 @@ fun SafarDrawer(
     val containerBorderColor = if (isLight) lt.border else dk.border
 
     Surface(
-        modifier = Modifier.fillMaxHeight().fillMaxWidth(0.75f),
+        modifier = Modifier.fillMaxHeight().fillMaxWidth(0.8625f),
         color = containerBgColor,
         contentColor = if (isLight) lt.textPrimary else dk.textPrimary,
         tonalElevation = 1.dp,
@@ -568,7 +568,7 @@ private fun DrawerUserProfileHeader(
                     text = displayName,
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp,
+                        fontSize = 18.5.sp,
                     ),
                     color = if (isLight) lt.textPrimary else dk.textPrimary,
                 )
@@ -594,7 +594,7 @@ private fun DrawerUserProfileHeader(
                                 text = stringResource(R.string.drawer_premium_active),
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     fontWeight = FontWeight.SemiBold,
-                                    fontSize = 11.sp,
+                                    fontSize = 13.sp,
                                 ),
                                 color = if (isLight) lt.chipText else dk.chipText,
                             )
@@ -671,12 +671,12 @@ private fun DrawerSectionHeader(
                 modifier = Modifier.size(20.dp),
             )
             Text(
-                text = label.uppercase(Locale.US),
+                text = label,
                 modifier = Modifier.weight(1f),
                 style = MaterialTheme.typography.labelMedium.copy(
                     fontWeight = FontWeight.Bold,
-                    fontSize = 11.sp,
-                    letterSpacing = 1.sp,
+                    fontSize = 13.5.sp,
+                    letterSpacing = 0.2.sp,
                 ),
                 color = textColor,
             )
@@ -780,7 +780,7 @@ private fun DrawerNavRow(
                 imageVector = item.icon,
                 contentDescription = label,
                 tint = iconColor,
-                modifier = Modifier.size(22.dp),
+                modifier = Modifier.size(23.dp),
             )
 
             Text(
@@ -788,7 +788,8 @@ private fun DrawerNavRow(
                 modifier = Modifier.weight(1f),
                 style = MaterialTheme.typography.bodyMedium.copy(
                     fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                    fontSize = 14.sp,
+                    fontSize = 16.sp,
+                    lineHeight = 22.sp,
                 ),
                 color = textColor,
             )
@@ -913,7 +914,7 @@ private fun DrawerDarkModeCard(
             text = stringResource(if (isDarkTheme) R.string.drawer_dark_mode else R.string.drawer_light_mode),
             style = MaterialTheme.typography.bodyMedium.copy(
                 fontWeight = FontWeight.SemiBold,
-                fontSize = 14.sp,
+                fontSize = 16.sp,
             ),
             color = if (isLight) lt.textPrimary else dk.textPrimary,
         )

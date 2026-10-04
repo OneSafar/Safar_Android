@@ -88,6 +88,12 @@ object FocusShieldPermissionHelper {
     }
 
     /** OEMs can omit individual Settings activities. Keep permission taps recoverable. */
+    fun openNotificationSettings(context: Context) {
+        openSettingsPage(context, Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+            putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+        })
+    }
+
     private fun openSettingsPage(context: Context, intent: Intent) {
         try {
             context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))

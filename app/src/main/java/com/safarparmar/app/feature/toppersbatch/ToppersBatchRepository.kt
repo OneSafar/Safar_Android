@@ -1,5 +1,6 @@
 package com.safarparmar.app.feature.toppersbatch
 
+import kotlinx.coroutines.CancellationException
 import com.safarparmar.app.util.Resource
 import com.safarparmar.app.util.safeApiCall
 import okhttp3.MediaType.Companion.toMediaType
@@ -8,18 +9,17 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import javax.inject.Inject
 
-class ToppersBatchRepository @Inject constructor(private val api: ToppersBatchApi) {
+class ToppersBatchRepository @Inject constructor(private val api: ToppersBatchApi, private val gk: GkLectureStore) {
     suspend fun status() = safeApiCall { api.status() }
-    suspend fun activate() = safeApiCall { api.activate() }.mapSuccess(BatchOverview::officialOnly)
-    suspend fun overview() = safeApiCall { api.overview() }.mapSuccess(BatchOverview::officialOnly)
+    suspend fun activate() = safeApiCall { api.activate() }.mapSuccess { gk.attach(it.officialOnly()) }
+    suspend fun overview() = safeApiCall { api.overview() }.mapSuccess { gk.attach(it.officialOnly()) }
+    suspend fun studyPlan(plan: BatchStudyPlan) = safeApiCall { api.studyPlan(jsonBody(mapOf("startDate" to plan.startDate, "targetDate" to plan.targetDate, "weeklyGoal" to plan.weeklyGoal))) }.mapSuccess { gk.attach(it.officialOnly()) }
     suspend fun today(date: String) = safeApiCall { api.today(date) }.mapSuccess(BatchToday::officialOnly)
     suspend fun calendar(month: String, offsetMinutes: Int) =
         safeApiCall { api.calendar(month, offsetMinutes) }.mapSuccess(BatchCalendar::officialOnly)
-    suspend fun action(id: String, action: String, body: Map<String, Any> = emptyMap()) =
-        safeApiCall { api.lectureAction(id, action, body) }
+    suspend fun action(id: String, action: String, body: Map<String, Any> = emptyMap()) = safeApiCall { api.lectureAction(id, action, body) }
     suspend fun removeAction(id: String, action: String) = safeApiCall { api.removeLectureAction(id, action) }
-    suspend fun completeRevision(id: String, sessionIndex: Int) =
-        safeApiCall { api.completeRevision(id, mapOf("sessionIndex" to sessionIndex)) }
+    suspend fun completeRevision(id: String, sessionIndex: Int) = safeApiCall { api.completeRevision(id, mapOf("sessionIndex" to sessionIndex)) }
     suspend fun editLecture(id: String, body: Map<String, Any?>) = safeApiCall { api.editLecture(id, jsonBody(body)) }
     suspend fun removeLecture(id: String) = safeApiCall { api.removeLecture(id) }
     suspend fun restoreLecture(id: String) = safeApiCall { api.restoreLecture(id) }
@@ -62,8 +62,16 @@ internal fun BatchCalendar.officialOnly() = copy(
     classes = classes.mapValues { (_, rows) -> rows.filter(BatchLecture::isOfficial) }.filterValues { it.isNotEmpty() },
 )
 
-private fun <T, R> Resource<T>.mapSuccess(transform: (T) -> R): Resource<R> = when (this) {
-    is Resource.Success -> Resource.Success(transform(data))
+private suspend fun <T, R> Resource<T>.mapSuccess(transform: suspend (T) -> R): Resource<R> = when (this) {
+    is Resource.Success -> try {
+        Resource.Success(transform(data))
+    } catch (cancelled: CancellationException) {
+        throw cancelled
+    } catch (_: Exception) {
+        // Gson can populate a non-null Kotlin property with an explicit JSON null.
+        // Mapping happens after safeApiCall, so malformed data needs its own boundary.
+        Resource.Error("Could not read Toppers Batch data. Please try again.")
+    }
     is Resource.Error -> Resource.Error(message, code, errorCode)
     is Resource.Loading -> Resource.Loading()
 }
@@ -82,8 +90,8 @@ fun BatchOverview.withLecture(updated: BatchLecture, today: String): BatchOvervi
         val own = next.filter { it.subjectId == subject.id }
             .sortedWith(compareBy<BatchLecture> { it.order }.thenBy { it.lectureNumber })
         val furthestDone = own.indexOfLast { it.completedAt != null }
-        BatchSubjectWatch(subject.id, own.firstOrNull { it.completedAt == null }?.id,
-            own.filterIndexed { index, lecture -> lecture.completedAt == null &&
+        BatchSubjectWatch(subject.id, own.firstOrNull { it.completedAt == null && !it.isLocked(today) }?.id,
+            own.filterIndexed { index, lecture -> lecture.completedAt == null && !lecture.isLocked(today) &&
                 (index < furthestDone || (lecture.backlogAddedAt != null && lecture.backlogResolvedAt == null))
             }.map { it.id })
     }
@@ -93,14 +101,14 @@ fun BatchOverview.withLecture(updated: BatchLecture, today: String): BatchOvervi
         SubjectProgress(
             subjectId = subject.id, completed = own.count { it.completedAt != null }, total = own.size,
             backlog = own.count { it.id in backlogIds },
-            behind = own.count { it.completedAt == null && it.scheduledFor != null && it.scheduledFor < today },
-            batchAt = own.count { it.scheduledFor != null && it.scheduledFor <= today },
+            behind = own.count { it.completedAt == null && !it.isLocked(today) && it.scheduledFor != null && it.scheduledFor < today },
+            batchAt = own.count { it.isAvailable ?: (it.scheduledFor != null && it.scheduledFor <= today) },
         )
     }
     return copy(lectures = next, watchList = watch, progress = BatchProgress(
         completed = visible.count { it.completedAt != null }, total = visible.size,
         backlog = visible.count { it.id in backlogIds },
-        behind = visible.count { it.completedAt == null && it.scheduledFor != null && it.scheduledFor < today },
+        behind = visible.count { it.completedAt == null && !it.isLocked(today) && it.scheduledFor != null && it.scheduledFor < today },
         bySubject = rows,
     ))
 }

@@ -74,6 +74,28 @@ class EkagraJournalInstrumentedTest {
         assertTrue(journal.observe().first().isEmpty())
     }
 
+    @Test fun goalChoiceOnOfflineCompletionUpdatesSamePendingRow() = runBlocking {
+        journal.enqueue(session().copy(goalId = null), "student-a").await()
+        assertTrue(journal.setPendingGoal("local-test", "student-a", "chosen-goal", "Math", true))
+        val pending = journal.pending().single()
+        assertEquals("local-test", pending.clientSessionId)
+        assertEquals("chosen-goal", pending.goalId)
+        assertTrue(pending.markGoalComplete)
+        assertEquals(10800, pending.actualDurationSeconds)
+        journal.enqueue(session(), "student-a").await()
+        assertEquals("chosen-goal", journal.pending().single().goalId)
+    }
+
+    @Test fun acknowledgedGoalChoiceUsesExistingServerIdentity() = runBlocking {
+        journal.enqueue(session(), "student-a").await()
+        journal.acknowledge(journal.pending().single(), "server-id")
+        assertFalse(journal.setPendingGoal("local-test", "student-a", "new-goal", "Math", true))
+        assertEquals("server-id", journal.find("local-test", "student-a")?.serverId)
+        journal.reconcile(setOf("server-id")).await()
+        assertEquals("server-id", journal.find("local-test", "student-a")?.serverId)
+        assertTrue(journal.pending().isEmpty())
+    }
+
     @Test fun pendingHistoryAndUploadsAreAccountIsolated() = runBlocking {
         journal.enqueue(session(), "student-a").await()
         owner.value = "student-b"

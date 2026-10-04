@@ -579,4 +579,6 @@
     <string name="update_safar">Update Safar</string>
     <string name="update_required">This update is required to continue.</string>
     <string name="ekagra_presence_no">No</string>
+    <string name="youtube_study_mode_control">YouTube Study Mode</string>
+    <string name="youtube_study_mode_configure">Configure</string>
 </resources>

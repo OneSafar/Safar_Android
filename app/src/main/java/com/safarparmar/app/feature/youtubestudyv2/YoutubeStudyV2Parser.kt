@@ -188,7 +188,7 @@ object YoutubeStudyV2Parser {
                     regularPlaybackRegion.width >= snapshot.screenWidth * 0.85f &&
                     regularPlaybackRegion.height >= snapshot.screenHeight * 0.85f)
             val fullscreenSidePanel = if (fullscreen) detectFullscreenSidePanel(snapshot, visible) else YoutubeFullscreenSidePanel.NONE
-            val metadataNodes = watchMetadataNodes(snapshot, visible)
+            val metadataNodes = watchMetadataNodes(snapshot, visible, regularWatchMarker)
             val watchMetadata = watchHeaderMetadata(nodes, metadataNodes)
             val hudMetadata = if (fullscreen) fullscreenHudMetadata(snapshot, visible) else null
             // YouTube can leave a visible title-only portrait watch header in
@@ -386,7 +386,11 @@ object YoutubeStudyV2Parser {
     }
 
     /** Exclude whole recommendation items, even when their thumbnails scroll offscreen. */
-    private fun watchMetadataNodes(snapshot: YoutubeV2Snapshot, visible: List<Int>): List<Int> {
+    private fun watchMetadataNodes(
+        snapshot: YoutubeV2Snapshot,
+        visible: List<Int>,
+        player: YoutubeV2Node,
+    ): List<Int> {
         val nodes = snapshot.nodes
         val listItems = nodes.indices.filter { index ->
             nodes[index].parentIndex?.let { nodes[it].viewId?.substringAfterLast('/') == "watch_list" } == true
@@ -409,9 +413,37 @@ object YoutubeStudyV2Parser {
                     node.width >= snapshot.screenWidth * 0.45f &&
                     node.height >= 90 * snapshot.density)
         }.mapNotNull { itemByNode[it] }.toSet()
+        // Compose-based YouTube often omits resource IDs on comments and cards.
+        // Their labels and avatars can occupy the same band as the uploader after
+        // scrolling. Stop at the first engagement section or recommendation
+        // thumbnail, using offscreen thumbnails too when their card is recycled.
+        val metadataEnd = nodes.indices.filter { index ->
+            val node = nodes[index]
+            if (hasAncestorWithId(nodes, node, regularWatchIds)) return@filter false
+            val id = node.viewId.orEmpty().lowercase()
+            val thumbnail = id.contains("thumbnail") ||
+                (node.className.orEmpty().contains("ImageView", true) &&
+                    node.width >= snapshot.screenWidth * 0.45f && node.height >= 90 * snapshot.density)
+            val section = node.visibleToUser && (NON_OWNER_TEXT_IDS.any(id::contains) ||
+                sequenceOf(node.text, node.contentDescription).filterNotNull().any(::isWatchEngagementLabel))
+            (thumbnail || section) && node.bottom >= player.bottom - 8 * snapshot.density
+        }.minOfOrNull { nodes[it].top.coerceAtLeast(player.bottom) }
         return visible.filter { index ->
-            !isExcludedMetadataNode(nodes, index) && itemByNode[index] !in recommendationItems
+            val node = nodes[index]
+            !isExcludedMetadataNode(nodes, index) && itemByNode[index] !in recommendationItems &&
+                (metadataEnd == null || (node.top < metadataEnd &&
+                    // A merged parent label must not bring lower-screen text
+                    // back into the otherwise bounded metadata region.
+                    (node.bottom <= metadataEnd || (node.text.isNullOrBlank() && node.contentDescription.isNullOrBlank()))))
         }
+    }
+
+    private fun isWatchEngagementLabel(value: String): Boolean {
+        val lower = value.trim().lowercase()
+        return Regex("^(?:comments?|टिप्पणियाँ|टिप्पणियां)(?:$|[\\s·•]+[\\d.,km]+$)").matches(lower) ||
+            (isActionButtonText(lower) && lower !in setOf("subscribe", "subscribed", "join", "सदस्यता लें", "सदस्यता ली गई") &&
+                !lower.startsWith("subscribe to ") && !lower.startsWith("सदस्यता लें ")) ||
+            COMMENT_AND_VIDEO_REACTION_LABELS.any { lower == it || lower.startsWith("$it ") }
     }
 
     private data class OwnerEvidence(val handle: String?, val displayName: String?)
@@ -536,7 +568,7 @@ object YoutubeStudyV2Parser {
             // A same-row sibling can supply the engagement/time proof that a
             // bare-handle node lacks on its own. Only siblings vertically aligned
             // with this node (same metadata row) count — never the whole band.
-            val siblingProof = hasSiblingUploaderMetadataProof(nodes, index, node)
+            val siblingProof = hasSiblingUploaderMetadataProof(nodes, visible, index, node)
             val valueAndHandle = values.mapNotNull { value ->
                 verifiedUploaderHandle(value, semanticOwnerProof || siblingProof)?.let { value to it }
             }.firstOrNull() ?: return@mapNotNull null
@@ -566,11 +598,12 @@ object YoutubeStudyV2Parser {
      */
     private fun hasSiblingUploaderMetadataProof(
         nodes: List<YoutubeV2Node>,
+        metadataNodes: List<Int>,
         index: Int,
         node: YoutubeV2Node,
     ): Boolean {
         val parent = node.parentIndex ?: return false
-        return nodes.indices.any { siblingIndex ->
+        return metadataNodes.any { siblingIndex ->
             if (siblingIndex == index) return@any false
             val sibling = nodes[siblingIndex]
             if (sibling.parentIndex != parent) return@any false
@@ -717,6 +750,7 @@ object YoutubeStudyV2Parser {
     internal fun isPlausibleOwnerLabel(value: String): Boolean {
         if (value.length !in 2..120) return false
         val lower = value.lowercase()
+        if (isWatchEngagementLabel(value) || isActionButtonText(lower)) return false
         if (lower in setOf("exit full screen", "enter full screen", "full screen", "fullscreen", "play", "pause", "next video", "previous video", "close player", "close", "dismiss", "back", "quote", "description", "बंद करें", "वापस")) return false
         return INVALID_OWNER_WORDS.none(lower::contains)
     }
@@ -787,8 +821,12 @@ object YoutubeStudyV2Parser {
         "subscribe", "subscribed", "join", "share", "download", "thanks", "remix", "save", "clip", "more",
         "सदस्यता लें", "सदस्यता ली गई", "शेयर करें", "डाउनलोड करें", "धन्यवाद",
     )
+    private val COMMENT_AND_VIDEO_REACTION_LABELS = setOf(
+        "like this video", "dislike this video", "like this comment", "dislike this comment", "reply to this comment",
+    )
     private val PLAYER_CONTROL_LABELS = setOf(
-        "like this video", "dislike this video", "exit full screen", "enter full screen",
+        "like this video", "dislike this video", "like this comment", "dislike this comment",
+        "reply to this comment", "exit full screen", "enter full screen",
         "play video", "pause video", "next video", "previous video", "close player",
     )
     private val DISALLOWED_TITLE_WORDS = setOf(

@@ -538,6 +538,11 @@ fun DhyanScreen(
     val dhyanPricing by premiumVm.dhyanPricing.collectAsStateWithLifecycle()
     val isPremium = premiumStatus.isPremium || premiumStatus.hasAnyPaidAccess
     val hasDhyanLiveAccess = dhyanPricing.accessState == "DHYAN_INCLUDED"
+    val liveAccess by premiumVm.dhyanLiveAccess.collectAsStateWithLifecycle()
+    androidx.lifecycle.compose.LifecycleResumeEffect(premiumVm) {
+        premiumVm.refreshDhyanAccess()
+        onPauseOrDispose {}
+    }
 
     CompositionLocalProvider(LocalPlannerIsDarkTheme provides isDarkTheme) {
     Box(Modifier.fillMaxSize()) {
@@ -632,13 +637,13 @@ fun DhyanScreen(
                                         showTopBar = false,
                                         isDarkTheme = isDarkTheme,
                                     )
-                                    if (!hasDhyanLiveAccess) {
-                                        DhyanLiveLockOverlay(
+                                    com.safarparmar.app.feature.live.presentation.DhyanLiveAccessOverlay(
+                                            accessState = liveAccess,
+                                            onRetry = premiumVm::refreshDhyanAccess,
                                             modifier = Modifier.fillMaxSize(),
                                             isDarkTheme = isDarkTheme,
                                             onEnrollClick = { onNavigate(Routes.PREMIUM) },
                                         )
-                                    }
                                 }
                             }
                         }

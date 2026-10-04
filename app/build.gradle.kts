@@ -92,8 +92,8 @@ android {
         applicationId = "com.safarparmar.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 64
-        versionName = "1.6.64"
+        versionCode = 68
+        versionName = "1.6.68"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         // Compile-time override for manual comparison; normal builds select by device capabilities.
         val effects = providers.gradleProperty("safarEffects").getOrElse("auto")
@@ -102,6 +102,14 @@ android {
         buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"$googleWebClientId\"")
         ndk {
             debugSymbolLevel = "FULL"
+        }
+    }
+
+    // In-app language selection must work immediately, including for users whose
+    // device language was English when Play installed the app.
+    bundle {
+        language {
+            enableSplit = false
         }
     }
 

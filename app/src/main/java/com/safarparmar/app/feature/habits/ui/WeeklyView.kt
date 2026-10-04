@@ -67,11 +67,11 @@ fun WeeklyView(
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text("${weekStart.format(dateFormat)} – ${days.last().format(dateFormat)}",
                         modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium, color = HabitColors.TextSecondary)
-                    IconButton(onClick = onPrevWeek, style = ButtonStyle.Outlined, modifier = Modifier.size(48.dp)) {
+                    IconButton(onClick = onPrevWeek, style = ButtonStyle.Secondary, modifier = Modifier.size(48.dp)) {
                         Icon(Icons.AutoMirrored.Rounded.KeyboardArrowLeft, contentDescription = "Previous week", modifier = Modifier.size(20.dp))
                     }
                     Spacer(Modifier.width(8.dp))
-                    IconButton(onClick = onNextWeek, style = ButtonStyle.Outlined, modifier = Modifier.size(48.dp)) {
+                    IconButton(onClick = onNextWeek, style = ButtonStyle.Secondary, modifier = Modifier.size(48.dp)) {
                         Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = "Next week", modifier = Modifier.size(20.dp))
                     }
                 }
@@ -88,7 +88,7 @@ fun WeeklyView(
         } else {
             if (habits.size > 1 || filterState.totalCount() > 0) {
                 item(key = "filters") {
-                    Button(onClick = { showFilterSheet = true }, style = ButtonStyle.Outlined) {
+                    Button(onClick = { showFilterSheet = true }, style = ButtonStyle.Secondary) {
                         Text(if (filterState.totalCount() > 0) "Filter habits · ${filterState.totalCount()} selected" else "Filter habits")
                     }
                 }

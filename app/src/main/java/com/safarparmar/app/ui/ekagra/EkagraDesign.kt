@@ -23,6 +23,12 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.toRect
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ColorMatrix
+import androidx.compose.ui.graphics.Paint
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.text.style.TextOverflow
 import com.safarparmar.app.ui.theme.LoraFontFamily
 
@@ -386,3 +392,25 @@ internal fun EkagraChromeIcon(
         )
     }
 }
+
+/**
+ * Applies a saturation adjustment (0f = black & white / greyscale, 1f = full colour).
+ * Uses canvas layer filtering with a ColorMatrix across all Android versions.
+ */
+internal fun Modifier.saturation(saturation: Float): Modifier {
+    if (saturation >= 0.999f) return this
+    val matrix = ColorMatrix().apply {
+        setToSaturation(saturation.coerceIn(0f, 1f))
+    }
+    return this.drawWithContent {
+        val paint = Paint().apply {
+            colorFilter = ColorFilter.colorMatrix(matrix)
+        }
+        drawIntoCanvas { canvas ->
+            canvas.saveLayer(this.size.toRect(), paint)
+            drawContent()
+            canvas.restore()
+        }
+    }
+}
+

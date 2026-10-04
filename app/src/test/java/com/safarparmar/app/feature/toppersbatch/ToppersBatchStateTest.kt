@@ -129,4 +129,77 @@ class ToppersBatchStateTest {
         assertEquals(3, trend.last().completed)
         assertTrue(trend.zipWithNext().all { (left, right) -> right.completed >= left.completed })
     }
+    @Test fun lateJoinerKeepsPersonalQueueEvenWhenEveryOfficialDateIsPast() {
+        val first = officialLecture.copy(id = "first", order = 1, backlogAddedAt = null)
+        val second = first.copy(id = "second", order = 2)
+        val batch = BatchOverview(subjects = listOf(official), lectures = listOf(first, second),
+            studyPlan = BatchStudyPlan("2026-10-02", "2026-11-02", 14))
+            .withLecture(first, "2026-10-02")
+        assertEquals("first", batch.watchList.single().nextLectureId)
+        assertTrue(batch.watchList.single().backlogLectureIds.isEmpty())
+        val insight = batch.personalInsights(LocalDate.parse("2026-10-02"))
+        assertEquals(2, insight.officialGap)
+        assertEquals(null, insight.projectedFinish)
+        assertEquals(0, insight.streak)
+        assertEquals(1, insight.recentDays)
+    }
+
+    @Test fun personalEstimateUsesIndiaCompletionDatesAndPartialWeekSinceStart() {
+        val first = officialLecture.copy(id = "first", completedAt = "2026-10-01T20:00:00Z")
+        val second = first.copy(id = "second", completedAt = null)
+        val batch = BatchOverview(subjects = listOf(official), lectures = listOf(first, second),
+            studyPlan = BatchStudyPlan("2026-10-01", "2026-10-08", 7))
+        val insight = batch.personalInsights(LocalDate.parse("2026-10-02"))
+        assertEquals(LocalDate.parse("2026-10-02"), insight.firstCompletion)
+        assertEquals(1, insight.recentCompleted)
+        assertEquals(2, insight.recentDays)
+        assertEquals(1, insight.activeDays)
+        assertEquals(1, insight.streak)
+        assertEquals(LocalDate.parse("2026-10-04"), insight.projectedFinish)
+        assertEquals(1, insight.requiredPerWeek)
+    }
+
+    @Test fun completedSyllabusHasActualFinishAndUndoRemovesIt() {
+        val row = officialLecture.copy(completedAt = "2026-10-02T10:00:00Z")
+        val batch = BatchOverview(subjects = listOf(official), lectures = listOf(row))
+        assertEquals(LocalDate.parse("2026-10-02"), batch.personalInsights(LocalDate.parse("2026-10-02")).syllabusCompleted)
+        val undone = batch.withLecture(row.copy(completedAt = null), "2026-10-02")
+        assertEquals(null, undone.personalInsights(LocalDate.parse("2026-10-02")).syllabusCompleted)
+        assertEquals(null, BatchOverview().personalInsights(LocalDate.parse("2026-10-02")).syllabusCompleted)
+    }
+
+    @Test fun insightsExcludeDisabledSubjectsAndHandleMissedTargetsAndDueRevisions() {
+        val disabled = personal.copy(enabled = false)
+        val row = officialLecture.copy(completedAt = "2026-09-30T10:00:00Z", revisionDate = "2026-10-01", revisionCompletedAt = null)
+        val batch = BatchOverview(subjects = listOf(official, disabled), lectures = listOf(row, officialLecture.copy(id = "unfinished"), personalLecture),
+            studyPlan = BatchStudyPlan("2026-09-28", "2026-10-01", 7))
+        val insight = batch.personalInsights(LocalDate.parse("2026-10-02"))
+        assertEquals(2, insight.total)
+        assertEquals(1, insight.revisionDue)
+        assertTrue(insight.targetMissed)
+        assertEquals(null, insight.requiredPerWeek)
+    }
+
+    @Test fun librarySearchAndFiltersUsePersonalBacklogAndRevisionDates() {
+        val first = officialLecture.copy(id = "first", displayTopic = "Noun", backlogAddedAt = null)
+        val second = first.copy(id = "second", displayTopic = "Verb", completedAt = "2026-10-02T10:00:00Z",
+            revisionDate = "2026-10-03")
+        val batch = BatchOverview(subjects = listOf(official), lectures = listOf(first, second),
+            watchList = listOf(BatchSubjectWatch(official.id, first.id, listOf(first.id))))
+        assertEquals(listOf("first"), batch.libraryRows(" ENGLISH ", LibraryFilter.BACKLOG).map { it.id })
+        assertEquals(listOf("second"), batch.libraryRows("verb", LibraryFilter.DONE).map { it.id })
+        assertEquals(listOf("second"), batch.libraryRows("", LibraryFilter.REVISION).map { it.id })
+        assertEquals(listOf("first"), batch.libraryRows("", LibraryFilter.PENDING).map { it.id })
+        assertTrue(batch.libraryRows("missing", LibraryFilter.ALL).isEmpty())
+    }
+
+    @Test fun backendNamesAndEmptySubjectsArePreservedWithoutInventingLectures() {
+        val subject = BatchSubject(id = "gk", key = "gk", name = "General Knowledge", defaultColor = "#16A34A")
+        val result = BatchOverview(subjects = listOf(subject), content = BatchTrackerContent(mapOf("todayTitle" to "Study next"))).officialOnly()
+        assertEquals("General Knowledge", result.subjects.single().displayName())
+        assertEquals("Study next", result.copyText("todayTitle", "Fallback"))
+        assertTrue(result.lectures.isEmpty())
+        assertTrue(BatchOverview().officialOnly().subjects.isEmpty())
+    }
+
 }

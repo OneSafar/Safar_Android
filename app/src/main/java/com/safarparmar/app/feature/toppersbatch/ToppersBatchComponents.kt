@@ -38,8 +38,8 @@ import androidx.compose.ui.graphics.*
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
+import com.composables.ui.components.DropdownMenuPanel
+import com.composeunstyled.ProvideTextStyle
 import com.composables.ui.components.Button as ComposablesButton
 import com.composables.ui.components.ButtonStyle
 import kotlinx.coroutines.flow.drop
@@ -106,6 +106,8 @@ internal fun BatchTextButton(
 internal fun BatchTextField(
     value: String, onValueChange: (String) -> Unit, modifier: Modifier = Modifier,
     label: @Composable (() -> Unit)? = null, singleLine: Boolean = false,
+    accessibilityLabel: String = "Toppers Batch text field",
+    placeholder: @Composable (() -> Unit)? = null,
 ) {
     val state = rememberTextFieldState(value)
     val latestOnChange by rememberUpdatedState(onValueChange)
@@ -120,7 +122,11 @@ internal fun BatchTextField(
         com.composables.ui.components.TextField(
             state = state,
             modifier = Modifier.fillMaxWidth(),
-            accessibilityLabel = "Toppers Batch text field",
+            accessibilityLabel = accessibilityLabel,
+            placeholder = placeholder,
+            borderColor = MaterialTheme.colorScheme.outlineVariant,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+            placeholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
             lineLimits = if (singleLine) TextFieldLineLimits.SingleLine else TextFieldLineLimits.MultiLine(),
             style = com.composables.ui.components.TextFieldStyle.Default,
         )
@@ -142,14 +148,16 @@ internal fun BatchAlertDialog(
         modifier = Modifier.fillMaxWidth().imePadding().widthIn(max = 520.dp),
         paneTitle = "Toppers Batch dialog",
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
-            ProvideTextStyle(MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)) { title() }
-            Box(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState())) {
-                ProvideTextStyle(MaterialTheme.typography.bodyMedium) { text() }
-            }
-            com.safarparmar.app.ui.components.SafarAdaptiveRow {
-                dismissButton()
-                confirmButton()
+        BatchClampedContent {
+            Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
+                ProvideTextStyle(MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)) { title() }
+                Box(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState())) {
+                    ProvideTextStyle(MaterialTheme.typography.bodyMedium) { text() }
+                }
+                com.safarparmar.app.ui.components.SafarAdaptiveRow {
+                    dismissButton()
+                    confirmButton()
+                }
             }
         }
     }
@@ -187,4 +195,25 @@ internal fun BatchIconButton(
     val source = remember { MutableInteractionSource() }
     com.composables.ui.components.IconButton(onClick = onClick, modifier = modifier, enabled = enabled,
         style = ButtonStyle.Ghost, interactionSource = source, content = content)
+}
+
+/** Dialog portals can supply their own density; clamp inside their content as well. */
+@Composable
+internal fun BatchClampedContent(content: @Composable () -> Unit) {
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides
+        androidx.compose.ui.unit.Density(density.density, density.fontScale.coerceIn(0.85f, 1.05f))) {
+        ProvideTextStyle(MaterialTheme.typography.bodyMedium) { content() }
+    }
+}
+
+/** Apply the same font-scale bounds inside menu portals. */
+@Composable
+internal fun com.composables.ui.components.DropdownMenuScope.BatchDropdownMenuPanel(
+    content: @Composable com.composables.ui.components.DropdownMenuPanelContentScope.() -> Unit,
+) {
+    DropdownMenuPanel {
+        val scope = this
+        BatchClampedContent { content(scope) }
+    }
 }

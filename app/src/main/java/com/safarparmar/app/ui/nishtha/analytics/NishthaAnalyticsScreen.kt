@@ -1,57 +1,63 @@
 package com.safarparmar.app.ui.nishtha.analytics
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.ui.draw.alpha
-import coil.compose.AsyncImage
-import com.safarparmar.app.BuildConfig
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon as M3Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.graphics.Brush
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil.compose.AsyncImage
+import com.composables.ui.components.ButtonStyle as UiButtonStyle
+import com.composables.ui.components.HorizontalSeparator as UiHorizontalSeparator
+import com.composables.ui.components.Icon as UiIcon
+import com.composables.ui.components.IconButton as UiIconButton
+import com.composables.ui.components.Text as UiText
+import com.composables.ui.theme.ComposablesTheme
 import com.safarparmar.app.R
 import com.safarparmar.app.domain.model.MonthlyReport
+import com.safarparmar.app.ui.glass.LiquidGlassBackdrop
+import com.safarparmar.app.ui.glass.SafarGlassButton
+import com.safarparmar.app.ui.glass.SafarGlassPalette
 import com.safarparmar.app.ui.nishtha.NishthaEvent
+import com.safarparmar.app.ui.nishtha.NishthaTab
 import com.safarparmar.app.ui.nishtha.NishthaViewModel
-import com.safarparmar.app.ui.theme.*
-import androidx.compose.foundation.shape.CircleShape
+import com.safarparmar.app.ui.theme.SafarSemanticColors
+import com.safarparmar.app.ui.theme.isLightBackground
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
-
-// ── Liquid Glass design system ──────────────────────────────────────────────
-import com.safarparmar.app.ui.glass.LiquidGlassBackdrop
-import com.safarparmar.app.ui.glass.macOSControlPanel
-import com.safarparmar.app.ui.glass.SafarGlassPalette
-import com.safarparmar.app.ui.glass.GlassDivider
-import com.safarparmar.app.ui.glass.SafarGlassButton
-
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
 
 @Composable
 fun NishthaAnalyticsScreen(
@@ -59,7 +65,7 @@ fun NishthaAnalyticsScreen(
     onNavigate: (String) -> Unit = {},
     initialSection: String = "overview",
 ) {
-    LaunchedEffect(viewModel) { viewModel.loadTab(com.safarparmar.app.ui.nishtha.NishthaTab.ANALYTICS) }
+    LaunchedEffect(viewModel) { viewModel.loadTab(NishthaTab.ANALYTICS) }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val report = uiState.monthlyReport
     val achievements = uiState.achievements
@@ -105,60 +111,64 @@ fun NishthaAnalyticsScreen(
     val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
     val isLight = !isDark
 
-    if (showMonthPicker) {
-        MonthSelectionDialog(
-            months = months,
-            selectedMonth = selectedMonth,
-            onSelectMonth = { selectedMonth = it },
-            onDismiss = { showMonthPicker = false },
-            isLight = isLight,
-        )
-    }
+    ComposablesTheme {
+        if (showMonthPicker) {
+            MonthSelectionDialog(
+                months = months,
+                selectedMonth = selectedMonth,
+                onSelectMonth = { selectedMonth = it },
+                onDismiss = { showMonthPicker = false },
+                isLight = isLight,
+            )
+        }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        LiquidGlassBackdrop(modifier = Modifier.fillMaxSize(), isLight = isLight)
+        Box(modifier = Modifier.fillMaxSize()) {
+            LiquidGlassBackdrop(modifier = Modifier.fillMaxSize(), isLight = isLight)
 
-        Column(modifier = Modifier.fillMaxSize()) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                        .padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    AnalyticsSectionChip(
+                        stringResource(R.string.nishtha_analytics_overview),
+                        selectedSection == "overview",
+                        Color(0xFF1E3A8A),
+                        isLight
+                    ) { selectedSection = "overview" }
+                    AnalyticsSectionChip("Goals", selectedSection == "goals", Color(0xFF065F46), isLight) { selectedSection = "goals" }
+                    AnalyticsSectionChip("Ekagra", selectedSection == "ekagra", Color(0xFF9A3412), isLight) { selectedSection = "ekagra" }
+                    AnalyticsSectionChip("Kavach", selectedSection == "kavach", Color(0xFF0F766E), isLight) { selectedSection = "kavach" }
+                    AnalyticsSectionChip("Monthly Review", selectedSection == "monthly", Color(0xFF5B21B6), isLight) { selectedSection = "monthly" }
+                }
 
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState())
-                    .padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                AnalyticsSectionChip(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.nishtha_analytics_overview), selectedSection == "overview", Color(0xFF1E3A8A), isLight) { selectedSection = "overview" }
-                AnalyticsSectionChip("Goals", selectedSection == "goals", Color(0xFF065F46), isLight) { selectedSection = "goals" }
-                AnalyticsSectionChip("Ekagra", selectedSection == "ekagra", Color(0xFF9A3412), isLight) { selectedSection = "ekagra" }
-                // Kavach analytics is free for every signed-in student — no premium gate.
-                AnalyticsSectionChip("Kavach", selectedSection == "kavach", Color(0xFF0F766E), isLight) { selectedSection = "kavach" }
-                AnalyticsSectionChip("Monthly Review", selectedSection == "monthly", Color(0xFF5B21B6), isLight) { selectedSection = "monthly" }
-            }
-
-            Box(Modifier.fillMaxSize()) {
-                when (selectedSection) {
-                    "goals" -> GoalInsightsSection(uiState.goals)
-                    "ekagra" -> FocusInsightsSection(uiState.ekagraAnalytics)
-                    "kavach" -> com.safarparmar.app.feature.kavachanalytics.ui.KavachAnalyticsSection(
-                        onNavigate = onNavigate,
-                    )
-                    "monthly" -> MonthlyReviewSection(
-                        selectedMonthLabel = months.firstOrNull { it.first == selectedMonth }?.third ?: "",
-                        canGoPrev = canGoPrev,
-                        canGoNext = canGoNext,
-                        onPrevMonth = { if (canGoPrev) selectedMonth = months[currentMonthIndex + 1].first },
-                        onNextMonth = { if (canGoNext) selectedMonth = months[currentMonthIndex - 1].first },
-                        onMonthClick = { showMonthPicker = true },
-                        isLoading = uiState.isLoadingReport,
-                        report = report,
-                        reportError = uiState.reportError,
-                        achievements = achievements,
-                        isLight = isLight,
-                        onNavigate = onNavigate,
-                        onGenerate = { viewModel.onEvent(NishthaEvent.LoadReportForMonth(selectedMonth)) },
-                    )
-                    else -> AnalyticsOverviewSection(uiState.goals, uiState.ekagraAnalytics, report)
+                Box(Modifier.fillMaxSize()) {
+                    when (selectedSection) {
+                        "goals" -> GoalInsightsSection(uiState.goals)
+                        "ekagra" -> FocusInsightsSection(uiState.ekagraAnalytics)
+                        "kavach" -> com.safarparmar.app.feature.kavachanalytics.ui.KavachAnalyticsSection(
+                            onNavigate = onNavigate,
+                        )
+                        "monthly" -> MonthlyReviewSection(
+                            selectedMonthLabel = months.firstOrNull { it.first == selectedMonth }?.third ?: "",
+                            canGoPrev = canGoPrev,
+                            canGoNext = canGoNext,
+                            onPrevMonth = { if (canGoPrev) selectedMonth = months[currentMonthIndex + 1].first },
+                            onNextMonth = { if (canGoNext) selectedMonth = months[currentMonthIndex - 1].first },
+                            onMonthClick = { showMonthPicker = true },
+                            isLoading = uiState.isLoadingReport,
+                            report = report,
+                            reportError = uiState.reportError,
+                            achievements = achievements,
+                            isLight = isLight,
+                            onNavigate = onNavigate,
+                            onGenerate = { viewModel.onEvent(NishthaEvent.LoadReportForMonth(selectedMonth)) },
+                        )
+                        else -> AnalyticsOverviewSection(uiState.goals, uiState.ekagraAnalytics, report)
+                    }
                 }
             }
         }
@@ -192,7 +202,7 @@ private fun AnalyticsSectionChip(
             .padding(horizontal = 14.dp, vertical = 8.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Text(
+        UiText(
             label,
             color = textColor,
             fontSize = 13.sp,
@@ -218,26 +228,27 @@ private fun MonthlyReviewSection(
     onGenerate: () -> Unit,
 ) {
     Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Month Selector Bar (Arrow Left, Month Name Dropdown, Arrow Right)
+        // Month Selector Bar (Composables UI IconButton + Dropdown Pill)
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            IconButton(
+            UiIconButton(
                 onClick = onPrevMonth,
                 enabled = canGoPrev,
-                modifier = Modifier
-                    .size(44.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(secondaryText(isLight).copy(alpha = if (canGoPrev) 0.08f else 0.03f))
+                style = UiButtonStyle.Ghost,
+                modifier = Modifier.size(44.dp)
             ) {
-                Icon(
+                UiIcon(
                     Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.nishtha_previous_month),
+                    contentDescription = stringResource(R.string.nishtha_previous_month),
                     tint = if (canGoPrev) primaryText(isLight) else secondaryText(isLight).copy(alpha = 0.3f),
                     modifier = Modifier.size(18.dp)
                 )
@@ -256,40 +267,38 @@ private fun MonthlyReviewSection(
                     horizontalArrangement = Arrangement.Center,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Icon(
+                    UiIcon(
                         Icons.Default.CalendarMonth,
                         contentDescription = null,
                         tint = if (isLight) Color(0xFF5B21B6) else Color(0xFFC084FC),
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(Modifier.width(8.dp))
-                    Text(
+                    UiText(
                         selectedMonthLabel,
                         color = primaryText(isLight),
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold,
                     )
                     Spacer(Modifier.width(4.dp))
-                    Icon(
+                    UiIcon(
                         Icons.Default.ArrowDropDown,
-                        contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.nishtha_select_month),
+                        contentDescription = stringResource(R.string.nishtha_select_month),
                         tint = secondaryText(isLight),
                         modifier = Modifier.size(20.dp)
                     )
                 }
             }
 
-            IconButton(
+            UiIconButton(
                 onClick = onNextMonth,
                 enabled = canGoNext,
-                modifier = Modifier
-                    .size(44.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(secondaryText(isLight).copy(alpha = if (canGoNext) 0.08f else 0.03f))
+                style = UiButtonStyle.Ghost,
+                modifier = Modifier.size(44.dp)
             ) {
-                Icon(
+                UiIcon(
                     Icons.AutoMirrored.Filled.ArrowForward,
-                    contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.nishtha_next_month),
+                    contentDescription = stringResource(R.string.nishtha_next_month),
                     tint = if (canGoNext) primaryText(isLight) else secondaryText(isLight).copy(alpha = 0.3f),
                     modifier = Modifier.size(18.dp)
                 )
@@ -308,17 +317,19 @@ private fun MonthlyReviewSection(
                         .background(secondaryText(isLight).copy(alpha = 0.06f))
                 ) {
                     Column(
-                        Modifier.padding(24.dp).fillMaxWidth(),
+                        Modifier
+                            .padding(24.dp)
+                            .fillMaxWidth(),
                         verticalArrangement = Arrangement.spacedBy(14.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text(
+                        UiText(
                             selectedMonthLabel,
                             fontWeight = FontWeight.Bold,
                             fontSize = 16.sp,
                             color = primaryText(isLight)
                         )
-                        Text(
+                        UiText(
                             if (reportError != null) reportError else stringResource(R.string.analytics_no_report_hint),
                             fontSize = 13.sp,
                             color = if (reportError != null) MaterialTheme.colorScheme.error else secondaryText(isLight),
@@ -347,95 +358,85 @@ private fun ReportContent(
     isLight: Boolean,
     onNavigate: (String) -> Unit = {}
 ) {
-    val scoreAccent = if (isLight) Color(0xFF581C87) else Color(0xFFC084FC)
-    val completionAccent = if (isLight) Color(0xFF047857) else Color(0xFF4ADE80)
-    val focusAccent = if (isLight) Color(0xFFC2410C) else Color(0xFFFF8A65)
+    val scoreAccent = if (isLight) Color(0xFF0284C7) else Color(0xFF38BDF8)
+    val completionAccent = if (isLight) Color(0xFF10B981) else Color(0xFF34D399)
+    val focusAccent = if (isLight) Color(0xFF6366F1) else Color(0xFF818CF8)
 
-    ScoreCard(R.drawable.ic_zap, stringResource(R.string.analytics_consistency_score), "${report.consistencyScore.toInt()}%", report.consistencyMessage, scoreAccent, isLight)
-    ScoreCard(R.drawable.ic_circle_check, stringResource(R.string.analytics_completion_rate), "${report.completionRate.toInt()}%", report.completionMessage, completionAccent, isLight)
-    ScoreCard(R.drawable.ic_target, stringResource(R.string.analytics_focus_depth), "${report.focusDepth.toInt()}m/day", report.focusMessage, focusAccent, isLight)
+    // Hero Row: Nirantarta Score & Poornata Dar side-by-side circular progress cards
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        CircularMetricCard(
+            title = "Nirantarta Score",
+            percentage = report.consistencyScore.toInt().coerceIn(0, 100),
+            statusText = if (report.consistencyScore >= 50) "High consistency" else "Building consistency",
+            dateRange = "Active Period",
+            color = scoreAccent,
+            isLight = isLight,
+            modifier = Modifier.weight(1f)
+        )
+        CircularMetricCard(
+            title = "Poornata Dar",
+            percentage = report.completionRate.toInt().coerceIn(0, 100),
+            statusText = "Daily tasks complete",
+            dateRange = "${report.goalsCompleted} / ${report.goalsCreated} Goals",
+            color = completionAccent,
+            isLight = isLight,
+            modifier = Modifier.weight(1f)
+        )
+    }
 
+    // Focus Depth Area Chart Card with real data
+    val focusValues = remember(report) {
+        val daily = report.heatmap.map { it.value.toFloat() }
+        if (daily.any { it > 0f }) daily.takeLast(14) else emptyList()
+    }
+    FocusDepthChartCard(
+        focusMinutes = report.focusDepth.toInt(),
+        focusMessage = report.focusMessage,
+        focusValues = focusValues,
+        isLight = isLight
+    )
+
+    // Streak Review Card with real streak data & breakdown
+    StreakReviewSection(report = report, isLight = isLight)
+
+    // Goals Set vs Completed
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        GoalsCountCard("Goals Set", report.goalsCreated.toString(), completionAccent, isLight, Modifier.weight(1f))
-        GoalsCountCard("Goals Completed", report.goalsCompleted.toString(), completionAccent, isLight, Modifier.weight(1f))
+        GoalsCountCard("Goals Set", report.goalsCreated.toString(), R.drawable.ic_target, Color(0xFF0284C7), isLight, Modifier.weight(1f))
+        GoalsCountCard("Goals Completed", report.goalsCompleted.toString(), R.drawable.ic_circle_check, completionAccent, isLight, Modifier.weight(1f))
     }
 
-    StreakReviewCard(report, isLight)
-
-    // Skill Radar — rendered as horizontal progress bars
+    // Kaushal Radar Chart Section with skill breakdown
     if (report.radar.isNotEmpty()) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp))
-                .background(secondaryText(isLight).copy(alpha = 0.06f))
-                .padding(16.dp)
-        ) {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        stringResource(R.string.analytics_skill_radar),
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 15.sp,
-                        color = primaryText(isLight),
-                        modifier = Modifier.weight(1f)
-                    )
-                    Text(
-                        stringResource(R.string.analytics_multidimensional),
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = secondaryText(isLight)
-                    )
-                }
-                report.radar.forEach { item ->
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Text(
-                            item.subject,
-                            modifier = Modifier.width(88.dp),
-                            fontSize = 12.sp,
-                            color = secondaryText(isLight)
-                        )
-                        LinearProgressIndicator(
-                            progress = { (item.score / 100.0).toFloat().coerceIn(0f, 1f) },
-                            modifier = Modifier.weight(1f).height(5.dp).clip(CircleShape),
-                            color = scoreAccent,
-                            trackColor = if (isLight) Color(0xFFE2E8F0) else Color(0xFF334155)
-                        )
-                        Text(
-                            "${item.score.toInt()}",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = primaryText(isLight),
-                            modifier = Modifier.width(28.dp)
-                        )
-                    }
-                }
-            }
-        }
+        RadarChartCard(radarItems = report.radar, isLight = isLight)
     }
 
+    // Activity Heatmap
     if (report.heatmap.isNotEmpty()) {
-        val days = report.heatmap.takeLast(30)
+        val days = report.heatmap.takeLast(28).ifEmpty { report.heatmap.takeLast(30) }
         val dotColor = scoreAccent
         val emptyColor = if (isLight) Color(0xFFE2E8F0) else Color(0xFF334155)
 
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp))
-                .background(secondaryText(isLight).copy(alpha = 0.06f))
-                .padding(16.dp)
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = if (isLight) Color.White else Color(0xFF1E293B))
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
+                    UiText(
                         stringResource(R.string.analytics_activity_heatmap),
                         fontWeight = FontWeight.Bold,
                         fontSize = 15.sp,
                         color = primaryText(isLight),
                         modifier = Modifier.weight(1f)
                     )
-                    Text(
+                    UiText(
                         stringResource(R.string.analytics_30_day),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
@@ -443,30 +444,46 @@ private fun ReportContent(
                     )
                 }
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    days.chunked(14).forEach { row ->
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    days.chunked(7).forEach { row ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
                             row.forEach { day ->
-                                val intensity = (day.intensity ?: 0).coerceIn(0, 3)
+                                val intensity = day.intensity.coerceIn(0, 3)
                                 val color = when (intensity) {
                                     0 -> emptyColor
                                     1 -> dotColor.copy(alpha = 0.30f)
                                     2 -> dotColor.copy(alpha = 0.65f)
                                     else -> dotColor
                                 }
-                                val size = when (intensity) {
-                                    2 -> 20.dp
-                                    3 -> 22.dp
-                                    else -> 18.dp
+                                val dotSize = when (intensity) {
+                                    2 -> 18.dp
+                                    3 -> 20.dp
+                                    else -> 16.dp
                                 }
-                                Box(modifier = Modifier.size(size).background(color, CircleShape))
+                                Box(
+                                    modifier = Modifier.size(22.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(dotSize)
+                                            .background(color, CircleShape)
+                                    )
+                                }
+                            }
+                            repeat(7 - row.size) {
+                                Spacer(modifier = Modifier.size(22.dp))
                             }
                         }
                     }
                 }
                 Spacer(modifier = Modifier.height(2.dp))
-                HorizontalDivider(color = secondaryText(isLight).copy(alpha = 0.08f))
+                UiHorizontalSeparator()
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text(
+                    UiText(
                         stringResource(R.string.analytics_less_active),
                         fontSize = 10.sp,
                         fontWeight = FontWeight.SemiBold,
@@ -477,7 +494,7 @@ private fun ReportContent(
                         Box(modifier = Modifier.padding(horizontal = 3.dp).size(14.dp).background(c, RoundedCornerShape(3.dp)))
                     }
                     Spacer(Modifier.weight(1f))
-                    Text(
+                    UiText(
                         stringResource(R.string.analytics_power_mode),
                         fontSize = 10.sp,
                         fontWeight = FontWeight.SemiBold,
@@ -494,15 +511,16 @@ private fun ReportContent(
             report.sundayScariesMessage.isNotEmpty()
 
     if (hasInsights) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp))
-                .background(secondaryText(isLight).copy(alpha = 0.06f))
-                .padding(16.dp)
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = if (isLight) Color.White else Color(0xFF1E293B))
         ) {
-            Column(Modifier.padding(4.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                Text(
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                UiText(
                     stringResource(R.string.analytics_self_discovery),
                     fontWeight = FontWeight.Bold,
                     fontSize = 15.sp,
@@ -525,6 +543,535 @@ private fun ReportContent(
 }
 
 @Composable
+private fun CircularMetricCard(
+    title: String,
+    percentage: Int,
+    statusText: String,
+    dateRange: String,
+    color: Color,
+    isLight: Boolean,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = if (isLight) Color.White else Color(0xFF1E293B))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            UiText(
+                text = title,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+                color = primaryText(isLight)
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            Box(contentAlignment = Alignment.Center) {
+                Canvas(modifier = Modifier.size(80.dp)) {
+                    val stroke = 9.dp.toPx()
+                    drawArc(
+                        color = color.copy(alpha = 0.15f),
+                        startAngle = 0f,
+                        sweepAngle = 360f,
+                        useCenter = false,
+                        style = Stroke(width = stroke)
+                    )
+                    drawArc(
+                        color = color,
+                        startAngle = -90f,
+                        sweepAngle = (percentage / 100f) * 360f,
+                        useCenter = false,
+                        style = Stroke(width = stroke, cap = StrokeCap.Round)
+                    )
+                }
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    UiText(
+                        text = "$percentage%",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = primaryText(isLight)
+                    )
+                    UiText(
+                        text = "$percentage / 100",
+                        fontSize = 9.sp,
+                        color = secondaryText(isLight)
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(10.dp))
+            UiText(
+                text = statusText,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = primaryText(isLight),
+                textAlign = TextAlign.Center
+            )
+            UiText(
+                text = dateRange,
+                fontSize = 10.sp,
+                color = secondaryText(isLight),
+                textAlign = TextAlign.Center
+            )
+        }
+    }
+}
+
+@Composable
+private fun FocusDepthChartCard(
+    focusMinutes: Int,
+    focusMessage: String,
+    focusValues: List<Float>,
+    isLight: Boolean
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = if (isLight) Color.White else Color(0xFF1E293B))
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            UiText(
+                text = "Focus Depth",
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold,
+                color = primaryText(isLight)
+            )
+            if (focusMessage.isNotEmpty()) {
+                UiText(
+                    text = focusMessage,
+                    fontSize = 11.sp,
+                    color = secondaryText(isLight)
+                )
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            if (focusValues.size >= 2) {
+                LineAreaGradientChart(
+                    values = focusValues,
+                    isLight = isLight,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(150.dp)
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(100.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        UiText(
+                            text = "${focusMinutes}m/day",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = primaryText(isLight)
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        UiText(
+                            text = "Log more Ekagra sessions to see daily trends",
+                            fontSize = 12.sp,
+                            color = secondaryText(isLight)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LineAreaGradientChart(
+    values: List<Float>,
+    isLight: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val primaryColor = Color(0xFF0284C7)
+    val gridColor = if (isLight) Color(0xFFE2E8F0) else Color(0xFF334155)
+
+    Canvas(modifier = modifier) {
+        val cleanValues = values.map { if (it.isFinite() && it >= 0f) it else 0f }
+        if (cleanValues.size < 2) return@Canvas
+        val w = size.width
+        val h = size.height
+        val maxVal = (cleanValues.maxOrNull() ?: 100f).coerceAtLeast(100f)
+        val stepX = w / (cleanValues.size - 1)
+        val paddingY = h * 0.1f
+
+        fun yPos(v: Float) = h - paddingY - (v / maxVal) * (h - 2 * paddingY)
+
+        val points = cleanValues.mapIndexed { idx, valY ->
+            Offset(idx * stepX, yPos(valY))
+        }
+
+        // Draw horizontal grid lines
+        listOf(0.2f, 0.5f, 0.8f).forEach { frac ->
+            drawLine(
+                color = gridColor,
+                start = Offset(0f, h * frac),
+                end = Offset(w, h * frac),
+                strokeWidth = 1f
+            )
+        }
+
+        // Fill area under line
+        val fillPath = Path().apply {
+            moveTo(points.first().x, h - paddingY)
+            points.forEach { lineTo(it.x, it.y) }
+            lineTo(points.last().x, h - paddingY)
+            close()
+        }
+        drawPath(
+            path = fillPath,
+            brush = Brush.verticalGradient(
+                colors = listOf(primaryColor.copy(alpha = 0.35f), primaryColor.copy(alpha = 0.02f))
+            )
+        )
+
+        // Draw smooth gradient stroke line
+        for (i in 0 until points.size - 1) {
+            drawLine(
+                color = primaryColor,
+                start = points[i],
+                end = points[i + 1],
+                strokeWidth = 3.5.dp.toPx(),
+                cap = StrokeCap.Round
+            )
+        }
+
+        // Draw node circles
+        points.forEach { pt ->
+            drawCircle(color = primaryColor, radius = 5.dp.toPx(), center = pt)
+            drawCircle(color = Color.White, radius = 2.5.dp.toPx(), center = pt)
+        }
+    }
+}
+
+@Composable
+private fun RadarChartCard(
+    radarItems: List<com.safarparmar.app.domain.model.RadarItem>,
+    isLight: Boolean
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = if (isLight) Color.White else Color(0xFF1E293B))
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                UiText(
+                    text = "Kaushal Radar",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = primaryText(isLight)
+                )
+                UiText(
+                    text = "Multi-dimensional",
+                    fontSize = 11.sp,
+                    color = secondaryText(isLight)
+                )
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            if (radarItems.size >= 3) {
+                PolygonRadarChart(
+                    items = radarItems,
+                    isLight = isLight,
+                    modifier = Modifier
+                        .size(200.dp)
+                        .padding(8.dp)
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+            radarItems.forEach { item ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    UiText(
+                        text = item.subject,
+                        fontSize = 12.sp,
+                        color = secondaryText(isLight),
+                        modifier = Modifier.weight(1f)
+                    )
+                    UiText(
+                        text = "${item.score.toInt()}%",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = primaryText(isLight)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PolygonRadarChart(
+    items: List<com.safarparmar.app.domain.model.RadarItem>,
+    isLight: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val radarColor = Color(0xFF10B981)
+    val gridColor = if (isLight) Color(0xFFE2E8F0) else Color(0xFF334155)
+
+    Canvas(modifier = modifier) {
+        if (items.size < 3) return@Canvas
+        val center = Offset(size.width / 2f, size.height / 2f)
+        val radius = (size.width / 2f) * 0.75f
+        val count = items.size
+        val angleStep = (2.0 * Math.PI / count).toFloat()
+
+        // Draw concentric web rings
+        listOf(0.25f, 0.5f, 0.75f, 1f).forEach { ringFrac ->
+            val ringRadius = radius * ringFrac
+            val webPath = Path()
+            for (i in 0 until count) {
+                val angle = i * (2.0 * Math.PI / count) - (Math.PI / 2.0)
+                val x = (center.x + ringRadius * Math.cos(angle)).toFloat()
+                val y = (center.y + ringRadius * Math.sin(angle)).toFloat()
+                if (i == 0) webPath.moveTo(x, y) else webPath.lineTo(x, y)
+            }
+            webPath.close()
+            drawPath(webPath, color = gridColor, style = Stroke(width = 1f))
+        }
+
+        // Draw radial spoke lines
+        for (i in 0 until count) {
+            val angle = i * (2.0 * Math.PI / count) - (Math.PI / 2.0)
+            val endX = (center.x + radius * Math.cos(angle)).toFloat()
+            val endY = (center.y + radius * Math.sin(angle)).toFloat()
+            drawLine(color = gridColor, start = center, end = Offset(endX, endY), strokeWidth = 1f)
+        }
+
+        // Polygon path for radar data
+        val dataPath = Path()
+        items.forEachIndexed { i, item ->
+            val scoreNorm = (item.score / 100.0).coerceIn(0.0, 1.0).toFloat()
+            val angle = i * (2.0 * Math.PI / count) - (Math.PI / 2.0)
+            val r = radius * scoreNorm
+            val x = (center.x + r * Math.cos(angle)).toFloat()
+            val y = (center.y + r * Math.sin(angle)).toFloat()
+            if (i == 0) dataPath.moveTo(x, y) else dataPath.lineTo(x, y)
+        }
+        dataPath.close()
+
+        drawPath(dataPath, color = radarColor.copy(alpha = 0.35f))
+        drawPath(dataPath, color = radarColor, style = Stroke(width = 2.5.dp.toPx()))
+    }
+}
+
+@Composable
+private fun StreakReviewSection(report: MonthlyReport, isLight: Boolean) {
+    val breakDayFormatter = remember { DateTimeFormatter.ofPattern("MMM d", Locale.getDefault()) }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = if (isLight) Color.White else Color(0xFF1E293B))
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            UiText(
+                text = "Streak Review",
+                fontWeight = FontWeight.Bold,
+                fontSize = 15.sp,
+                color = primaryText(isLight)
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                StreakStatCard(
+                    title = "Longest Streak",
+                    days = "${report.longestStreakDays}d 🔥",
+                    iconRes = R.drawable.ic_zap,
+                    accentColor = Color(0xFFF97316),
+                    isLight = isLight,
+                    modifier = Modifier.weight(1f)
+                )
+                StreakStatCard(
+                    title = "Streak Breaks",
+                    days = "${report.streakBreaksCount}",
+                    iconRes = R.drawable.ic_circle_check,
+                    accentColor = if (report.streakBreaksCount == 0) Color(0xFF10B981) else Color(0xFFEF4444),
+                    isLight = isLight,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+            if (report.streakMessage.isNotEmpty()) {
+                UiText(
+                    text = report.streakMessage,
+                    fontSize = 12.sp,
+                    color = secondaryText(isLight)
+                )
+            }
+            if (report.streakBreakDates.isNotEmpty()) {
+                UiHorizontalSeparator()
+                UiText(
+                    text = "Broken on",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = secondaryText(isLight)
+                )
+                UiText(
+                    text = report.streakBreakDates.joinToString("  •  ") { dateKey ->
+                        runCatching { LocalDate.parse(dateKey).format(breakDayFormatter) }.getOrDefault(dateKey)
+                    },
+                    fontSize = 12.sp,
+                    color = primaryText(isLight),
+                    lineHeight = 16.sp
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun StreakStatCard(
+    title: String,
+    days: String,
+    iconRes: Int,
+    accentColor: Color,
+    isLight: Boolean,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(secondaryText(isLight).copy(alpha = 0.06f))
+            .padding(12.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(accentColor.copy(alpha = 0.15f)),
+                contentAlignment = Alignment.Center
+            ) {
+                M3Icon(
+                    painter = painterResource(id = iconRes),
+                    contentDescription = null,
+                    tint = accentColor,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+            Column {
+                UiText(
+                    text = title,
+                    fontSize = 11.sp,
+                    color = secondaryText(isLight)
+                )
+                UiText(
+                    text = days,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = primaryText(isLight)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun GoalsCountCard(
+    label: String,
+    value: String,
+    iconRes: Int,
+    accentColor: Color,
+    isLight: Boolean,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = if (isLight) Color.White else Color(0xFF1E293B))
+    ) {
+        Row(
+            modifier = Modifier.padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(accentColor.copy(alpha = 0.15f)),
+                contentAlignment = Alignment.Center
+            ) {
+                M3Icon(
+                    painter = painterResource(id = iconRes),
+                    contentDescription = null,
+                    tint = accentColor,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+            Column {
+                UiText(
+                    text = label.uppercase(Locale.US),
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = secondaryText(isLight)
+                )
+                UiText(
+                    text = value,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = accentColor
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun InsightRow(iconRes: Int, title: String, message: String, isLight: Boolean) {
+    val accent = if (isLight) SafarGlassPalette.LightViolet else SafarGlassPalette.Violet
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        M3Icon(
+            painter = painterResource(id = iconRes),
+            contentDescription = null,
+            modifier = Modifier
+                .size(18.dp)
+                .padding(top = 2.dp),
+            tint = accent
+        )
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            UiText(
+                title.uppercase(Locale.US),
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+                color = accent,
+                letterSpacing = 0.8.sp
+            )
+            UiText(
+                message,
+                fontSize = 12.sp,
+                color = secondaryText(isLight),
+                lineHeight = 16.sp
+            )
+        }
+    }
+}
+
+@Composable
 private fun AchievementsSection(
     achievements: List<com.safarparmar.app.domain.model.Achievement>,
     isLight: Boolean,
@@ -533,30 +1080,30 @@ private fun AchievementsSection(
     if (achievements.isEmpty()) return
     val earned = achievements.filter { it.earned }
 
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(secondaryText(isLight).copy(alpha = 0.06f))
-            .padding(16.dp)
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = if (isLight) Color.White else Color(0xFF1E293B))
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            // Header row
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(
-                    painter = androidx.compose.ui.res.painterResource(id = R.drawable.ic_trophy),
+                M3Icon(
+                    painter = painterResource(id = R.drawable.ic_trophy),
                     contentDescription = null,
                     modifier = Modifier.size(18.dp),
                     tint = if (isLight) SafarGlassPalette.LightPink else SafarGlassPalette.Pink
                 )
-                Text(
+                UiText(
                     "Achievements",
                     fontWeight = FontWeight.Bold,
                     fontSize = 15.sp,
                     color = primaryText(isLight),
                     modifier = Modifier.weight(1f)
                 )
-                Text(
+                UiText(
                     "See All",
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
@@ -566,32 +1113,32 @@ private fun AchievementsSection(
             }
 
             if (earned.isEmpty()) {
-                // No earned achievements yet
                 Column(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 12.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Icon(
-                        painter = androidx.compose.ui.res.painterResource(id = R.drawable.ic_lock),
+                    M3Icon(
+                        painter = painterResource(id = R.drawable.ic_lock),
                         contentDescription = null,
                         modifier = Modifier.size(32.dp),
                         tint = secondaryText(isLight)
                     )
-                    Text(
+                    UiText(
                         "No achievements earned yet",
                         fontSize = 13.sp,
                         color = secondaryText(isLight)
                     )
-                    Text(
+                    UiText(
                         "Keep up your streaks to earn badges!",
                         fontSize = 11.sp,
                         color = secondaryText(isLight).copy(alpha = 0.7f)
                     )
                 }
             } else {
-                HorizontalDivider(color = secondaryText(isLight).copy(alpha = 0.08f))
-                // Only show earned achievements
+                UiHorizontalSeparator()
                 earned.forEach { ach ->
                     val imageUrl = com.safarparmar.app.ui.achievements.AchievementImages.urlFor(ach.id)
 
@@ -610,14 +1157,16 @@ private fun AchievementsSection(
                             contentAlignment = Alignment.Center
                         ) {
                             if (imageUrl != null) {
-                                coil.compose.AsyncImage(
+                                AsyncImage(
                                     model = imageUrl,
                                     contentDescription = ach.name,
-                                    modifier = Modifier.size(36.dp).clip(RoundedCornerShape(8.dp))
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(RoundedCornerShape(8.dp))
                                 )
                             } else {
-                                Icon(
-                                    painter = androidx.compose.ui.res.painterResource(id = if (ach.type == "title") R.drawable.ic_crown else R.drawable.ic_medal),
+                                M3Icon(
+                                    painter = painterResource(id = if (ach.type == "title") R.drawable.ic_crown else R.drawable.ic_medal),
                                     contentDescription = null,
                                     modifier = Modifier.size(20.dp),
                                     tint = if (isLight) SafarGlassPalette.LightViolet else SafarGlassPalette.Violet
@@ -626,7 +1175,7 @@ private fun AchievementsSection(
                         }
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Text(
+                                UiText(
                                     ach.name,
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.Bold,
@@ -636,7 +1185,7 @@ private fun AchievementsSection(
                                     shape = RoundedCornerShape(20.dp),
                                     color = (if (isLight) SafarGlassPalette.LightPink else SafarGlassPalette.Pink).copy(alpha = 0.15f)
                                 ) {
-                                    Text(
+                                    UiText(
                                         "Earned",
                                         fontSize = 9.sp,
                                         color = if (isLight) SafarGlassPalette.LightPink else SafarGlassPalette.Pink,
@@ -646,7 +1195,7 @@ private fun AchievementsSection(
                                 }
                             }
                             if (!ach.description.isNullOrBlank()) {
-                                Text(
+                                UiText(
                                     ach.description,
                                     fontSize = 11.sp,
                                     color = secondaryText(isLight),
@@ -661,241 +1210,11 @@ private fun AchievementsSection(
     }
 }
 
-@Composable
-private fun ScoreCard(
-    iconRes: Int,
-    label: String,
-    value: String,
-    message: String,
-    accentColor: Color,
-    isLight: Boolean
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(secondaryText(isLight).copy(alpha = 0.06f))
-    ) {
-        Row(
-            Modifier.padding(10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(32.dp)
-                    .clip(CircleShape)
-                    .background(accentColor.copy(alpha = if (isLight) 0.12f else 0.2f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    painter = androidx.compose.ui.res.painterResource(id = iconRes),
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                    tint = accentColor
-                )
-            }
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(
-                    label.uppercase(Locale.US),
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = secondaryText(isLight),
-                    letterSpacing = 0.8.sp
-                )
-                Text(
-                    value,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = primaryText(isLight)
-                )
-                if (message.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        message,
-                        fontSize = 10.sp,
-                        color = secondaryText(isLight),
-                        lineHeight = 14.sp
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun GoalsCountCard(
-    label: String,
-    value: String,
-    accentColor: Color,
-    isLight: Boolean,
-    modifier: Modifier = Modifier
-) {
-    Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(secondaryText(isLight).copy(alpha = 0.06f))
-            .padding(10.dp)
-    ) {
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-                label.uppercase(Locale.US),
-                fontSize = 10.sp,
-                fontWeight = FontWeight.Bold,
-                color = secondaryText(isLight)
-            )
-            Text(
-                value,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.ExtraBold,
-                color = accentColor
-            )
-        }
-    }
-}
-
-@Composable
-private fun StreakReviewCard(report: MonthlyReport, isLight: Boolean) {
-    val streakThemeColor = if (isLight) Color(0xFFC2410C) else Color(0xFFFF8A65)
-    val breakDayFormatter = remember { DateTimeFormatter.ofPattern("MMM d", Locale.getDefault()) }
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(secondaryText(isLight).copy(alpha = 0.06f))
-            .padding(16.dp)
-    ) {
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(
-                "Streak Review",
-                fontWeight = FontWeight.Bold,
-                fontSize = 15.sp,
-                color = primaryText(isLight)
-            )
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                GoalsCountCard("Longest Streak", "${report.longestStreakDays}d", streakThemeColor, isLight, Modifier.weight(1f))
-                GoalsCountCard("Streak Breaks", report.streakBreaksCount.toString(), streakThemeColor, isLight, Modifier.weight(1f))
-            }
-            if (report.streakMessage.isNotEmpty()) {
-                Text(
-                    report.streakMessage,
-                    fontSize = 12.sp,
-                    color = secondaryText(isLight)
-                )
-            }
-            if (report.streakBreakDates.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(2.dp))
-                HorizontalDivider(color = secondaryText(isLight).copy(alpha = 0.08f))
-                Text(
-                    "Broken on",
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = secondaryText(isLight)
-                )
-                Text(
-                    report.streakBreakDates.joinToString("  •  ") { dateKey ->
-                        runCatching { LocalDate.parse(dateKey).format(breakDayFormatter) }.getOrDefault(dateKey)
-                    },
-                    fontSize = 13.sp,
-                    color = primaryText(isLight),
-                    lineHeight = 18.sp,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun InsightRow(iconRes: Int, title: String, message: String, isLight: Boolean) {
-    val accent = if (isLight) SafarGlassPalette.LightViolet else SafarGlassPalette.Violet
-    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Icon(
-            painter = androidx.compose.ui.res.painterResource(id = iconRes),
-            contentDescription = null,
-            modifier = Modifier.size(18.dp).padding(top = 2.dp),
-            tint = accent
-        )
-        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(
-                title.uppercase(Locale.US),
-                fontSize = 10.sp,
-                fontWeight = FontWeight.Bold,
-                color = accent,
-                letterSpacing = 0.8.sp
-            )
-            Text(
-                message,
-                fontSize = 12.sp,
-                color = secondaryText(isLight),
-                lineHeight = 16.sp
-            )
-        }
-    }
-}
-
 private fun primaryText(isLight: Boolean) =
     if (isLight) SafarGlassPalette.LightTextPrimary else SafarGlassPalette.TextPrimary
 
 private fun secondaryText(isLight: Boolean) =
     if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
-
-
-@Composable
-private fun LineChart(values: List<Float>, modifier: Modifier = Modifier) {
-    val lineColor = MaterialTheme.colorScheme.primary
-    val dotColor  = MaterialTheme.colorScheme.primary
-    val fillColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-
-    Canvas(modifier = modifier) {
-        if (values.size < 2) return@Canvas
-        val w       = size.width
-        val h       = size.height
-        val maxVal  = values.maxOrNull()?.takeIf { it > 0f } ?: 1f
-        val stepX   = w / (values.size - 1).toFloat()
-        val padding = h * 0.12f
-
-        fun yOf(v: Float) = h - padding - (v / maxVal) * (h - 2 * padding)
-
-        val pts = values.mapIndexed { i, v -> Offset(i * stepX, yOf(v)) }
-
-        // Subtle baseline
-        drawLine(
-            color       = lineColor.copy(alpha = 0.15f),
-            start       = Offset(0f, h - padding),
-            end         = Offset(w, h - padding),
-            strokeWidth = 1.5f
-        )
-
-        // Fill area under line
-        if (pts.isNotEmpty()) {
-            val path = Path().apply {
-                moveTo(pts.first().x, h - padding)
-                pts.forEach { lineTo(it.x, it.y) }
-                lineTo(pts.last().x, h - padding)
-                close()
-            }
-            drawPath(path, fillColor)
-
-            // Draw line segments
-            for (i in 0 until pts.size - 1) {
-                drawLine(
-                    color       = lineColor,
-                    start       = pts[i],
-                    end         = pts[i + 1],
-                    strokeWidth = 3f,
-                    cap         = StrokeCap.Round
-                )
-            }
-        }
-
-        // Draw dots
-        pts.forEach { pt ->
-            drawCircle(color = lineColor,  radius = 6f, center = pt)
-            drawCircle(color = Color.White, radius = 3f, center = pt)
-        }
-    }
-}
 
 @Composable
 private fun MonthSelectionDialog(
@@ -908,8 +1227,8 @@ private fun MonthSelectionDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text(
-                text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.nishtha_select_month),
+            UiText(
+                text = stringResource(R.string.nishtha_select_month),
                 fontWeight = FontWeight.Bold,
                 fontSize = 18.sp,
                 color = primaryText(isLight)
@@ -944,7 +1263,7 @@ private fun MonthSelectionDialog(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween,
                         ) {
-                            Text(
+                            UiText(
                                 text = fullLabel,
                                 fontSize = 14.5.sp,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
@@ -953,9 +1272,9 @@ private fun MonthSelectionDialog(
                                 } else primaryText(isLight),
                             )
                             if (isSelected) {
-                                Icon(
+                                UiIcon(
                                     imageVector = Icons.Default.Check,
-                                    contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.common_selected),
+                                    contentDescription = stringResource(R.string.common_selected),
                                     tint = if (isLight) Color(0xFF5B21B6) else Color(0xFFC084FC),
                                     modifier = Modifier.size(18.dp)
                                 )
@@ -967,7 +1286,7 @@ private fun MonthSelectionDialog(
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.common_close), fontWeight = FontWeight.SemiBold)
+                UiText(stringResource(R.string.common_close), fontWeight = FontWeight.SemiBold)
             }
         },
         shape = RoundedCornerShape(20.dp),

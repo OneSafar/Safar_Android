@@ -170,6 +170,7 @@ fun AnnouncementsBottomSheet(
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
 
+    ClampedUpdatesContent {
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
         sheetState = sheetState,
@@ -177,6 +178,7 @@ fun AnnouncementsBottomSheet(
         contentColor = MaterialTheme.colorScheme.onSurface,
         dragHandle = { BottomSheetDefaults.DragHandle() },
     ) {
+        ClampedUpdatesContent {
         AnnouncementsSheetContent(
             items = items,
             isLoading = isLoading,
@@ -191,6 +193,8 @@ fun AnnouncementsBottomSheet(
                 // A tall measured sheet gives Material 3 a partially-expanded anchor.
                 .fillMaxHeight(0.90f),
         )
+        }
+    }
     }
 }
 
@@ -1031,4 +1035,15 @@ private fun AnnouncementsSheetUpdatesFilterEmptyPreview() {
             )
         }
     }
+}
+
+/** Keep the notification header, tabs and cards within the app's font-scale bounds. */
+@Composable
+private fun ClampedUpdatesContent(content: @Composable () -> Unit) {
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    androidx.compose.runtime.CompositionLocalProvider(
+        androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(
+            density.density, density.fontScale.coerceIn(0.85f, 1.05f)
+        )
+    ) { content() }
 }

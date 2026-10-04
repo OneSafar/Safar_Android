@@ -1146,6 +1146,7 @@ private fun SevenDayTrialBanner(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
             .clickable(enabled = !isLoading, onClick = onStartTrial)
             .padding(10.dp),
         verticalAlignment = Alignment.CenterVertically,

@@ -44,7 +44,8 @@ class DashboardViewModel @Inject constructor(
     val uiState = _uiState.asStateFlow()
     private val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
         Log.e("DashboardViewModel", "Dashboard load failed", throwable)
-        FirebaseCrashlytics.getInstance().recordException(throwable)
+        runCatching { FirebaseCrashlytics.getInstance().recordException(throwable) }
+            .onFailure { Log.w("DashboardViewModel", "Crash reporting unavailable", it) }
         _uiState.update {
             it.copy(
                 isLoading = false,

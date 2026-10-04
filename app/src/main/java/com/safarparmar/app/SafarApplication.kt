@@ -60,7 +60,8 @@ class SafarApplication : Application(), coil.ImageLoaderFactory {
 
     private val appExceptionHandler = CoroutineExceptionHandler { _, throwable ->
         Log.e("SAFAR_APP", "Unhandled application coroutine exception", throwable)
-        FirebaseCrashlytics.getInstance().recordException(throwable)
+        runCatching { FirebaseCrashlytics.getInstance().recordException(throwable) }
+            .onFailure { Log.w("SAFAR_APP", "Crash reporting unavailable", it) }
     }
 
     private val appScope by lazy { CoroutineScope(SupervisorJob() + ioDispatcher + appExceptionHandler) }
@@ -159,12 +160,16 @@ class SafarApplication : Application(), coil.ImageLoaderFactory {
     }
 
     private fun configureCrashReporting() {
-        val crashlytics = FirebaseCrashlytics.getInstance()
-        crashlytics.setCrashlyticsCollectionEnabled(!BuildConfig.DEBUG)
+        val crashlytics = runCatching {
+            FirebaseCrashlytics.getInstance().also {
+                it.setCrashlyticsCollectionEnabled(!BuildConfig.DEBUG)
+            }
+        }.onFailure { Log.w("SAFAR_APP", "Crash reporting initialization failed", it) }.getOrNull()
         appScope.launch {
             dataStore.userId.collect { userId ->
                 readSnapshots.clear()
-                crashlytics.setUserId(userId.orEmpty())
+                runCatching { crashlytics?.setUserId(userId.orEmpty()) }
+                    .onFailure { Log.w("SAFAR_APP", "Could not update crash reporting user", it) }
             }
         }
     }

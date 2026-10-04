@@ -222,12 +222,17 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
                 return
             }
             val sourceId = event.source?.viewIdResourceName.orEmpty().lowercase()
-            val sourceLabel = (event.source?.contentDescription ?: event.contentDescription)?.toString().orEmpty().lowercase()
+            val sourceLabel = (event.source?.contentDescription ?: event.contentDescription ?: event.source?.text)
+                ?.toString().orEmpty().lowercase()
             if (sourceId.contains("fullscreen") || sourceId.contains("full_screen") ||
                 sourceLabel in setOf("full screen", "fullscreen", "enter full screen", "exit full screen")) {
                 // Capture the owner before YouTube replaces the portrait metadata.
                 readObservation()
                 scheduleRead(CLICK_TRANSITION_MS)
+                return
+            }
+            if (isCurrentWatchPageInteraction(sourceId, sourceLabel)) {
+                scheduleRead(SHORTS_PROBE_MS)
                 return
             }
             if (isShortsClick(event)) {

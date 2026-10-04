@@ -243,6 +243,7 @@ fun SettingsScreen(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
+                                    .clip(RoundedCornerShape(14.dp))
                                     .clickable { showLanguageDialog = true }
                                     .padding(vertical = 10.dp, horizontal = 14.dp),
                                 verticalAlignment = Alignment.CenterVertically,
@@ -403,6 +404,7 @@ private fun PremiumStatusSection(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
             .clickable(onClick = onExplorePremium)
             .padding(vertical = 10.dp, horizontal = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -554,10 +556,7 @@ private fun PermissionsSection(
             isGranted = hasUsagePermission,
             icon = Icons.Default.QueryStats,
             onGrantClick = {
-                val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS).apply {
-                    data = Uri.fromParts("package", context.packageName, null)
-                }
-                context.startActivity(intent)
+                com.safarparmar.app.ui.ekagra.focusshield.FocusShieldPermissionHelper.openUsageAccessSettings(context)
             },
         )
 
@@ -567,11 +566,7 @@ private fun PermissionsSection(
             isGranted = hasOverlayPermission,
             icon = Icons.Default.Layers,
             onGrantClick = {
-                val intent = Intent(
-                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                    Uri.parse("package:${context.packageName}")
-                )
-                context.startActivity(intent)
+                com.safarparmar.app.ui.ekagra.focusshield.FocusShieldPermissionHelper.openOverlaySettings(context)
             },
         )
 
@@ -582,10 +577,7 @@ private fun PermissionsSection(
                 isGranted = hasNotificationPermission,
                 icon = Icons.Default.Notifications,
                 onGrantClick = {
-                    val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
-                        putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
-                    }
-                    context.startActivity(intent)
+                    com.safarparmar.app.ui.ekagra.focusshield.FocusShieldPermissionHelper.openNotificationSettings(context)
                 },
             )
         }
@@ -642,6 +634,7 @@ private fun PermissionRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
             .clickable(onClick = onGrantClick)
             .padding(vertical = 10.dp, horizontal = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -725,6 +718,7 @@ private fun SettingsSwitchRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
             .clickable { onCheckedChange(!checked) }
             .padding(vertical = 10.dp, horizontal = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -791,6 +785,7 @@ private fun SettingsNavigationRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
             .clickable(onClick = onClick)
             .padding(vertical = 10.dp, horizontal = 14.dp),
         verticalAlignment = Alignment.CenterVertically,

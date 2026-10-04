@@ -165,8 +165,8 @@
 
     <!-- Drawer -->
     <string name="drawer_tagline">आपकी मानसिक स्वास्थ्य यात्रा</string>
-    <string name="drawer_section_study_productivity">अध्ययन और उत्पादकता</string>
-    <string name="drawer_section_well_being_community">कल्याण और समुदाय</string>
+    <string name="drawer_section_study_productivity">स्टडी और प्रोडक्टिविटी</string>
+    <string name="drawer_section_well_being_community">वेलबीइंग और कम्युनिटी</string>
 
     <!-- Home -->
     <string name="home_greeting">शुभ प्रभात</string>

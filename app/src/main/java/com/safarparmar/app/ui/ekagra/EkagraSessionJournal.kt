@@ -142,6 +142,16 @@ internal class EkagraSessionJournal internal constructor(
         dao.row(account, id)?.let { decode(it).copy(ownerId = account, serverId = it.serverId) }
     }.await()
 
+    suspend fun setPendingGoal(id: String, account: String, goalId: String, goalTitle: String?, markComplete: Boolean): Boolean = ordered(retryable = true) {
+        if (account != owner()) return@ordered false
+        val row = dao.row(account, id) ?: return@ordered false
+        if (row.state != "pending") return@ordered false
+        val updated = decode(row).copy(goalId = goalId, goalTitle = goalTitle, markGoalComplete = markComplete)
+        dao.put(row.copy(payload = gson.toJson(updated)))
+        if (platformEffects) EkagraSessionSaveWorker.enqueue(context)
+        true
+    }.await()
+
     suspend fun pending(): List<PendingEkagraSessionSave> = ordered {
         val account = owner()
         initialize(account)

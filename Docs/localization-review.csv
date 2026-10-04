@@ -454,8 +454,8 @@ drawer_light_mode,SafarDrawer,Light Mode,Light mode,Light mode,Latin text in Hin
 drawer_light_theme_enabled,SafarDrawer,Light theme enabled,Light theme चालू है,Light theme chalu hai,Latin text in Hindi: inspect names/technical terms,Needs human review
 drawer_premium_active,SafarDrawer,Premium Active,Premium active है,Premium active hai,Latin text in Hindi: inspect names/technical terms,Needs human review
 drawer_premium_locked,SafarDrawer,Premium locked,Premium locked है,Premium locked hai,Latin text in Hindi: inspect names/technical terms,Needs human review
-drawer_section_study_productivity,SafarDrawer,Study & Productivity,अध्ययन और उत्पादकता,Study & Productivity,,Needs human review
-drawer_section_well_being_community,SafarDrawer,Well-being & Community,कल्याण और समुदाय,Well-being & Community,,Needs human review
+drawer_section_study_productivity,SafarDrawer,Study & Productivity,स्टडी और प्रोडक्टिविटी,Study & Productivity,,Approved
+drawer_section_well_being_community,SafarDrawer,Well-being & Community,वेलबीइंग और कम्युनिटी,Well-being & Community,,Approved
 drawer_tagline,,Your wellness journey,आपकी मानसिक स्वास्थ्य यात्रा,Aapki well-being journey,,Needs human review
 drawer_upgrade,SafarDrawer,Drawer upgrade,UPGRADE,UPGRADE,Latin text in Hindi: inspect names/technical terms,Needs human review
 drawer_user_profile,SafarDrawer,User Profile,User profile,User profile,Latin text in Hindi: inspect names/technical terms,Needs human review

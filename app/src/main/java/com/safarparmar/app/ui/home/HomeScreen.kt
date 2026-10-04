@@ -379,52 +379,66 @@ fun HomeScreen(
                     ComposablesIconButton(
                         onClick = { showAnnouncementsSheet = true },
                         style = ButtonStyle.Ghost,
+                        modifier = Modifier.size(48.dp),
                     ) {
-                        BadgedBox(
-                            badge = {
-                                if (notificationBellState.unreadCount > 0) {
-                                    Badge(
-                                        containerColor = Color(0xFFEF4444),
-                                        contentColor = Color.White,
-                                        modifier = Modifier.offset(x = 11.dp, y = (-6).dp),
-                                    ) {
-                                        androidx.compose.material3.Text(
-                                            text = if (notificationBellState.unreadCount > 9) "9+" else notificationBellState.unreadCount.toString(),
-                                            fontSize = 10.sp,
-                                            fontWeight = FontWeight.Bold,
-                                        )
-                                    }
-                                }
-                            }
-                        ) {
+                        // Keep both the bell and badge inside the button's bounds.
+                        Box(Modifier.size(32.dp), contentAlignment = Alignment.Center) {
                             Icon(
                                 imageVector = Icons.Default.Notifications,
                                 contentDescription = stringResource(R.string.home_notifications_updates),
                                 tint = topBarTint,
-                                modifier = Modifier.size(26.4.dp),
+                                modifier = Modifier.size(26.dp),
                             )
+                            if (notificationBellState.unreadCount > 0) {
+                                Badge(
+                                    containerColor = Color(0xFFEF4444),
+                                    contentColor = Color.White,
+                                    modifier = Modifier.align(Alignment.TopEnd),
+                                ) {
+                                    androidx.compose.material3.Text(
+                                        text = if (notificationBellState.unreadCount > 9) "9+" else notificationBellState.unreadCount.toString(),
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                    )
+                                }
+                            }
                         }
                     }
                 }
             }
 
             // ── Text overlay: Module label + headline + description + dots ──
-            val topOffset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + (maxHeight * 0.15f)
+            val topOffset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + (maxHeight * 0.08f).coerceAtLeast(58.dp)
+            val heroShape = RoundedCornerShape(24.dp)
+            val haptic = LocalHapticFeedback.current
+
             Column(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
-                    .padding(top = topOffset, start = 24.dp, end = 24.dp)
-                    .fillMaxWidth()
-                    .clickable { onNavigate(currentSlide.route) },
+                    .padding(top = topOffset, start = 20.dp, end = 20.dp)
+                    .fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(if (isCompactHeight) 6.dp else 10.dp)
+                verticalArrangement = Arrangement.spacedBy(if (isCompactHeight) 4.dp else 8.dp)
             ) {
-                // Module category pill
-                Crossfade(
-                    targetState = currentPage,
-                    animationSpec = tween(durationMillis = 600),
-                    label = "pill_fade"
-                ) { page ->
+                // Interactive Hero Card (Pill + Headline + Body) with polished rounded touch bounds
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(heroShape)
+                        .bounceClick(scaleDown = 0.98f) {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            onNavigate(currentSlide.route)
+                        }
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(if (isCompactHeight) 6.dp else 10.dp)
+                ) {
+                    // Module category pill
+                    Crossfade(
+                        targetState = currentPage,
+                        animationSpec = tween(durationMillis = 600),
+                        label = "pill_fade"
+                    ) { page ->
                     val slide = slides[page]
                     val pillBg = if (isDarkTheme) {
                         slide.accentColor.copy(alpha = 0.25f)
@@ -509,9 +523,10 @@ fun HomeScreen(
                         )
                     }
                 }
+            }
 
-                // Animated page indicator dots
-                Spacer(modifier = Modifier.height(2.dp))
+            // Animated page indicator dots
+            Spacer(modifier = Modifier.height(2.dp))
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically,

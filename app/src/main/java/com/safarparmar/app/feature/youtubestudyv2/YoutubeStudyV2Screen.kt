@@ -559,6 +559,7 @@ private fun PermissionStep(
                     border = BorderStroke(1.dp, if (isLight) YTCMColors.ContainerBorderLight else YTCMColors.ContainerBorderDark),
                     modifier = Modifier
                         .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
                         .clickable { FocusShieldPermissionHelper.openBatterySaverSettings(context) },
                 ) {
                     Row(
@@ -810,6 +811,7 @@ private fun StudyModeDashboard(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .clip(RoundedCornerShape(16.dp))
                                 .clickable { catalogExpanded = !catalogExpanded }
                                 .padding(horizontal = 16.dp, vertical = 14.dp),
                             verticalAlignment = Alignment.CenterVertically,
@@ -1313,6 +1315,7 @@ private fun YourChannelsCard(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
                     .clickable(onClick = onToggle)
                     .padding(horizontal = 16.dp, vertical = 14.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -1467,6 +1470,7 @@ private fun TroubleshootingWarningCard(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
                     .clickable(onClick = onToggle)
                     .padding(horizontal = 16.dp, vertical = 14.dp),
                 verticalAlignment = Alignment.CenterVertically,

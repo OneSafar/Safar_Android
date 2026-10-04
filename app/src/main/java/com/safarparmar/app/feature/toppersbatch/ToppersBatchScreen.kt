@@ -120,6 +120,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import com.safarparmar.app.ui.drawer.SafarDrawerScaffold
 import com.safarparmar.app.ui.navigation.Routes
 import java.time.LocalDate
@@ -148,12 +151,35 @@ fun ToppersBatchScreen(
     onToggleDarkTheme: () -> Unit,
     viewModel: ToppersBatchViewModel = hiltViewModel(),
 ) {
+    BatchClampedContent {
+        ToppersBatchScreenContent(isDarkTheme, onNavigate, onBack, onToggleDarkTheme, viewModel)
+    }
+}
+
+@Composable
+private fun ToppersBatchScreenContent(
+    isDarkTheme: Boolean,
+    onNavigate: (String) -> Unit,
+    onBack: () -> Unit,
+    onToggleDarkTheme: () -> Unit,
+    viewModel: ToppersBatchViewModel,
+) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val lifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(lifecycleOwner, viewModel) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            viewModel.refreshReleaseSchedule()
+            while (true) {
+                kotlinx.coroutines.delay(60_000)
+                viewModel.refreshReleaseSchedule()
+            }
+        }
+    }
     val selectedSubject = state.overview?.subjects?.firstOrNull {
         it.id == (state.todaySubjectId ?: state.selectedSubjectId)
     }
     val pageTitle = selectedSubject?.name ?: when (state.section) {
-        BatchSection.TODAY -> "Parmar Toppers Batch"
+        BatchSection.TODAY -> state.overview?.course?.name ?: "Parmar Toppers Batch"
         else -> state.section.title
     }
     BackHandler(enabled = selectedSubject != null) { viewModel.backFromSubject() }
@@ -164,7 +190,7 @@ fun ToppersBatchScreen(
         topBarGradient = Brush.horizontalGradient(listOf(Color(0xFF831843), Color(0xFFBE185D), Color(0xFFDB2777))),
         secondaryNavigationIcon = Icons.AutoMirrored.Filled.ArrowBack,
         secondaryNavigationContentDescription = if (state.todaySubjectId != null) "Back to Today"
-            else if (selectedSubject != null) "Back to Lectures" else "Back to Study Planner",
+            else if (selectedSubject != null) "Back to Library" else "Back to Study Planner",
         onSecondaryNavigationClick = { if (selectedSubject != null) viewModel.backFromSubject() else onBack() },
     ) { outerPadding ->
         androidx.compose.foundation.layout.BoxWithConstraints(
@@ -202,7 +228,13 @@ fun ToppersBatchScreen(
                     contentWindowInsets = WindowInsets(0, 0, 0, 0),
                     bottomBar = { if (!wide && state.gate == BatchGate.READY) BatchBottomNav(state.section, viewModel::select) },
                 ) { padding ->
-                    Column(Modifier.fillMaxSize().padding(padding)) {
+                    Box(Modifier.fillMaxSize().padding(padding)) {
+                    Column(Modifier.fillMaxSize()) {
+                        state.completionFeedback?.let { feedback ->
+                            Box(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                                BatchCompletionBanner(feedback)
+                            }
+                        }
                         when (state.gate) {
                             BatchGate.LOADING -> CenterMessage("Opening your Toppers Batch…")
                             BatchGate.PREMIUM -> GateMessage("SAFAR Premium is needed for Toppers Batch.", "See Premium") { onNavigate(Routes.PREMIUM) }
@@ -210,6 +242,10 @@ fun ToppersBatchScreen(
                             BatchGate.ERROR -> GateMessage(state.error ?: "Could not open Toppers Batch.", "Try again", viewModel::open)
                             BatchGate.READY -> BatchBody(state, viewModel)
                         }
+                    }
+                    state.completionFeedback?.let { feedback ->
+                        BatchCompletionConfetti(feedback.event, Modifier.matchParentSize())
+                    }
                     }
                 }
                     } }
@@ -285,8 +321,7 @@ fun ToppersBatchScreen(
                 if (focused != null) TodaySubjectFocus(state, focused, vm)
                 else ToppersBatchDashboard(state, vm)
             }
-            BatchSection.COURSES -> if (subject == null) item { CoursesContent(state, vm) }
-                else subjectItems(state, subject, vm)
+            BatchSection.COURSES -> item(key = "weekly-agenda") { BatchWeeklyAgenda(state, vm) }
             BatchSection.PROGRESS -> item { ProgressContent(state, vm) }
             BatchSection.CALENDAR -> item { CalendarContent(state, vm) }
         }
@@ -324,18 +359,44 @@ private fun Modifier.fullContentWidth(): Modifier = this.fillMaxWidth()
     }
 }
 
-@Composable private fun CoursesContent(state: BatchUiState, vm: ToppersBatchViewModel) {
+private fun LazyListScope.libraryItems(state: BatchUiState, vm: ToppersBatchViewModel) {
     val overview = state.overview ?: return
-    val subjects = listOf("english", "reasoning", "mathematics", "gk")
-        .mapNotNull { key -> overview.subjects.firstOrNull { it.key == key } }
-    Column(Modifier.fullContentWidth(), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        Text("Your subjects", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-        Text("Browse every lecture, backlog, and revision plan by subject.",
-            color = MaterialTheme.colorScheme.onSurfaceVariant)
-        subjects.forEach { subject ->
-            SubjectRow(subject, overview.progress.bySubject.firstOrNull { it.subjectId == subject.id }) {
-                vm.selectSubject(subject.id)
+    val browsingSubjects = state.libraryQuery.isBlank() && state.libraryFilter == LibraryFilter.ALL
+    val rows = if (browsingSubjects) emptyList() else overview.libraryRows(state.libraryQuery, state.libraryFilter)
+    val pages = lecturePages(rows)
+    val selected = (state.lecturePages["library-results"] ?: 0).coerceIn(0, pages.lastIndex.coerceAtLeast(0))
+    item(key = "library-controls") {
+        Column(Modifier.fullContentWidth(), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            SectionHeading("Library", null)
+            BatchTextField(value = state.libraryQuery, onValueChange = vm::searchLibrary, singleLine = true,
+                label = { Text("Search lectures") }, accessibilityLabel = "Search lecture library")
+            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                LibraryFilter.entries.forEach { filter ->
+                    FilterChip(selected = state.libraryFilter == filter, onClick = { vm.filterLibrary(filter) },
+                        label = { Text(filter.title) })
+                }
             }
+            if (state.libraryQuery.isBlank() && state.libraryFilter == LibraryFilter.ALL) {
+                overview.subjects.filter { it.enabled }.forEach { subject ->
+                    SubjectRow(subject, overview.progress.bySubject.firstOrNull { it.subjectId == subject.id }) {
+                        vm.selectSubject(subject.id)
+                    }
+                }
+            }
+            if (!browsingSubjects) {
+                Text("${rows.size} results", fontWeight = FontWeight.SemiBold)
+                if (rows.isEmpty()) Text("No matching lectures. Try another search or filter.")
+                else LectureWeekBrowser(pages, selected, false) { vm.selectLecturePage("library-results", it) }
+            }
+
+        }
+    }
+    items(pages.getOrNull(selected).orEmpty(), key = { "library-${it.id}" }) { lecture ->
+        Column(Modifier.fullContentWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            val subject = overview.subjects.firstOrNull { it.id == lecture.subjectId }
+            Text(subject?.displayName().orEmpty(), style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary)
+            LectureCard(lecture, subject, state, vm)
         }
     }
 }
@@ -361,16 +422,18 @@ private fun Modifier.fullContentWidth(): Modifier = this.fillMaxWidth()
         Row(Modifier.fillMaxWidth().padding(18.dp), verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Box(Modifier.size(40.dp).background(accent.copy(alpha = 0.12f), CircleShape), contentAlignment = Alignment.Center) {
-                Text(subject.name.take(1).uppercase(Locale.ENGLISH), color = accent, fontWeight = FontWeight.Bold)
+                Text(if (subject.key == "gk") "GK" else subject.name.take(1).uppercase(Locale.ENGLISH), color = accent, fontWeight = FontWeight.Bold)
             }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(subject.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold,
                     maxLines = 1, overflow = TextOverflow.Ellipsis)
-                ProgressIndicator(progress = if (total == 0) 0f else (done.toFloat() / total).coerceIn(0f, 1f),
+                if (subject.key == "gk" && total == 0) Text("25-week timetable", style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                else ProgressIndicator(progress = if (total == 0) 0f else (done.toFloat() / total).coerceIn(0f, 1f),
                     modifier = Modifier.fillMaxWidth(), height = 5.dp, indicatorColor = accent,
                     trackColor = accent.copy(alpha = 0.13f))
             }
-            Text("$done / $total", style = MaterialTheme.typography.labelLarge,
+            Text(if (subject.key == "gk" && total == 0) "Schedule" else "$done / $total", style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text("›", style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -378,14 +441,8 @@ private fun Modifier.fullContentWidth(): Modifier = this.fillMaxWidth()
     }
 }
 
-private fun subjectProgressColor(subject: BatchSubject): Color {
-    return when {
-        subject.name.contains("english", ignoreCase = true) -> Color(0xFFBE185D)
-        subject.name.contains("math", ignoreCase = true) -> Color(0xFFEA580C)
-        subject.name.contains("reason", ignoreCase = true) -> Color(0xFF5B21B6)
-        else -> subject.color.toComposeColor() ?: Color(0xFFBE185D)
-    }
-}
+internal fun subjectProgressColor(subject: BatchSubject): Color =
+    (subject.color ?: subject.defaultColor).toComposeColor() ?: Color(0xFFBE185D)
 
 private fun LazyListScope.subjectItems(state: BatchUiState, subject: BatchSubject, vm: ToppersBatchViewModel) {
     val overview = state.overview ?: return
@@ -393,26 +450,27 @@ private fun LazyListScope.subjectItems(state: BatchUiState, subject: BatchSubjec
     val backlogIds = overview.watchList.firstOrNull { it.subjectId == subject.id }?.backlogLectureIds.orEmpty().toSet()
     val visible = when (state.lectureTab) {
         LectureTab.LECTURES -> lectures
-        LectureTab.OLDER -> lectures.filter { it.id in backlogIds }
+        LectureTab.OLDER -> lectures.filter { it.completedAt == null && !it.isLocked(ToppersBatchViewModel.indiaDay()) && it.id in backlogIds }
         LectureTab.REVISION -> lectures.filter { it.pendingRevision }
     }
     item(key = "subject-intro") { SubjectIntro(state, subject, lectures, visible.isEmpty(), vm) }
-    var lastGroup: Pair<String, String>? = null
-    visible.forEach { lecture ->
-        val group = lecture.sourceMonth to lecture.sourceWeek
-        if (state.lectureTab == LectureTab.LECTURES && group != lastGroup) {
-            item(key = "group-${group.first}-${group.second}") {
-                Surface(color = Color(0xFFFDF2F8), shape = RoundedCornerShape(10.dp),
-                    modifier = Modifier.fullContentWidth()) {
-                    Text("${group.first} · ${group.second}", modifier = Modifier.padding(12.dp),
-                        style = MaterialTheme.typography.labelLarge, color = Color(0xFF9D174D),
-                        fontWeight = FontWeight.Bold)
-                }
+    if (subject.key == "gk" && lectures.isEmpty() && state.lectureTab == LectureTab.LECTURES) {
+        item(key = "gk-schedule-preview") { Text(state.overview?.copyText("emptyLectures", "Lectures will appear when the official list is added.") ?: "No lectures yet.") }
+    }
+    val pages = lecturePages(visible)
+    if (pages.isNotEmpty()) {
+        val pageKey = "${subject.id}:${state.lectureTab.name}"
+        val selected = (state.lecturePages[pageKey] ?: initialLecturePage(pages, ToppersBatchViewModel.indiaDay())).coerceIn(0, pages.lastIndex)
+        item(key = "week-browser") {
+            Box(Modifier.fullContentWidth()) {
+                LectureWeekBrowser(pages, selected, state.lectureTab == LectureTab.LECTURES) { vm.selectLecturePage(pageKey, it) }
             }
         }
-        lastGroup = group
-        item(key = lecture.id) { Box(Modifier.fullContentWidth()) { LectureCard(lecture, subject, state, vm) } }
+        pages[selected].forEach { lecture ->
+            item(key = lecture.id) { Box(Modifier.fullContentWidth()) { LectureCard(lecture, subject, state, vm) } }
+        }
     }
+
 }
 
 @Composable private fun SubjectIntro(state: BatchUiState, subject: BatchSubject, lectures: List<BatchLecture>,
@@ -435,8 +493,6 @@ private fun LazyListScope.subjectItems(state: BatchUiState, subject: BatchSubjec
                     modifier = Modifier.fillMaxWidth(), height = 7.dp, indicatorColor = pink, trackColor = Color(0xFFF9C9DE))
             }
         }
-        Text("Follow your own lecture progress. Parmar class dates are for live events only.",
-            color = MaterialTheme.colorScheme.onSurfaceVariant)
         val context = LocalContext.current
         subject.externalUrl?.takeIf { it.startsWith("https://") }?.let { url ->
             OutlinedButton(onClick = { openExternal(context, url) }) { Text("Open course website") }

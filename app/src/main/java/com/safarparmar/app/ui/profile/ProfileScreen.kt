@@ -757,8 +757,9 @@ private fun ProfileDropdownInlineRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
                 .clickable { expanded = !expanded }
-                .padding(vertical = 14.dp),
+                .padding(vertical = 14.dp, horizontal = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {

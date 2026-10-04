@@ -192,16 +192,16 @@ Version 1.0.4 • Build 104</string>
     <string name="profile_support_contact">For support or queries, reach us at:
 onesafar@gmail.com • safarparmar0@gmail.com</string>
     <string name="profile_footer_version">© 2026 SAFAR • Version 1.0.4</string>
-    <string name="profile_option_male">Select gender</string>
-    <string name="profile_option_female">Select gender</string>
-    <string name="profile_option_other">Select gender</string>
-    <string name="profile_option_private">Select gender</string>
-    <string name="profile_option_other_exam">Select target exam</string>
-    <string name="profile_option_beginner">Select preparation stage</string>
-    <string name="profile_option_intermediate">Select preparation stage</string>
-    <string name="profile_option_advanced">Select preparation stage</string>
-    <string name="profile_option_revision">Select preparation stage</string>
-    <string name="profile_option_mock_tests">Select preparation stage</string>
+    <string name="profile_option_male">Male</string>
+    <string name="profile_option_female">Female</string>
+    <string name="profile_option_other">Other</string>
+    <string name="profile_option_private">Prefer not to say</string>
+    <string name="profile_option_other_exam">Other</string>
+    <string name="profile_option_beginner">Beginner</string>
+    <string name="profile_option_intermediate">Intermediate</string>
+    <string name="profile_option_advanced">Advanced</string>
+    <string name="profile_option_revision">Revision</string>
+    <string name="profile_option_mock_tests">Mock Tests</string>
     <string name="home_slide_ekagra_headline">Boost your productivity</string>
     <string name="home_slide_ekagra_body">Boost your productivity</string>
     <string name="home_slide_nishtha_headline">Build daily habits</string>
@@ -496,8 +496,8 @@ Watch our YouTube video.</string>
     <string name="dashboard_monthly_snapshot_help">A quick look at your performance this month.</string>
     <string name="dashboard_view_full_report">View Full Report</string>
     <string name="dashboard_weekly_mood_help">Your emotional journey from Monday to Sunday.</string>
-    <string name="dashboard_welcome_overlay_title"> }} %1$s</string>
-    <string name="dashboard_default_friend"> }}</string>
+    <string name="dashboard_welcome_overlay_title">Welcome back,\n%1$s</string>
+    <string name="dashboard_default_friend">friend</string>
     <string name="dashboard_welcome_overlay_body">Your journey continues here.
 Every small step forward counts — today is a new opportunity to grow, reflect, and be present.</string>
     <string name="dashboard_lets_begin">Let\'s begin</string>
@@ -592,10 +592,10 @@ Every small step forward counts — today is a new opportunity to grow, reflect,
     <string name="common_delete">Delete</string>
     <string name="goals_none_yet">No goals yet</string>
     <string name="goals_none_help">No goals yet</string>
-    <string name="goals_pending_tasks">All caught up! Time to plan more? %1$d</string>
+    <string name="goals_pending_tasks">Pending · %1$d tasks</string>
     <string name="goals_all_caught_up">All caught up! Time to plan more?</string>
     <string name="goals_upcoming_stays_help">Anything scheduled for later stays in the upcoming section.</string>
-    <string name="goals_completed_tasks">All caught up! Time to plan more? %1$d</string>
+    <string name="goals_completed_tasks">Completed · %1$d tasks</string>
     <string name="goals_scheduled_tasks">You have no tasks scheduled for later dates. %1$d</string>
     <string name="goals_no_upcoming">No upcoming tasks</string>
     <string name="goals_no_upcoming_help">No upcoming tasks</string>
@@ -603,7 +603,7 @@ Every small step forward counts — today is a new opportunity to grow, reflect,
     <string name="goals_no_missed">No missed goals</string>
     <string name="goals_no_missed_help">No missed goals</string>
     <string name="goals_today_pulse">Today Pulse</string>
-    <string name="goals_completed_count">%1$d open manual goals</string>
+    <string name="goals_completed_count">%1$d completed goals</string>
     <string name="goals_open_manual_count">%1$d open manual goals</string>
     <string name="goals_completion_rate">%1$d%% overall completion rate</string>
     <string name="goals_study_time_today">Study time today</string>
@@ -652,7 +652,7 @@ Every small step forward counts — today is a new opportunity to grow, reflect,
     <string name="goals_assigned_date_value">Original date unavailable %1$s</string>
     <string name="goals_original_date_unavailable">Original date unavailable</string>
     <string name="goals_delete_title">Delete this goal?</string>
-    <string name="goals_delete_body">Delete this goal? %1$s</string>
+    <string name="goals_delete_body">“%1$s” will move to Recently Deleted.</string>
     <string name="goals_move_to_recently_deleted">Move to Recently Deleted</string>
     <string name="goals_keep_it">Keep it</string>
     <string name="goals_study_time_question">How long did you study?</string>
@@ -678,9 +678,9 @@ Every small step forward counts — today is a new opportunity to grow, reflect,
     <string name="goals_moved_to_recently_deleted">Goal moved to Recently Deleted</string>
     <string name="goals_my_goals">My Goals</string>
     <string name="goals_nothing_planned_today">Nothing planned for today</string>
-    <string name="goals_done_today_count">%2$d of %1$d done today</string>
+    <string name="goals_done_today_count">%1$d of %2$d done today</string>
     <string name="goals_nothing_today">goals done today</string>
-    <string name="goals_count_of_total">%2$d of %1$d</string>
+    <string name="goals_count_of_total">%1$d of %2$d</string>
     <string name="goals_add_to_get_started">add a goal to get started</string>
     <string name="goals_done_today_label">goals done today</string>
     <string name="common_hide">Hide</string>
@@ -730,9 +730,9 @@ Every small step forward counts — today is a new opportunity to grow, reflect,
     <string name="common_send">Send message</string>
     <string name="mehfil_student">Student</string>
     <string name="mehfil_connection_request_sent">Connection Request Sent!</string>
-    <string name="mehfil_waiting_accept"> }} to accept your Mehfil Connect request.
+    <string name="mehfil_waiting_accept">Waiting for %1$s to accept your Mehfil Connect request.
 
-You will automatically enter the chat room once accepted. %1$s</string>
+You will automatically enter the chat room once accepted.</string>
     <string name="mehfil_connecting_chat">Connecting to Chat...</string>
     <string name="mehfil_entering_chat">Entering private chat with %1$s...</string>
     <string name="mehfil_connection_status">Connection Status</string>

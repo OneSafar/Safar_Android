@@ -803,6 +803,7 @@ private fun OfficialCircleRow(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
             .clickable { if (isJoined) onOpen() else onJoin() }
             .padding(horizontal = 14.dp, vertical = 13.dp),
     ) {
@@ -924,6 +925,7 @@ private fun MyCircleRow(circle: StudyCircleSummaryDto, onClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
             .clickable(onClick = onClick)
             .background(if (circle.isPinned) official.copy(alpha = 0.04f) else Color.Transparent)
             .padding(horizontal = 14.dp, vertical = 13.dp),
@@ -1042,6 +1044,7 @@ private fun PublicCircleRow(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
             .clickable(enabled = onOpen != null) { onOpen?.invoke() }
             .background(if (circle.isPinned) official.copy(alpha = 0.04f) else Color.Transparent)
             .padding(horizontal = 14.dp, vertical = 13.dp),

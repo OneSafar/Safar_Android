@@ -231,6 +231,7 @@ fun DhyanYoutubePromotionDialog(
                         modifier = Modifier
                             .fillMaxWidth()
                             .aspectRatio(16f / 9f)
+                            .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
                             .clickable { openUrl(watchUrl) },
                         contentAlignment = Alignment.Center,
                     ) {

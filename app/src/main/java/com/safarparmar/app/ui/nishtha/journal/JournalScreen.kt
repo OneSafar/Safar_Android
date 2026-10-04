@@ -95,13 +95,12 @@ private val journalPrompts = listOf(
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
-fun JournalScreen(viewModel: NishthaViewModel = hiltViewModel(), openSheetOnLoad: Boolean = false) {
+fun JournalScreen(viewModel: NishthaViewModel = hiltViewModel()) {
     androidx.compose.runtime.LaunchedEffect(viewModel) { viewModel.loadTab(com.safarparmar.app.ui.nishtha.NishthaTab.JOURNAL) }
     val isLight = MaterialTheme.colorScheme.background.isLightBackground()
     CompositionLocalProvider(LocalPlannerIsDarkTheme provides !isLight) {
         JournalScreenContent(
             viewModel = viewModel,
-            openSheetOnLoad = openSheetOnLoad,
             isLight = isLight,
         )
     }
@@ -111,12 +110,11 @@ fun JournalScreen(viewModel: NishthaViewModel = hiltViewModel(), openSheetOnLoad
 @Composable
 private fun JournalScreenContent(
     viewModel: NishthaViewModel,
-    openSheetOnLoad: Boolean,
     isLight: Boolean,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    var showWriteSheet by remember { mutableStateOf(openSheetOnLoad) }
+    var showWriteSheet by remember { mutableStateOf(false) }
     var titleInput by remember { mutableStateOf("") }
     var bodyInput by remember { mutableStateOf("") }
     var promptContext by remember { mutableStateOf<String?>(null) }
@@ -275,7 +273,7 @@ private fun JournalScreenContent(
         // Flat accent FAB (not Material tonal FAB)
         Box(
             modifier = Modifier
-                .align(Alignment.BottomEnd)
+                .align(Alignment.BottomCenter)
                 .padding(24.dp)
                 .size(56.dp)
                 .shadow(
@@ -649,111 +647,37 @@ private fun JournalWriteSheet(
     onDismiss: () -> Unit,
     onSave: () -> Unit,
 ) {
-    JournalInlineSheetScaffold(onDismiss = onDismiss) {
-        PlanEyebrow(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.nishtha_journal))
-        Spacer(Modifier.height(10.dp))
-        Text(
-            text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.nishtha_new_entry),
-            fontFamily = LoraFontFamily,
-            fontSize = 22.sp,
-            fontWeight = FontWeight.Normal,
-            color = PlannerFlatColors.TextDark,
-        )
-        Spacer(Modifier.height(14.dp))
-        PlanHairline()
-        Spacer(Modifier.height(16.dp))
-
-        if (promptContext != null) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .border(1.dp, PlannerFlatColors.BorderSoft, RoundedCornerShape(12.dp))
-                    .padding(horizontal = 12.dp, vertical = 10.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_sparkle),
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                    tint = accent,
-                )
-                Text(
-                    promptContext,
-                    fontSize = 13.sp,
-                    color = accent,
-                    fontStyle = FontStyle.Italic,
-                    lineHeight = 19.sp,
-                )
+    com.composables.ui.components.AlertDialog(
+        visible = true,
+        onDismissRequest = { if (!isSaving) onDismiss() },
+        title = { com.composables.ui.components.Text(androidx.compose.ui.res.stringResource(R.string.nishtha_new_entry)) },
+        text = {
+            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                if (promptContext != null) com.composables.ui.components.Text(promptContext)
+                com.composables.ui.components.Text("Title")
+                FlatJournalField(value = titleInput, onValueChange = onTitleChange,
+                    placeholder = androidx.compose.ui.res.stringResource(R.string.nishtha_entry_title_hint),
+                    accent = accent, singleLine = true)
+                com.composables.ui.components.Text("What's on your mind?")
+                FlatJournalField(value = bodyInput, onValueChange = onBodyChange,
+                    placeholder = androidx.compose.ui.res.stringResource(R.string.nishtha_start_writing_hint),
+                    accent = accent, singleLine = false, minHeight = 140.dp, minLines = 4)
+                if (error != null) com.composables.ui.components.Text(error, color = MaterialTheme.colorScheme.error)
             }
-            Spacer(Modifier.height(16.dp))
-            PlanHairline(alpha = 0.5f)
-            Spacer(Modifier.height(16.dp))
-        }
-
-        Text(
-            "Title",
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Bold,
-            color = PlannerFlatColors.TextDark,
-        )
-        Spacer(Modifier.height(8.dp))
-        FlatJournalField(
-            value = titleInput,
-            onValueChange = onTitleChange,
-            placeholder = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.nishtha_entry_title_hint),
-            accent = accent,
-            singleLine = true,
-        )
-
-        Spacer(Modifier.height(18.dp))
-        PlanHairline(alpha = 0.5f)
-        Spacer(Modifier.height(16.dp))
-
-        Text(
-            "What's on your mind?",
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Bold,
-            color = PlannerFlatColors.TextDark,
-        )
-        Spacer(Modifier.height(8.dp))
-        FlatJournalField(
-            value = bodyInput,
-            onValueChange = onBodyChange,
-            placeholder = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.nishtha_start_writing_hint),
-            accent = accent,
-            singleLine = false,
-            minHeight = 160.dp,
-            minLines = 5,
-        )
-
-        if (error != null) {
-            Spacer(Modifier.height(10.dp))
-            Text(error, color = MaterialTheme.colorScheme.error, fontSize = 13.sp)
-        }
-
-        Spacer(Modifier.height(22.dp))
-        PlanHairline()
-        Spacer(Modifier.height(16.dp))
-
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            FlatSecondaryButton(
-                label = "Cancel",
-                onClick = onDismiss,
-                modifier = Modifier.weight(1f),
-            )
-            FlatPrimaryButton(
-                label = "Save Entry",
+        },
+        positiveButton = {
+            com.composables.ui.components.Button(onClick = onSave,
                 enabled = bodyInput.isNotBlank() && !isSaving,
-                loading = isSaving,
-                accent = accent,
-                onClick = onSave,
-                modifier = Modifier.weight(1f),
-            )
-        }
-    }
+                modifier = Modifier.fillMaxWidth()) {
+                com.composables.ui.components.Text(if (isSaving) "Saving…" else "Save Entry")
+            }
+        },
+        negativeButton = {
+            com.composables.ui.components.Button(onClick = onDismiss, enabled = !isSaving,
+                style = com.composables.ui.components.ButtonStyle.Outlined,
+                modifier = Modifier.fillMaxWidth()) { com.composables.ui.components.Text("Cancel") }
+        },
+    )
 }
 
 @Composable

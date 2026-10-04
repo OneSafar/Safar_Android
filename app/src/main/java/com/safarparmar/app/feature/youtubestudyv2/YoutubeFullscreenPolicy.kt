@@ -35,3 +35,14 @@ internal fun isVideoCardAccessibilityLabel(value: CharSequence?): Boolean {
         (label.contains("वीडियो चलाएं") && label != "वीडियो चलाएं") ||
         (label.contains("वीडियो चलाएँ") && label != "वीडियो चलाएँ")
 }
+
+/** These change the watch page, not the playing video, even if a parent mentions "play video". */
+internal fun isCurrentWatchPageInteraction(viewId: String?, label: String?): Boolean {
+    val id = viewId.orEmpty().lowercase()
+    val value = label.orEmpty().trim().lowercase()
+    return listOf("comment", "engagement_panel", "chip_cloud", "description_panel", "transcript").any(id::contains) ||
+        Regex("^(?:comments?|टिप्पणियाँ|टिप्पणियां)(?:$|[\\s·•]+[\\d.,km]+$)").matches(value) ||
+        listOf("like this comment", "dislike this comment", "reply to this comment", "like this video", "dislike this video")
+            .any { value == it || value.startsWith("$it ") } ||
+        value in setOf("top", "newest", "close", "share", "download", "save", "subscribe", "subscribed")
+}
