@@ -29,6 +29,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -66,19 +68,18 @@ internal fun ToppersBatchDashboard(state: BatchUiState, vm: ToppersBatchViewMode
     }
 
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(18.dp)) {
-        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-            shape = RoundedCornerShape(22.dp),
-            modifier = Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text(overview.copyText("progressTitle", "Overall batch progress"), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                Text("$done of $total lectures · ${(fraction * 100).roundToInt()}%",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                ProgressIndicator(progress = fraction, modifier = Modifier.fillMaxWidth(), height = 9.dp,
-                    indicatorColor = MaterialTheme.colorScheme.primary,
-                    trackColor = MaterialTheme.colorScheme.primaryContainer)
-            }
-        }
+        ProgressIndicator(
+            progress = fraction,
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(CircleShape)
+                .semantics {
+                    contentDescription = "${overview.copyText("progressTitle", "Overall batch progress")}: $done of $total lectures · ${(fraction * 100).roundToInt()}%"
+                },
+            height = 8.dp,
+            indicatorColor = MaterialTheme.colorScheme.primary,
+            trackColor = MaterialTheme.colorScheme.primaryContainer,
+        )
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(overview.copyText("todayTitle", "Today’s Watch List"), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             SubjectWatchGrid(subjects, overview, vm)
@@ -88,16 +89,6 @@ internal fun ToppersBatchDashboard(state: BatchUiState, vm: ToppersBatchViewMode
                 completed = true, vm = vm)
             TodayLecturePanel(overview.copyText("comingUpToday", "Coming up today"), comingUpToday, overview.copyText("upcomingEmpty", "You’re caught up with the available lectures."),
                 completed = false, vm = vm)
-            val revisions = overview.libraryRows("", LibraryFilter.REVISION)
-                .filter { it.revisionDate!! <= today }
-            if (revisions.isNotEmpty()) {
-                Text("Revision due · ${revisions.size}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                revisions.take(3).forEach { lecture ->
-                    LectureCard(lecture, subjects.firstOrNull { it.id == lecture.subjectId }, state, vm)
-                }
-                UiButton(onClick = { vm.searchLibrary(""); vm.filterLibrary(LibraryFilter.REVISION); vm.select(BatchSection.COURSES) },
-                    style = ButtonStyle.Secondary) { Text("Manage all revisions") }
-            }
             if (state.today?.date == today && state.today.lectures.isNotEmpty()) {
                 Text(overview.copyText("officialTodayTitle", "Official classes today"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 Text(overview.copyText("officialTodayNote", "Batch timetable · your next lecture still follows your progress."), color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -168,26 +159,28 @@ private fun TodayLecturePanel(
     completed: Boolean,
     vm: ToppersBatchViewModel,
 ) {
-    val accent = if (completed) Color(0xFF16A34A) else MaterialTheme.colorScheme.primary
-    val shape = RoundedCornerShape(18.dp)
+    val accent = if (completed) Color(0xFF16A34A) else Color(0xFFE91E63)
+    val shape = RoundedCornerShape(22.dp)
     Column(
         Modifier.fillMaxWidth().clip(shape)
             .background(MaterialTheme.colorScheme.surface)
             .border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape)
-            .padding(14.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Box(Modifier.size(34.dp).background(accent.copy(alpha = 0.14f), CircleShape),
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            Box(Modifier.size(40.dp).background(accent.copy(alpha = 0.14f), CircleShape),
                 contentAlignment = Alignment.Center) {
-                Icon(
-                    imageVector = if (completed) Icons.Default.Check else Icons.AutoMirrored.Filled.ArrowForward,
-                    contentDescription = null,
-                    tint = accent,
-                    modifier = Modifier.size(22.dp),
-                )
+                if (completed) {
+                    Box(Modifier.size(27.dp).background(accent, CircleShape), contentAlignment = Alignment.Center) {
+                        Icon(Icons.Default.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(22.dp))
+                    }
+                } else {
+                    Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null,
+                        tint = accent, modifier = Modifier.size(27.dp))
+                }
             }
-            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(title, fontSize = 20.sp, fontWeight = FontWeight.Bold)
         }
         HorizontalSeparator(color = MaterialTheme.colorScheme.outlineVariant)
         if (rows.isEmpty()) {
@@ -201,26 +194,26 @@ private fun TodayLecturePanel(
                 onClick = { vm.focusTodaySubject(subject.id) },
                 style = ButtonStyle.Ghost,
                 contentPadding = PaddingValues(0.dp),
-                modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 76.dp),
             ) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    val subjectAccent = subjectProgressColor(subject)
-                    Box(Modifier.size(34.dp).background(subjectAccent.copy(alpha = 0.14f), CircleShape),
+                    horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                    val subjectAccent = subjectProgressColor(subject.copy(color = null))
+                    Box(Modifier.size(40.dp).background(subjectAccent.copy(alpha = 0.14f), CircleShape),
                         contentAlignment = Alignment.Center) {
                         Text(subject.displayName().take(1), color = subjectAccent,
-                            fontWeight = FontWeight.Bold)
+                            fontSize = 22.sp, fontWeight = FontWeight.Medium)
                     }
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text("${subject.displayName()} · Lecture ${lecture.lectureNumber}",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.primary)
-                        Text(lecture.displayTopic, style = MaterialTheme.typography.bodyMedium,
+                            fontSize = 15.sp,
+                            color = Color(0xFFE91E63))
+                        Text(lecture.displayTopic, fontSize = 15.sp,
                             maxLines = 2, overflow = TextOverflow.Ellipsis,
                             color = MaterialTheme.colorScheme.onSurface)
                     }
                     if (completed) {
-                        Box(Modifier.size(22.dp).background(accent, CircleShape), contentAlignment = Alignment.Center) {
+                        Box(Modifier.size(24.dp).background(accent, CircleShape), contentAlignment = Alignment.Center) {
                             Icon(Icons.Default.Check, contentDescription = "Completed", tint = Color.White,
                                 modifier = Modifier.size(16.dp))
                         }
@@ -327,5 +320,24 @@ private fun SubjectWatchChip(
                 )
             }
         }
+    }
+}
+
+@Composable
+internal fun DueRevisionPanel(state: BatchUiState, vm: ToppersBatchViewModel) {
+    val overview = state.overview ?: return
+    val subjects = overview.subjects.filter { it.enabled }
+    val today = ToppersBatchViewModel.indiaDay()
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            val revisions = overview.libraryRows("", LibraryFilter.REVISION)
+                .filter { it.revisionDate!! <= today }
+            if (revisions.isNotEmpty()) {
+                Text("Revision due · ${revisions.size}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                revisions.take(3).forEach { lecture ->
+                    LectureCard(lecture, subjects.firstOrNull { it.id == lecture.subjectId }, state, vm)
+                }
+                UiButton(onClick = { vm.searchLibrary(""); vm.filterLibrary(LibraryFilter.REVISION); vm.select(BatchSection.COURSES) },
+                    style = ButtonStyle.Secondary) { Text("Manage all revisions") }
+            }
     }
 }

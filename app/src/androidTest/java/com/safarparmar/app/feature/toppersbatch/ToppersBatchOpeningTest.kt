@@ -36,7 +36,8 @@ class ToppersBatchOpeningTest {
             var opened = false
             while (!opened && android.os.SystemClock.elapsedRealtime() < deadline) {
                 instrumentation.waitForIdleSync()
-                opened = containsText(instrumentation.uiAutomation.rootInActiveWindow, "Overall batch progress")
+                opened = containsText(instrumentation.uiAutomation.rootInActiveWindow, "Today’s Watch List") ||
+                         containsText(instrumentation.uiAutomation.rootInActiveWindow, "Overall batch progress")
                 if (!opened) Thread.sleep(100)
             }
             assertTrue("The planner should render its dashboard", opened)
@@ -46,6 +47,7 @@ class ToppersBatchOpeningTest {
     private fun containsText(node: AccessibilityNodeInfo?, text: String): Boolean {
         if (node == null) return false
         if (node.text?.toString()?.contains(text) == true) return true
+        if (node.contentDescription?.toString()?.contains(text) == true) return true
         return (0 until node.childCount).any { containsText(node.getChild(it), text) }
     }
 

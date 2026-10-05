@@ -39,24 +39,25 @@ private fun BatchWeeklyAgendaContent(state: BatchUiState, vm: ToppersBatchViewMo
     val overview = state.overview ?: return
     val subjects = overview.subjects.filter { it.enabled }
     val subject = subjects.firstOrNull { it.id == state.selectedSubjectId }
-        ?: subjects.firstOrNull { it.key == "mathematics" } ?: subjects.firstOrNull() ?: return
+        ?: subjects.firstOrNull { it.key == "mathematics" } ?: subjects.firstOrNull() ?: run {
+            Text("No subjects to show")
+            return
+        }
     val today = LocalDate.parse(ToppersBatchViewModel.indiaDay())
     val own = overview.lectures.filter { it.subjectId == subject.id }.sortedBy { it.order }
     val weeks = own.groupBy { row ->
         row.scheduledFor?.take(10)?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
             ?.let { it.minusDays((it.dayOfWeek.value - 1).toLong()) }
     }.entries.sortedBy { it.key ?: LocalDate.MAX }
-    if (weeks.isEmpty()) { Text("No lectures yet"); return }
     val key = "agenda-${subject.id}"
     val currentMonday = today.minusDays((today.dayOfWeek.value - 1).toLong())
     val initial = weeks.indexOfFirst { it.key == currentMonday }.coerceAtLeast(0)
-    val selected = (state.lecturePages[key] ?: initial).coerceIn(0, weeks.lastIndex)
-    val week = weeks[selected]
-    val start = week.key
+    val selected = (state.lecturePages[key] ?: initial).coerceIn(0, weeks.lastIndex.coerceAtLeast(0))
+    val week = weeks.getOrNull(selected)
+    val start = week?.key
     val backlogIds = overview.watchList.firstOrNull { it.subjectId == subject.id }?.backlogLectureIds.orEmpty().toSet()
-    val visible = week.value.filter { row ->
-        val matches = state.libraryQuery.isBlank() || "${row.displayTopic} ${row.lectureNumber}".contains(state.libraryQuery.trim(), true)
-        matches && when (state.lectureTab) {
+    val visible = week?.value.orEmpty().filter { row ->
+        when (state.lectureTab) {
             LectureTab.LECTURES -> true
             LectureTab.OLDER -> row.id in backlogIds && row.completedAt == null && !row.isLocked(today.toString())
             LectureTab.REVISION -> row.pendingRevision
@@ -67,9 +68,6 @@ private fun BatchWeeklyAgendaContent(state: BatchUiState, vm: ToppersBatchViewMo
     var detailId by remember { mutableStateOf<String?>(null) }
     val dateFormat = remember { DateTimeFormatter.ofPattern("d MMM", Locale.ENGLISH) }
     Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        BatchTextField(value = state.libraryQuery, onValueChange = vm::searchLibrary, singleLine = true,
-            placeholder = { Text("Search lectures", fontSize = 14.sp) },
-            accessibilityLabel = "Search lectures in this subject")
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             Box(Modifier.weight(1.25f)) {
@@ -138,7 +136,7 @@ private fun BatchWeeklyAgendaContent(state: BatchUiState, vm: ToppersBatchViewMo
         }
         HorizontalSeparator()
         Text("${visible.size} ${when (state.lectureTab) { LectureTab.OLDER -> "pending"; LectureTab.REVISION -> "revisions"; else -> "lectures" }} this week", fontWeight = FontWeight.Bold)
-        if (visible.isEmpty()) Text(if (state.libraryQuery.isNotBlank()) "No matches in this week" else "Nothing here this week")
+        if (visible.isEmpty()) Text("Nothing here this week")
         visible.forEach { row ->
             Row(Modifier.fillMaxWidth().background(if (row.isLocked(today.toString())) MaterialTheme.colorScheme.surfaceVariant else androidx.compose.ui.graphics.Color.Transparent, RoundedCornerShape(10.dp)).alpha(if (row.isLocked(today.toString())) 0.65f else 1f).padding(horizontal = 8.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Column(Modifier.width(52.dp)) {
@@ -193,13 +191,5 @@ private fun BatchWeeklyAgendaContent(state: BatchUiState, vm: ToppersBatchViewMo
         Spacer(Modifier.height(8.dp))
     }
     val detail = own.firstOrNull { it.id == detailId }
-    if (detail != null) AlertDialog(visible = true, onDismissRequest = { detailId = null }, paneTitle = "Lecture details",
-        modifier = Modifier.heightIn(max = (LocalConfiguration.current.screenHeightDp * 0.8f).dp)) {
-        BatchClampedContent {
-        Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(20.dp)) {
-            LectureCard(detail, subject, state, vm, flat = true)
-            Button(onClick = { detailId = null }, style = ButtonStyle.Outlined, modifier = Modifier.fillMaxWidth()) { Text("Close") }
-        }
-        }
-    }
+    if (detail != null) LectureDetailsDialog(detail, subject, state, vm) { detailId = null }
 }

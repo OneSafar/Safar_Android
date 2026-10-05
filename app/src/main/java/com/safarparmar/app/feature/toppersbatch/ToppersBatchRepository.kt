@@ -9,11 +9,11 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import javax.inject.Inject
 
-class ToppersBatchRepository @Inject constructor(private val api: ToppersBatchApi, private val gk: GkLectureStore) {
+class ToppersBatchRepository @Inject constructor(private val api: ToppersBatchApi, private val gk: GkLectureStore? = null) {
     suspend fun status() = safeApiCall { api.status() }
-    suspend fun activate() = safeApiCall { api.activate() }.mapSuccess { gk.attach(it.officialOnly()) }
-    suspend fun overview() = safeApiCall { api.overview() }.mapSuccess { gk.attach(it.officialOnly()) }
-    suspend fun studyPlan(plan: BatchStudyPlan) = safeApiCall { api.studyPlan(jsonBody(mapOf("startDate" to plan.startDate, "targetDate" to plan.targetDate, "weeklyGoal" to plan.weeklyGoal))) }.mapSuccess { gk.attach(it.officialOnly()) }
+    suspend fun activate() = safeApiCall { api.activate() }.mapSuccess { gk?.attach(it.officialOnly()) ?: it.officialOnly() }
+    suspend fun overview() = safeApiCall { api.overview() }.mapSuccess { gk?.attach(it.officialOnly()) ?: it.officialOnly() }
+    suspend fun studyPlan(plan: BatchStudyPlan) = safeApiCall { api.studyPlan(jsonBody(mapOf("startDate" to plan.startDate, "targetDate" to plan.targetDate, "weeklyGoal" to plan.weeklyGoal))) }.mapSuccess { gk?.attach(it.officialOnly()) ?: it.officialOnly() }
     suspend fun today(date: String) = safeApiCall { api.today(date) }.mapSuccess(BatchToday::officialOnly)
     suspend fun calendar(month: String, offsetMinutes: Int) =
         safeApiCall { api.calendar(month, offsetMinutes) }.mapSuccess(BatchCalendar::officialOnly)

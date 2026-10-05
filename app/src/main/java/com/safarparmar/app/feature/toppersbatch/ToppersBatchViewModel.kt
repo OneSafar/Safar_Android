@@ -95,7 +95,6 @@ class ToppersBatchViewModel @Inject constructor(private val repository: ToppersB
                 }
                 when (_state.value.section) {
                     BatchSection.TODAY -> refreshToday()
-                    BatchSection.CALENDAR -> refreshCalendar()
                     else -> Unit
                 }
             }
@@ -108,7 +107,6 @@ class ToppersBatchViewModel @Inject constructor(private val repository: ToppersB
         _state.update { it.copy(section = section, selectedSubjectId = null, todaySubjectId = null, error = null, message = null) }
         when (section) {
             BatchSection.TODAY -> viewModelScope.launch { refreshToday() }
-            BatchSection.CALENDAR -> viewModelScope.launch { refreshCalendar() }
             else -> Unit
         }
     }
@@ -132,16 +130,18 @@ class ToppersBatchViewModel @Inject constructor(private val repository: ToppersB
     fun filterLibrary(filter: LibraryFilter) = _state.update { it.copy(libraryFilter = filter, lecturePages = it.lecturePages - "library-results") }
     fun selectLecturePage(key: String, page: Int) = _state.update { it.copy(lecturePages = it.lecturePages + (key to page.coerceAtLeast(0))) }
     fun selectLectureTab(tab: LectureTab) = _state.update { it.copy(lectureTab = tab) }
+    fun goToCalendarDay(date: String) {
+        val valid = calendarDate(date) ?: return
+        _state.update { it.copy(month = valid.take(7), selectedDay = valid) }
+    }
     fun selectDay(date: String) = _state.update { it.copy(selectedDay = date) }
     fun changeMonth(delta: Long) {
         val month = runCatching { YearMonth.parse(_state.value.month).plusMonths(delta) }.getOrNull() ?: return
         _state.update { it.copy(month = month.toString(), selectedDay = month.atDay(1).toString()) }
-        viewModelScope.launch { refreshCalendar() }
     }
     fun currentMonth() {
         val today = indiaDay()
         _state.update { it.copy(month = today.take(7), selectedDay = today) }
-        viewModelScope.launch { refreshCalendar() }
     }
     fun clearNotice() = _state.update { it.copy(error = null, message = null, completionFeedback = null) }
 
@@ -204,7 +204,6 @@ class ToppersBatchViewModel @Inject constructor(private val repository: ToppersB
             // The class and calendar lists are separate API responses; update them only after save.
             if (result is Resource.Success) {
                 if (_state.value.section == BatchSection.TODAY) refreshToday()
-                if (_state.value.section == BatchSection.CALENDAR) refreshCalendar()
             }
             if (done) {
                 delay(1800)
@@ -237,6 +236,8 @@ class ToppersBatchViewModel @Inject constructor(private val repository: ToppersB
             "revision" -> "Study dates saved."
             "revision/complete" -> "Study again marked done."
             "backlog" -> if (remove) "Removed from backlog." else "Added to backlog."
+            "study-date" -> if (remove) "Personal study date cleared." else "Personal study date saved."
+            "revision-tag" -> if (remove) "Revision tag removed." else "Revision tag added."
             "today" -> if (remove) "Class date cleared." else "Added to today."
             else -> "Saved."
         }

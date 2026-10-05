@@ -141,6 +141,7 @@ private val navigation = listOf(
     BatchNavItem(BatchSection.TODAY, Icons.Default.Today),
     BatchNavItem(BatchSection.COURSES, Icons.AutoMirrored.Filled.MenuBook),
     BatchNavItem(BatchSection.PROGRESS, Icons.AutoMirrored.Filled.ShowChart),
+    BatchNavItem(BatchSection.CALENDAR, Icons.Default.CalendarMonth),
 )
 
 @Composable
@@ -198,21 +199,7 @@ private fun ToppersBatchScreenContent(
         ) {
             val wide = maxWidth >= 700.dp
             val baseColors = MaterialTheme.colorScheme
-            val batchColors = baseColors.copy(
-                background = if (isDarkTheme) Color(0xFF19151A) else Color(0xFFFAF7F2),
-                surface = if (isDarkTheme) Color(0xFF251E25) else Color(0xFFFFFDFC),
-                surfaceVariant = if (isDarkTheme) Color(0xFF352C35) else Color(0xFFF2ECEF),
-                outlineVariant = if (isDarkTheme) Color(0xFF514450) else Color(0xFFE8DCE2),
-                primary = Color(0xFFBE185D),
-                onPrimary = Color.White,
-                primaryContainer = Color(0xFFFCE7F3),
-                onPrimaryContainer = Color(0xFF831843),
-                secondary = Color(0xFF9D174D),
-                onSecondary = Color.White,
-                secondaryContainer = Color(0xFFFCE7F3),
-                onSecondaryContainer = Color(0xFF831843),
-                surfaceContainerHigh = if (isDarkTheme) Color(0xFF352630) else Color(0xFFFFF8FB),
-            )
+            val batchColors = baseColors.batchTrackerColors(isDarkTheme)
             MaterialTheme(colorScheme = batchColors, shapes = MaterialTheme.shapes.copy(
                 small = RoundedCornerShape(12.dp), medium = RoundedCornerShape(18.dp),
                 large = RoundedCornerShape(24.dp))) {
@@ -266,7 +253,7 @@ private fun ToppersBatchScreenContent(
     }
 }
 
-/** The three tracker destinations use the shared Composables UI navigation bar. */
+/** The four tracker destinations use the shared Composables UI navigation bar. */
 @Composable private fun BatchBottomNav(selected: BatchSection, choose: (BatchSection) -> Unit) {
     com.composables.ui.components.NavigationBar(modifier = Modifier.fillMaxWidth()) {
         navigation.forEach { item ->
@@ -323,7 +310,7 @@ private fun ToppersBatchScreenContent(
             }
             BatchSection.COURSES -> item(key = "weekly-agenda") { BatchWeeklyAgenda(state, vm) }
             BatchSection.PROGRESS -> item { ProgressContent(state, vm) }
-            BatchSection.CALENDAR -> item { CalendarContent(state, vm) }
+            BatchSection.CALENDAR -> item { BatchStudentCalendar(state, vm) }
         }
     }
 }
@@ -546,6 +533,7 @@ private fun LazyListScope.subjectItems(state: BatchUiState, subject: BatchSubjec
     else "${(fraction * 100).toInt()}%"
     val pink = Color(0xFF9D174D)
     Column(Modifier.fullContentWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        DueRevisionPanel(state, vm)
         Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
             shape = RoundedCornerShape(24.dp), modifier = Modifier.fillMaxWidth()) {

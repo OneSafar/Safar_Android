@@ -27,13 +27,13 @@ data class BatchLecture(
     val lectureNumber: Int = 0, val order: Int = 0, val originalTopic: String = "", val displayTopic: String = "",
     val section: String? = null, val sourceMonth: String = "", val sourceWeek: String = "",
     val completedAt: String? = null, val scheduledFor: String? = null, val classTime: String? = null,
-    val liveYoutubeUrl: String? = null, val recordedUrl: String? = null,
+    val liveYoutubeUrl: String? = null, val recordedUrl: String? = null, val classStartsAt: String? = null,
     val releaseState: String? = null, val isAvailable: Boolean? = null,
     val backlogAddedAt: String? = null, val backlogResolvedAt: String? = null,
     val revisionDate: String? = null, val revisionCompletedAt: String? = null,
     val revisionMode: String? = null, val revisionSessions: List<ReviewSession>? = null,
     val legacyRevisionMode: String? = null, val legacyRevisionSessions: List<ReviewSession>? = null,
-    val color: String? = null,
+    val studyPlannedFor: String? = null, val revisionTagged: Boolean = false, val color: String? = null, val liveWindow: BatchLiveWindow? = null,
 ) {
     fun isLocked(today: String): Boolean {
         if (completedAt != null) return false
@@ -66,7 +66,7 @@ data class BatchProgress(
     val bySubject: List<SubjectProgress> = emptyList(),
 )
 @Keep
-data class BatchCourse(val id: String = "", val name: String = "", val officialStartDate: String? = null)
+data class BatchCourse(val id: String = "", val name: String = "", val officialStartDate: String? = null, val academyCourseUrl: String? = null)
 @Keep
 data class BatchStudyPlan(val startDate: String = "", val targetDate: String? = null, val weeklyGoal: Int = 7)
 @Keep
@@ -137,4 +137,15 @@ interface ToppersBatchApi {
     @DELETE("plans/toppers-batch/v2/subjects/{id}") suspend fun removeSubject(@Path("id") id: String): Response<RemoveResult>
     @POST("plans/toppers-batch/v2/subjects/{id}/restore") suspend fun restoreSubject(@Path("id") id: String): Response<BatchSubject>
 
+}
+
+@Keep
+data class BatchLiveWindow(val startsAt: String? = null, val endsAt: String? = null, val youtubeUrl: String? = null, val enabled: Boolean = true) {
+    fun status(now: java.time.Instant): String {
+        if (!enabled) return "academy-only"
+        val start = startsAt?.let { runCatching { java.time.Instant.parse(it) }.getOrNull() } ?: return "unavailable"
+        val end = endsAt?.let { runCatching { java.time.Instant.parse(it) }.getOrNull() } ?: return "unavailable"
+        if (end <= start) return "unavailable"
+        return when { now < start -> "upcoming"; now >= end -> "ended"; else -> "live" }
+    }
 }
