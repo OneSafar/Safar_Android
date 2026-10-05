@@ -14,6 +14,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
 
 enum class BatchSection(val title: String) {
@@ -49,26 +51,32 @@ class ToppersBatchViewModel @Inject constructor(private val repository: ToppersB
     private val _state = MutableStateFlow(BatchUiState())
     val state = _state.asStateFlow()
 
+    private val loads = Mutex()
+
     init { open() }
 
     fun open() = viewModelScope.launch {
-        _state.update { it.copy(gate = BatchGate.LOADING, error = null) }
-        when (val result = repository.status()) {
-            is Resource.Success -> {
-                if (!result.data.available) { _state.update { it.copy(gate = BatchGate.UNAVAILABLE) }; return@launch }
-                val overview = if (result.data.enabled) repository.overview() else repository.activate()
-                when (overview) {
-                    is Resource.Success -> {
-                        _state.update { it.copy(gate = BatchGate.READY, overview = overview.data) }
-                        refreshToday()
-                    }
-                    is Resource.Error -> applyError(overview)
-                    else -> Unit
+        if (!loads.tryLock()) return@launch
+        try {
+            val cached = repository.cachedOverview()
+            _state.update { it.copy(gate = if (cached == null) BatchGate.LOADING else BatchGate.READY,
+                overview = cached, today = cached?.todayEvents(indiaDay()), error = null) }
+            val before = _state.value.overview
+            when (val result = repository.open()) {
+                is Resource.Success -> if (_state.value.busyIds.isEmpty() && _state.value.overview === before) {
+                    _state.update { it.copy(gate = BatchGate.READY, overview = result.data, today = result.data.todayEvents(indiaDay()), error = null) }
                 }
+                is Resource.Error -> {
+                    if (result.errorCode in setOf("PREMIUM_REQUIRED", "PLANNER_V2_NOT_AVAILABLE", "PLANNER_V2_NOT_ENABLED") || result.code == 401) {
+                        repository.clearCache()
+                        _state.update { it.copy(overview = null, today = null) }
+                        applyError(result)
+                    } else if (cached != null) _state.update { it.copy(error = result.message) }
+                    else applyError(result)
+                }
+                else -> Unit
             }
-            is Resource.Error -> applyError(result)
-            else -> Unit
-        }
+        } finally { loads.unlock() }
     }
 
     private fun applyError(error: Resource.Error<*>) {
@@ -82,23 +90,27 @@ class ToppersBatchViewModel @Inject constructor(private val repository: ToppersB
 
     fun refresh() = viewModelScope.launch { reload() }
     fun refreshReleaseSchedule() = viewModelScope.launch {
-        if (_state.value.gate == BatchGate.READY && _state.value.busyIds.isEmpty()) reload()
+        if (_state.value.gate == BatchGate.READY && _state.value.busyIds.isEmpty() && !loads.isLocked) reload()
     }
 
-    private suspend fun reload() {
+    private suspend fun reload() = loads.withLock {
+        val before = _state.value.overview
         when (val result = repository.overview()) {
-            is Resource.Success -> {
+            is Resource.Success -> if (_state.value.busyIds.isEmpty() && _state.value.overview === before) {
                 _state.update { old ->
                     val subjectExists = result.data.subjects.any { it.id == old.selectedSubjectId }
-                    old.copy(overview = result.data, selectedSubjectId = old.selectedSubjectId.takeIf { subjectExists },
+                    old.copy(overview = result.data, today = result.data.todayEvents(indiaDay()),
+                        selectedSubjectId = old.selectedSubjectId.takeIf { subjectExists },
                         todaySubjectId = old.todaySubjectId?.takeIf { id -> result.data.subjects.any { it.id == id } }, error = null)
                 }
-                when (_state.value.section) {
-                    BatchSection.TODAY -> refreshToday()
-                    else -> Unit
-                }
             }
-            is Resource.Error -> _state.update { it.copy(error = result.message) }
+            is Resource.Error -> {
+                if (result.code == 401 || result.errorCode in setOf("PREMIUM_REQUIRED", "PLANNER_V2_NOT_AVAILABLE", "PLANNER_V2_NOT_ENABLED")) {
+                    repository.clearCache()
+                    _state.update { it.copy(overview = null, today = null) }
+                    applyError(result)
+                } else _state.update { it.copy(error = result.message) }
+            }
             else -> Unit
         }
     }
@@ -145,12 +157,8 @@ class ToppersBatchViewModel @Inject constructor(private val repository: ToppersB
     }
     fun clearNotice() = _state.update { it.copy(error = null, message = null, completionFeedback = null) }
 
-    private suspend fun refreshToday() {
-        when (val result = repository.today(indiaDay())) {
-            is Resource.Success -> _state.update { it.copy(today = result.data) }
-            is Resource.Error -> _state.update { it.copy(error = result.message) }
-            else -> Unit
-        }
+    private fun refreshToday() {
+        _state.update { it.copy(today = it.overview?.todayEvents(indiaDay())) }
     }
     private suspend fun refreshCalendar() {
         val month = _state.value.month
@@ -220,6 +228,7 @@ class ToppersBatchViewModel @Inject constructor(private val repository: ToppersB
                 is Resource.Success -> {
                     onSuccess()
                     _state.update { it.copy(message = successText) }
+                    _state.update { it.copy(busyIds = it.busyIds - id) }
                     reload()
                 }
                 is Resource.Error -> _state.update { it.copy(error = result.message) }

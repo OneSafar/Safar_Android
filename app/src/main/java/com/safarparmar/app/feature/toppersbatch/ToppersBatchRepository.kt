@@ -9,23 +9,43 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import javax.inject.Inject
 
-class ToppersBatchRepository @Inject constructor(private val api: ToppersBatchApi, private val gk: GkLectureStore? = null) {
+class ToppersBatchRepository @Inject constructor(private val api: ToppersBatchApi, private val gk: GkLectureStore? = null, private val cache: BatchOverviewCache? = null) {
     suspend fun status() = safeApiCall { api.status() }
-    suspend fun activate() = safeApiCall { api.activate() }.mapSuccess { gk?.attach(it.officialOnly()) ?: it.officialOnly() }
-    suspend fun overview() = safeApiCall { api.overview() }.mapSuccess { gk?.attach(it.officialOnly()) ?: it.officialOnly() }
-    suspend fun studyPlan(plan: BatchStudyPlan) = safeApiCall { api.studyPlan(jsonBody(mapOf("startDate" to plan.startDate, "targetDate" to plan.targetDate, "weeklyGoal" to plan.weeklyGoal))) }.mapSuccess { gk?.attach(it.officialOnly()) ?: it.officialOnly() }
+    suspend fun cachedOverview() = cache?.load()
+    suspend fun clearCache() { cache?.clear() }
+    suspend fun open(): Resource<BatchOverview> {
+        val result = overview()
+        return if (result is Resource.Error && result.errorCode == "PLANNER_V2_NOT_ENABLED") activate() else result
+    }
+    private suspend fun fetchOverview(request: suspend () -> retrofit2.Response<BatchOverview>): Resource<BatchOverview> {
+        val account = cache?.account()
+        val version = cache?.version() ?: 0L
+        return safeApiCall(request).mapSuccess {
+            check(cache == null || cache.account() == account) { "Your account changed. Please reopen the tracker." }
+            val overview = gk?.attach(it.officialOnly()) ?: it.officialOnly()
+            cache?.save(account, overview, version)
+            overview
+        }
+    }
+    private suspend fun <T> mutation(request: suspend () -> Resource<T>): Resource<T> {
+        cache?.clear() // Never replay an older snapshot after a student's edit.
+        return request()
+    }
+    suspend fun activate() = fetchOverview { api.activate() }
+    suspend fun overview() = fetchOverview { api.overview() }
+    suspend fun studyPlan(plan: BatchStudyPlan) = mutation { fetchOverview { api.studyPlan(jsonBody(mapOf("startDate" to plan.startDate, "targetDate" to plan.targetDate, "weeklyGoal" to plan.weeklyGoal))) } }
     suspend fun today(date: String) = safeApiCall { api.today(date) }.mapSuccess(BatchToday::officialOnly)
     suspend fun calendar(month: String, offsetMinutes: Int) =
         safeApiCall { api.calendar(month, offsetMinutes) }.mapSuccess(BatchCalendar::officialOnly)
-    suspend fun action(id: String, action: String, body: Map<String, Any> = emptyMap()) = safeApiCall { api.lectureAction(id, action, body) }
-    suspend fun removeAction(id: String, action: String) = safeApiCall { api.removeLectureAction(id, action) }
-    suspend fun completeRevision(id: String, sessionIndex: Int) = safeApiCall { api.completeRevision(id, mapOf("sessionIndex" to sessionIndex)) }
-    suspend fun editLecture(id: String, body: Map<String, Any?>) = safeApiCall { api.editLecture(id, jsonBody(body)) }
-    suspend fun removeLecture(id: String) = safeApiCall { api.removeLecture(id) }
-    suspend fun restoreLecture(id: String) = safeApiCall { api.restoreLecture(id) }
-    suspend fun editSubject(id: String, body: Map<String, Any?>) = safeApiCall { api.editSubject(id, jsonBody(body)) }
-    suspend fun removeSubject(id: String) = safeApiCall { api.removeSubject(id) }
-    suspend fun restoreSubject(id: String) = safeApiCall { api.restoreSubject(id) }
+    suspend fun action(id: String, action: String, body: Map<String, Any> = emptyMap()) = mutation { safeApiCall { api.lectureAction(id, action, body) } }
+    suspend fun removeAction(id: String, action: String) = mutation { safeApiCall { api.removeLectureAction(id, action) } }
+    suspend fun completeRevision(id: String, sessionIndex: Int) = mutation { safeApiCall { api.completeRevision(id, mapOf("sessionIndex" to sessionIndex)) } }
+    suspend fun editLecture(id: String, body: Map<String, Any?>) = mutation { safeApiCall { api.editLecture(id, jsonBody(body)) } }
+    suspend fun removeLecture(id: String) = mutation { safeApiCall { api.removeLecture(id) } }
+    suspend fun restoreLecture(id: String) = mutation { safeApiCall { api.restoreLecture(id) } }
+    suspend fun editSubject(id: String, body: Map<String, Any?>) = mutation { safeApiCall { api.editSubject(id, jsonBody(body)) } }
+    suspend fun removeSubject(id: String) = mutation { safeApiCall { api.removeSubject(id) } }
+    suspend fun restoreSubject(id: String) = mutation { safeApiCall { api.restoreSubject(id) } }
 }
 
 private val officialKeys = setOf("english", "mathematics", "reasoning", "gk")
@@ -111,4 +131,11 @@ fun BatchOverview.withLecture(updated: BatchLecture, today: String): BatchOvervi
         behind = visible.count { it.completedAt == null && !it.isLocked(today) && it.scheduledFor != null && it.scheduledFor < today },
         bySubject = rows,
     ))
+}
+
+/** Official events are already in the overview; a second full server load is unnecessary. */
+internal fun BatchOverview.todayEvents(date: String): BatchToday {
+    val active = subjects.filter { it.enabled }.mapTo(mutableSetOf()) { it.id }
+    return BatchToday(date, lectures.filter { it.subjectId in active && it.scheduledFor == date },
+        lectures.firstOrNull { it.subjectId in active && it.completedAt == null && !it.isLocked(date) && it.scheduledFor?.let { day -> day < date } == true })
 }
