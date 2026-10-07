@@ -26,6 +26,7 @@ class PremiumRepository @Inject constructor(
         dataStore.premiumFeatureStudyPlannerInsights,
         dataStore.premiumFeatureNishthaAnalytics,
         dataStore.premiumFeatureFocusAnalytics,
+        dataStore.premiumFeatureLiveSessions,
     ) { values ->
         val isPremium = values[0] as Boolean
         val planType = values[1] as String?
@@ -34,6 +35,7 @@ class PremiumRepository @Inject constructor(
         val studyPlannerInsights = values[4] as Boolean
         val nishthaAnalytics = values[5] as Boolean
         val focusAnalytics = values[6] as Boolean
+        val liveSessions = values[7] as Boolean
         PremiumStatus(
             isPremium = isPremium,
             planType = planType,
@@ -43,6 +45,7 @@ class PremiumRepository @Inject constructor(
                 studyPlannerInsights = studyPlannerInsights,
                 nishthaAnalytics = nishthaAnalytics,
                 focusAnalytics = focusAnalytics,
+                liveSessions = liveSessions,
             ),
         ).withLocalExpiryGuard()
     }
@@ -62,6 +65,7 @@ class PremiumRepository @Inject constructor(
             studyPlannerInsights = status.features.studyPlannerInsights,
             nishthaAnalytics = status.features.nishthaAnalytics,
             focusAnalytics = status.features.focusAnalytics,
+            liveSessions = status.features.liveSessions,
         )
         status.withLocalExpiryGuard()
     }
@@ -81,6 +85,7 @@ class PremiumRepository @Inject constructor(
             studyPlannerInsights = status.features.studyPlannerInsights,
             nishthaAnalytics = status.features.nishthaAnalytics,
             focusAnalytics = status.features.focusAnalytics,
+            liveSessions = status.features.liveSessions,
         )
         status.withLocalExpiryGuard()
     }
@@ -95,6 +100,7 @@ class PremiumRepository @Inject constructor(
             studyPlannerInsights = status.features.studyPlannerInsights,
             nishthaAnalytics = status.features.nishthaAnalytics,
             focusAnalytics = status.features.focusAnalytics,
+            liveSessions = status.features.liveSessions,
         )
         return status.withLocalExpiryGuard()
     }
@@ -131,6 +137,7 @@ private fun PremiumFeaturesResponse?.toDomain(): PremiumFeatureAccess {
         studyPlannerInsights = studyPlannerInsights,
         nishthaAnalytics = nishthaAnalytics,
         focusAnalytics = focusAnalytics,
+        liveSessions = liveSessions,
     )
 }
 

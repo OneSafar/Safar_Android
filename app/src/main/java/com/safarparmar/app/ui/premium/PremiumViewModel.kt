@@ -48,7 +48,9 @@ class PremiumViewModel @Inject constructor(
         if (force) dhyanRefreshJob?.cancel()
         else if (dhyanRefreshJob?.isActive == true) return
         dhyanRefreshJob = viewModelScope.launch {
-            if (_dhyanLiveAccess.value != "ALLOWED") _dhyanLiveAccess.value = "LOADING"
+            if (_dhyanLiveAccess.value != "ALLOWED" && !_premiumStatus.value.features.liveSessions) {
+                _dhyanLiveAccess.value = "LOADING"
+            }
             val profile = authRepository.getMe()
             val user = (profile as? com.safarparmar.app.util.Resource.Success)?.data
             val privileged = user?.isAdmin == true || user?.email?.trim()?.lowercase() in
@@ -59,16 +61,16 @@ class PremiumViewModel @Inject constructor(
                     kotlinx.coroutines.currentCoroutineContext().ensureActive()
                     _dhyanPricing.value = pricing
                     _dhyanLiveAccess.value = when {
-                        privileged || pricing.alreadyHasLive || pricing.accessState == "DHYAN_INCLUDED" -> "ALLOWED"
-                        user == null -> "ERROR"
+                        privileged || pricing.alreadyHasLive || pricing.accessState == "DHYAN_INCLUDED" || _premiumStatus.value.features.liveSessions -> "ALLOWED"
                         pricing.accessState in setOf("STANDARD", "LEGACY_PREMIUM_DISCOUNT", "DHYAN_SCHEDULED") -> "DENIED"
+                        user == null -> "ERROR"
                         else -> "ERROR"
                     }
                 },
                 onFailure = {
                     kotlinx.coroutines.currentCoroutineContext().ensureActive()
                     _dhyanPricing.value = com.safarparmar.app.data.remote.dto.DhyanPricingDto(accessState = "ERROR")
-                    _dhyanLiveAccess.value = if (privileged) "ALLOWED" else "ERROR"
+                    _dhyanLiveAccess.value = if (privileged || _premiumStatus.value.features.liveSessions) "ALLOWED" else "ERROR"
                 },
             )
         }
@@ -80,6 +82,9 @@ class PremiumViewModel @Inject constructor(
         viewModelScope.launch {
             premiumRepository.cachedStatus.collect { status ->
                 _premiumStatus.value = status
+                if (status.features.liveSessions) {
+                    _dhyanLiveAccess.value = "ALLOWED"
+                }
             }
         }
         refreshPremiumStatus(showLoading = false)

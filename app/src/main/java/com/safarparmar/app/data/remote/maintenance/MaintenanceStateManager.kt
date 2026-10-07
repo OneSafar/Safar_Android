@@ -81,7 +81,7 @@ class MaintenanceStateManager @Inject constructor(
         if (pollJob?.isActive == true) return
         pollJob = scope.launch {
             while (isActive && _state.value != null) {
-                delay(15_000L) // poll every 15 seconds
+                delay(60_000L + kotlin.random.Random.nextLong(30_000L)) // spread recovery checks across clients
                 if (!isActive) break
                 val inMaintenance = fetchStatusFromServer()
                 if (!inMaintenance) {
@@ -112,10 +112,9 @@ class MaintenanceStateManager @Inject constructor(
                 .header("Accept", "application/json")
                 .build()
 
-            val response = rawClient.newCall(request).execute()
-            val code = response.code
-            val body = response.body?.string().orEmpty()
-            response.close()
+            val (code, body) = rawClient.newCall(request).execute().use { response ->
+                response.code to response.body?.string().orEmpty()
+            }
 
             if (code == 200) {
                 val json = JSONObject(body)

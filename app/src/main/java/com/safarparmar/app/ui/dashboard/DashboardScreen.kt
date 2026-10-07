@@ -1039,7 +1039,7 @@ private fun StreakRow(label: String, value: String, isDark: Boolean) {
 // ── Monthly Report Section ──────────────────────────────────────────────────
 
 @Composable
-private fun MonthlyCard(report: MonthlyReport?, isDark: Boolean, onNavigate: (String) -> Unit) {
+private fun MonthlyCard(report: DashboardMonthlySummary?, isDark: Boolean, onNavigate: (String) -> Unit) {
     if (report == null) return
     MacOSControlCard(isDarkTheme = isDark) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {

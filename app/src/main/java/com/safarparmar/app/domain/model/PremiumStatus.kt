@@ -11,7 +11,11 @@ data class PremiumStatus(
             features.mehfilDm ||
             features.studyPlannerInsights ||
             features.nishthaAnalytics ||
-            features.focusAnalytics
+            features.focusAnalytics ||
+            features.liveSessions
+
+    val canUseLiveSessions: Boolean
+        get() = features.liveSessions
 
     val canUseStudyPlannerInsights: Boolean
         get() = isPremium || features.studyPlannerInsights
@@ -28,4 +32,5 @@ data class PremiumFeatureAccess(
     val studyPlannerInsights: Boolean = false,
     val nishthaAnalytics: Boolean = false,
     val focusAnalytics: Boolean = false,
+    val liveSessions: Boolean = false,
 )

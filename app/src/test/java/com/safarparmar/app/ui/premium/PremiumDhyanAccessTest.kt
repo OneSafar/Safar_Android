@@ -85,4 +85,27 @@ class PremiumDhyanAccessTest {
         advanceUntilIdle()
         assertEquals("DENIED", vm.dhyanLiveAccess.value)
     }
+
+    @Test fun liveSessionsFeatureUnlocksAccessEvenWhenPricingCheckFails() = runTest {
+        val bundleStatus = PremiumStatus(
+            isPremium = true,
+            planType = "study-planner-pro-3month",
+            features = com.safarparmar.app.domain.model.PremiumFeatureAccess(liveSessions = true),
+        )
+        every { premium.cachedStatus } returns flowOf(bundleStatus)
+        coEvery { premium.refreshStatus() } returns Result.success(bundleStatus)
+        coEvery { payments.getDhyanPricing() } returns Result.failure(Exception("offline"))
+        val vm = create()
+        advanceUntilIdle()
+        assertEquals("ALLOWED", vm.dhyanLiveAccess.value)
+    }
+
+    @Test fun standaloneLiveFeatureMarksHasAnyPaidAccessTrue() {
+        val standalone = PremiumStatus(
+            isPremium = false,
+            features = com.safarparmar.app.domain.model.PremiumFeatureAccess(liveSessions = true),
+        )
+        org.junit.Assert.assertTrue(standalone.hasAnyPaidAccess)
+        org.junit.Assert.assertTrue(standalone.canUseLiveSessions)
+    }
 }

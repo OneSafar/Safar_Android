@@ -18,7 +18,7 @@ data class DashboardUiState(
     val todayMood: Mood? = null,
     val todayGoals: List<Goal> = emptyList(),
     val completedGoals: List<Goal> = emptyList(),
-    val monthlyReport: MonthlyReport? = null,
+    val monthlyReport: DashboardMonthlySummary? = null,
     val weeklyMoods: List<Mood> = emptyList(),
     val earnedAchievements: List<Achievement> = emptyList(),
     val allAchievements: List<Achievement> = emptyList(),

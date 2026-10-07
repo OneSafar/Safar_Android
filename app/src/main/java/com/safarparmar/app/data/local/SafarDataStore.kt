@@ -136,6 +136,7 @@ class SafarDataStore @Inject constructor(
         val PREMIUM_FEATURE_STUDY_PLANNER_INSIGHTS = booleanPreferencesKey("premium_feature_study_planner_insights")
         val PREMIUM_FEATURE_NISHTHA_ANALYTICS = booleanPreferencesKey("premium_feature_nishtha_analytics")
         val PREMIUM_FEATURE_FOCUS_ANALYTICS = booleanPreferencesKey("premium_feature_focus_analytics")
+        val PREMIUM_FEATURE_LIVE_SESSIONS = booleanPreferencesKey("premium_feature_live_sessions")
 
         // Referral & Attribution
         val REFERRAL_UTM_SOURCE   = stringPreferencesKey("referral_utm_source")
@@ -544,6 +545,10 @@ class SafarDataStore @Inject constructor(
         .catch { emit(emptyPreferences()) }
         .map { it[Keys.PREMIUM_FEATURE_FOCUS_ANALYTICS] ?: false }
 
+    val premiumFeatureLiveSessions: Flow<Boolean> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[Keys.PREMIUM_FEATURE_LIVE_SESSIONS] ?: false }
+
     val overlayPermissionAsked: Flow<Boolean> = context.dataStore.data
         .catch { emit(emptyPreferences()) }
         .map { it[Keys.OVERLAY_PERMISSION_ASKED] ?: false }
@@ -669,6 +674,7 @@ class SafarDataStore @Inject constructor(
         studyPlannerInsights: Boolean = false,
         nishthaAnalytics: Boolean = false,
         focusAnalytics: Boolean = false,
+        liveSessions: Boolean = false,
     ) = context.dataStore.edit { prefs ->
         prefs[Keys.IS_PREMIUM] = isPremium
         if (planType.isNullOrBlank()) prefs.remove(Keys.PREMIUM_PLAN_TYPE) else prefs[Keys.PREMIUM_PLAN_TYPE] = planType
@@ -677,6 +683,7 @@ class SafarDataStore @Inject constructor(
         prefs[Keys.PREMIUM_FEATURE_STUDY_PLANNER_INSIGHTS] = studyPlannerInsights
         prefs[Keys.PREMIUM_FEATURE_NISHTHA_ANALYTICS] = nishthaAnalytics
         prefs[Keys.PREMIUM_FEATURE_FOCUS_ANALYTICS] = focusAnalytics
+        prefs[Keys.PREMIUM_FEATURE_LIVE_SESSIONS] = liveSessions
     }
 
     suspend fun addNotifiedAchievement(achievementId: String) = context.dataStore.edit { prefs ->
@@ -910,6 +917,7 @@ class SafarDataStore @Inject constructor(
             it.remove(Keys.PREMIUM_FEATURE_STUDY_PLANNER_INSIGHTS)
             it.remove(Keys.PREMIUM_FEATURE_NISHTHA_ANALYTICS)
             it.remove(Keys.PREMIUM_FEATURE_FOCUS_ANALYTICS)
+            it.remove(Keys.PREMIUM_FEATURE_LIVE_SESSIONS)
         }
     }
 
