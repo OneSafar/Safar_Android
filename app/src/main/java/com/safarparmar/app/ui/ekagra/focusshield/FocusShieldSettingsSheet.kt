@@ -183,17 +183,8 @@ fun FocusShieldSettingsContent(
         onReturned = { awaitingPermission = null },
     )
 
-    val requiredPermissionsGranted = hasUsageStats && hasOverlay && hasBatterySaver
-    val allPermissionsGranted = hasUsageStats && hasOverlay && hasNotifications && hasNotificationSuppressionAccess && hasBatterySaver
+    val requiredPermissionsGranted = KavachActivationReadiness.hasRequiredPermissions(hasUsageStats, hasOverlay)
     val readyCount = listOf(hasUsageStats, hasOverlay, hasBatterySaver, hasNotifications, hasNotificationSuppressionAccess).count { it }
-
-    val primaryCtaLabel = when {
-        !hasUsageStats -> stringResource(R.string.kavach_allow_app_check)
-        !hasOverlay -> stringResource(R.string.kavach_allow_display_over_apps)
-        !hasBatterySaver -> stringResource(R.string.kavach_disable_battery_restriction)
-        state.isEnabled -> stringResource(R.string.kavach_turn_off)
-        else -> stringResource(R.string.kavach_turn_on)
-    }
 
     LaunchedEffect(grantedBannerText) {
         if (grantedBannerText != null) {
@@ -217,16 +208,14 @@ fun FocusShieldSettingsContent(
                 PermissionTarget.NOTIFICATION_ACCESS -> FocusShieldPermissionHelper.openNotificationListenerSettings(context)
             }
         } else {
-            // Already granted, advance to next in first 3 permissions
+            // Already granted, advance through the required permissions
             when (target) {
                 PermissionTarget.USAGE_STATS -> {
                     if (!hasOverlay) nextPermissionToAutoLaunch = PermissionTarget.OVERLAY
-                    else if (!hasBatterySaver) nextPermissionToAutoLaunch = PermissionTarget.BATTERY_SAVER
                     else finishPermissionFlowAndCheckApps()
                 }
                 PermissionTarget.OVERLAY -> {
-                    if (!hasBatterySaver) nextPermissionToAutoLaunch = PermissionTarget.BATTERY_SAVER
-                    else finishPermissionFlowAndCheckApps()
+                    finishPermissionFlowAndCheckApps()
                 }
                 PermissionTarget.BATTERY_SAVER -> {
                     finishPermissionFlowAndCheckApps()
@@ -241,9 +230,10 @@ fun FocusShieldSettingsContent(
 
     LaunchedEffect(state.blockedPackages) {
         if ((pendingEnableAfterAppSelection || pendingEnableFlow) && state.blockedPackages.isNotEmpty()) {
-            val requiredGranted = FocusShieldPermissionHelper.hasUsageStatsPermission(context) &&
-                FocusShieldPermissionHelper.hasOverlayPermission(context) &&
-                FocusShieldPermissionHelper.isIgnoringBatteryOptimizations(context)
+            val requiredGranted = KavachActivationReadiness.hasRequiredPermissions(
+                FocusShieldPermissionHelper.hasUsageStatsPermission(context),
+                FocusShieldPermissionHelper.hasOverlayPermission(context),
+            )
             if (requiredGranted) {
                 pendingEnableAfterAppSelection = false
                 pendingEnableFlow = false
@@ -286,7 +276,7 @@ fun FocusShieldSettingsContent(
                 hasBatterySaver = newBatterySaver
                 onRefreshPermissions()
 
-                val requiredNow = newUsage && newOverlay && newBatterySaver
+                val requiredNow = KavachActivationReadiness.hasRequiredPermissions(newUsage, newOverlay)
                 if (requiredNow && (pendingEnableAfterAppSelection || pendingEnableFlow)) {
                     if (state.blockedPackages.isNotEmpty()) {
                         pendingEnableAfterAppSelection = false
@@ -311,11 +301,6 @@ fun FocusShieldSettingsContent(
                         showPermissionCardSheet = true
                         return@LifecycleEventObserver
                     }
-                    if (prevTarget == PermissionTarget.BATTERY_SAVER && !newBatterySaver) {
-                        isAutoPermissionFlowActive = false
-                        showPermissionCardSheet = true
-                        return@LifecycleEventObserver
-                    }
 
                     // Progress automatically through the sequence once 1st permission is given
                     when {
@@ -326,11 +311,8 @@ fun FocusShieldSettingsContent(
                         !newOverlay -> {
                             nextPermissionToAutoLaunch = PermissionTarget.OVERLAY
                         }
-                        !newBatterySaver -> {
-                            nextPermissionToAutoLaunch = PermissionTarget.BATTERY_SAVER
-                        }
                         else -> {
-                            // First three mandatory permissions granted! Do not auto-redirect for last two.
+                            // Required permissions granted; optional access stays user initiated.
                             finishPermissionFlowAndCheckApps()
                         }
                     }
@@ -374,10 +356,10 @@ fun FocusShieldSettingsContent(
                 icon = Icons.Default.Shield,
                 onToggle = { enabled ->
                     if (enabled) {
-                        // 1. Check mandatory permissions first (Usage, Overlay, BatterySaver)
-                        val requiredGranted = hasUsageStats && hasOverlay && hasBatterySaver
+                        // 1. Only Usage Access and overlay permission are required to activate.
+                        val requiredGranted = KavachActivationReadiness.hasRequiredPermissions(hasUsageStats, hasOverlay)
                         if (!requiredGranted) {
-                            // First 3 permissions not given: do not turn on Kavach, do not ask to choose apps yet!
+                            // Complete required permissions before choosing apps.
                             pendingEnableFlow = true
                             isAutoPermissionFlowActive = false
                             hasPromptedNotification = false
@@ -693,7 +675,6 @@ fun FocusShieldSettingsContent(
                     .padding(top = 4.dp, bottom = 28.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                val hasBatterySaver = FocusShieldPermissionHelper.isIgnoringBatteryOptimizations(context)
                 KavachPermissionDisclosureCard(
                     hasUsageStats = hasUsageStats,
                     hasOverlay = hasOverlay,
@@ -726,7 +707,7 @@ fun FocusShieldSettingsContent(
 
                 Spacer(Modifier.height(4.dp))
 
-                val allRequiredGranted = hasUsageStats && hasOverlay && hasBatterySaver
+                val allRequiredGranted = KavachActivationReadiness.hasRequiredPermissions(hasUsageStats, hasOverlay)
                 Button(
                     onClick = {
                         if (allRequiredGranted && pendingEnableFlow) {

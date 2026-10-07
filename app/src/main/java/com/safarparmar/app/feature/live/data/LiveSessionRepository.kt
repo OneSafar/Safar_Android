@@ -31,7 +31,7 @@ class LiveSessionRepository @Inject constructor(
         safeApiCall { api.getCommunity() }
             .map { dto ->
                 dto.telegramUrl?.takeIf { it.isNotBlank() }
-                    ?: throw IllegalStateException("Telegram community link missing")
+                    ?: "https://t.me/+5bUB1-LKP8ZjOTE1"
             }
 }
 

@@ -235,12 +235,14 @@ fun HomeScreen(
                     )
                     runCatching { context.startActivity(marketIntent) }
                         .onFailure {
-                            context.startActivity(
-                                Intent(
-                                    Intent.ACTION_VIEW,
-                                    Uri.parse("https://play.google.com/store/apps/details?id=${context.packageName}"),
+                            runCatching {
+                                context.startActivity(
+                                    Intent(
+                                        Intent.ACTION_VIEW,
+                                        Uri.parse("https://play.google.com/store/apps/details?id=${context.packageName}"),
+                                    )
                                 )
-                            )
+                            }
                         }
                 }
             },
@@ -483,45 +485,23 @@ fun HomeScreen(
                     } else {
                         slide.accentColor.copy(alpha = 0.8f)
                     }
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        androidx.compose.material3.Text(
-                            text = stringResource(slide.headlineRes),
-                            fontFamily = LoraFontFamily,
-                            fontSize = if (isCompactHeight) 22.sp else 26.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = descriptionTextColor,
-                            style = MaterialTheme.typography.headlineMedium.copy(
-                                shadow = Shadow(
-                                    color = glowColor,
-                                    offset = Offset(0f, 0f),
-                                    blurRadius = 16f
-                                )
-                            ),
-                            textAlign = TextAlign.Center,
-                            lineHeight = if (isCompactHeight) 26.sp else 30.sp
-                        )
-                        // Body description
-                        androidx.compose.material3.Text(
-                            text = stringResource(slide.bodyRes),
-                            fontSize = if (isCompactHeight) 12.sp else 13.sp,
-                            color = descriptionTextColor.copy(alpha = 0.75f),
-                            textAlign = TextAlign.Center,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                            lineHeight = 17.sp,
-                            style = MaterialTheme.typography.bodySmall.copy(
-                                shadow = Shadow(
-                                    color = glowColor.copy(alpha = 0.3f),
-                                    offset = Offset(0f, 0f),
-                                    blurRadius = 8f
-                                )
-                            ),
-                        )
-                    }
+                    androidx.compose.material3.Text(
+                        text = stringResource(slide.headlineRes),
+                        fontFamily = LoraFontFamily,
+                        fontSize = if (isCompactHeight) 22.sp else 26.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = descriptionTextColor,
+                        style = MaterialTheme.typography.headlineMedium.copy(
+                            shadow = Shadow(
+                                color = glowColor,
+                                offset = Offset(0f, 0f),
+                                blurRadius = 16f
+                            )
+                        ),
+                        textAlign = TextAlign.Center,
+                        lineHeight = if (isCompactHeight) 26.sp else 30.sp,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
             }
 

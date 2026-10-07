@@ -1,0 +1,5 @@
+<resources>
+    <string name="youtube_focus_share_detection_report">Share detection report</string>
+    <string name="youtube_focus_detection_report_disclosure">Report includes YouTube text and layout</string>
+    <string name="youtube_focus_detection_report_failed">Could not share the report. Please try again.</string>
+</resources>

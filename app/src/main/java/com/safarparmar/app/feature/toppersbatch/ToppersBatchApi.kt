@@ -26,6 +26,8 @@ data class BatchLecture(
     val legacyLocalId: String? = null, val id: String = "", val subjectId: String = "", val subjectKey: String = "", val chapterId: String? = null,
     val lectureNumber: Int = 0, val order: Int = 0, val originalTopic: String = "", val displayTopic: String = "",
     val section: String? = null, val sourceMonth: String = "", val sourceWeek: String = "",
+    val planVersion: Int = 0, val completionDateUnknown: Boolean = false,
+    val studyReminderTime: String? = null, val revisionReminderTime: String? = null,
     val completedAt: String? = null, val scheduledFor: String? = null, val classTime: String? = null,
     val liveYoutubeUrl: String? = null, val recordedUrl: String? = null, val classStartsAt: String? = null,
     val releaseState: String? = null, val isAvailable: Boolean? = null,
@@ -33,6 +35,7 @@ data class BatchLecture(
     val revisionDate: String? = null, val revisionCompletedAt: String? = null,
     val revisionMode: String? = null, val revisionSessions: List<ReviewSession>? = null,
     val legacyRevisionMode: String? = null, val legacyRevisionSessions: List<ReviewSession>? = null,
+    val userAdded: Boolean = false,
     val studyPlannedFor: String? = null, val revisionTagged: Boolean = false, val color: String? = null, val liveWindow: BatchLiveWindow? = null,
 ) {
     fun isLocked(today: String): Boolean {
@@ -81,10 +84,11 @@ data class BatchLectureControl(
 @Keep
 data class BatchTrackerContent(val copy: Map<String, String> = emptyMap())
 
-internal fun BatchOverview.copyText(key: String, fallback: String) = content.copy[key] ?: fallback
 
 @Keep
 data class BatchOverview(
+    val canUseFeatures: Boolean = true,
+    val studyWorkflow: BatchStudyWorkflow = BatchStudyWorkflow(),
     val content: BatchTrackerContent = BatchTrackerContent(),
     val lectureControls: List<BatchLectureControl> = emptyList(), val serverDay: String? = null,
     val studyPlan: BatchStudyPlan? = null, val course: BatchCourse = BatchCourse(), val subjects: List<BatchSubject> = emptyList(),
@@ -111,6 +115,9 @@ interface ToppersBatchApi {
     @POST("plans/toppers-batch/v2/import-local-progress") suspend fun importLocalProgress(@Body body: RequestBody): Response<BatchOverview>
     @GET("plans/toppers-batch/v2") suspend fun overview(): Response<BatchOverview>
     @PATCH("plans/toppers-batch/v2/study-plan") suspend fun studyPlan(@Body body: RequestBody): Response<BatchOverview>
+    @POST("plans/toppers-batch/v2/reschedule") suspend fun reschedule(@Body body: RequestBody): Response<BatchOverview>
+    @POST("plans/toppers-batch/v2/subjects/{id}/lectures") suspend fun addLecture(@Path("id") id: String, @Body body: RequestBody): Response<BatchLecture>
+    @POST("plans/toppers-batch/v2/prior-progress") suspend fun priorProgress(@Body body: RequestBody): Response<BatchOverview>
     @GET("plans/toppers-batch/v2/today") suspend fun today(@Query("date") date: String): Response<BatchToday>
     @GET("plans/toppers-batch/v2/calendar") suspend fun calendar(
         @Query("month") month: String, @Query("offsetMinutes") offsetMinutes: Int,
@@ -149,3 +156,10 @@ data class BatchLiveWindow(val startsAt: String? = null, val endsAt: String? = n
         return when { now < start -> "upcoming"; now >= end -> "ended"; else -> "live" }
     }
 }
+
+@Keep
+data class BatchStudyActivity(val lectureId: String = "", val kind: String = "watch", val date: String = "",
+    val reminderTime: String? = null, val sessionIndex: Int? = null, val waitingForRelease: Boolean = false)
+@Keep
+data class BatchStudyWorkflow(val today: List<BatchStudyActivity> = emptyList(), val missed: List<BatchStudyActivity> = emptyList(),
+    val backlogReasons: Map<String, String> = emptyMap(), val revisionsCompleted: Int = 0, val completedToday: List<String> = emptyList())

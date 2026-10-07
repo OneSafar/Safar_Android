@@ -22,6 +22,8 @@
 
 package com.safarparmar.app.feature.toppersbatch
 
+import com.safarparmar.app.R
+
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.interaction.*
@@ -68,7 +70,7 @@ internal fun BatchButton(
     content: @Composable RowScope.() -> Unit,
 ) {
     val source = remember { MutableInteractionSource() }
-    ComposablesButton(onClick = onClick, modifier = modifier.heightIn(min = 48.dp), enabled = enabled,
+    ComposablesButton(onClick = batchFeatureAction(onClick), modifier = modifier.heightIn(min = 48.dp), enabled = enabled,
         style = if (destructive) ButtonStyle.Destructive else ButtonStyle.Default,
         shape = RoundedCornerShape(14.dp), contentPadding = contentPadding,
         interactionSource = source, content = content)
@@ -80,7 +82,7 @@ internal fun BatchOutlinedButton(
     content: @Composable RowScope.() -> Unit,
 ) {
     val source = remember { MutableInteractionSource() }
-    ComposablesButton(onClick = onClick, modifier = modifier.heightIn(min = 48.dp), enabled = enabled,
+    ComposablesButton(onClick = batchFeatureAction(onClick), modifier = modifier.heightIn(min = 48.dp), enabled = enabled,
         style = ButtonStyle.Outlined, shape = RoundedCornerShape(14.dp),
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
         contentColor = MaterialTheme.colorScheme.primary,
@@ -93,7 +95,7 @@ internal fun BatchTextButton(
     content: @Composable RowScope.() -> Unit,
 ) {
     val source = remember { MutableInteractionSource() }
-    ComposablesButton(onClick = onClick, modifier = modifier.heightIn(min = 48.dp), enabled = enabled,
+    ComposablesButton(onClick = batchFeatureAction(onClick), modifier = modifier.heightIn(min = 48.dp), enabled = enabled,
         style = ButtonStyle.Ghost, shape = RoundedCornerShape(12.dp),
         contentColor = MaterialTheme.colorScheme.primary, interactionSource = source) {
         CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.primary) {
@@ -106,9 +108,19 @@ internal fun BatchTextButton(
 internal fun BatchTextField(
     value: String, onValueChange: (String) -> Unit, modifier: Modifier = Modifier,
     label: @Composable (() -> Unit)? = null, singleLine: Boolean = false,
-    accessibilityLabel: String = "Toppers Batch text field",
+    accessibilityLabel: String? = null,
     placeholder: @Composable (() -> Unit)? = null,
 ) {
+    val strings = rememberBatchStrings()
+    val access = LocalBatchFeatureAccess.current
+    if (!access.allowed) {
+        Column(modifier.fillMaxWidth().clickable(onClick = access.onUpgrade).heightIn(min = 48.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            label?.invoke()
+            androidx.compose.material3.Text(value.ifBlank { accessibilityLabel ?: strings.text(R.string.toppers_batch_toppers_batch_text_field) })
+        }
+        return
+    }
     val state = rememberTextFieldState(value)
     val latestOnChange by rememberUpdatedState(onValueChange)
     LaunchedEffect(value) {
@@ -122,7 +134,7 @@ internal fun BatchTextField(
         com.composables.ui.components.TextField(
             state = state,
             modifier = Modifier.fillMaxWidth(),
-            accessibilityLabel = accessibilityLabel,
+            accessibilityLabel = accessibilityLabel ?: strings.text(R.string.toppers_batch_toppers_batch_text_field),
             placeholder = placeholder,
             borderColor = MaterialTheme.colorScheme.outlineVariant,
             contentColor = MaterialTheme.colorScheme.onSurface,
@@ -142,11 +154,12 @@ internal fun BatchAlertDialog(
     confirmButton: @Composable () -> Unit,
     dismissButton: @Composable () -> Unit,
 ) {
+    val strings = rememberBatchStrings()
     com.composables.ui.components.AlertDialog(
         visible = true,
         onDismissRequest = onDismissRequest,
         modifier = Modifier.fillMaxWidth().imePadding().widthIn(max = 520.dp),
-        paneTitle = "Toppers Batch dialog",
+        paneTitle = strings.text(R.string.toppers_batch_toppers_batch_dialog),
     ) {
         BatchClampedContent {
             Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
@@ -179,7 +192,7 @@ internal fun BatchFilterChip(
         border = BorderStroke(1.dp, if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
             else MaterialTheme.colorScheme.outlineVariant)) {
         Box(Modifier.selectable(selected, role = Role.Tab, interactionSource = source,
-            indication = LocalIndication.current, onClick = onClick)
+            indication = LocalIndication.current, onClick = batchFeatureAction(onClick))
             .heightIn(min = 48.dp).padding(horizontal = 16.dp, vertical = 10.dp),
             contentAlignment = Alignment.Center) {
             ProvideTextStyle(MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold)) { label() }
@@ -193,7 +206,7 @@ internal fun BatchIconButton(
     content: @Composable () -> Unit,
 ) {
     val source = remember { MutableInteractionSource() }
-    com.composables.ui.components.IconButton(onClick = onClick, modifier = modifier, enabled = enabled,
+    com.composables.ui.components.IconButton(onClick = batchFeatureAction(onClick), modifier = modifier, enabled = enabled,
         style = ButtonStyle.Ghost, interactionSource = source, content = content)
 }
 

@@ -1,5 +1,7 @@
 package com.safarparmar.app.feature.toppersbatch
 
+import com.safarparmar.app.R
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -40,6 +42,7 @@ internal data class DayCompletion(val date: LocalDate, val count: Int)
 internal data class TrendPoint(val date: LocalDate, val completed: Int)
 
 private fun completionDay(lecture: BatchLecture): LocalDate? {
+    if (lecture.completionDateUnknown) return null
     val stamp = lecture.completedAt ?: return null
     return runCatching { Instant.parse(stamp).atZone(ZoneId.of("Asia/Kolkata")).toLocalDate() }
         .getOrElse { runCatching { LocalDate.parse(stamp.take(10)) }.getOrNull() }
@@ -74,6 +77,7 @@ internal fun completionTrend(lectures: List<BatchLecture>, today: LocalDate, day
 
 @Composable
 internal fun RecentActivityCalendar(lectures: List<BatchLecture>, today: LocalDate) {
+    val strings = rememberBatchStrings()
     val end = today.plusDays((7 - today.dayOfWeek.value).toLong())
     val days = remember(lectures, today) { completionActivity(lectures, end, 28) }
     var selectedDate by rememberSaveable { mutableStateOf(today.toString()) }
@@ -86,10 +90,10 @@ internal fun RecentActivityCalendar(lectures: List<BatchLecture>, today: LocalDa
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("Recent activity", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Text("Darker dates mean more lectures finished.", style = MaterialTheme.typography.bodySmall, color = muted)
+            Text(strings.text(R.string.toppers_batch_recent_activity), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(strings.text(R.string.toppers_batch_darker_dates_mean_more_lectures_finished), style = MaterialTheme.typography.bodySmall, color = muted)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                listOf("M", "T", "W", "T", "F", "S", "S").forEach { label ->
+                strings.weekdays().forEach { label ->
                     Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
                         Text(label, style = MaterialTheme.typography.labelSmall, color = muted)
                     }
@@ -108,11 +112,11 @@ internal fun RecentActivityCalendar(lectures: List<BatchLecture>, today: LocalDa
                         }
                         Surface(
                             modifier = Modifier.weight(1f).height(36.dp)
-                                .then(if (future) Modifier else Modifier.clickable(role = Role.Button) {
+                                .then(if (future) Modifier else Modifier.clickable(role = Role.Button, onClick = batchFeatureAction({
                                     selectedDate = day.date.toString()
-                                }).semantics {
-                                    contentDescription = "${day.date}, ${day.count} lectures finished" +
-                                        if (day.date == selected.date) ", selected" else ""
+                                }))).semantics {
+                                    contentDescription = strings.text(R.string.toppers_batch_count_count_lectures_finished, strings.date(day.date.toString()), day.count) +
+                                        if (day.date == selected.date) strings.text(R.string.toppers_batch_selected) else ""
                                 },
                             color = shade,
                             shape = RoundedCornerShape(8.dp),
@@ -131,8 +135,8 @@ internal fun RecentActivityCalendar(lectures: List<BatchLecture>, today: LocalDa
                     }
                 }
             }
-            Text("${selected.date.format(DateTimeFormatter.ofPattern("EEE, d MMM", Locale.ENGLISH))} · " +
-                if (selected.count == 1) "1 lecture finished" else "${selected.count} lectures finished",
+            Text("${selected.date.format(DateTimeFormatter.ofPattern("EEE, d MMM", strings.locale))} · " +
+                strings.quantity(R.plurals.toppers_batch_count_lectures_finished, selected.count, selected.count),
                 style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
         }
     }
@@ -140,6 +144,7 @@ internal fun RecentActivityCalendar(lectures: List<BatchLecture>, today: LocalDa
 
 @Composable
 internal fun CompletionTrendChart(lectures: List<BatchLecture>, today: LocalDate) {
+    val strings = rememberBatchStrings()
     val trend = remember(lectures, today) { completionTrend(lectures, today) }
     val last = trend.last()
     val gained = remember(lectures, today) { completionActivity(lectures, today, 14).sumOf { it.count } }
@@ -151,13 +156,13 @@ internal fun CompletionTrendChart(lectures: List<BatchLecture>, today: LocalDate
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("Lectures finished over time", style = MaterialTheme.typography.titleMedium,
+            Text(strings.text(R.string.toppers_batch_lectures_finished_over_time), style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold)
-            Text("Cumulative completion · last 14 days",
+            Text(strings.text(R.string.toppers_batch_cumulative_completion_last_14_days),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (last.completed == 0) {
-                Text("Finish a lecture to start your progress graph.",
+                Text(strings.text(R.string.toppers_batch_finish_a_lecture_to_start_your_progress_graph),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             } else {
@@ -165,15 +170,15 @@ internal fun CompletionTrendChart(lectures: List<BatchLecture>, today: LocalDate
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Column {
                         Text("${last.completed}", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-                        Text("lectures completed", style = MaterialTheme.typography.labelSmall,
+                        Text(strings.text(R.string.toppers_batch_lectures_completed), style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     Surface(color = pink.copy(alpha = 0.10f), shape = RoundedCornerShape(12.dp)) {
-                        Text("+$gained in 14 days", modifier = Modifier.padding(12.dp),
+                        Text(strings.text(R.string.toppers_batch_count_in_14_days, gained), modifier = Modifier.padding(12.dp),
                             color = pink, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
                     }
                 }
-                Text("Touch the chart to see a day's total", style = MaterialTheme.typography.labelSmall,
+                Text(strings.text(R.string.toppers_batch_touch_the_chart_to_see_a_day_s_total), style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
@@ -183,19 +188,20 @@ internal fun CompletionTrendChart(lectures: List<BatchLecture>, today: LocalDate
 /** A compact, subject-only view of the same real completion history used on Progress. */
 @Composable
 internal fun SubjectCompletionTrend(lectures: List<BatchLecture>, today: LocalDate, color: Color) {
+    val strings = rememberBatchStrings()
     val trend = remember(lectures, today) { completionTrend(lectures, today) }
     val gained = remember(lectures, today) { completionActivity(lectures, today, 14).sumOf { it.count } }
     val last = trend.last()
 
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("Your progress · last 14 days", style = MaterialTheme.typography.labelMedium,
+            Text(strings.text(R.string.toppers_batch_your_progress_last_14_days), style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("+$gained lectures", style = MaterialTheme.typography.labelMedium,
+            Text(strings.quantity(R.plurals.toppers_batch_count_lectures, gained, gained), style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.Bold, color = color)
         }
         if (last.completed == 0) {
-            Text("Finish a lecture to start your progress graph.",
+            Text(strings.text(R.string.toppers_batch_finish_a_lecture_to_start_your_progress_graph),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         } else {
@@ -212,12 +218,13 @@ private fun AnimatedCompletionLine(
     modifier: Modifier,
     showAxis: Boolean,
 ) {
-    val dateFormat = remember { DateTimeFormatter.ofPattern("d MMM", Locale.getDefault()) }
+    val strings = rememberBatchStrings()
+    val dateFormat = remember(strings.locale) { DateTimeFormatter.ofPattern("d MMM", strings.locale) }
     com.safarparmar.app.ui.components.analytics.SafarAnalyticsChart(
         values = remember(trend) { trend.map { it.completed } },
-        labels = remember(trend) { trend.map { it.date.format(dateFormat) } },
+        labels = remember(trend, strings.locale) { trend.map { it.date.format(dateFormat) } },
         color = color,
-        description = "Lecture completion history. " + trend.joinToString { "${it.date}: ${it.completed} completed" },
+        description = strings.text(R.string.toppers_batch_lecture_completion_history) + trend.joinToString { strings.text(R.string.toppers_batch_count_count_completed, strings.date(it.date.toString()), it.completed) },
         modifier = modifier,
         showAxis = showAxis,
     )

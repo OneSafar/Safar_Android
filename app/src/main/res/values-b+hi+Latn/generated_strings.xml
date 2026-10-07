@@ -523,7 +523,7 @@
     <string name="dashboard_unlocked_count">%1$d unlocked</string>
     <string name="dashboard_default_user">dost</string>
     <string name="dashboard_daily_inspiration">aaj ki inspiration</string>
-    <string name="dashboard_inspiration_quote">“aapki limits characters aapki imagination hi tay karati hai.”</string>
+    <string name="dashboard_inspiration_quote">“aapki limits aksar aapki imagination hi tay karti hai.”</string>
     <string name="dashboard_study_plan_progress">Study plan progress</string>
     <string name="dashboard_current_title">Current title</string>
     <string name="dashboard_set_title">Achievement title set karne ke liye tap karein</string>

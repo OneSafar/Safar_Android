@@ -229,24 +229,13 @@ fun KavachIntroHeroCard(
 
 @Composable
 fun KavachIntroCopy(modifier: Modifier = Modifier) {
-    Column(
+    Text(
+        text = stringResource(R.string.kavach_intro_copy_body),
+        fontSize = 15.sp,
+        lineHeight = 22.sp,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Text(
-            text = stringResource(R.string.kavach_hero_title),
-            fontSize = 28.sp,
-            lineHeight = 34.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onBackground,
-        )
-        Text(
-            text = stringResource(R.string.kavach_intro_copy_body),
-            fontSize = 16.sp,
-            lineHeight = 23.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
+    )
 }
 
 @Composable
@@ -403,7 +392,7 @@ fun KavachPermissionDisclosureCard(
                 title = stringResource(R.string.kavach_background_permission),
                 body = stringResource(R.string.kavach_background_permission_body),
                 granted = hasBatterySaver,
-                required = true,
+                required = false,
                 onClick = onOpenBatterySaver,
             )
             HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.15f), thickness = 0.5.dp)

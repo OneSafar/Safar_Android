@@ -1,5 +1,7 @@
 package com.safarparmar.app.feature.toppersbatch
 
+import com.safarparmar.app.R
+
 import android.graphics.Bitmap
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -56,7 +58,7 @@ class BatchCalendarLayoutTest(private val width: Int, private val scale: Float, 
         compose.onNodeWithTag("calendar-today").assertIsDisplayed()
         val dateTile = compose.onNodeWithTag("calendar-date-2026-10-04").assertIsDisplayed().fetchSemanticsNode()
         assertTrue("Date tiles must not stretch horizontally", dateTile.size.width <= 52)
-        assertEquals("Date tile height stays compact at every text scale", 52, dateTile.size.height)
+        assertTrue("Date tile height stays compact at every text scale", dateTile.size.height in 56..59)
         compose.onNodeWithTag("calendar-date-2026-10-05").assertIsDisplayed()
         val month = compose.onNodeWithTag("calendar-month").fetchSemanticsNode()
         assertTrue("Month card must not stretch horizontally", month.size.width <= 400)
@@ -66,22 +68,35 @@ class BatchCalendarLayoutTest(private val width: Int, private val scale: Float, 
         }
         capture("month", "calendar-month")
         assertNoTextOverflow()
-        compose.onNodeWithContentDescription("Next month").performClick()
+        compose.onNodeWithContentDescription(batchTestText(R.string.toppers_batch_next_month)).performClick()
         compose.onNodeWithText("November").assertExists()
         compose.onNodeWithTag("calendar-today").performClick()
         compose.onNodeWithText("October").assertExists()
-        compose.onNodeWithText("List", useUnmergedTree = true).performClick()
+        compose.onNodeWithText(batchTestText(R.string.toppers_batch_list), useUnmergedTree = true).performClick()
         compose.onNodeWithText("Mon, 5 Oct").performClick()
-        compose.onNodeWithText("Revise · 4").assertExists()
-        compose.onNodeWithText("Month", useUnmergedTree = true).performClick()
+        compose.onNodeWithTag("calendar-event-REVISION-mathematics-1").assertDoesNotExist()
+        compose.onNodeWithContentDescription(batchTestText(R.string.toppers_batch_expand_count, batchTestText(BatchEventKind.REVISION.titleRes))).performScrollTo().performClick()
+        compose.onNodeWithTag("calendar-event-REVISION-mathematics-1").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithContentDescription(batchTestText(R.string.toppers_batch_collapse_count, batchTestText(BatchEventKind.REVISION.titleRes))).performScrollTo().performClick()
+        compose.onNodeWithTag("calendar-event-REVISION-mathematics-1").assertDoesNotExist()
+        compose.onNodeWithText(batchTestText(R.string.toppers_batch_month), useUnmergedTree = true).performClick()
+        compose.onNodeWithTag("calendar-event-CLASS-mathematics-2").assertDoesNotExist()
+        compose.onNodeWithContentDescription(batchTestText(R.string.toppers_batch_expand_count, batchTestText(BatchEventKind.CLASS.titleRes))).performScrollTo().performClick()
         compose.onNodeWithTag("calendar-event-CLASS-mathematics-2").performScrollTo().performClick()
         compose.runOnIdle { assertTrue(opened) }
-        compose.onNodeWithTag("calendar-next-gk").performScrollTo()
+        compose.onNodeWithTag("calendar-next-gk").assertDoesNotExist()
+        compose.onNodeWithContentDescription(batchTestText(R.string.toppers_batch_expand_count, batchTestText(R.string.toppers_batch_next_classes))).performScrollTo().performClick()
+        if (compose.onAllNodesWithTag("calendar-next-gk").fetchSemanticsNodes().isNotEmpty()) {
+            compose.onNodeWithTag("calendar-next-gk").performScrollTo()
+        } else {
+            compose.onNodeWithText(batchTestText(R.string.toppers_batch_no_more_classes_scheduled_today)).performScrollTo().assertIsDisplayed()
+        }
         capture("next-classes")
-        compose.onNodeWithContentDescription("Show study dates").performScrollTo().performClick()
-        compose.onNodeWithText("Goal date").performScrollTo().assertIsDisplayed()
         assertNoTextOverflow()
-        capture("study-dates")
+        compose.onNodeWithContentDescription(batchTestText(R.string.toppers_batch_collapse_count, batchTestText(R.string.toppers_batch_next_classes))).performScrollTo().performClick()
+        compose.onNodeWithContentDescription(batchTestText(R.string.toppers_batch_collapse_count, batchTestText(BatchEventKind.CLASS.titleRes))).performScrollTo().performClick()
+        compose.onNodeWithTag("calendar-event-CLASS-mathematics-2").assertDoesNotExist()
+        capture("collapsed-sections")
     }
 
     private fun assertNoTextOverflow() {

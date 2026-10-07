@@ -30,10 +30,68 @@ class YoutubeWatchMetadataTest {
     private fun parse(nodes: List<YoutubeV2Node>) = YoutubeStudyV2Parser.parse(
         YoutubeV2Snapshot(YoutubeStudyV2Parser.YOUTUBE_PACKAGE, 2.75f, 1080, 2400, nodes))
 
+    @Test fun `merged title uploader and statistics identify the screenshot channels`() {
+        for ((videoTitle, handle, stats) in listOf(
+            Triple("i tried new bannable wall...", "@GrimGuyLIVE", "712 likes 36K views 10 hr ago more"),
+            Triple("WIFE CATCHES HUSBAND CHEATING", "@binks69shorts", "24K likes 3.7 lakh views 3 yr ago more"),
+        )) {
+            val nodes = watch().mapIndexed { index, item ->
+                when (index) {
+                    4 -> item.copy(contentDescription = "$videoTitle $handle $stats")
+                    in 5..9 -> item.copy(text = null, visibleToUser = false)
+                    else -> item
+                }
+            }
+            val result = parse(nodes)
+            assertEquals(handle.lowercase(), result.exactHandle)
+            assertEquals(videoTitle, result.title)
+            assertTrue(result.hasOwnerEvidence)
+        }
+    }
+
+    @Test fun `empty leading watch item cannot hide nested uploader metadata`() {
+        val nodes = watch().toMutableList()
+        // Insert an empty first list item without disturbing existing parent indices.
+        nodes[4] = node(3, top = 710, bottom = 720)
+        nodes += node(3, top = 720, bottom = 910)
+        nodes[5] = nodes[5].copy(parentIndex = 14)
+        nodes[6] = nodes[6].copy(parentIndex = 14)
+        nodes[8] = nodes[8].copy(parentIndex = 14)
+        assertEquals("@parmarssc", parse(nodes).exactHandle)
+        assertEquals(title, parse(nodes).title)
+    }
+
+    @Test fun `control inside watch header cannot exclude the whole owner item`() {
+        val nodes = watch() + node(4, "fullscreen_button", text = "Enter fullscreen",
+            top = 720, bottom = 780, left = 960).copy(clickable = true)
+        val observation = parse(nodes)
+        assertEquals(title, observation.title)
+        assertEquals("@parmarssc", observation.exactHandle)
+    }
+
     @Test fun `watch header wins over overlapping surface and Like control`() {
         val observation = parse(watch())
         assertEquals(title, observation.title)
         assertEquals("@parmarssc", observation.exactHandle)
+    }
+
+    @Test fun `inline more button must not hide the uploader beside it`() {
+        val nodes = watch().toMutableList()
+        nodes[5] = nodes[5].copy(text = "WIFE CATCHES HUSBAND CHEATING")
+        nodes[7] = nodes[7].copy(text = "@binks69shorts")
+        nodes[9] = nodes[9].copy(text = "24K likes 3.7 lakh views 3 yr ago")
+        nodes += node(4, text = "more", top = 825, bottom = 880, left = 960)
+            .copy(clickable = true)
+        val observation = parse(nodes)
+        assertEquals("@binks69shorts", observation.exactHandle)
+        assertEquals("WIFE CATCHES HUSBAND CHEATING", observation.title)
+    }
+
+    @Test fun `title only header does not discard the separate semantic owner handle`() {
+        val nodes = watch().toMutableList()
+        nodes[7] = nodes[7].copy(text = null)
+        nodes += node(0, "video_owner", text = "@parmarssc", top = 915, bottom = 935)
+        assertEquals("@parmarssc", parse(nodes).exactHandle)
     }
 
     @Test fun `nested handle and statistics resolve without borrowing comments`() {

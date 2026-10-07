@@ -100,20 +100,14 @@ fun LiveSessionsScreen(
     }
 
     val openTelegramCommunity: () -> Unit = {
-        val telegramUrl = uiState.telegramCommunityUrl
-        if (telegramUrl.isNullOrBlank()) {
+        val telegramUrl = uiState.telegramCommunityUrl?.takeIf { it.isNotBlank() }
+            ?: "https://t.me/+5bUB1-LKP8ZjOTE1"
+        runCatching {
+            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(telegramUrl)))
+        }.onFailure {
             scope.launch {
-                snackbarHostState.showSnackbar("The Telegram group link is unavailable right now.")
+                snackbarHostState.showSnackbar("Could not open Telegram on this device.")
             }
-        } else {
-            runCatching {
-                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(telegramUrl)))
-            }.onFailure {
-                scope.launch {
-                    snackbarHostState.showSnackbar("Could not open Telegram on this device.")
-                }
-            }
-            Unit
         }
     }
 

@@ -337,43 +337,17 @@ class StudyPlannerViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Handles a back-press inside the Study Planner feature.
-     *
-     * Back-press hierarchy:
-     *   [Any sub-section] → previous section (or PLAN if stack empty)
-     *   → [Plan is open, section == PLAN or YOUR_EXAMS] → close plan (go to exam list)
-     *   → [No plan open / exam list] → return false so NavController goes to Home.
-     */
+    /** Return drill-ins to their origin, tabs to the exam list, and the list to its caller. */
     override fun navigateBack(): Boolean {
         val state = _uiState.value
-        val hasPlan = state.selectedPlan != null
-        if (!hasPlan) {
-            // Nothing internal to consume — let the NavController handle it.
-            return false
-        }
-
-        // Contextual drill-ins (for example Calendar → Revision) return to their
-        // origin before the regular tab-level Back behaviour is considered.
         state.backDestination?.let { destination ->
             _uiState.update {
-                it.copy(
-                    section = destination.section,
-                    activePlanTab = destination.planTab,
-                    backDestination = null,
-                )
+                it.copy(section = destination.section, activePlanTab = destination.planTab, backDestination = null)
             }
             return true
         }
-
-        // If the user is not on the PLAN tab, navigating back takes them to PLAN.
-        if (state.section != PlannerSection.PLAN) {
-            _uiState.update { it.copy(section = PlannerSection.PLAN) }
-            return true
-        }
-
-        // If already on PLAN tab, close the plan to return to YOUR_EXAMS.
-        closePlan()
+        val destination = plannerBackSection(state.section) ?: return false
+        _uiState.update { it.copy(section = destination) }
         return true
     }
 
@@ -562,7 +536,7 @@ class StudyPlannerViewModel @Inject constructor(
                 selectedPlan = null,
                 calendar = emptyMap(),
                 analytics = null,
-                section = PlannerSection.PLAN,
+                section = PlannerSection.YOUR_EXAMS,
                 onboardingCompletedSteps = emptySet(),
                 backDestination = null,
                 pendingRatingChapterIds = emptySet(),

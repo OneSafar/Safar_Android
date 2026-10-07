@@ -75,7 +75,7 @@
     <string name="home_video_help">SAFAR mein madad chahiye?\nhamara YouTube video dekhein.</string>
     <string name="announcements_new_count">%1$d naye</string>
     <string name="announcements_updates_here">naye versions aur feature updates yahan dikhenge.</string>
-    <string name="announcements_filter_updates">Announcements (%1$d)</string>
+    <string name="announcements_filter_updates">Updates (%1$d)</string>
     <string name="announcements_hide_item">%1$s chhipaayein</string>
     <string name="announcements_play_audio">Audio chalayen</string>
     <string name="study_circle_focusing">Focus kar rahe hain</string>
@@ -140,6 +140,7 @@
     <string name="support_status_in_touch">Contact mein hain</string>
     <string name="support_show_less">kam dikhayein</string>
     <string name="dhyan_go_to_live">Dhyan Live par jaayein →</string>
+    <string name="dhyan_open_course">Course kholein</string>
     <string name="dhyan_choose_breathe">aap kaise breathe karna chahte hain, chunein</string>
     <string name="goals_missed_action_help">is missed goal ko aaj mein laayein ya archive karein.</string>
     <string name="common_restore">wapas laayein</string>

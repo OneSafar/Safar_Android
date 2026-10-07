@@ -1,16 +1,18 @@
 package com.safarparmar.app.feature.toppersbatch
 
+import com.safarparmar.app.R
+
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 import kotlin.math.ceil
 
-enum class LibraryFilter(val title: String) {
-    ALL("All"), PENDING("Unfinished"), BACKLOG("Backlog"), REVISION("Revision"), DONE("Completed")
+enum class LibraryFilter(@androidx.annotation.StringRes val titleRes: Int) {
+    ALL(R.string.toppers_batch_all), PENDING(R.string.toppers_batch_unfinished), BACKLOG(R.string.toppers_batch_backlog), REVISION(R.string.toppers_batch_revision), DONE(R.string.toppers_batch_completed)
 }
 
-internal fun BatchLecture.completionDay(): LocalDate? = completedAt?.let {
+internal fun BatchLecture.completionDay(): LocalDate? = completedAt?.takeUnless { completionDateUnknown }?.let {
     runCatching { Instant.parse(it).atZone(ZoneId.of("Asia/Kolkata")).toLocalDate() }.getOrNull()
 }
 
@@ -25,13 +27,19 @@ internal fun BatchOverview.libraryRows(query: String, filter: LibraryFilter, tod
             LibraryFilter.ALL -> true
             LibraryFilter.PENDING -> lecture.completedAt == null
             LibraryFilter.BACKLOG -> lecture.completedAt == null && !lecture.isLocked(today) && lecture.id in backlog
-            LibraryFilter.REVISION -> lecture.pendingRevision
+            LibraryFilter.REVISION -> lecture.pendingRevision || lecture.revisionTagged
             LibraryFilter.DONE -> lecture.completedAt != null
         }
     }.sortedWith(compareBy<BatchLecture> {
         if (filter == LibraryFilter.REVISION) it.revisionDate.orEmpty() else it.subjectKey
     }.thenBy { it.order }.thenBy { it.lectureNumber })
 }
+
+/** Revision bookmarks have no due date and must not be parsed as scheduled revisions. */
+internal fun BatchOverview.dueRevisions(day: String): List<BatchLecture> =
+    libraryRows("", LibraryFilter.REVISION, day).filter { lecture ->
+        lecture.pendingRevision && calendarDate(lecture.revisionDate)?.let { it <= day } == true
+    }
 
 internal data class PersonalInsights(
     val total: Int, val completed: Int, val remaining: Int,

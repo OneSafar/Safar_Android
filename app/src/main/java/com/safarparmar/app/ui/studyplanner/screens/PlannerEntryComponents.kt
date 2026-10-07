@@ -25,12 +25,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.composables.ui.components.*
 import com.safarparmar.app.R
+import com.safarparmar.app.feature.toppersbatch.rememberBatchStrings
 import com.safarparmar.app.ui.components.SafarButton
 import com.safarparmar.app.ui.components.SafarOverflowMenu
 import com.safarparmar.app.ui.components.SafarMenuAction
 
 @Composable
 internal fun PlannerPosterEntry(onClick: () -> Unit) {
+    val strings = rememberBatchStrings()
     SafarButton(onClick = onClick, modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp), contentPadding = PaddingValues(0.dp)) {
         Column(Modifier.fillMaxWidth()) {
@@ -40,8 +42,8 @@ internal fun PlannerPosterEntry(onClick: () -> Unit) {
             Row(Modifier.fillMaxWidth().background(Color(0xFF17212B)).padding(horizontal = 14.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text("Parmar Topper Batch Tracker", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                    Text("Lectures, revision and progress", color = Color.White.copy(alpha = 0.75f), fontSize = 12.sp)
+                    Text(strings.text(R.string.toppers_batch_parmar_topper_batch_tracker), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text(strings.text(R.string.toppers_batch_lectures_revision_and_progress), color = Color.White.copy(alpha = 0.75f), fontSize = 12.sp)
                 }
                 Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = Color.White, modifier = Modifier.size(22.dp))
             }

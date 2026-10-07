@@ -10,6 +10,9 @@ import org.json.JSONObject
 import javax.inject.Inject
 
 class ToppersBatchRepository @Inject constructor(private val api: ToppersBatchApi, private val gk: GkLectureStore? = null, private val cache: BatchOverviewCache? = null) {
+    private var planActionAvailable = true
+    suspend fun studyMode() = cache?.studyMode()
+    suspend fun saveStudyMode(mode: BatchStudyMode) { cache?.saveStudyMode(mode) }
     suspend fun status() = safeApiCall { api.status() }
     suspend fun cachedOverview() = cache?.load()
     suspend fun clearCache() { cache?.clear() }
@@ -34,16 +37,42 @@ class ToppersBatchRepository @Inject constructor(private val api: ToppersBatchAp
     suspend fun activate() = fetchOverview { api.activate() }
     suspend fun overview() = fetchOverview { api.overview() }
     suspend fun studyPlan(plan: BatchStudyPlan) = mutation { fetchOverview { api.studyPlan(jsonBody(mapOf("startDate" to plan.startDate, "targetDate" to plan.targetDate, "weeklyGoal" to plan.weeklyGoal))) } }
+    suspend fun reschedule(date: String, items: List<Map<String, Any>>) = mutation { fetchOverview { api.reschedule(jsonBody(mapOf("firstDate" to date, "items" to org.json.JSONArray(items.map { org.json.JSONObject(it) })))) } }
+    suspend fun priorProgress(ids: List<String>, date: String?) = mutation { fetchOverview { api.priorProgress(jsonBody(mapOf("lectureIds" to org.json.JSONArray(ids), "completedDate" to date))) } }
     suspend fun today(date: String) = safeApiCall { api.today(date) }.mapSuccess(BatchToday::officialOnly)
     suspend fun calendar(month: String, offsetMinutes: Int) =
         safeApiCall { api.calendar(month, offsetMinutes) }.mapSuccess(BatchCalendar::officialOnly)
     suspend fun action(id: String, action: String, body: Map<String, Any> = emptyMap()) = mutation { safeApiCall { api.lectureAction(id, action, body) } }
+    /** Older tracker servers expose study-date but do not yet recognize the plan action. */
+    suspend fun savePlan(id: String, body: Map<String, Any>): Resource<LectureResult> {
+        if (planActionAvailable) {
+            val result = action(id, "plan", body)
+            if (result !is Resource.Error || result.code != 404 || result.message != "This option is not available") return result
+            planActionAvailable = false
+        }
+        if (body["kind"] != "watch") return Resource.Error("Revision planning is currently unavailable.")
+        if (body["remove"] == true) return removeAction(id, "study-date")
+        if (body["reminderTime"] != null) return Resource.Error("Reminders are unavailable. Turn off Remind me to save the date.")
+        val dates = body["dates"] as? List<*>
+        if (dates != null && dates.size != 1) return Resource.Error("Choose one watch date.")
+        val date = (dates?.singleOrNull() ?: body["date"]) as? String
+            ?: return Resource.Error("Choose one watch date.")
+        return action(id, "study-date", mapOf("date" to date))
+    }
     suspend fun removeAction(id: String, action: String) = mutation { safeApiCall { api.removeLectureAction(id, action) } }
-    suspend fun completeRevision(id: String, sessionIndex: Int) = mutation { safeApiCall { api.completeRevision(id, mapOf("sessionIndex" to sessionIndex)) } }
+    suspend fun completeRevision(id: String, sessionIndex: Int, version: Int) = mutation { safeApiCall { api.completeRevision(id, mapOf("sessionIndex" to sessionIndex.coerceAtLeast(0), "version" to version)) } }
     suspend fun editLecture(id: String, body: Map<String, Any?>) = mutation { safeApiCall { api.editLecture(id, jsonBody(body)) } }
     suspend fun removeLecture(id: String) = mutation { safeApiCall { api.removeLecture(id) } }
     suspend fun restoreLecture(id: String) = mutation { safeApiCall { api.restoreLecture(id) } }
-    suspend fun editSubject(id: String, body: Map<String, Any?>) = mutation { safeApiCall { api.editSubject(id, jsonBody(body)) } }
+    suspend fun editSubject(id: String, body: Map<String, Any?>): Resource<BatchSubject> = mutation {
+        try {
+            safeApiCall { api.editSubject(id, jsonBody(body)) }
+        } finally {
+            // A read started during the save may still carry the old subject colour.
+            cache?.clear()
+        }
+    }
+    suspend fun addLecture(id: String, title: String) = mutation { safeApiCall { api.addLecture(id, jsonBody(mapOf("displayTopic" to title))) } }
     suspend fun removeSubject(id: String) = mutation { safeApiCall { api.removeSubject(id) } }
     suspend fun restoreSubject(id: String) = mutation { safeApiCall { api.restoreSubject(id) } }
 }
@@ -106,29 +135,21 @@ fun BatchOverview.withLecture(updated: BatchLecture, today: String): BatchOvervi
     val next = lectures.map { if (it.id == updated.id) updated else it }
     val active = subjects.filter { it.enabled }.mapTo(mutableSetOf()) { it.id }
     val visible = next.filter { it.subjectId in active }
-    val watch = subjects.filter { it.enabled }.map { subject ->
-        val own = next.filter { it.subjectId == subject.id }
-            .sortedWith(compareBy<BatchLecture> { it.order }.thenBy { it.lectureNumber })
-        val furthestDone = own.indexOfLast { it.completedAt != null }
-        BatchSubjectWatch(subject.id, own.firstOrNull { it.completedAt == null && !it.isLocked(today) }?.id,
-            own.filterIndexed { index, lecture -> lecture.completedAt == null && !lecture.isLocked(today) &&
-                (index < furthestDone || (lecture.backlogAddedAt != null && lecture.backlogResolvedAt == null))
-            }.map { it.id })
-    }
+    val (watch, workflow) = copy(lectures = next).projectStudyWorkflow(today)
     val backlogIds = watch.flatMapTo(mutableSetOf()) { it.backlogLectureIds }
     val rows = subjects.map { subject ->
         val own = next.filter { it.subjectId == subject.id }
         SubjectProgress(
             subjectId = subject.id, completed = own.count { it.completedAt != null }, total = own.size,
             backlog = own.count { it.id in backlogIds },
-            behind = own.count { it.completedAt == null && !it.isLocked(today) && it.scheduledFor != null && it.scheduledFor < today },
+            behind = own.count { it.id in backlogIds },
             batchAt = own.count { it.isAvailable ?: (it.scheduledFor != null && it.scheduledFor <= today) },
         )
     }
-    return copy(lectures = next, watchList = watch, progress = BatchProgress(
+    return copy(lectures = next, watchList = watch, studyWorkflow = workflow, progress = BatchProgress(
         completed = visible.count { it.completedAt != null }, total = visible.size,
         backlog = visible.count { it.id in backlogIds },
-        behind = visible.count { it.completedAt == null && !it.isLocked(today) && it.scheduledFor != null && it.scheduledFor < today },
+        behind = visible.count { it.id in backlogIds },
         bySubject = rows,
     ))
 }

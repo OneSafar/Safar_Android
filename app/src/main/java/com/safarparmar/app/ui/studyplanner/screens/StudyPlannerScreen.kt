@@ -630,20 +630,10 @@ fun StudyPlannerScreen(
         }
     }
 
-    // ── Internal back-press handling ────────────────────────────────────────────
-    // The Study Planner manages its own sub-screens via ViewModel state (PlannerSection)
-    // rather than NavController entries. Without this BackHandler the system back press
-    // would skip all internal sections and jump straight to Home.
-    //
-    // Hierarchy:
-    //   [sub-section B] → [sub-section A] → [plan list / YOUR_EXAMS] → Home (NavController)
-    val hasInternalBackState = chromeState.selectedPlan != null
-    BackHandler(enabled = hasInternalBackState) {
-        actions.navigateBack()
-        // navigateBack() always returns true when enabled (plan is open), so we just
-        // let it update the ViewModel state. The BackHandler disables itself automatically
-        // once selectedPlan becomes null (after closePlan()), letting the NavController
-        // handle the final back press back to Home.
+    // The exam list is this feature's root. Exit it to the actual caller instead
+    // of inserting the planner's Home tab into the Back path.
+    BackHandler {
+        if (!actions.navigateBack()) onBack()
     }
 
     val selectedPlanForDrawer = chromeState.selectedPlan
@@ -754,10 +744,15 @@ fun StudyPlannerScreen(
                     )
 
                     if (!canUsePremiumPlannerFeatures) {
-                        StudyPlannerPremiumLockOverlay(
-                            modifier = Modifier.fillMaxSize(),
-                            onUpgrade = { onNavigate(Routes.PREMIUM) },
-                        )
+                        Column(Modifier.fillMaxSize()) {
+                            Box(Modifier.padding(16.dp)) {
+                                PlannerPosterEntry(onClick = { onNavigate(Routes.TOPPERS_BATCH) })
+                            }
+                            StudyPlannerPremiumLockOverlay(
+                                modifier = Modifier.weight(1f).fillMaxWidth(),
+                                onUpgrade = { onNavigate(Routes.PREMIUM) },
+                            )
+                        }
                     }
 
                     TourManager(

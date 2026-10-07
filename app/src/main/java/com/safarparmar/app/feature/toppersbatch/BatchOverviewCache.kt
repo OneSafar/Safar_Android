@@ -22,6 +22,18 @@ class BatchOverviewCache @Inject constructor(@ApplicationContext context: Contex
     private val revision = AtomicLong()
     fun version() = revision.get()
     suspend fun account(): String? = accounts.userId.first()?.takeIf { it.isNotBlank() }
+    suspend fun studyMode(): BatchStudyMode? = withContext(Dispatchers.IO) {
+        val user = account() ?: return@withContext null
+        val value = prefs.getString("study-mode:$user", null)
+        if (account() != user) return@withContext null
+        BatchStudyMode.entries.firstOrNull { it.name == value }
+    }
+    suspend fun saveStudyMode(mode: BatchStudyMode) = withContext(Dispatchers.IO) {
+        val user = account() ?: return@withContext
+        writes.withLock {
+            if (account() == user) prefs.edit().putString("study-mode:$user", mode.name).apply()
+        }
+    }
     suspend fun load(): BatchOverview? = withContext(Dispatchers.IO) {
         val user = account() ?: return@withContext null
         val saved = prefs.getString(user, null) ?: return@withContext null

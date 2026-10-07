@@ -36,8 +36,8 @@ class ToppersBatchOpeningTest {
             var opened = false
             while (!opened && android.os.SystemClock.elapsedRealtime() < deadline) {
                 instrumentation.waitForIdleSync()
-                opened = containsText(instrumentation.uiAutomation.rootInActiveWindow, "Today’s Watch List") ||
-                         containsText(instrumentation.uiAutomation.rootInActiveWindow, "Overall batch progress")
+                opened = containsText(instrumentation.uiAutomation.rootInActiveWindow, batchTestText(com.safarparmar.app.R.string.toppers_batch_official_classes_today)) ||
+                         containsText(instrumentation.uiAutomation.rootInActiveWindow, batchTestText(com.safarparmar.app.R.string.toppers_batch_your_plan_today))
                 if (!opened) Thread.sleep(100)
             }
             assertTrue("The planner should render its dashboard", opened)

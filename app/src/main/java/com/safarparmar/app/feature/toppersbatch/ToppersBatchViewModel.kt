@@ -1,9 +1,11 @@
 package com.safarparmar.app.feature.toppersbatch
 
+import com.safarparmar.app.R
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.safarparmar.app.util.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.util.concurrent.atomic.AtomicLong
 import java.time.Instant
 import java.time.LocalDate
 import java.time.YearMonth
@@ -18,13 +20,15 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
 
-enum class BatchSection(val title: String) {
-    TODAY("Today"), COURSES("Library"), PROGRESS("Progress"), CALENDAR("Calendar"),
+enum class BatchSection(@androidx.annotation.StringRes val titleRes: Int) {
+    TODAY(R.string.toppers_batch_today), COURSES(R.string.toppers_batch_library), PROGRESS(R.string.toppers_batch_progress), CALENDAR(R.string.toppers_batch_calendar),
 }
-enum class LectureTab(val title: String) { LECTURES("Lectures"), OLDER("Backlog"), REVISION("Study again") }
+enum class LectureTab(@androidx.annotation.StringRes val titleRes: Int) { LECTURES(R.string.toppers_batch_lectures), OLDER(R.string.toppers_batch_backlog), REVISION(R.string.toppers_batch_revision) }
 enum class BatchGate { LOADING, READY, PREMIUM, UNAVAILABLE, ERROR }
 
 data class BatchUiState(
+    val studyMode: BatchStudyMode = BatchStudyMode.OFFICIAL,
+    val studyDay: String = LocalDate.now(ZoneId.of("Asia/Kolkata")).toString(),
     val lecturePages: Map<String, Int> = emptyMap(),
     val libraryQuery: String = "",
     val libraryFilter: LibraryFilter = LibraryFilter.ALL,
@@ -33,6 +37,8 @@ data class BatchUiState(
     val today: BatchToday? = null,
     val calendar: BatchCalendar? = null,
     val section: BatchSection = BatchSection.TODAY,
+    val subjectReturnSection: BatchSection = BatchSection.COURSES,
+    val subjectReturnTodayId: String? = null,
     val selectedSubjectId: String? = null,
     val todaySubjectId: String? = null,
     val focusedLectureId: String? = null,
@@ -40,8 +46,8 @@ data class BatchUiState(
     val month: String = YearMonth.now(ZoneId.of("Asia/Kolkata")).toString(),
     val selectedDay: String = LocalDate.now(ZoneId.of("Asia/Kolkata")).toString(),
     val busyIds: Set<String> = emptySet(),
-    val error: String? = null,
-    val message: String? = null,
+    val error: BatchNotice? = null,
+    val message: BatchNotice? = null,
     val celebratingId: String? = null,
     val completionFeedback: BatchCompletionFeedback? = null,
 )
@@ -49,8 +55,11 @@ data class BatchUiState(
 @HiltViewModel
 class ToppersBatchViewModel @Inject constructor(private val repository: ToppersBatchRepository) : ViewModel() {
     private val _state = MutableStateFlow(BatchUiState())
+    private val subjectColourRevision = AtomicLong()
     val state = _state.asStateFlow()
 
+    private var preferredStudyMode: BatchStudyMode? = null
+    private val modeWrites = Mutex()
     private val loads = Mutex()
 
     init { open() }
@@ -58,20 +67,24 @@ class ToppersBatchViewModel @Inject constructor(private val repository: ToppersB
     fun open() = viewModelScope.launch {
         if (!loads.tryLock()) return@launch
         try {
+            preferredStudyMode = repository.studyMode()
             val cached = repository.cachedOverview()
             _state.update { it.copy(gate = if (cached == null) BatchGate.LOADING else BatchGate.READY,
-                overview = cached, today = cached?.todayEvents(indiaDay()), error = null) }
+                overview = cached, today = cached?.todayEvents(indiaDay()),
+                studyMode = preferredStudyMode ?: cached?.defaultStudyMode() ?: BatchStudyMode.OFFICIAL, error = null) }
             val before = _state.value.overview
+            val colourRevision = subjectColourRevision.get()
             when (val result = repository.open()) {
-                is Resource.Success -> if (_state.value.busyIds.isEmpty() && _state.value.overview === before) {
-                    _state.update { it.copy(gate = BatchGate.READY, overview = result.data, today = result.data.todayEvents(indiaDay()), error = null) }
+                is Resource.Success -> if (_state.value.busyIds.isEmpty() && _state.value.overview === before && subjectColourRevision.get() == colourRevision) {
+                    _state.update { it.copy(gate = BatchGate.READY, overview = result.data, today = result.data.todayEvents(indiaDay()),
+                        studyMode = preferredStudyMode ?: result.data.defaultStudyMode(), error = null) }
                 }
                 is Resource.Error -> {
                     if (result.errorCode in setOf("PREMIUM_REQUIRED", "PLANNER_V2_NOT_AVAILABLE", "PLANNER_V2_NOT_ENABLED") || result.code == 401) {
                         repository.clearCache()
                         _state.update { it.copy(overview = null, today = null) }
                         applyError(result)
-                    } else if (cached != null) _state.update { it.copy(error = result.message) }
+                    } else if (cached != null) _state.update { it.copy(error = batchErrorNotice(result)) }
                     else applyError(result)
                 }
                 else -> Unit
@@ -85,18 +98,28 @@ class ToppersBatchViewModel @Inject constructor(private val repository: ToppersB
             "PLANNER_V2_NOT_AVAILABLE" -> BatchGate.UNAVAILABLE
             else -> BatchGate.ERROR
         }
-        _state.update { it.copy(gate = gate, error = error.message) }
+        _state.update { it.copy(gate = gate, error = batchErrorNotice(error)) }
     }
 
     fun refresh() = viewModelScope.launch { reload() }
     fun refreshReleaseSchedule() = viewModelScope.launch {
+        updateStudyDay()
         if (_state.value.gate == BatchGate.READY && _state.value.busyIds.isEmpty() && !loads.isLocked) reload()
     }
 
+    private fun updateStudyDay() {
+        val day = indiaDay()
+        _state.update { current -> if (current.studyDay == day) current else current.copy(
+            studyDay = day, today = current.overview?.todayEvents(day),
+        ) }
+    }
+
     private suspend fun reload() = loads.withLock {
+        updateStudyDay()
         val before = _state.value.overview
+        val colourRevision = subjectColourRevision.get()
         when (val result = repository.overview()) {
-            is Resource.Success -> if (_state.value.busyIds.isEmpty() && _state.value.overview === before) {
+            is Resource.Success -> if (_state.value.busyIds.isEmpty() && _state.value.overview === before && subjectColourRevision.get() == colourRevision) {
                 _state.update { old ->
                     val subjectExists = result.data.subjects.any { it.id == old.selectedSubjectId }
                     old.copy(overview = result.data, today = result.data.todayEvents(indiaDay()),
@@ -109,33 +132,42 @@ class ToppersBatchViewModel @Inject constructor(private val repository: ToppersB
                     repository.clearCache()
                     _state.update { it.copy(overview = null, today = null) }
                     applyError(result)
-                } else _state.update { it.copy(error = result.message) }
+                } else _state.update { it.copy(error = batchErrorNotice(result)) }
             }
             else -> Unit
         }
     }
 
+    fun selectStudyMode(mode: BatchStudyMode) {
+        preferredStudyMode = mode
+        _state.update { it.copy(studyMode = mode, todaySubjectId = null, focusedLectureId = null, error = null, message = null) }
+        viewModelScope.launch { modeWrites.withLock { repository.saveStudyMode(_state.value.studyMode) } }
+    }
+
     fun select(section: BatchSection) {
-        _state.update { it.copy(section = section, selectedSubjectId = null, todaySubjectId = null, error = null, message = null) }
+        _state.update { it.copy(section = section, selectedSubjectId = null, todaySubjectId = null, subjectReturnTodayId = null, error = null, message = null) }
         when (section) {
             BatchSection.TODAY -> viewModelScope.launch { refreshToday() }
             else -> Unit
         }
     }
     fun selectSubject(id: String, tab: LectureTab = LectureTab.LECTURES) =
-        _state.update { it.copy(section = BatchSection.COURSES, selectedSubjectId = id, todaySubjectId = null,
+        _state.update { it.copy(subjectReturnSection = if (it.selectedSubjectId != null) it.subjectReturnSection else it.section,
+            subjectReturnTodayId = if (it.selectedSubjectId != null) it.subjectReturnTodayId else it.todaySubjectId,
+            section = BatchSection.COURSES, selectedSubjectId = id, todaySubjectId = null,
             lectureTab = tab, error = null) }
-    fun focusTodaySubject(id: String) =
+    fun focusTodaySubject(id: String, lectureId: String? = null) =
         _state.update { current -> current.copy(section = BatchSection.TODAY, todaySubjectId = id, selectedSubjectId = null,
-            focusedLectureId = current.overview?.watchList?.firstOrNull { it.subjectId == id }?.nextLectureId,
+            focusedLectureId = lectureId ?: current.overview?.nextStudyLecture(id, current.studyMode, indiaDay())?.id,
             completionFeedback = null, error = null) }
     fun continueTodayLecture(subjectId: String) = _state.update { current -> current.copy(
-        focusedLectureId = current.overview?.watchList?.firstOrNull { it.subjectId == subjectId }?.nextLectureId,
+        focusedLectureId = current.overview?.nextStudyLecture(subjectId, current.studyMode, indiaDay())?.id,
         completionFeedback = null, celebratingId = null,
     ) }
     fun backFromSubject() = _state.update { current ->
         if (current.todaySubjectId != null) current.copy(todaySubjectId = null)
-        else current.copy(selectedSubjectId = null, lectureTab = LectureTab.LECTURES)
+        else current.copy(section = current.subjectReturnSection, todaySubjectId = current.subjectReturnTodayId,
+            selectedSubjectId = null, subjectReturnTodayId = null, lectureTab = LectureTab.LECTURES)
     }
     fun backToCourses() = _state.update { it.copy(selectedSubjectId = null, lectureTab = LectureTab.LECTURES) }
     fun searchLibrary(query: String) = _state.update { it.copy(libraryQuery = query, lecturePages = it.lecturePages - "library-results") }
@@ -166,23 +198,31 @@ class ToppersBatchViewModel @Inject constructor(private val repository: ToppersB
         val offset = -ZoneId.of("Asia/Kolkata").rules.getOffset(Instant.now()).totalSeconds / 60
         when (val result = repository.calendar(month, offset)) {
             is Resource.Success -> if (_state.value.month == month) _state.update { it.copy(calendar = result.data) }
-            is Resource.Error -> _state.update { it.copy(error = result.message) }
+            is Resource.Error -> _state.update { it.copy(error = batchErrorNotice(result)) }
             else -> Unit
         }
+    }
+
+    fun undoCompletion(feedback: BatchCompletionFeedback) {
+        val current = _state.value
+        if (current.completionFeedback?.event != feedback.event) return
+        val lecture = current.overview?.lectures?.firstOrNull { it.id == feedback.lectureId } ?: return
+        if (lecture.completedAt == null || lecture.id in current.busyIds) return
+        toggleDone(lecture)
     }
 
     fun toggleDone(lecture: BatchLecture) {
         if (lecture.id in _state.value.busyIds) return
         if (lecture.isLocked(indiaDay())) {
-            _state.update { it.copy(message = "Unlocks ${lecture.scheduledFor?.take(10)}") }
+            _state.update { it.copy(message = BatchNotice(R.string.toppers_batch_unlocks_count, BatchDateArgument(lecture.scheduledFor?.take(10)))) }
             return
         }
         val done = lecture.completedAt == null
         val before = _state.value
-        val wasBacklog = lecture.olderWork(indiaDay()) || before.overview?.watchList.orEmpty()
+        val wasBacklog = before.overview?.watchList.orEmpty()
             .any { lecture.id in it.backlogLectureIds }
         _state.update { current -> current.copy(
-            overview = current.overview?.withLecture(lecture.copy(completedAt = if (done) Instant.now().toString() else null), indiaDay()),
+            overview = current.overview?.withLecture(lecture.copy(completedAt = if (done) Instant.now().toString() else null, completionDateUnknown = false), indiaDay()),
             busyIds = current.busyIds + lecture.id, error = null,
             celebratingId = null, completionFeedback = null, message = null,
         ) }
@@ -199,12 +239,12 @@ class ToppersBatchViewModel @Inject constructor(private val repository: ToppersB
                             batchCompletionMessage(lecture, updated, wasBacklog, indiaDay()),
                             System.nanoTime()
                         ) else null,
-                        message = if (done) null else "Lecture marked as not done.",
+                        message = if (done) null else BatchNotice(R.string.toppers_batch_lecture_marked_as_not_done),
                     )
                 }
                 is Resource.Error -> _state.update { current -> current.copy(
-                    overview = current.overview?.withLecture(lecture, indiaDay()), error = result.message,
-                    celebratingId = null,
+                    overview = current.overview?.withLecture(lecture, indiaDay()), error = batchErrorNotice(result),
+                    celebratingId = null, completionFeedback = if (!done) before.completionFeedback else current.completionFeedback,
                 ) }
                 else -> Unit
             }
@@ -214,13 +254,16 @@ class ToppersBatchViewModel @Inject constructor(private val repository: ToppersB
                 if (_state.value.section == BatchSection.TODAY) refreshToday()
             }
             if (done) {
+                val feedbackEvent = _state.value.completionFeedback?.takeIf { it.lectureId == lecture.id }?.event
                 delay(1800)
                 _state.update { if (it.celebratingId == lecture.id) it.copy(celebratingId = null) else it }
+                delay(6200)
+                _state.update { if (feedbackEvent != null && it.completionFeedback?.event == feedbackEvent) it.copy(completionFeedback = null) else it }
             }
         }
     }
 
-    private fun <T> change(id: String, successText: String, request: suspend () -> Resource<T>, onSuccess: () -> Unit = {}) {
+    private fun <T> change(id: String, successText: BatchNotice, request: suspend () -> Resource<T>, onSuccess: () -> Unit = {}) {
         if (id in _state.value.busyIds) return
         _state.update { it.copy(busyIds = it.busyIds + id, error = null, message = null) }
         viewModelScope.launch {
@@ -231,33 +274,82 @@ class ToppersBatchViewModel @Inject constructor(private val repository: ToppersB
                     _state.update { it.copy(busyIds = it.busyIds - id) }
                     reload()
                 }
-                is Resource.Error -> _state.update { it.copy(error = result.message) }
+                is Resource.Error -> {
+                    // Refresh stale plans without dismissing the student's panel or hiding the error.
+                    val refreshed = repository.overview()
+                    _state.update { it.copy(overview = (refreshed as? Resource.Success)?.data ?: it.overview, error = batchErrorNotice(result)) }
+                }
                 else -> Unit
             }
             _state.update { it.copy(busyIds = it.busyIds - id) }
         }
     }
 
+    fun savePlan(lecture: BatchLecture, body: Map<String, Any>, onSuccess: () -> Unit) {
+        val date = (body["dates"] as? List<*>)?.firstOrNull() as? String ?: body["date"] as? String
+        val message = when {
+            body["remove"] == true -> BatchNotice(R.string.toppers_batch_plan_removed)
+            body["kind"] == "watch" && date != null -> BatchNotice(R.string.toppers_batch_lecture_planned_for_count, BatchDateArgument(date))
+            else -> BatchNotice(R.string.toppers_batch_plan_saved)
+        }
+        change(lecture.id, message, {
+            repository.savePlan(lecture.id, body + ("version" to lecture.planVersion)).also { result ->
+                if (result is Resource.Success) _state.update { current ->
+                    val updated = current.overview?.withLecture(result.data.lecture, indiaDay())
+                    current.copy(overview = updated, today = updated?.todayEvents(indiaDay()))
+                }
+            }
+        }, onSuccess)
+    }
+
+    fun addToToday(lecture: BatchLecture) {
+        if (_state.value.studyMode != BatchStudyMode.PERSONAL) return
+        updateStudyDay()
+        val day = indiaDay()
+        val current = _state.value.overview?.lectures?.firstOrNull { it.id == lecture.id } ?: return
+        if (current.completedAt != null || current.isLocked(day) || current.studyPlannedFor?.let { it >= day } == true) return
+        savePlan(current, mapOf("kind" to "watch", "dates" to listOf(day))) {}
+    }
+    internal fun removeTodayTask(task: TodayPlanTask, onSuccess: () -> Unit = {}) {
+        updateStudyDay()
+        val current = _state.value.overview?.lectures?.firstOrNull { it.id == task.lecture.id } ?: return
+        val day = _state.value.studyDay
+        if (_state.value.studyMode != BatchStudyMode.PERSONAL) return
+        val stillPlanned = when (task.kind) {
+            "watch" -> current.completedAt == null && current.studyPlannedFor == day
+            "revision" -> current.completedAt != null && current.sessions.ifEmpty {
+                current.revisionDate?.let { listOf(ReviewSession(it, current.revisionCompletedAt)) }.orEmpty()
+            }.any { it.date == day && it.completedAt == null }
+            else -> false
+        }
+        if (stillPlanned) savePlan(current, mapOf("kind" to task.kind, "remove" to true), onSuccess)
+    }
+
+    fun reschedulePlans(date: String, items: List<Map<String, Any>>, onSuccess: () -> Unit) =
+        change("reschedule", BatchNotice(R.string.toppers_batch_plans_rescheduled), { repository.reschedule(date, items) }, onSuccess)
+    fun importPriorProgress(ids: List<String>, date: String?, onSuccess: () -> Unit) =
+        change("prior-progress", BatchNotice(R.string.toppers_batch_previous_progress_saved), { repository.priorProgress(ids, date) }, onSuccess)
+
     fun lectureAction(lecture: BatchLecture, action: String, body: Map<String, Any> = emptyMap(), remove: Boolean = false,
                       onSuccess: () -> Unit = {}) {
         if (lecture.isLocked(indiaDay()) && action in setOf("today", "backlog", "revision", "revision/complete", "complete")) return
         val text = when (action) {
-            "revision" -> "Study dates saved."
-            "revision/complete" -> "Study again marked done."
-            "backlog" -> if (remove) "Removed from backlog." else "Added to backlog."
-            "study-date" -> if (remove) "Personal study date cleared." else "Personal study date saved."
-            "revision-tag" -> if (remove) "Revision tag removed." else "Revision tag added."
-            "today" -> if (remove) "Class date cleared." else "Added to today."
-            else -> "Saved."
+            "revision" -> BatchNotice(R.string.toppers_batch_study_dates_saved)
+            "revision/complete" -> BatchNotice(R.string.toppers_batch_revision_completed)
+            "backlog" -> if (remove) BatchNotice(R.string.toppers_batch_removed_from_backlog) else BatchNotice(R.string.toppers_batch_added_to_backlog)
+            "study-date" -> if (remove) BatchNotice(R.string.toppers_batch_personal_study_date_cleared) else BatchNotice(R.string.toppers_batch_personal_study_date_saved)
+            "revision-tag" -> if (remove) BatchNotice(R.string.toppers_batch_revision_tag_removed) else BatchNotice(R.string.toppers_batch_revision_tag_added)
+            "today" -> if (remove) BatchNotice(R.string.toppers_batch_class_date_cleared) else BatchNotice(R.string.toppers_batch_added_to_today)
+            else -> BatchNotice(R.string.toppers_batch_saved)
         }
         if (action == "revision/complete") {
             val index = lecture.sessions.indexOfFirst { it.completedAt == null }
-            change(lecture.id, text, { repository.completeRevision(lecture.id, index) }, onSuccess)
+            change(lecture.id, text, { repository.completeRevision(lecture.id, index, lecture.planVersion) }, onSuccess)
         } else if (remove) change(lecture.id, text, { repository.removeAction(lecture.id, action) }, onSuccess)
         else change(lecture.id, text, { repository.action(lecture.id, action, body) }, onSuccess)
     }
     fun editLecture(lecture: BatchLecture, title: String, onSuccess: () -> Unit) =
-        change(lecture.id, "Lecture name saved.", { repository.editLecture(lecture.id, mapOf("displayTopic" to title.trim())) }, onSuccess)
+        change(lecture.id, BatchNotice(R.string.toppers_batch_lecture_name_saved), { repository.editLecture(lecture.id, mapOf("displayTopic" to title.trim())) }, onSuccess)
     fun lectureColor(lecture: BatchLecture, color: String?) {
         if (lecture.id in _state.value.busyIds) return
         val previous = _state.value.overview?.lectures?.firstOrNull { it.id == lecture.id }?.color
@@ -265,37 +357,55 @@ class ToppersBatchViewModel @Inject constructor(private val repository: ToppersB
         viewModelScope.launch {
             when (val result = repository.editLecture(lecture.id, mapOf("color" to color))) {
                 is Resource.Success -> Unit // The colour is already visible; no full-library reload.
-                is Resource.Error -> _state.update { it.withLectureColor(lecture.id, previous).copy(error = result.message) }
+                is Resource.Error -> _state.update { it.withLectureColor(lecture.id, previous).copy(error = batchErrorNotice(result)) }
                 else -> Unit
             }
             _state.update { it.copy(busyIds = it.busyIds - lecture.id) }
         }
     }
     fun removeLecture(lecture: BatchLecture, onSuccess: () -> Unit) =
-        change(lecture.id, "Lecture deleted. You can restore it in Lectures.", { repository.removeLecture(lecture.id) }, onSuccess)
-    fun restoreLecture(lecture: BatchLecture) = change(lecture.id, "Lecture restored.", { repository.restoreLecture(lecture.id) })
+        change(lecture.id, BatchNotice(R.string.toppers_batch_lecture_deleted_you_can_restore_it_in_lectures), { repository.removeLecture(lecture.id) }, onSuccess)
+    fun restoreLecture(lecture: BatchLecture) = change(lecture.id, BatchNotice(R.string.toppers_batch_lecture_restored), { repository.restoreLecture(lecture.id) })
     fun subjectColor(subject: BatchSubject, color: String?) {
+        val chosen = color ?: subject.defaultColor
+        if (_state.value.overview?.subjects.orEmpty().any { it.id != subject.id && (it.color ?: it.defaultColor)?.equals(chosen, ignoreCase = true) == true }) {
+            _state.update { it.copy(error = BatchNotice(R.string.toppers_batch_this_colour_is_used_by_another_subject_choose_a_different_colour)) }
+            return
+        }
         if (subject.id in _state.value.busyIds) return
         val previous = _state.value.overview?.subjects?.firstOrNull { it.id == subject.id }?.color
         fun BatchUiState.colour(value: String?) = copy(overview = overview?.copy(
             subjects = overview.subjects.map { if (it.id == subject.id) it.copy(color = value) else it }))
+        subjectColourRevision.incrementAndGet()
         _state.update { it.colour(color).copy(busyIds = it.busyIds + subject.id, error = null) }
         viewModelScope.launch {
-            when (val result = repository.editSubject(subject.id, mapOf("color" to color))) {
-                is Resource.Success -> Unit
-                is Resource.Error -> _state.update { it.colour(previous).copy(error = result.message) }
+            val result = repository.editSubject(subject.id, mapOf("color" to color))
+            // StateFlow suppresses equal values, so identity alone cannot detect a completed save.
+            subjectColourRevision.incrementAndGet()
+            when (result) {
+                is Resource.Success -> _state.update { it.colour(result.data.color) }
+                is Resource.Error -> _state.update { it.colour(previous).copy(error = batchErrorNotice(result)) }
                 else -> Unit
             }
             _state.update { it.copy(busyIds = it.busyIds - subject.id) }
         }
     }
     fun subjectLink(subject: BatchSubject, provider: String, url: String, onSuccess: () -> Unit) =
-        change(subject.id, "Course link saved.", { repository.editSubject(subject.id,
+        change(subject.id, BatchNotice(R.string.toppers_batch_course_link_saved), { repository.editSubject(subject.id,
             mapOf("externalProvider" to provider, "externalUrl" to url.trim())) }, onSuccess)
+    fun addLecture(subject: BatchSubject, title: String, onSuccess: () -> Unit) =
+        change(subject.id, BatchNotice(R.string.toppers_batch_lecture_added), { repository.addLecture(subject.id, title.trim()) }) {
+            onSuccess()
+            val datedWeeks = _state.value.overview?.lectures.orEmpty().filter { it.subjectId == subject.id }
+                .mapNotNull { row -> row.scheduledFor?.take(10)?.let { runCatching { LocalDate.parse(it) }.getOrNull() } }
+                .map { it.minusDays((it.dayOfWeek.value - 1).toLong()) }.distinct().size
+            selectSubject(subject.id)
+            selectLecturePage("agenda-${subject.id}", datedWeeks)
+        }
     fun removeSubject(subject: BatchSubject, onSuccess: () -> Unit) =
-        change(subject.id, "${subject.name} deleted. Restore it in Lectures.", { repository.removeSubject(subject.id) }, onSuccess)
+        change(subject.id, BatchNotice(R.string.toppers_batch_count_deleted_restore_it_in_lectures, BatchSubjectArgument(subject)), { repository.removeSubject(subject.id) }, onSuccess)
     fun restoreSubject(subject: BatchSubject) =
-        change(subject.id, "${subject.name} restored.", { repository.restoreSubject(subject.id) })
+        change(subject.id, BatchNotice(R.string.toppers_batch_count_restored, BatchSubjectArgument(subject)), { repository.restoreSubject(subject.id) })
     companion object {
         private val india = ZoneId.of("Asia/Kolkata")
         fun indiaDay(): String = LocalDate.now(india).format(DateTimeFormatter.ISO_LOCAL_DATE)

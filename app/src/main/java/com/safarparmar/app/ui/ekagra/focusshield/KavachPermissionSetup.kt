@@ -59,7 +59,7 @@ fun KavachPermissionSetupScreen(
     onContinue: () -> Unit,
     onBack: (() -> Unit)? = null,
 ) {
-    val allRequiredGranted = usageStatsGranted && overlayGranted
+    val allRequiredGranted = KavachActivationReadiness.hasRequiredPermissions(usageStatsGranted, overlayGranted)
 
     Scaffold(
         topBar = {

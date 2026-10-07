@@ -657,11 +657,13 @@ private fun PermissionRow(
                     fontWeight = FontWeight.Bold,
                     color = PlannerFlatColors.TextDark
                 )
-                Text(
-                    text = subtitle,
-                    fontSize = 12.sp,
-                    color = PlannerFlatColors.TextMuted
-                )
+                if (subtitle.isNotBlank() && !subtitle.trim().equals(title.trim(), ignoreCase = true)) {
+                    Text(
+                        text = subtitle,
+                        fontSize = 12.sp,
+                        color = PlannerFlatColors.TextMuted
+                    )
+                }
             }
         }
 
@@ -743,7 +745,7 @@ private fun SettingsSwitchRow(
                     fontWeight = FontWeight.Bold,
                     color = PlannerFlatColors.TextDark
                 )
-                if (subtitle.isNotEmpty()) {
+                if (subtitle.isNotBlank() && !subtitle.trim().equals(title.trim(), ignoreCase = true)) {
                     Text(
                         text = subtitle,
                         fontSize = 12.sp,
@@ -808,11 +810,13 @@ private fun SettingsNavigationRow(
                     fontWeight = FontWeight.Bold,
                     color = activeTitleColor
                 )
-                Text(
-                    text = subtitle,
-                    fontSize = 12.sp,
-                    color = PlannerFlatColors.TextMuted
-                )
+                if (subtitle.isNotBlank() && !subtitle.trim().equals(title.trim(), ignoreCase = true)) {
+                    Text(
+                        text = subtitle,
+                        fontSize = 12.sp,
+                        color = PlannerFlatColors.TextMuted
+                    )
+                }
             }
         }
         Icon(

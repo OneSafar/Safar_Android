@@ -280,7 +280,9 @@ internal fun EmptyGoalsCard(title: String, subtitle: String) {
             Icon(Icons.Default.CheckCircle, contentDescription = null, tint = GoalsFlatColors.Primary, modifier = Modifier.size(22.dp))
         }
         Text(title, fontFamily = LoraFontFamily, fontSize = 16.sp, color = GoalsFlatColors.Text, textAlign = TextAlign.Center)
-        Text(subtitle, fontSize = 12.sp, color = GoalsFlatColors.Muted, textAlign = TextAlign.Center)
+        if (subtitle.isNotBlank() && !subtitle.equals(title, ignoreCase = true)) {
+            Text(subtitle, fontSize = 12.sp, color = GoalsFlatColors.Muted, textAlign = TextAlign.Center)
+        }
     }
 }
 

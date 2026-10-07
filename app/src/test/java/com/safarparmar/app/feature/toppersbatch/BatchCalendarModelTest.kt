@@ -27,8 +27,8 @@ class BatchCalendarModelTest {
         val data = BatchOverview(subjects = subjects, course = BatchCourse(officialStartDate = "2026-09-28"),
             studyPlan = BatchStudyPlan("2026-10-01", "2027-03-28"))
         val events = data.calendarEvents()
-        assertEquals(listOf("Batch starts", "Your plan starts", "Your target finish"), events.map { it.title })
-        assertFalse(events.any { it.kind == BatchEventKind.DONE || it.title == "First lecture completed" })
+        assertEquals(listOf(BatchMilestone.BATCH_START, BatchMilestone.PLAN_START, BatchMilestone.TARGET_FINISH), events.map { it.milestone })
+        assertFalse(events.any { it.kind == BatchEventKind.DONE || it.milestone == BatchMilestone.FIRST_COMPLETION })
     }
     @Test fun completedRevisionHistoryRemainsAndDisabledSubjectsDoNotAppear() {
         val row = BatchLecture(id = "r", subjectId = "mathematics", completedAt = "2026-10-02T10:00:00Z",
@@ -44,6 +44,32 @@ class BatchCalendarModelTest {
         assertEquals("2026-10-12", events.single { it.kind == BatchEventKind.PLANNED }.date)
         assertEquals("2026-10-11", events.single { it.kind == BatchEventKind.DONE }.date)
         assertTrue(events.single { it.kind == BatchEventKind.DONE }.lecture!!.revisionTagged)
+    }
+
+    @Test fun revisionMenuListsPendingLecturesAndFollowsRescheduling() {
+        val rows = subjects.map { subject -> BatchLecture(id = subject.id, subjectId = subject.id,
+            completedAt = "2026-10-01T10:00:00Z", revisionSessions = listOf(ReviewSession("2026-10-05"))) }.toMutableList()
+        rows[0] = rows[0].copy(revisionSessions = listOf(ReviewSession("2026-10-05"), ReviewSession("2026-10-05"), ReviewSession("2026-10-05", "2026-10-05T10:00:00Z")))
+        fun pending(lectures: List<BatchLecture>, day: String = "2026-10-05") = pendingCalendarRevisions(
+            BatchOverview(subjects = subjects, lectures = lectures).calendarEvents().filter { it.date == day })
+        assertEquals(4, pending(rows).size)
+        assertEquals(2, pending(rows).first { it.first.lecture!!.id == rows[0].id }.second)
+        val moved = rows[1].copy(revisionSessions = listOf(ReviewSession("2026-10-06")))
+        assertTrue(pending(listOf(moved)).isEmpty())
+        assertEquals(1, pending(listOf(moved), "2026-10-06").size)
+        assertTrue(pending(listOf(rows[2].copy(revisionSessions = emptyList()))).isEmpty())
+        assertTrue(pending(listOf(rows[3].copy(completedAt = null))).isEmpty())
+        assertTrue(pendingCalendarRevisions(BatchOverview(subjects = subjects.map { it.copy(enabled = false) }, lectures = rows).calendarEvents()).isEmpty())
+    }
+
+    @Test fun remainingClassesFollowTimeAndDisappearAtTwoHourBoundary() {
+        val times = mapOf("gk" to "09:30", "reasoning" to "12:30", "english" to "15:30", "mathematics" to "18:30")
+        val data = BatchOverview(subjects = subjects, lectures = subjects.map { subject -> BatchLecture(id = subject.id,
+            subjectId = subject.id, subjectKey = subject.key, scheduledFor = "2026-10-05", classTime = times[subject.id]) })
+        fun at(time: String) = data.remainingClasses(java.time.OffsetDateTime.parse("2026-10-05T${time}:00+05:30").toInstant()).map { it.subject.id }
+        assertEquals(listOf("gk", "reasoning", "english", "mathematics"), at("10:00"))
+        assertEquals(listOf("reasoning", "english", "mathematics"), at("11:30"))
+        assertTrue(at("20:30").isEmpty())
     }
 
 }

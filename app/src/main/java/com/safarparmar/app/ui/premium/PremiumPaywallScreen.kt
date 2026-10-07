@@ -402,7 +402,6 @@ fun PremiumPaywallScreen(
                     }
 
                     when (dhyanPricing.accessState) {
-                        "LEGACY_PREMIUM_DISCOUNT" -> LegacyPremiumNotice(isDarkTheme = isDarkTheme)
                         "DHYAN_INCLUDED" -> DhyanAccessNotice(
                             isPremiumActive = isPremiumActive,
                             onOpenDhyan = { onNavigate(Routes.LIVE_SESSIONS_ROOT) },
@@ -796,40 +795,6 @@ private fun PremiumBenefitsCard(
     }
 }
 
-@Composable
-private fun LegacyPremiumNotice(
-    isDarkTheme: Boolean,
-) {
-    val accent = if (isDarkTheme) Color(0xFFC084FC) else Color(0xFF581C87)
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.CardWhite),
-        border = androidx.compose.foundation.BorderStroke(1.dp, accent.copy(alpha = 0.35f)),
-    ) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(15.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            PremiumSectionHeader(
-                icon = Icons.Default.WorkspacePremium,
-                title = stringResource(R.string.premium_existing_member_benefit),
-                isDarkTheme = isDarkTheme,
-            )
-            Text(
-                text = stringResource(R.string.premium_legacy_offer),
-                fontSize = 11.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = PlannerFlatColors.TextDark,
-            )
-            Text(
-                text = stringResource(R.string.premium_legacy_offer_terms),
-                fontSize = 11.sp,
-                color = PlannerFlatColors.TextMuted,
-            )
-        }
-    }
-}
 
 @Composable
 private fun DhyanAccessNotice(

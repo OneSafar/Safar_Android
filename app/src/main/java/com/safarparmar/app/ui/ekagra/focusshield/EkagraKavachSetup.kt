@@ -104,7 +104,7 @@ fun EkagraKavachInlineCard(
     var hasNotifications by remember { mutableStateOf(shieldState.hasNotifications) }
     var hasNotificationSuppressionAccess by remember { mutableStateOf(shieldState.hasNotificationSuppressionAccess) }
 
-    val requiredPermissionsGranted = hasUsageStats && hasOverlay
+    val requiredPermissionsGranted = KavachActivationReadiness.hasRequiredPermissions(hasUsageStats, hasOverlay)
     val startBlock = kavachStartBlock(
         shieldState.copy(
             hasUsageStats = hasUsageStats,

@@ -534,11 +534,9 @@ fun DhyanScreen(
     val dhyanVm: DhyanViewModel = hiltViewModel()
     val liveSessionVm: com.safarparmar.app.feature.live.presentation.LiveSessionViewModel = hiltViewModel()
     val premiumVm: PremiumViewModel = hiltViewModel()
-    val premiumStatus by premiumVm.premiumStatus.collectAsStateWithLifecycle()
-    val dhyanPricing by premiumVm.dhyanPricing.collectAsStateWithLifecycle()
-    val isPremium = premiumStatus.isPremium || premiumStatus.hasAnyPaidAccess
-    val hasDhyanLiveAccess = dhyanPricing.accessState == "DHYAN_INCLUDED"
     val liveAccess by premiumVm.dhyanLiveAccess.collectAsStateWithLifecycle()
+    // Course and live screens share the server-confirmed Dhyan entitlement.
+    val hasCourseAccess = liveAccess == "ALLOWED"
     androidx.lifecycle.compose.LifecycleResumeEffect(premiumVm) {
         premiumVm.refreshDhyanAccess()
         onPauseOrDispose {}
@@ -621,7 +619,7 @@ fun DhyanScreen(
                             DhyanTab.COURSES -> {
                                 DhyanCoursesContent(
                                     isDarkTheme = isDarkTheme,
-                                    isPremiumActive = hasDhyanLiveAccess,
+                                    isPremiumActive = hasCourseAccess,
                                     onNavigate = onNavigate,
                                     onGoToLive = { selectedTab = DhyanTab.LIVE },
                                 )
@@ -638,7 +636,7 @@ fun DhyanScreen(
                                         isDarkTheme = isDarkTheme,
                                     )
                                     com.safarparmar.app.feature.live.presentation.DhyanLiveAccessOverlay(
-                                            accessState = liveAccess,
+                                            accessState = if (hasCourseAccess) "ALLOWED" else liveAccess,
                                             onRetry = premiumVm::refreshDhyanAccess,
                                             modifier = Modifier.fillMaxSize(),
                                             isDarkTheme = isDarkTheme,

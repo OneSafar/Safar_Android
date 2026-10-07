@@ -107,7 +107,7 @@ private fun ExpandedPill(
                     .clip(RoundedCornerShape(8.dp))
                     .clickable(onClick = onOpen)
                     .padding(horizontal = 4.dp, vertical = 2.dp),
-                verticalArrangement = Arrangement.spacedBy(1.dp),
+                 verticalArrangement = Arrangement.spacedBy(1.dp),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                     if (kavachActive) {

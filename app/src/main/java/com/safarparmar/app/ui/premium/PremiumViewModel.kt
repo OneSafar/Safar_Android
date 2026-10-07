@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.ensureActive
 import javax.inject.Inject
 
 sealed class PremiumUiState {
@@ -41,7 +42,7 @@ class PremiumViewModel @Inject constructor(
     val dhyanLiveAccess: StateFlow<String> = _dhyanLiveAccess.asStateFlow()
     private var dhyanRefreshJob: kotlinx.coroutines.Job? = null
 
-    fun refreshDhyanAccess() = refreshDhyanAccess(force = false)
+    fun refreshDhyanAccess() = refreshDhyanAccess(force = true)
 
     private fun refreshDhyanAccess(force: Boolean) {
         if (force) dhyanRefreshJob?.cancel()
@@ -50,12 +51,12 @@ class PremiumViewModel @Inject constructor(
             if (_dhyanLiveAccess.value != "ALLOWED") _dhyanLiveAccess.value = "LOADING"
             val profile = authRepository.getMe()
             val user = (profile as? com.safarparmar.app.util.Resource.Success)?.data
-            // Match the website LiveSessions exception; server endpoints still enforce access.
             val privileged = user?.isAdmin == true || user?.email?.trim()?.lowercase() in
                 setOf("steve123@example.com", "safarparmar0@gmail.com")
             if (privileged) _dhyanLiveAccess.value = "ALLOWED"
             paymentRepository.getDhyanPricing().fold(
                 onSuccess = { pricing ->
+                    kotlinx.coroutines.currentCoroutineContext().ensureActive()
                     _dhyanPricing.value = pricing
                     _dhyanLiveAccess.value = when {
                         privileged || pricing.alreadyHasLive || pricing.accessState == "DHYAN_INCLUDED" -> "ALLOWED"
@@ -65,6 +66,7 @@ class PremiumViewModel @Inject constructor(
                     }
                 },
                 onFailure = {
+                    kotlinx.coroutines.currentCoroutineContext().ensureActive()
                     _dhyanPricing.value = com.safarparmar.app.data.remote.dto.DhyanPricingDto(accessState = "ERROR")
                     _dhyanLiveAccess.value = if (privileged) "ALLOWED" else "ERROR"
                 },

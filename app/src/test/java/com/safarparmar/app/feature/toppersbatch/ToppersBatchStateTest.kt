@@ -197,7 +197,7 @@ class ToppersBatchStateTest {
         val subject = BatchSubject(id = "gk", key = "gk", name = "General Knowledge", defaultColor = "#16A34A")
         val result = BatchOverview(subjects = listOf(subject), content = BatchTrackerContent(mapOf("todayTitle" to "Study next"))).officialOnly()
         assertEquals("General Knowledge", result.subjects.single().displayName())
-        assertEquals("Study next", result.copyText("todayTitle", "Fallback"))
+        assertEquals("Study next", result.content.copy["todayTitle"])
         assertTrue(result.lectures.isEmpty())
         assertTrue(BatchOverview().officialOnly().subjects.isEmpty())
     }

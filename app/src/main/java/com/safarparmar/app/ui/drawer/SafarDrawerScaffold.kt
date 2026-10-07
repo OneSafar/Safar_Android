@@ -64,6 +64,7 @@ fun SafarDrawerScaffold(
     containerColor: Color? = null,
     showTopBar: Boolean = true,
     showTopBarTitle: Boolean = true,
+    wrapTopBarTitle: Boolean = false,
     useGlassTopBar: Boolean = false,
     useDetachedMenuGlass: Boolean = false,
     /**
@@ -249,7 +250,14 @@ fun SafarDrawerScaffold(
                         )
                         if (showTopBarTitle) {
                             Column(
-                                modifier = Modifier.align(Alignment.Center).padding(horizontal = if (secondaryNavigationIcon != null) 112.dp else 56.dp),
+                                modifier = Modifier.align(Alignment.Center).then(
+                                    if (wrapTopBarTitle) Modifier.fillMaxWidth().padding(
+                                        start = if (secondaryNavigationIcon != null) 104.dp else 56.dp,
+                                        end = 16.dp,
+                                        top = 12.dp,
+                                        bottom = 12.dp,
+                                    ) else Modifier.padding(horizontal = if (secondaryNavigationIcon != null) 112.dp else 56.dp),
+                                ),
                                 horizontalAlignment = Alignment.CenterHorizontally,
                             ) {
                                 val shouldShowSubtitle = subtitle != null &&
@@ -271,8 +279,8 @@ fun SafarDrawerScaffold(
                                     fontSize = if (emphasizeTopBar) 21.sp else 18.sp,
                                     fontWeight = FontWeight.Bold,
                                     fontFamily = if (title.uppercase() == "SAFAR" || title.equals("Mehfil", ignoreCase = true)) LoraFontFamily else null,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
+                                    maxLines = if (wrapTopBarTitle) Int.MAX_VALUE else 1,
+                                    overflow = if (wrapTopBarTitle) TextOverflow.Clip else TextOverflow.Ellipsis,
                                 )
                             }
                         }

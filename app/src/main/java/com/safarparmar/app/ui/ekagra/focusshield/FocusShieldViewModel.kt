@@ -201,8 +201,7 @@ class FocusShieldViewModel @Inject constructor(
             repo.setBlockedPackages(selectedPackages)
             val hasUsage = FocusShieldPermissionHelper.hasUsageStatsPermission(app)
             val hasOverlay = FocusShieldPermissionHelper.hasOverlayPermission(app)
-            val hasBatterySaver = FocusShieldPermissionHelper.isIgnoringBatteryOptimizations(app)
-            if (hasUsage && hasOverlay && hasBatterySaver) {
+            if (KavachActivationReadiness.hasRequiredPermissions(hasUsage, hasOverlay)) {
                 repo.pendingEnableAfterAppSelection = false
                 repo.setEnabled(true)
                 return true

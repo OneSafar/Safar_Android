@@ -15,6 +15,7 @@ import com.safarparmar.app.ui.navigation.Routes
 import com.safarparmar.app.ui.theme.SafarTheme
 import org.junit.Assert.*
 import org.junit.Test
+import org.junit.Assume.assumeFalse
 import java.util.concurrent.atomic.AtomicReference
 
 class KavachProgressiveUiTest {
@@ -37,6 +38,36 @@ class KavachProgressiveUiTest {
             assertTrue(switches().none { it.isChecked })
             clickSwitch("YouTube Study Mode")
             await { route.get() == Routes.YOUTUBE_STUDY_MODE_V2 }
+        }
+    }
+
+    @Test fun kavachCanTurnOnWithoutBatteryOptimizationExemption() {
+        // Reproduce phones whose background-usage switch does not grant
+        // the separate Android battery-optimization exemption.
+        assumeFalse(FocusShieldPermissionHelper.isIgnoringBatteryOptimizations(instrumentation.targetContext))
+        val enabled = AtomicReference(false)
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            scenario.onActivity { activity ->
+                activity.setContent {
+                    SafarTheme {
+                        FocusShieldSettingsContent(
+                            state = FocusShieldUiState(
+                                hasUsageStats = true,
+                                hasOverlayPermission = true,
+                                blockedPackages = setOf("com.example.blocked"),
+                            ),
+                            accent = KavachDesign.Primary,
+                            onToggleEnabled = { enabled.set(it) },
+                            onOpenAppPicker = { fail("Apps are already selected") },
+                            onGoToEkagra = {}, onOpenOverlaySettings = {},
+                            modifier = Modifier.statusBarsPadding(),
+                        )
+                    }
+                }
+            }
+            clickSwitch("KAVACH")
+            await { enabled.get() }
+            assertFalse(hasText("Permissions & access"))
         }
     }
 
