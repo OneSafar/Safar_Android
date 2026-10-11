@@ -167,6 +167,7 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
                 // Invalidate both cached and in-flight decisions after a saved rule
                 // change. The next stable read uses the updated local allowlist.
                 evaluationGeneration++
+                lastEvaluatedKey = null
                 firstStableRead = null
                 stopAnalytics()
                 if (preferences.enabled.value && isYoutubeVisible()) scheduleRead(0L)
@@ -481,6 +482,10 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
             return
         }
         if (session.isAlreadyEvaluated(second.stableKey, lastEvaluatedKey)) {
+            if (pausedForFullscreenIdentity && lastWatchedClassification == YoutubeChannelClassification.PRODUCTIVE) {
+                resumeMedia()
+                pausedForFullscreenIdentity = false
+            }
             if (!analyticsOpen && lastWatchedClassification == YoutubeChannelClassification.PRODUCTIVE) {
                 recordAnalytics(lastWatchedChannelId, YoutubeInsightsRepository.CATEGORY_PRODUCTIVE, false)
             }
@@ -503,7 +508,7 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
             val evaluationStartedAtMs = SystemClock.elapsedRealtime()
             var applied = false
             try {
-                val evaluation = repository.evaluate(handle, observation.displayName)
+                val evaluation = repository.evaluate(handle, observation.displayName, observation.exactChannelId)
                 trace(
                     "EVALUATION result=${evaluation.classification} durationMs=" +
                         (SystemClock.elapsedRealtime() - evaluationStartedAtMs),
@@ -519,6 +524,7 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
                     verifiedVideoTitle = observation.title.takeIf { evaluation.decision == YoutubeV2RuntimeDecision.ALLOW }
                     lastEvaluatedKey = observation.stableKey
                     if (evaluation.decision == YoutubeV2RuntimeDecision.ALLOW) {
+                        fullscreenTransition.markVerified(observation)
                         blockOverlayVisible = false
                         overlay.dismiss()
                         if (pausedForFullscreenIdentity) resumeMedia()

@@ -40,9 +40,9 @@ internal fun isVideoCardAccessibilityLabel(value: CharSequence?): Boolean {
 internal fun isCurrentWatchPageInteraction(viewId: String?, label: String?): Boolean {
     val id = viewId.orEmpty().lowercase()
     val value = label.orEmpty().trim().lowercase()
-    return listOf("comment", "engagement_panel", "chip_cloud", "description_panel", "transcript").any(id::contains) ||
+    return listOf("comment", "engagement_panel", "chip_cloud", "description_panel", "transcript", "live_chat").any(id::contains) ||
         Regex("^(?:comments?|टिप्पणियाँ|टिप्पणियां)(?:$|[\\s·•]+[\\d.,km]+$)").matches(value) ||
         listOf("like this comment", "dislike this comment", "reply to this comment", "like this video", "dislike this video")
             .any { value == it || value.startsWith("$it ") } ||
-        value in setOf("top", "newest", "close", "share", "download", "save", "subscribe", "subscribed")
+        value in setOf("live chat", "top chat", "hide chat", "show chat", "top", "newest", "close", "share", "download", "save", "subscribe", "subscribed")
 }

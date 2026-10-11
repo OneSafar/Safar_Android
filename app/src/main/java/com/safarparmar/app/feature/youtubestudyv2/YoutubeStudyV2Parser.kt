@@ -411,7 +411,7 @@ object YoutubeStudyV2Parser {
     }
 
     private val WATCH_UPLOADER_STATISTICS = Regex(
-        "^\\d[\\d.,]*\\s*(?:k|m|b|lakh|crore)?\\s+likes?\\s+\\d[\\d.,]*\\s*(?:k|m|b|lakh|crore)?\\s+views?\\b",
+        "^\\d[\\d.,]*\\s*(?:k|m|b|lakh|crore)?\\s+(?:likes?\\s+\\d[\\d.,]*\\s*(?:k|m|b|lakh|crore)?\\s+)?(?:views?|watching)\\b",
         RegexOption.IGNORE_CASE,
     )
 

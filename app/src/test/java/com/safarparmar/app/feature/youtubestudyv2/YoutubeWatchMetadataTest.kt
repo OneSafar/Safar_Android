@@ -49,6 +49,22 @@ class YoutubeWatchMetadataTest {
         }
     }
 
+    @Test fun `merged live class metadata keeps title and uploader as viewer count changes`() {
+        for (stats in listOf("1.1K likes 29K watching now", "29,153 watching now", "30K watching")) {
+            val nodes = watch().mapIndexed { index, item ->
+                when (index) {
+                    4 -> item.copy(contentDescription = "$title @parmarssc $stats")
+                    in 5..9 -> item.copy(text = null, visibleToUser = false)
+                    else -> item
+                }
+            }
+            val result = parse(nodes)
+            assertEquals("@parmarssc", result.exactHandle)
+            assertEquals(title, result.title)
+            assertTrue(result.canResumeWatchSession)
+        }
+    }
+
     @Test fun `empty leading watch item cannot hide nested uploader metadata`() {
         val nodes = watch().toMutableList()
         // Insert an empty first list item without disturbing existing parent indices.
