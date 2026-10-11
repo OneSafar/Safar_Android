@@ -228,7 +228,10 @@ class FocusShieldRepository @Inject constructor(
         if (!isAlwaysOnMode.value && _sessionActive.value) {
             runCatching {
                 appContext.startService(
-                    Intent(appContext, TimerService::class.java).setAction(TimerService.ACTION_PAUSE),
+                    Intent(appContext, TimerService::class.java)
+                        .setAction(TimerService.ACTION_QUICK_UNLOCK)
+                        .putExtra("session", TimerService.live?.currentSessionId())
+                        .putExtra(TimerService.EXTRA_QUICK_UNLOCK_UNTIL, ShieldPrefs.getGraceUntilMs(appContext)),
                 )
             }.onFailure {
                 debugLog("Could not pause Ekagra for Quick Unlock: ${it.javaClass.simpleName}")
@@ -247,6 +250,12 @@ class FocusShieldRepository @Inject constructor(
         ) return
         ShieldPrefs.clearQuickUnlock(appContext)
         analyticsRecorder.quickUnlockEnded()
+    }
+
+    /** The timer owns the expiry ticket and has verified the matching grace window. */
+    fun finishQuickUnlockForAutomaticResume() {
+        analyticsRecorder.settleExpiredUnlocks()
+        ShieldPrefs.clearQuickUnlock(appContext)
     }
 
     /** Returning to a timer-linked focus session immediately restores protection. */

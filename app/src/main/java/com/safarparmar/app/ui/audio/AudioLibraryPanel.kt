@@ -1,8 +1,6 @@
 package com.safarparmar.app.ui.audio
 
 import com.safarparmar.app.performance.decorativeFloat
-import android.media.AudioAttributes
-import android.media.MediaPlayer
 import android.net.Uri
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -123,18 +121,13 @@ fun AudioLibraryPanel(
     var previewingTrackId by remember { mutableStateOf<String?>(null) }
     var isMuted by remember { mutableStateOf(false) }
 
-    val mediaPlayer = remember { mutableStateOf<MediaPlayer?>(null) }
+    val mediaPlayer = remember { mutableStateOf<FocusAwareMusicPlayer?>(null) }
 
     fun releasePreview() {
         val player = mediaPlayer.value
         mediaPlayer.value = null
         previewingTrackId = null
-        player?.let {
-            kotlin.concurrent.thread {
-                runCatching { it.stop() }
-                runCatching { it.release() }
-            }
-        }
+        player?.release()
     }
 
     fun playPreview(track: AudioTrack) {
@@ -150,26 +143,15 @@ fun AudioLibraryPanel(
 
         if (!isMuted) {
             try {
-                mediaPlayer.value = MediaPlayer().apply {
-                    setAudioAttributes(
-                        AudioAttributes.Builder()
-                            .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                            .setUsage(AudioAttributes.USAGE_MEDIA)
-                            .build(),
-                    )
-                    if (track.isLocal && track.localResId != null) {
-                        setDataSource(context, Uri.parse("android.resource://${context.packageName}/${track.localResId}"))
-                    } else {
-                        setDataSource(context, MediaFileCache.uriFor(context, track.url))
-                    }
-                    prepareAsync()
-                    setOnPreparedListener { start() }
-                    setOnCompletionListener { releasePreview() }
-                    setOnErrorListener { _, _, _ ->
-                        releasePreview()
-                        true
-                    }
+                val player = FocusAwareMusicPlayer(context)
+                mediaPlayer.value = player
+                val uri = if (track.isLocal && track.localResId != null) {
+                    Uri.parse("android.resource://${context.packageName}/${track.localResId}")
+                } else {
+                    MediaFileCache.uriFor(context, track.url)
                 }
+                player.play(uri, looping = false, volume = 1f,
+                    onCompletion = { releasePreview() }, onError = { releasePreview() })
             } catch (e: Exception) {
                 e.printStackTrace()
                 releasePreview()

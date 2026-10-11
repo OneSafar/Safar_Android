@@ -12,7 +12,7 @@ import android.os.Bundle
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
-import android.media.MediaPlayer
+import com.safarparmar.app.ui.audio.FocusAwareMusicPlayer
 import android.media.AudioAttributes
 import android.net.Uri
 import android.os.Binder
@@ -77,6 +77,8 @@ class TimerService : Service() {
         const val ACTION_PLAY_PAUSE = "com.safar.ekagra.ACTION_PLAY_PAUSE"
         const val ACTION_DECLINE_PRESENCE = "com.safar.ekagra.ACTION_DECLINE_PRESENCE"
         const val ACTION_CONFIRM_PRESENCE = "com.safar.ekagra.ACTION_CONFIRM_PRESENCE"
+        const val ACTION_QUICK_UNLOCK = "com.safar.ekagra.ACTION_QUICK_UNLOCK"
+        const val EXTRA_QUICK_UNLOCK_UNTIL = "quickUnlockUntil"
         const val ACTION_PAUSE = "com.safar.ekagra.ACTION_PAUSE"
         const val ACTION_END_SAVE = "com.safar.ekagra.ACTION_END_SAVE"
         internal var live: TimerService? = null
@@ -335,7 +337,9 @@ class TimerService : Service() {
         ).focusShieldRepository()
 
     // ── Audio player (lives in the service — survives navigation) ─────────────
-    private var musicPlayer: MediaPlayer? = null
+    private var musicPlayer: FocusAwareMusicPlayer? = null
+    private var quickUnlockResume: QuickUnlockResume? = null
+    private var quickUnlockResumeJob: kotlinx.coroutines.Job? = null
     private var currentMusicUrl: String   = ""
 
     /**
@@ -357,7 +361,7 @@ class TimerService : Service() {
         _isMuted.value = mute
         if (_isRunning.value && musicPlayer != null) {
             val volume = if (mute) 0f else 0.7f
-            musicPlayer?.setVolume(volume, volume)
+            musicPlayer?.setVolume(volume)
         }
     }
 
@@ -413,26 +417,23 @@ class TimerService : Service() {
         releaseMusic()
         if (url.isBlank() || url == "silence") return
         try {
-            musicPlayer = MediaPlayer().apply {
-                setDataSource(this@TimerService, MediaFileCache.uriFor(this@TimerService, url))
-                isLooping = true
-                val volume = if (_isMuted.value) 0f else 0.7f
-                setVolume(volume, volume)
-                setOnPreparedListener { start() }
-                prepareAsync()
-            }
-        } catch (e: Exception) { /* ignore */ }
+            val player = FocusAwareMusicPlayer(this)
+            musicPlayer = player
+            player.play(
+                uri = MediaFileCache.uriFor(this, url),
+                looping = true,
+                volume = if (_isMuted.value) 0f else 0.7f,
+            )
+        } catch (error: Exception) {
+            Log.w("TimerService", "Could not start background music", error)
+            releaseMusic()
+        }
     }
 
     private fun releaseMusic() {
         val player = musicPlayer
         musicPlayer = null
-        player?.let {
-            kotlin.concurrent.thread {
-                runCatching { it.stop() }
-                runCatching { it.release() }
-            }
-        }
+        player?.release()
     }
 
 
@@ -587,7 +588,10 @@ class TimerService : Service() {
                 if (intent.action == ACTION_CONFIRM_PRESENCE) confirmPresenceReminder() else declinePresenceReminder()
             }
             ACTION_PLAY_PAUSE -> if (intent.getStringExtra("session") == currentSessionId() && (timerSessionActive || _timerMode.value == TimerMode.BREAK)) togglePlayPause()
-            ACTION_PAUSE -> if (_isRunning.value) pause()
+            ACTION_QUICK_UNLOCK -> if (intent.getStringExtra("session") == currentSessionId()) {
+                pauseForQuickUnlock(intent.getLongExtra(EXTRA_QUICK_UNLOCK_UNTIL, 0L))
+            }
+            ACTION_PAUSE -> if (_isRunning.value || quickUnlockResume != null) pause()
             ACTION_RESET, ACTION_END_SAVE -> if (intent.getStringExtra("session") == currentSessionId() && autoSaveMetadata != null) endAndSave()
         }
         return START_STICKY
@@ -600,6 +604,7 @@ class TimerService : Service() {
     }
 
     override fun onDestroy() {
+        cancelQuickUnlockResume()
         saveCurrentProgress("interrupted")
         if (live === this) live = null
         EkagraTimerAlarms.cancel(this)
@@ -810,6 +815,7 @@ class TimerService : Service() {
     }
 
     fun start() {
+        cancelQuickUnlockResume()
         if (!recoveryReady || signedInUserId.isNullOrBlank()) {
             android.widget.Toast.makeText(this, saveFailure ?: "Preparing your saved study time. Please try again in a moment.", android.widget.Toast.LENGTH_SHORT).show()
             return
@@ -1020,7 +1026,51 @@ class TimerService : Service() {
         }
     }
 
+    private fun cancelQuickUnlockResume() {
+        quickUnlockResume = null
+        quickUnlockResumeJob?.cancel()
+        quickUnlockResumeJob = null
+    }
+
+    private fun pauseForQuickUnlock(graceUntilMs: Long) {
+        val id = currentSessionId() ?: return
+        val repository = focusShieldRepository()
+        if (graceUntilMs <= System.currentTimeMillis() ||
+            FocusShieldRepository.ShieldPrefs.getGraceUntilMs(this) != graceUntilMs ||
+            !timerSessionActive || _timerMode.value == TimerMode.BREAK ||
+            repository.isAlwaysOnMode.value || !repository.isEnabled.value ||
+            (!_isRunning.value && quickUnlockResume?.sessionId != id)
+        ) return
+        // Pause/reconcile before starting the break so none of its time is credited.
+        pause()
+        val pending = QuickUnlockResume(id, graceUntilMs,
+            SystemClock.elapsedRealtime() + (graceUntilMs - System.currentTimeMillis()).coerceAtLeast(0L))
+        quickUnlockResume = pending
+        quickUnlockResumeJob = scope.launch {
+            delay((pending.resumeAtElapsed - SystemClock.elapsedRealtime()).coerceAtLeast(0L))
+            resumeExpiredQuickUnlock()
+        }
+        // The alarm is a wake-up fallback when the coroutine sleeps with the screen off.
+        scheduleTimerAlarms()
+    }
+
+    private fun resumeExpiredQuickUnlock(): Boolean {
+        val pending = quickUnlockResume ?: return false
+        if (!pending.isDue(SystemClock.elapsedRealtime())) return false
+        val repository = focusShieldRepository()
+        val eligible = pending.matches(currentSessionId(), FocusShieldRepository.ShieldPrefs.getGraceUntilMs(this)) &&
+            timerSessionActive && !_isRunning.value && _timerMode.value != TimerMode.BREAK &&
+            sessionOwnerId == signedInUserId && !signedInUserId.isNullOrBlank() &&
+            repository.sessionActive.value && repository.isEnabled.value && !repository.isAlwaysOnMode.value
+        cancelQuickUnlockResume()
+        if (!eligible) return false
+        repository.finishQuickUnlockForAutomaticResume()
+        start()
+        return _isRunning.value
+    }
+
     fun pause() {
+        cancelQuickUnlockResume()
         if (_isRunning.value) reconcileElapsedTime()
         EkagraTimerAlarms.cancel(this)
         _isRunning.value = false
@@ -1296,6 +1346,7 @@ class TimerService : Service() {
     }
 
     private fun clearPersistedTimerState() {
+        cancelQuickUnlockResume()
         autoSaveMetadata = null
         timerStateWrites.trySend(TimerStateWrite.Clear)
     }
@@ -1318,7 +1369,11 @@ class TimerService : Service() {
     private fun scheduleTimerAlarmsInternal() {
         alarmGeneration += 1
         if (!_isRunning.value) {
-            if (_presenceCheckInDeadline.value != null) EkagraTimerAlarms.schedule(this, currentSessionId() ?: "break", alarmGeneration, presenceExpiryElapsed)
+            val deadline = minOf(
+                quickUnlockResume?.resumeAtElapsed ?: Long.MAX_VALUE,
+                if (_presenceCheckInDeadline.value != null) presenceExpiryElapsed else Long.MAX_VALUE,
+            )
+            if (deadline != Long.MAX_VALUE) EkagraTimerAlarms.schedule(this, currentSessionId() ?: "break", alarmGeneration, deadline)
             else EkagraTimerAlarms.cancel(this)
             return
         }
@@ -1332,7 +1387,12 @@ class TimerService : Service() {
     }
 
     internal fun onScheduledAlarm(id: String, generation: Long) {
-        if (id != (currentSessionId() ?: "break") || generation != alarmGeneration || (!_isRunning.value && _presenceCheckInDeadline.value == null)) return
+        if (id != (currentSessionId() ?: "break") || generation != alarmGeneration) return
+        if (resumeExpiredQuickUnlock()) return
+        if (!_isRunning.value && _presenceCheckInDeadline.value == null) {
+            scheduleTimerAlarms()
+            return
+        }
         reconcileElapsedTime()
         if (_presenceCheckInDeadline.value != null && SystemClock.elapsedRealtime() >= presenceExpiryElapsed) {
             _presenceCheckInDeadline.value = null
