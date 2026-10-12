@@ -83,13 +83,16 @@ internal fun DurationTab(
     onAutoStartBreakChange: (Boolean) -> Unit,
     timerAlertStyle: com.safarparmar.app.data.local.TimerAlertStyle,
     onTimerAlertStyleChange: (com.safarparmar.app.data.local.TimerAlertStyle) -> Unit,
-    onStartPomodoro: (Int) -> Unit,
+    onStartPomodoro: (PomodoroStartRequest) -> Unit,
     onSave: () -> Unit,
 ) {
     val scheme = MaterialTheme.colorScheme
     val ink = rememberEkagraInk(onCanvas = false)
     var showPomodoroDialog by remember { androidx.compose.runtime.mutableStateOf(false) }
     var pomodoroLoopsInput by remember { androidx.compose.runtime.mutableStateOf("4") }
+    var pomodoroFocusInput by remember(focusMinutes) { androidx.compose.runtime.mutableStateOf(focusMinutes.toString()) }
+    var pomodoroBreakInput by remember(breakMinutes) { androidx.compose.runtime.mutableStateOf(breakMinutes.toString()) }
+    var pomodoroStyle by remember { androidx.compose.runtime.mutableStateOf(PomodoroStyle.TRADITIONAL) }
 
     Column(
         modifier = modifier
@@ -100,25 +103,25 @@ internal fun DurationTab(
             .padding(horizontal = 24.dp)
             .padding(top = 20.dp),
     ) {
-        EkagraEyebrow("Settings", ink.secondaryText)
+        EkagraEyebrow(stringResource(R.string.common_settings), ink.secondaryText)
         Spacer(Modifier.height(6.dp))
-        EkagraDisplayTitle("Set your rhythm", ink.primaryText)
+        EkagraDisplayTitle(stringResource(R.string.ekagra_set_rhythm), ink.primaryText)
         Spacer(Modifier.height(22.dp))
 
         DurationSection(
-            label         = "Ekagra",
+            label         = stringResource(R.string.ekagra_title),
             value         = focusMinutes,
             range         = 1f..120f,
             presets       = listOf(15, 25, 45, 60),
             ink           = ink,
             onValueChange = onFocusChange,
-            // 20 hours. Long enough for any real study block; past that the
-            // student is more likely mistyping than planning.
-            customMaxMinutes = 1200,
-            overLimitMessage = "Please Take a Break Buddy",
+            // A single Ekagra countdown may be at most 18 hours. Stopwatch is
+            // intentionally unbounded because it does not use this duration.
+            customMaxMinutes = 18 * 60,
+            overLimitMessage = stringResource(R.string.ekagra_take_break_buddy),
         )
         DurationSection(
-            label         = "Break",
+            label         = stringResource(R.string.ekagra_break),
             value         = breakMinutes,
             range         = 1f..60f,
             presets       = listOf(5, 10, 15, 30),
@@ -128,8 +131,8 @@ internal fun DurationTab(
 
         EkagraHairline(ink.hairline)
         SettingToggleRow(
-            title    = "Audio",
-            subtitle = if (isMuted) "Background audio is muted" else "Background audio is playing",
+            title    = stringResource(R.string.ekagra_audio),
+            subtitle = if (isMuted) stringResource(R.string.ekagra_audio_muted) else stringResource(R.string.ekagra_audio_playing),
             checked  = !isMuted,
             ink      = ink,
             onCheckedChange = { onMuteChange(!it) },
@@ -137,14 +140,15 @@ internal fun DurationTab(
 
         EkagraHairline(ink.hairline)
         SettingToggleRow(
-            title    = "Auto-start breaks",
-            subtitle = if (autoStartBreak) "Break starts when the timer ends" else "Break stays paused until you start it",
+            title    = stringResource(R.string.ekagra_auto_start_breaks),
+            subtitle = if (autoStartBreak) stringResource(R.string.ekagra_break_auto_help) else stringResource(R.string.ekagra_break_manual_help),
             checked  = autoStartBreak,
             ink      = ink,
             onCheckedChange = onAutoStartBreakChange,
         )
 
         EkagraHairline(ink.hairline)
+        EkagraAlarmAccessRow()
         TimerAlertStyleRow(
             selectedStyle = timerAlertStyle,
             ink = ink,
@@ -160,14 +164,18 @@ internal fun DurationTab(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             EkagraPrimaryAction(
-                label   = "Save changes",
+                label   = stringResource(R.string.goals_save_changes),
                 accent  = scheme.primary,
                 onClick = onSave,
             )
             EkagraGhostAction(
-                label   = "Pomodoro",
+                label   = stringResource(R.string.ekagra_pomodoro),
                 ink     = ink,
-                onClick = { showPomodoroDialog = true },
+                onClick = {
+                    pomodoroFocusInput = focusMinutes.toString()
+                    pomodoroBreakInput = breakMinutes.toString()
+                    showPomodoroDialog = true
+                },
             )
         }
         Spacer(Modifier.height(28.dp))
@@ -188,7 +196,7 @@ internal fun DurationTab(
                 ) {
                     Icon(Icons.Default.Timer, contentDescription = null, tint = scheme.primary, modifier = Modifier.size(24.dp))
                     Text(
-                        "Start Pomodoro",
+                        stringResource(R.string.ekagra_start_pomodoro),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.ExtraBold,
                         color = scheme.onSurface
@@ -196,9 +204,64 @@ internal fun DurationTab(
                 }
             },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(
+                    modifier = Modifier.verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        listOf(
+                            PomodoroStyle.TRADITIONAL to stringResource(R.string.ekagra_pomodoro_traditional),
+                            PomodoroStyle.CUSTOM to stringResource(R.string.ekagra_pomodoro_custom),
+                        ).forEach { (style, label) ->
+                            val selected = pomodoroStyle == style
+                            if (selected) {
+                                Button(
+                                    onClick = { pomodoroStyle = style },
+                                    modifier = Modifier.weight(1f),
+                                ) { Text(label) }
+                            } else {
+                                OutlinedButton(
+                                    onClick = { pomodoroStyle = style },
+                                    modifier = Modifier.weight(1f),
+                                ) { Text(label) }
+                            }
+                        }
+                    }
+                    if (pomodoroStyle == PomodoroStyle.TRADITIONAL) {
+                        Text(
+                            stringResource(R.string.ekagra_pomodoro_traditional_summary),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = scheme.onSurfaceVariant,
+                        )
+                    } else {
+                        Text(
+                            stringResource(R.string.ekagra_pomodoro_custom_summary),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = scheme.onSurfaceVariant,
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedTextField(
+                                value = pomodoroFocusInput,
+                                onValueChange = { pomodoroFocusInput = it.filter(Char::isDigit).take(3) },
+                                label = { Text(stringResource(R.string.ekagra_pomodoro_focus_minutes)) },
+                                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                                singleLine = true,
+                                modifier = Modifier.weight(1f),
+                            )
+                            OutlinedTextField(
+                                value = pomodoroBreakInput,
+                                onValueChange = { pomodoroBreakInput = it.filter(Char::isDigit).take(2) },
+                                label = { Text(stringResource(R.string.ekagra_pomodoro_break_minutes)) },
+                                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                                singleLine = true,
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
                     Text(
-                        "How many focus-break loops would you like to run?",
+                        stringResource(R.string.ekagra_pomodoro_loops_question),
                         style = MaterialTheme.typography.bodyMedium,
                         color = scheme.onSurfaceVariant
                     )
@@ -214,21 +277,29 @@ internal fun DurationTab(
                         ),
                         modifier = Modifier.fillMaxWidth()
                     )
+                    }
                 }
             },
             confirmButton = {
                 EkagraPrimaryAction(
-                    label = "Start",
+                    label = stringResource(R.string.common_start),
                     accent = scheme.primary,
                     onClick = {
                         showPomodoroDialog = false
-                        onStartPomodoro(pomodoroLoopsInput.toIntOrNull() ?: 4)
+                        onStartPomodoro(
+                            PomodoroStartRequest(
+                                style = pomodoroStyle,
+                                loops = pomodoroLoopsInput.toIntOrNull() ?: 4,
+                                focusMinutes = pomodoroFocusInput.toIntOrNull() ?: focusMinutes,
+                                breakMinutes = pomodoroBreakInput.toIntOrNull() ?: breakMinutes,
+                            )
+                        )
                     },
                 )
             },
             dismissButton = {
                 EkagraGhostAction(
-                    label = "Cancel",
+                    label = stringResource(R.string.common_cancel),
                     ink = ink,
                     onClick = { showPomodoroDialog = false },
                 )
@@ -289,7 +360,7 @@ internal fun DurationSection(
             )
             Spacer(Modifier.width(5.dp))
             Text(
-                "min",
+                stringResource(R.string.common_min_short),
                 fontSize = 13.sp,
                 color    = ink.mutedText,
                 modifier = Modifier.padding(bottom = 3.dp),
@@ -299,7 +370,7 @@ internal fun DurationSection(
                 onClick  = { showCustomInput = !showCustomInput; customText = "" },
                 modifier = Modifier.size(48.dp),
             ) {
-                Icon(Icons.Default.Edit, contentDescription = "Custom value",
+                Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.ekagra_custom_duration),
                     modifier = Modifier.size(16.dp), tint = ink.mutedText)
             }
         }
@@ -312,7 +383,7 @@ internal fun DurationSection(
                     // 4 digits: a 3-digit cap made values like 1200 impossible to
                     // even type, which read as "the limit is 999".
                     onValueChange = { customText = it.filter { c -> c.isDigit() }.take(4) },
-                    placeholder   = { Text("Minutes") },
+                    placeholder   = { Text(stringResource(R.string.common_minutes)) },
                     singleLine    = true,
                     modifier      = Modifier.weight(1f),
                     shape         = RoundedCornerShape(SafarGlassChromeRadius),
@@ -320,7 +391,7 @@ internal fun DurationSection(
                         keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
                 )
                 EkagraPrimaryAction(
-                    label  = "Set",
+                    label  = stringResource(R.string.common_set),
                     accent = scheme.primary,
                     onClick = {
                         // Accept any typed value from the range floor up to
@@ -337,7 +408,7 @@ internal fun DurationSection(
                             // all, so the Set button looked broken.
                             v < minMinutes -> Toast.makeText(
                                 context,
-                                "Please choose at least $minMinutes minute${if (minMinutes == 1) "" else "s"}.",
+                                context.resources.getQuantityString(R.plurals.ekagra_minimum_minutes, minMinutes, minMinutes),
                                 Toast.LENGTH_SHORT,
                             ).show()
                             else -> { onValueChange(v); showCustomInput = false }
@@ -362,8 +433,8 @@ internal fun DurationSection(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            Text("${range.start.toInt()} min", fontSize = 11.sp, color = ink.mutedText)
-            Text("${range.endInclusive.toInt()} min", fontSize = 11.sp, color = ink.mutedText)
+            Text(stringResource(R.string.common_minutes_short, range.start.toInt()), fontSize = 11.sp, color = ink.mutedText)
+            Text(stringResource(R.string.common_minutes_short, range.endInclusive.toInt()), fontSize = 11.sp, color = ink.mutedText)
         }
 
         if (presets.isNotEmpty()) {
@@ -373,7 +444,7 @@ internal fun DurationSection(
             ) {
                 presets.forEach { preset ->
                     EkagraPill(
-                        label    = "$preset min",
+                        label    = stringResource(R.string.common_minutes_short, preset),
                         selected = value == preset,
                         accent   = scheme.primary,
                         ink      = ink,
@@ -393,26 +464,26 @@ private fun TimerAlertStyleRow(
 ) {
     var showSelector by remember { mutableStateOf(false) }
     val selectedLabel = when (selectedStyle) {
-        com.safarparmar.app.data.local.TimerAlertStyle.SOUND -> "Sound"
-        com.safarparmar.app.data.local.TimerAlertStyle.VIBRATE -> "Vibrate"
-        com.safarparmar.app.data.local.TimerAlertStyle.OFF -> "Off"
+        com.safarparmar.app.data.local.TimerAlertStyle.SOUND -> stringResource(R.string.ekagra_alert_sound)
+        com.safarparmar.app.data.local.TimerAlertStyle.VIBRATE -> stringResource(R.string.ekagra_alert_vibrate)
     }
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
             .clickable { showSelector = true }
-            .padding(vertical = 18.dp),
+            .padding(vertical = 14.dp, horizontal = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
-            Text("Timer alert", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = ink.primaryText)
-            Text("How Ekagra tells you a session ended", fontSize = 12.sp, color = ink.mutedText)
+            Text(stringResource(R.string.ekagra_timer_alert), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = ink.primaryText)
+            Text(stringResource(R.string.ekagra_timer_alert_help), fontSize = 12.sp, color = ink.mutedText)
         }
         Text(selectedLabel, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = ink.secondaryText)
         Icon(
             Icons.Default.ChevronRight,
-            contentDescription = "Choose timer alert style",
+            contentDescription = stringResource(R.string.ekagra_choose_alert_style),
             tint = ink.mutedText,
             modifier = Modifier.size(18.dp),
         )
@@ -421,22 +492,22 @@ private fun TimerAlertStyleRow(
     if (showSelector) {
         AlertDialog(
             onDismissRequest = { showSelector = false },
-            title = { Text("Timer Alert Style") },
+            title = { Text(stringResource(R.string.ekagra_timer_alert_style)) },
             text = {
                 Column {
                     listOf(
-                        com.safarparmar.app.data.local.TimerAlertStyle.VIBRATE to "Vibrate",
-                        com.safarparmar.app.data.local.TimerAlertStyle.SOUND to "Sound",
-                        com.safarparmar.app.data.local.TimerAlertStyle.OFF to "Off",
+                        com.safarparmar.app.data.local.TimerAlertStyle.SOUND to stringResource(R.string.ekagra_alert_sound),
+                        com.safarparmar.app.data.local.TimerAlertStyle.VIBRATE to stringResource(R.string.ekagra_alert_vibrate),
                     ).forEach { (style, label) ->
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .clip(RoundedCornerShape(10.dp))
                                 .clickable {
                                     onStyleSelected(style)
                                     showSelector = false
                                 }
-                                .padding(vertical = 10.dp),
+                                .padding(vertical = 10.dp, horizontal = 8.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             RadioButton(
@@ -453,7 +524,7 @@ private fun TimerAlertStyleRow(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showSelector = false }) { Text("Cancel") }
+                TextButton(onClick = { showSelector = false }) { Text(stringResource(R.string.common_cancel)) }
             },
         )
     }
@@ -471,8 +542,9 @@ internal fun SettingToggleRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
             .clickable { onCheckedChange(!checked) }
-            .padding(vertical = 14.dp),
+            .padding(vertical = 12.dp, horizontal = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
@@ -489,3 +561,27 @@ internal fun SettingToggleRow(
 }
 
 // ─── History tab ───────────────────────────────────────────────────────────────
+
+@Composable
+private fun EkagraAlarmAccessRow() {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val owner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    var allowed by remember { mutableStateOf(EkagraTimerAlarms.exactAllowed(context)) }
+    DisposableEffect(owner) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) allowed = EkagraTimerAlarms.exactAllowed(context)
+        }
+        owner.lifecycle.addObserver(observer)
+        onDispose { owner.lifecycle.removeObserver(observer) }
+    }
+    Column(Modifier.fillMaxWidth().padding(vertical = 12.dp)) {
+        Text(stringResource(R.string.ekagra_alarm_access_title), style = MaterialTheme.typography.titleSmall)
+        Text(if (allowed) stringResource(R.string.ekagra_alarm_access_enabled)
+            else stringResource(R.string.ekagra_alarm_access_needed),
+            style = MaterialTheme.typography.bodySmall)
+        if (!allowed && android.os.Build.VERSION.SDK_INT >= 31) TextButton(onClick = {
+            runCatching { context.startActivity(android.content.Intent(android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,
+                android.net.Uri.parse("package:${context.packageName}"))) }
+        }) { Text(stringResource(R.string.ekagra_allow_alarms)) }
+    }
+}

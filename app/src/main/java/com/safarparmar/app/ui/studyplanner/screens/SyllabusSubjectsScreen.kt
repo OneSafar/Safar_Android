@@ -1,5 +1,8 @@
 package com.safarparmar.app.ui.studyplanner.screens
 
+import androidx.compose.ui.res.stringResource
+import com.safarparmar.app.R
+
 import com.safarparmar.app.ui.studyplanner.components.PlannerDialogTextAction
 import com.safarparmar.app.ui.studyplanner.components.PlannerDialogText
 import com.safarparmar.app.ui.studyplanner.components.PlannerDialogAction
@@ -100,6 +103,7 @@ fun SyllabusSubjectsScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val subjects by viewModel.subjects.collectAsStateWithLifecycle()
     val actions: PlannerActions = viewModel
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     var dialogState by remember { mutableStateOf<SyllabusDialogState>(SyllabusDialogState.Closed) }
     var activeSubjectId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -115,7 +119,6 @@ fun SyllabusSubjectsScreen(
     var showNewDatesConfirm by rememberSaveable { mutableStateOf(false) }
     var showSaveForReuseConfirm by rememberSaveable { mutableStateOf(false) }
     var showChangeHelp by rememberSaveable { mutableStateOf(false) }
-    var orderChanged by rememberSaveable(planId) { mutableStateOf(false) }
     var showPlanSettings by rememberSaveable { mutableStateOf(false) }
     var showFullPlanTitle by rememberSaveable { mutableStateOf(false) }
 
@@ -152,7 +155,7 @@ fun SyllabusSubjectsScreen(
                 val name = names[0]
                 if (findDuplicateSiblingName(name, rawSubjects.map { it.name })) {
                     dialogState = SyllabusDialogState.DuplicateNameConfirm(
-                        message = "You already have a subject called '$name'. Add it again?",
+                        message = context.getString(R.string.planner_duplicate_subject, name),
                         onConfirm = { actions.addSubject(name) },
                     )
                 } else {
@@ -167,7 +170,7 @@ fun SyllabusSubjectsScreen(
         val siblings = rawSubjects.filter { it.id != subjectId }.map { it.name }
         if (findDuplicateSiblingName(name, siblings)) {
             dialogState = SyllabusDialogState.DuplicateNameConfirm(
-                message = "You already have a subject called '$name'. Add it again?",
+                message = context.getString(R.string.planner_duplicate_subject, name),
                 onConfirm = { actions.renameSubject(subjectId, name) },
             )
         } else {
@@ -189,7 +192,7 @@ fun SyllabusSubjectsScreen(
                 val siblings = subject?.chapters.orEmpty().map { it.name }
                 if (findDuplicateSiblingName(name, siblings)) {
                     dialogState = SyllabusDialogState.DuplicateNameConfirm(
-                        message = "You already have a chapter called '$name'. Add it again?",
+                        message = context.getString(R.string.planner_duplicate_chapter, name),
                         onConfirm = { actions.addChapter(subjectId, name) },
                     )
                 } else {
@@ -205,7 +208,7 @@ fun SyllabusSubjectsScreen(
         val siblings = subject?.chapters.orEmpty().filter { it.id != chapterId }.map { it.name }
         if (findDuplicateSiblingName(name, siblings)) {
             dialogState = SyllabusDialogState.DuplicateNameConfirm(
-                message = "You already have a chapter called '$name'. Add it again?",
+                message = context.getString(R.string.planner_duplicate_chapter, name),
                 onConfirm = { actions.renameChapter(subjectId, chapterId, name) },
             )
         } else {
@@ -228,7 +231,7 @@ fun SyllabusSubjectsScreen(
                 val siblings = chapter?.topics.orEmpty().map { it.name }
                 if (findDuplicateSiblingName(name, siblings)) {
                     dialogState = SyllabusDialogState.DuplicateNameConfirm(
-                        message = "You already have a topic called '$name'. Add it again?",
+                        message = context.getString(R.string.planner_duplicate_topic, name),
                         onConfirm = { actions.addTopic(subjectId, chapterId, name) },
                     )
                 } else {
@@ -290,7 +293,6 @@ fun SyllabusSubjectsScreen(
     }
 
     fun saveSubjectOrder() {
-        orderChanged = true
         actions.reorderSyllabus(subjectIds = localSubjects.map { it.id })
     }
 
@@ -308,7 +310,6 @@ fun SyllabusSubjectsScreen(
     }
 
     fun saveChapterOrder(subjectId: String) {
-        orderChanged = true
         val subject = localSubjects.find { it.id == subjectId } ?: return
         actions.reorderSyllabus(chapterIdsBySubjectId = mapOf(subjectId to subject.chapters.map { it.id }))
     }
@@ -341,7 +342,6 @@ fun SyllabusSubjectsScreen(
     }
 
     fun saveTopicOrder(chapterId: String) {
-        orderChanged = true
         val chapter = localSubjects.asSequence()
             .flatMap { it.chapters.asSequence() }
             .firstOrNull { it.id == chapterId } ?: return
@@ -413,8 +413,8 @@ fun SyllabusSubjectsScreen(
                         if (subject.chapters.isEmpty()) {
                             item {
                                 SyllabusMagazineEmptyNote(
-                                    text = "No chapters yet. Add your first chapter to this subject.",
-                                    actionLabel = "+ Add chapter",
+                                    text = stringResource(R.string.planner_no_chapters_subject),
+                                    actionLabel = stringResource(R.string.planner_add_chapter_plus),
                                     onAction = {
                                         subjects.firstOrNull { it.id == subject.id }?.let {
                                             dialogState = SyllabusDialogState.AddChapter(it)
@@ -548,9 +548,6 @@ fun SyllabusSubjectsScreen(
                                     onClick = { showChangePlan = true },
                                 )
                                 Spacer(Modifier.height(10.dp))
-                                if (orderChanged) {
-                                    TextButton(enabled = !state.mutating, onClick = { showNewDatesConfirm = true }) { Text("Order changed · Update schedule") }
-                                }
                                 if (state.pendingRatingChapterIds.isNotEmpty() && !state.ratingRebuildPromptDismissed) {
                                     SyllabusRatingRebuildBar(
                                         hasExamDate = !selectedPlan?.examDate.isNullOrBlank(),
@@ -580,7 +577,7 @@ fun SyllabusSubjectsScreen(
                                     )
                                 }
                                 SyllabusMagazineListHeader(
-                                    title = "Your subjects",
+                                    title = stringResource(R.string.planner_your_subjects),
                                     onAddSubject = { dialogState = SyllabusDialogState.AddSubject },
                                     addContentDescription = "Add subject",
                                     modifier = Modifier.padding(top = 14.dp, bottom = 6.dp),
@@ -590,8 +587,8 @@ fun SyllabusSubjectsScreen(
                             if (localSubjects.isEmpty() && !shouldShowFullImport) {
                                 item {
                                     SyllabusMagazineEmptyNote(
-                                        text = "No subjects yet. Add your first one to start building the syllabus.",
-                                        actionLabel = "+ Add subject",
+                                        text = stringResource(R.string.planner_no_subjects_syllabus),
+                                        actionLabel = stringResource(R.string.planner_add_subject_plus),
                                         onAction = { dialogState = SyllabusDialogState.AddSubject },
                                     )
                                 }
@@ -663,12 +660,12 @@ fun SyllabusSubjectsScreen(
                         topicForDatePicker = null
                     }
                 ) {
-                    Text("OK", fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.common_ok), fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { topicForDatePicker = null }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.common_cancel))
                 }
             }
         ) {
@@ -740,8 +737,7 @@ fun SyllabusSubjectsScreen(
         }
         is SyllabusDialogState.DeleteChapter -> {
             val impact = ds.chapter.deleteImpact()
-            val body = "This will remove ${impact.topicCount} topics. ${impact.scheduledTopicCount} of them already have a date set. " +
-                "You can undo this from the message that appears after."
+            val body = stringResource(R.string.planner_delete_chapter_impact, impact.topicCount, impact.scheduledTopicCount)
             ConfirmActionDialog("Delete this chapter?", body, { dialogState = SyllabusDialogState.Closed }) {
                 actions.deleteChapter(ds.subjectId, ds.chapter.id)
                 dialogState = SyllabusDialogState.Closed
@@ -761,7 +757,7 @@ fun SyllabusSubjectsScreen(
         is SyllabusDialogState.DeleteTopic -> {
             ConfirmActionDialog(
                 "Delete this topic?",
-                "This will remove '${ds.topic.name}'. You can undo this from the message that appears after.",
+                stringResource(R.string.planner_delete_topic_named, ds.topic.name),
                 { dialogState = SyllabusDialogState.Closed },
             ) {
                 actions.deleteTopic(ds.topic.id)
@@ -787,13 +783,13 @@ fun SyllabusSubjectsScreen(
         is SyllabusDialogState.DuplicateNameConfirm -> {
             PlannerDialog(
                 onDismissRequest = { dialogState = SyllabusDialogState.Closed },
-                title = "Name already used",
+                title = stringResource(R.string.planner_name_already_used),
                 text = { PlannerDialogText(ds.message) },
                 dismissButton = {
-                    PlannerDialogTextAction("Cancel") { dialogState = SyllabusDialogState.Closed }
+                    PlannerDialogTextAction(stringResource(R.string.common_cancel)) { dialogState = SyllabusDialogState.Closed }
                 },
                 confirmButton = {
-                    PlannerDialogAction(text = "Add Anyway") {
+                    PlannerDialogAction(text = stringResource(R.string.planner_add_anyway)) {
                         ds.onConfirm(); dialogState = SyllabusDialogState.Closed
                     }
                 },
@@ -840,10 +836,10 @@ fun SyllabusSubjectsScreen(
                 )
             },
             dismissButton = {
-                PlannerDialogTextAction("Not now") { showSaveForReuseConfirm = false }
+                PlannerDialogTextAction(stringResource(R.string.common_not_now)) { showSaveForReuseConfirm = false }
             },
             confirmButton = {
-                PlannerDialogAction(text = "Save for reuse") {
+                PlannerDialogAction(text = stringResource(R.string.planner_save_for_reuse)) {
                     showSaveForReuseConfirm = false
                     actions.saveCurrentSyllabusForReuse()
                 }
@@ -854,19 +850,18 @@ fun SyllabusSubjectsScreen(
     if (showNewDatesConfirm) {
         PlannerDialog(
             onDismissRequest = { showNewDatesConfirm = false },
-            title = "Make new study dates?",
+            title = stringResource(R.string.planner_make_new_dates_question),
             text = {
                 PlannerDialogText(
                     "This will give new dates to your unfinished topics. Today's work will stay the same."
                 )
             },
             dismissButton = {
-                PlannerDialogTextAction("Not now") { showNewDatesConfirm = false }
+                PlannerDialogTextAction(stringResource(R.string.common_not_now)) { showNewDatesConfirm = false }
             },
             confirmButton = {
-                PlannerDialogAction(text = "Make new dates") {
+                PlannerDialogAction(text = stringResource(R.string.planner_make_new_dates)) {
                     showNewDatesConfirm = false
-                    orderChanged = false
                     buildSchedule()
                 }
             },
@@ -876,22 +871,16 @@ fun SyllabusSubjectsScreen(
     if (showChangeHelp) {
         PlannerDialog(
             onDismissRequest = { showChangeHelp = false },
-            title = "Edit syllabus order",
+            title = stringResource(R.string.planner_change_order_size),
             text = {
-                LazyColumn {
-                    items(localSubjects, key = { it.id }) { subject ->
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            TextButton(onClick = { activeSubjectId = subject.id; showChangeHelp = false }, modifier = Modifier.weight(1f)) {
-                                Text(subject.name)
-                            }
-                            TextButton(onClick = { moveSubject(subject.id, -1); saveSubjectOrder() }) { Text("↑") }
-                            TextButton(onClick = { moveSubject(subject.id, 1); saveSubjectOrder() }) { Text("↓") }
-                        }
-                    }
-                }
+                PlannerDialogText(
+                    "To change order, press and hold a subject, chapter, or topic, then move it. " +
+                        "To change topic size, open a subject and choose Easy, Normal, or Tough for a chapter."
+                )
             },
-            dismissButton = { PlannerDialogTextAction("Close") { showChangeHelp = false } },
-            confirmButton = { PlannerDialogAction(text = "Update schedule") { showChangeHelp = false; showNewDatesConfirm = true } },
+            confirmButton = {
+                PlannerDialogAction(text = stringResource(R.string.common_got_it)) { showChangeHelp = false }
+            },
         )
     }
 
@@ -933,40 +922,40 @@ private fun SyllabusChangePlanSheet(
                 .padding(start = 20.dp, end = 20.dp, bottom = 14.dp),
         ) {
             Text(
-                text = "What do you want to change?",
+                text = stringResource(R.string.planner_what_change),
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = PlannerFlatColors.TextDark,
             )
             Spacer(Modifier.height(3.dp))
             Text(
-                text = "Choose one option. Your plan will not change until you save it.",
+                text = stringResource(R.string.planner_change_option_body),
                 fontSize = 12.sp,
                 color = PlannerFlatColors.TextMuted,
             )
             Spacer(Modifier.height(10.dp))
             PlanHairline()
             SyllabusChangePlanRow(
-                title = "Add a subject",
-                description = "Add something missing from your syllabus.",
+                title = stringResource(R.string.planner_add_subject),
+                description = stringResource(R.string.planner_change_add_missing),
                 onClick = onAddSubject,
             )
             PlanHairline()
             SyllabusChangePlanRow(
-                title = "Change plan details",
-                description = "Change exam date, daily study, or rest days.",
+                title = stringResource(R.string.planner_change_plan_details),
+                description = stringResource(R.string.planner_change_details_help),
                 onClick = onChangeDetails,
             )
             PlanHairline()
             SyllabusChangePlanRow(
-                title = "Edit order and difficulty",
-                description = "Subjects, chapters and topics",
+                title = stringResource(R.string.planner_change_order_size),
+                description = stringResource(R.string.planner_change_order_help),
                 onClick = onChangeOrderOrSize,
             )
             PlanHairline()
             SyllabusChangePlanRow(
-                title = if (isAlreadySaved) "Update saved syllabus" else "Save syllabus for reuse",
-                description = "Use these subjects and topics when creating another plan.",
+                title = if (isAlreadySaved) stringResource(R.string.planner_update_saved_syllabus) else stringResource(R.string.planner_save_syllabus_reuse),
+                description = stringResource(R.string.planner_save_reuse_help),
                 onClick = onSaveForReuse,
             )
             PlanHairline()
@@ -977,8 +966,8 @@ private fun SyllabusChangePlanSheet(
                 modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
             ) {
                 SyllabusChangePlanRow(
-                    title = "Make new study dates",
-                    description = "Give new dates using your latest changes.",
+                    title = stringResource(R.string.planner_make_new_dates),
+                    description = stringResource(R.string.planner_new_dates_help),
                     enabled = canMakeDates,
                     onClick = onMakeNewDates,
                 )
@@ -988,7 +977,7 @@ private fun SyllabusChangePlanSheet(
                 onClick = onDismiss,
                 modifier = Modifier.fillMaxWidth().height(42.dp),
             ) {
-                Text("Not now", fontWeight = FontWeight.SemiBold, fontSize = 13.5.sp, color = PlannerFlatColors.TextMuted)
+                Text(stringResource(R.string.common_not_now), fontWeight = FontWeight.SemiBold, fontSize = 13.5.sp, color = PlannerFlatColors.TextMuted)
             }
         }
     }
@@ -1031,9 +1020,6 @@ private fun SyllabusChangePlanRow(
         )
     }
 }
-
-
-
 
 
 

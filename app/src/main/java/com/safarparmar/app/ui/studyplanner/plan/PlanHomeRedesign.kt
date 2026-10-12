@@ -1,6 +1,7 @@
 package com.safarparmar.app.ui.studyplanner.plan
 
-import com.safarparmar.app.ui.studyplanner.logic.isCompletedToday
+import androidx.compose.ui.res.stringResource
+import com.safarparmar.app.R
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
@@ -67,8 +68,6 @@ import com.safarparmar.app.domain.model.studyplanner.PlanProgress
 import com.safarparmar.app.domain.model.studyplanner.StudyPlan
 import com.safarparmar.app.domain.model.studyplanner.TopicStatus
 import com.safarparmar.app.domain.model.studyplanner.progressPercentValue
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.contentDescription
 import kotlin.math.roundToInt
 import com.safarparmar.app.ui.studyplanner.StudyPlannerTab
 import com.safarparmar.app.ui.studyplanner.components.PlannerFlatColors
@@ -125,7 +124,6 @@ internal fun PlanEyebrow(text: String, modifier: Modifier = Modifier) {
 internal fun PlanHomeHeader(
     planTitle: String,
     onSettingsClick: () -> Unit,
-    onExamsClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
@@ -133,11 +131,10 @@ internal fun PlanHomeHeader(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            androidx.compose.material3.TextButton(onClick = onExamsClick) { Text("My exams ▾") }
-            Spacer(Modifier.weight(1f))
+            PlanEyebrow("Study Planner", modifier = Modifier.weight(1f))
             Box(
                 modifier = Modifier
-                    .size(48.dp)
+                    .size(30.dp)
                     .clip(CircleShape)
                     .border(1.dp, PlannerFlatColors.BorderSoft, CircleShape)
                     .clickable(onClick = onSettingsClick),
@@ -145,7 +142,7 @@ internal fun PlanHomeHeader(
             ) {
                 Icon(
                     imageVector = Icons.Default.MoreVert,
-                    contentDescription = "Plan settings",
+                    contentDescription = stringResource(R.string.planner_plan_settings),
                     tint = PlannerFlatColors.TextMuted,
                     modifier = Modifier.size(16.dp),
                 )
@@ -326,7 +323,9 @@ internal fun PlanHomeStatStrip(
                     .weight(1f)
                     .then(
                         if (enabled) {
-                            Modifier.clickable { stat.onClick?.invoke() }
+                            Modifier
+                                .clip(RoundedCornerShape(12.dp))
+                                .clickable { stat.onClick?.invoke() }
                         } else {
                             Modifier
                         },
@@ -378,8 +377,9 @@ internal fun PlanHomeDailyTodoRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
                 .clickable(onClick = onToggleExpanded)
-                .padding(vertical = 16.dp),
+                .padding(vertical = 16.dp, horizontal = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
@@ -390,7 +390,7 @@ internal fun PlanHomeDailyTodoRow(
             )
             Spacer(Modifier.width(8.dp))
             Text(
-                text = "Daily routine",
+                text = stringResource(R.string.planner_daily_todo),
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Bold,
                 color = PlannerFlatColors.TextDark,
@@ -513,11 +513,9 @@ internal fun PlanHomeTaskRow(
     onRemoveFromToday: (() -> Unit)? = null,
     onEdit: (() -> Unit)? = null,
     onFocus: (() -> Unit)? = null,
-    onRevise: (() -> Unit)? = null,
-    enabled: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
-    val done = ref.topic.isCompletedToday(java.time.LocalDate.now().toString())
+    val done = ref.topic.status == TopicStatus.DONE
     val needsRevision = ref.topic.status == TopicStatus.REVISION_NEEDED
     val dotColor = when {
         done -> Color(0xFF10B981)
@@ -535,12 +533,27 @@ internal fun PlanHomeTaskRow(
             .padding(vertical = 13.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        androidx.compose.material3.Checkbox(
-            checked = done,
-            onCheckedChange = onDoneChange,
-            enabled = enabled,
-            modifier = Modifier.size(48.dp).semantics { contentDescription = ref.topic.name },
-        )
+        // Circular checkbox — fills with the accent once complete
+        Box(
+            modifier = Modifier
+                .size(18.dp)
+                .clip(CircleShape)
+                .then(
+                    if (done) Modifier.background(PlannerFlatColors.PrimaryAccent)
+                    else Modifier.border(1.dp, PlannerFlatColors.BorderSoft, CircleShape)
+                )
+                .clickable { onDoneChange(!done) },
+            contentAlignment = Alignment.Center,
+        ) {
+            if (done) {
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(12.dp),
+                )
+            }
+        }
         Spacer(Modifier.width(12.dp))
         Box(
             Modifier
@@ -560,30 +573,35 @@ internal fun PlanHomeTaskRow(
             )
             Spacer(Modifier.height(2.dp))
             Text(
-                text = if (needsRevision) "${ref.subject.name} · ${ref.topic.revisionCompletedDates.orEmpty().size}/${(ref.topic.revisionCompletedDates.orEmpty() + ref.topic.revisionReminderDates).distinct().size} reviews done" else "${ref.subject.name} · ${ref.chapter.name}",
+                text = "${ref.subject.name} · ${ref.chapter.name}",
                 fontSize = 11.sp,
                 color = PlannerFlatColors.TextMuted,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            Row {
-                if (onFocus != null && !done) androidx.compose.material3.TextButton(enabled = enabled, onClick = onFocus) { Text("Focus") }
-                if (onRevise != null) androidx.compose.material3.TextButton(enabled = enabled, onClick = onRevise) { Text("Revise") }
-            }
+        }
+        if (needsRevision) {
+            Spacer(Modifier.width(8.dp))
+            Text(
+                text = stringResource(R.string.planner_to_revise),
+                fontSize = 10.5.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFFF97316),
+            )
         }
         if (hasMenu) {
             Spacer(Modifier.width(6.dp))
             Box {
                 Box(
                     modifier = Modifier
-                        .size(48.dp)
+                        .size(28.dp)
                         .clip(CircleShape)
                         .clickable { showMenu = true },
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         imageVector = Icons.Default.MoreVert,
-                        contentDescription = "Topic options",
+                        contentDescription = stringResource(R.string.planner_topic_options),
                         tint = PlannerFlatColors.TextMuted,
                         modifier = Modifier.size(16.dp),
                     )
@@ -627,18 +645,24 @@ internal fun PlanHomeAddActions(
         horizontalArrangement = Arrangement.spacedBy(20.dp),
     ) {
         Text(
-            text = "+ Add a topic for today",
+            text = stringResource(R.string.planner_add_topic_today_plus),
             fontSize = 12.5.sp,
             fontWeight = FontWeight.Bold,
             color = PlannerFlatColors.PrimaryAccent,
-            modifier = Modifier.clickable(onClick = onAddFromSyllabus),
+            modifier = Modifier
+                .clip(RoundedCornerShape(6.dp))
+                .clickable(onClick = onAddFromSyllabus)
+                .padding(horizontal = 4.dp, vertical = 2.dp),
         )
         Text(
-            text = "+ Add custom",
+            text = stringResource(R.string.planner_add_custom_plus),
             fontSize = 12.5.sp,
             fontWeight = FontWeight.Bold,
             color = PlannerFlatColors.TextMuted,
-            modifier = Modifier.clickable(onClick = onAddCustom),
+            modifier = Modifier
+                .clip(RoundedCornerShape(6.dp))
+                .clickable(onClick = onAddCustom)
+                .padding(horizontal = 4.dp, vertical = 2.dp),
         )
     }
 }

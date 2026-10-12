@@ -44,3 +44,6 @@ fun Goal.isUpcomingGoal(todayKey: String = IstDateUtils.todayKey()): Boolean {
     if (isGoalCompleted() || isHiddenFromActiveGoals()) return false
     return assignedDateKey()?.let { it > todayKey } == true
 }
+
+/** Free Ekagra records are sessions; a goal completed through focus still belongs in Goals. */
+fun Goal.isVisibleInGoals(): Boolean = source != "ekagra" || completedViaFocus

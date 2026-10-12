@@ -32,8 +32,10 @@ class AuthRepositoryImpl @Inject constructor(
     private val authApi: AuthApi,
     private val notificationApi: NotificationApi,
     private val dataStore: SafarDataStore,
+    private val snapshots: ReadSnapshotStore,
     private val cookieStore: PersistentCookieStore,
     private val notificationTokenRegistrar: NotificationTokenRegistrar,
+    private val referralManager: ReferralManager,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : AuthRepository {
 
@@ -53,6 +55,7 @@ class AuthRepositoryImpl @Inject constructor(
                 dataStore.setUserEmail(u?.email)
                 dataStore.setUserAvatar(u?.avatar)
                 dataStore.setIsAdmin(u?.isAdmin ?: decodeIsAdminClaim(token))
+                referralManager.onUserAuthenticated()
                 // Do not block sign-in on FCM registration — network can be slow after cold start.
                 CoroutineScope(SupervisorJob() + ioDispatcher).launch {
                     runCatching { notificationTokenRegistrar.registerStoredTokenIfNeeded(force = true) }
@@ -65,7 +68,21 @@ class AuthRepositoryImpl @Inject constructor(
     }
 
     override suspend fun googleLogin(idToken: String): Resource<User> {
-        val r = safeApiCall { authApi.googleLogin(GoogleLoginRequest(token = idToken)) }
+        val deviceId = dataStore.getOrCreateDeviceInstallId()
+        val referralSource = dataStore.referralUtmSource.first()
+        val utmMedium = dataStore.referralUtmMedium.first()
+        val utmCampaign = dataStore.referralUtmCampaign.first()
+        val r = safeApiCall {
+            authApi.googleLogin(
+                GoogleLoginRequest(
+                    token = idToken,
+                    deviceId = deviceId,
+                    referralSource = referralSource,
+                    utmMedium = utmMedium,
+                    utmCampaign = utmCampaign,
+                )
+            )
+        }
         return when (r) {
             is Resource.Success -> {
                 val u = r.data.user
@@ -78,6 +95,7 @@ class AuthRepositoryImpl @Inject constructor(
                 dataStore.setUserEmail(u?.email)
                 dataStore.setUserAvatar(u?.avatar)
                 dataStore.setIsAdmin(u?.isAdmin ?: decodeIsAdminClaim(token))
+                referralManager.onUserAuthenticated()
                 // Do not block sign-in on FCM registration — network can be slow after cold start.
                 CoroutineScope(SupervisorJob() + ioDispatcher).launch {
                     runCatching { notificationTokenRegistrar.registerStoredTokenIfNeeded(force = true) }
@@ -90,7 +108,27 @@ class AuthRepositoryImpl @Inject constructor(
     }
 
     override suspend fun register(name: String, email: String, password: String, exam: String?, stage: String?, gender: String?, photoUrl: String?): Resource<User> {
-        val r = safeApiCall { authApi.signup(SignupRequest(name, email, password, exam, stage, gender, photoUrl)) }
+        val deviceId = dataStore.getOrCreateDeviceInstallId()
+        val referralSource = dataStore.referralUtmSource.first()
+        val utmMedium = dataStore.referralUtmMedium.first()
+        val utmCampaign = dataStore.referralUtmCampaign.first()
+        val r = safeApiCall {
+            authApi.signup(
+                SignupRequest(
+                    name = name,
+                    email = email,
+                    password = password,
+                    examType = exam,
+                    preparationStage = stage,
+                    gender = gender,
+                    profileImage = photoUrl,
+                    deviceId = deviceId,
+                    referralSource = referralSource,
+                    utmMedium = utmMedium,
+                    utmCampaign = utmCampaign,
+                )
+            )
+        }
         return when (r) {
             is Resource.Success -> {
                 val u = r.data.user
@@ -103,6 +141,7 @@ class AuthRepositoryImpl @Inject constructor(
                 dataStore.setUserEmail(u?.email)
                 dataStore.setUserAvatar(u?.avatar)
                 dataStore.setIsAdmin(u?.isAdmin ?: decodeIsAdminClaim(token))
+                referralManager.onUserAuthenticated()
                 // Do not block sign-in on FCM registration — network can be slow after cold start.
                 CoroutineScope(SupervisorJob() + ioDispatcher).launch {
                     runCatching { notificationTokenRegistrar.registerStoredTokenIfNeeded(force = true) }
@@ -147,6 +186,7 @@ class AuthRepositoryImpl @Inject constructor(
             runCatching { safeApiCall { notificationApi.revokeDeviceToken(DeviceTokenRevokeRequest(token)) } }
         }
         dataStore.setLoggedIn(false)
+        snapshots.clear()
         dataStore.clearSession()
         cookieStore.removeAll()
         return Resource.Success(Unit)
@@ -165,6 +205,7 @@ class AuthRepositoryImpl @Inject constructor(
                     runCatching { safeApiCall { notificationApi.revokeDeviceToken(DeviceTokenRevokeRequest(token)) } }
                 }
                 dataStore.setLoggedIn(false)
+                snapshots.clear()
                 dataStore.clearSession()
                 cookieStore.removeAll()
                 Resource.Success(Unit)

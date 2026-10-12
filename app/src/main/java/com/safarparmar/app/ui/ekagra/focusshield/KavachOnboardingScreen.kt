@@ -60,6 +60,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -133,6 +134,9 @@ fun KavachOnboardingScreen(
     var hasOverlay by remember { mutableStateOf(shieldState.hasOverlayPermission) }
     var hasNotifications by remember { mutableStateOf(shieldState.hasNotifications) }
     var hasNotificationSuppressionAccess by remember { mutableStateOf(shieldState.hasNotificationSuppressionAccess) }
+    var hasBatterySaver by remember {
+        mutableStateOf(FocusShieldPermissionHelper.isIgnoringBatteryOptimizations(context))
+    }
     var selectedPermission by remember { mutableStateOf<PermissionTarget?>(null) }
     var awaitingPermission by remember { mutableStateOf<PermissionTarget?>(null) }
     val scope = rememberCoroutineScope()
@@ -160,6 +164,7 @@ fun KavachOnboardingScreen(
                 hasOverlay = FocusShieldPermissionHelper.hasOverlayPermission(context)
                 hasNotifications = FocusShieldPermissionHelper.hasNotificationPermission(context)
                 hasNotificationSuppressionAccess = FocusShieldPermissionHelper.hasNotificationListenerAccess(context)
+                hasBatterySaver = FocusShieldPermissionHelper.isIgnoringBatteryOptimizations(context)
                 viewModel.refreshPermissions()
                 // If we already returned and the watched permission is granted, stop polling.
                 val watching = awaitingPermission
@@ -172,32 +177,50 @@ fun KavachOnboardingScreen(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    // Ask for Notification Shield during the initial Kavach setup as well, so students can
-    // choose a mode with the full protection set already configured.
-    LaunchedEffect(hasUsageStats, hasOverlay, hasNotificationSuppressionAccess) {
-        if (hasUsageStats && hasOverlay && hasNotificationSuppressionAccess) {
+    // Ask for permissions during initial Kavach setup
+    LaunchedEffect(hasUsageStats, hasOverlay, hasNotificationSuppressionAccess, hasBatterySaver) {
+        if (hasUsageStats && hasOverlay && hasNotificationSuppressionAccess && hasBatterySaver) {
             viewModel.setEnabled(true)
             onFinished()
         }
     }
 
-    val totalSteps = 3
+    val totalSteps = 5
     var grantedCount = 0
     if (hasUsageStats) grantedCount++
     if (hasOverlay) grantedCount++
+    if (hasNotifications) grantedCount++
     if (hasNotificationSuppressionAccess) grantedCount++
+    if (hasBatterySaver) grantedCount++
     val progress = (grantedCount.toFloat() / totalSteps).coerceAtMost(1f)
     val animatedProgress by animateFloatAsState(targetValue = progress, label = "kavachPermissionProgress")
 
-    // Order: Usage → Background → Display over other apps → Notification Shield.
-    // Background is a one-tap system dialog; once prompted we advance even if the user denied it.
-    var backgroundPrompted by remember { mutableStateOf(false) }
+    var notificationsPrompted by remember { mutableStateOf(false) }
     val isUsageNext = !hasUsageStats
-    val isBackgroundNext = hasUsageStats && !hasNotifications && !backgroundPrompted
-    val backgroundDone = hasNotifications || backgroundPrompted
-    val isOverlayNext = hasUsageStats && backgroundDone && !hasOverlay
-    val requiredGranted = hasUsageStats && hasOverlay
-    val isNotificationAccessNext = requiredGranted && !hasNotificationSuppressionAccess
+    val isOverlayNext = hasUsageStats && !hasOverlay
+    val isBatterySaverNext = hasUsageStats && hasOverlay && !hasBatterySaver
+    val isNotificationsNext = hasUsageStats && hasOverlay && hasBatterySaver && !hasNotifications && !notificationsPrompted
+    val isNotificationAccessNext = hasUsageStats && hasOverlay && hasBatterySaver && !hasNotificationSuppressionAccess
+
+    fun launchPermissionDirectly(target: PermissionTarget) {
+        if (target != PermissionTarget.NOTIFICATIONS) {
+            awaitingPermission = target
+        }
+        when (target) {
+            PermissionTarget.USAGE_STATS ->
+                FocusShieldPermissionHelper.openUsageAccessSettings(context)
+            PermissionTarget.OVERLAY ->
+                FocusShieldPermissionHelper.openOverlaySettings(context)
+            PermissionTarget.NOTIFICATIONS -> {
+                notificationsPrompted = true
+                requestNotificationPermission()
+            }
+            PermissionTarget.NOTIFICATION_ACCESS ->
+                FocusShieldPermissionHelper.openNotificationListenerSettings(context)
+            PermissionTarget.BATTERY_SAVER ->
+                FocusShieldPermissionHelper.openBatterySaverSettings(context)
+        }
+    }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -230,7 +253,7 @@ fun KavachOnboardingScreen(
                 Spacer(Modifier.width(12.dp))
                 TextButton(onClick = { skipSetup() }) {
                     Text(
-                        text = "Skip for now",
+                        text = stringResource(R.string.kavach_skip_for_now),
                         color = colors.secondaryText,
                         fontWeight = FontWeight.SemiBold,
                     )
@@ -278,7 +301,7 @@ fun KavachOnboardingScreen(
                         modifier = Modifier.weight(1f),
                     ) {
                         Text(
-                            text = "Almost there. Allow these permissions to use KAVACH.",
+                            text = stringResource(R.string.kavach_almost_there),
                             color = colors.secondaryText,
                             fontSize = 15.sp,
                             lineHeight = 22.sp,
@@ -290,52 +313,56 @@ fun KavachOnboardingScreen(
                 Spacer(Modifier.height(48.dp))
 
                 KavachRegainPermissionRow(
-                    title = "Usage permission",
-                    subtitle = "Lets KAVACH see which app you opened.",
+                    title = stringResource(R.string.kavach_usage_permission),
+                    subtitle = stringResource(R.string.kavach_usage_permission_help),
                     granted = hasUsageStats,
                     isNext = isUsageNext,
                     colors = colors,
-                    onClick = { if (isUsageNext) selectedPermission = PermissionTarget.USAGE_STATS },
+                    onClick = { launchPermissionDirectly(PermissionTarget.USAGE_STATS) },
                 )
 
                 HorizontalDivider(color = colors.divider)
 
                 KavachRegainPermissionRow(
-                    title = "Background permission",
-                    subtitle = "Keeps KAVACH status and timer alerts working.",
-                    granted = hasNotifications,
-                    isNext = isBackgroundNext,
-                    colors = colors,
-                    onClick = {
-                        if (isBackgroundNext) {
-                            backgroundPrompted = true
-                            requestNotificationPermission()
-                        }
-                    },
-                )
-
-                HorizontalDivider(color = colors.divider)
-
-                KavachRegainPermissionRow(
-                    title = "Show on top",
-                    subtitle = "Lets KAVACH show a block screen over a distracting app.",
+                    title = stringResource(R.string.kavach_show_on_top),
+                    subtitle = stringResource(R.string.kavach_show_on_top_help),
                     granted = hasOverlay,
                     isNext = isOverlayNext,
                     colors = colors,
-                    onClick = { if (isOverlayNext) selectedPermission = PermissionTarget.OVERLAY },
+                    onClick = { launchPermissionDirectly(PermissionTarget.OVERLAY) },
                 )
 
                 HorizontalDivider(color = colors.divider)
 
                 KavachRegainPermissionRow(
-                    title = "Notification Shield",
-                    subtitle = "Hides notifications from the apps you chose to block.",
+                    title = stringResource(R.string.kavach_background_permission),
+                    subtitle = stringResource(R.string.kavach_background_permission_help),
+                    granted = hasBatterySaver,
+                    isNext = isBatterySaverNext,
+                    colors = colors,
+                    onClick = { launchPermissionDirectly(PermissionTarget.BATTERY_SAVER) },
+                )
+
+                HorizontalDivider(color = colors.divider)
+
+                KavachRegainPermissionRow(
+                    title = stringResource(R.string.kavach_notifications),
+                    subtitle = stringResource(R.string.kavach_notifications_help),
+                    granted = hasNotifications,
+                    isNext = isNotificationsNext,
+                    colors = colors,
+                    onClick = { launchPermissionDirectly(PermissionTarget.NOTIFICATIONS) },
+                )
+
+                HorizontalDivider(color = colors.divider)
+
+                KavachRegainPermissionRow(
+                    title = stringResource(R.string.kavach_notification_shield),
+                    subtitle = stringResource(R.string.kavach_notification_shield_help),
                     granted = hasNotificationSuppressionAccess,
                     isNext = isNotificationAccessNext,
                     colors = colors,
-                    onClick = {
-                        if (isNotificationAccessNext) selectedPermission = PermissionTarget.NOTIFICATION_ACCESS
-                    },
+                    onClick = { launchPermissionDirectly(PermissionTarget.NOTIFICATION_ACCESS) },
                 )
             }
 
@@ -349,7 +376,17 @@ fun KavachOnboardingScreen(
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(16.dp))
                         .background(colors.helpBg)
-                        .clickable { selectedPermission = PermissionTarget.USAGE_STATS }
+                        .clickable {
+                            val nextTarget = when {
+                                !hasUsageStats -> PermissionTarget.USAGE_STATS
+                                !hasOverlay -> PermissionTarget.OVERLAY
+                                !hasBatterySaver -> PermissionTarget.BATTERY_SAVER
+                                !hasNotifications -> PermissionTarget.NOTIFICATIONS
+                                !hasNotificationSuppressionAccess -> PermissionTarget.NOTIFICATION_ACCESS
+                                else -> PermissionTarget.USAGE_STATS
+                            }
+                            selectedPermission = nextTarget
+                        }
                         .padding(horizontal = 16.dp, vertical = 16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -361,7 +398,7 @@ fun KavachOnboardingScreen(
                     )
                     Spacer(Modifier.width(12.dp))
                     Text(
-                        text = "Why should I give this permission?",
+                        text = stringResource(R.string.kavach_why_permission),
                         color = colors.helpText,
                         fontWeight = FontWeight.Medium,
                         fontSize = 14.sp,
@@ -397,6 +434,8 @@ fun KavachOnboardingScreen(
                             PermissionTarget.NOTIFICATIONS -> requestNotificationPermission()
                             PermissionTarget.NOTIFICATION_ACCESS ->
                                 FocusShieldPermissionHelper.openNotificationListenerSettings(context)
+                            PermissionTarget.BATTERY_SAVER ->
+                                FocusShieldPermissionHelper.openBatterySaverSettings(context)
                         }
                     }
                 },
@@ -415,12 +454,12 @@ private fun KavachRegainPermissionRow(
     colors: KavachPermissionColors,
     onClick: () -> Unit,
 ) {
-    val titleColor = if (granted || isNext) colors.primaryText else colors.secondaryText.copy(alpha = 0.4f)
+    val titleColor = if (granted || isNext) colors.primaryText else colors.secondaryText
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(enabled = isNext && !granted, onClick = onClick)
+            .clickable(enabled = !granted, onClick = onClick)
             .padding(vertical = 20.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -431,13 +470,15 @@ private fun KavachRegainPermissionRow(
                 fontWeight = FontWeight.Bold,
                 color = titleColor,
             )
-            if (isNext && !granted) {
+            if (!granted) {
                 Spacer(Modifier.height(6.dp))
                 Text(
                     text = subtitle,
                     fontSize = 14.sp,
                     color = colors.secondaryText,
                     lineHeight = 20.sp,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                 )
             }
         }
@@ -446,23 +487,23 @@ private fun KavachRegainPermissionRow(
         if (granted) {
             Icon(
                 Icons.Default.Check,
-                contentDescription = "Granted",
+                contentDescription = stringResource(R.string.common_granted),
                 tint = colors.helpText,
                 modifier = Modifier.size(24.dp),
             )
-        } else if (isNext) {
+        } else {
             Surface(
                 onClick = onClick,
                 shape = RoundedCornerShape(99.dp),
-                color = colors.cta,
+                color = if (isNext) colors.cta else colors.cta.copy(alpha = 0.85f),
                 modifier = Modifier.height(36.dp),
             ) {
                 Box(
-                    modifier = Modifier.padding(horizontal = 24.dp),
+                    modifier = Modifier.padding(horizontal = 20.dp),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        text = "Allow",
+                        text = stringResource(R.string.common_allow),
                         fontWeight = FontWeight.Medium,
                         fontSize = 14.sp,
                         color = colors.ctaText,
@@ -473,11 +514,200 @@ private fun KavachRegainPermissionRow(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun KavachRegainExplanationSheet(
     permission: PermissionTarget,
     onDismiss: () -> Unit,
     onAllow: (PermissionTarget) -> Unit,
 ) {
-    PermissionGuideSheet(permission, onDismiss, onOpenSettings = { onAllow(permission) })
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val isDark = KavachDesign.isDark
+    val accent = KavachDesign.Primary
+    val ctaLabelColor = if (accent.luminance() > 0.55f) Color(0xFF16161A) else Color.White
+
+    val title = when (permission) {
+        PermissionTarget.USAGE_STATS -> stringResource(R.string.kavach_allow_app_check)
+        PermissionTarget.OVERLAY -> stringResource(R.string.kavach_allow_show_on_top)
+        PermissionTarget.NOTIFICATIONS -> stringResource(R.string.kavach_allow_notifications)
+        PermissionTarget.NOTIFICATION_ACCESS -> stringResource(R.string.kavach_allow_notification_shield)
+        PermissionTarget.BATTERY_SAVER -> stringResource(R.string.kavach_allow_background_running)
+    }
+
+    val bullets = when (permission) {
+        PermissionTarget.USAGE_STATS -> listOf(
+            stringResource(R.string.kavach_usage_bullet_private),
+            stringResource(R.string.kavach_usage_bullet_open_app),
+            stringResource(R.string.kavach_usage_bullet_block_only),
+            stringResource(R.string.kavach_usage_bullet_no_ads),
+        )
+        PermissionTarget.OVERLAY -> listOf(
+            stringResource(R.string.kavach_overlay_bullet_block_screen),
+            stringResource(R.string.kavach_overlay_bullet_timer_only),
+            stringResource(R.string.kavach_overlay_bullet_no_capture),
+            stringResource(R.string.kavach_permission_bullet_turn_off),
+        )
+        PermissionTarget.NOTIFICATIONS -> listOf(
+            stringResource(R.string.kavach_notifications_bullet_timer),
+            stringResource(R.string.kavach_notifications_bullet_status),
+        )
+        PermissionTarget.NOTIFICATION_ACCESS -> listOf(
+            stringResource(R.string.kavach_shield_bullet_selected_apps),
+            stringResource(R.string.kavach_shield_bullet_timer_only),
+            stringResource(R.string.kavach_shield_bullet_no_save),
+            stringResource(R.string.kavach_permission_bullet_turn_off),
+        )
+        PermissionTarget.BATTERY_SAVER -> listOf(
+            stringResource(R.string.kavach_battery_bullet_open),
+            stringResource(R.string.kavach_battery_bullet_unrestricted),
+            stringResource(R.string.kavach_battery_bullet_background),
+            stringResource(R.string.kavach_battery_bullet_brands),
+        )
+    }
+
+    CompositionLocalProvider(
+        com.safarparmar.app.ui.studyplanner.components.LocalPlannerIsDarkTheme provides isDark,
+    ) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = PlannerFlatColors.BgCream,
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+        dragHandle = {
+            BottomSheetDefaults.DragHandle(color = PlannerFlatColors.BorderSoft)
+        },
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .wrapContentWidth(Alignment.CenterHorizontally)
+                .widthIn(max = 560.dp)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 32.dp),
+        ) {
+            PlanEyebrow(stringResource(R.string.kavach_name))
+            Spacer(Modifier.height(10.dp))
+
+            Text(
+                text = title,
+                fontFamily = LoraFontFamily,
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Normal,
+                color = PlannerFlatColors.TextDark,
+                lineHeight = 32.sp,
+            )
+
+            Spacer(Modifier.height(16.dp))
+            PlanHairline()
+            Spacer(Modifier.height(16.dp))
+
+            // Help cue — flat hairline outline (not a filled card)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .border(1.dp, PlannerFlatColors.BorderSoft, RoundedCornerShape(14.dp))
+                    .padding(horizontal = 14.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    Icons.Default.HelpOutline,
+                    contentDescription = null,
+                    tint = PlannerFlatColors.TextMuted,
+                    modifier = Modifier.size(18.dp),
+                )
+                Spacer(Modifier.width(12.dp))
+                Text(
+                    text = stringResource(R.string.kavach_permission_safe_question),
+                    color = PlannerFlatColors.TextMuted,
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 14.sp,
+                    modifier = Modifier.weight(1f),
+                )
+                Icon(
+                    Icons.Default.ChevronRight,
+                    contentDescription = null,
+                    tint = PlannerFlatColors.TextMuted,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+
+            Spacer(Modifier.height(20.dp))
+
+            bullets.forEachIndexed { index, bullet ->
+                if (index > 0) {
+                    Spacer(Modifier.height(12.dp))
+                    PlanHairline(alpha = 0.7f)
+                    Spacer(Modifier.height(12.dp))
+                }
+                Row(verticalAlignment = Alignment.Top) {
+                    Text(
+                        text = "–",
+                        color = PlannerFlatColors.TextMuted,
+                        fontSize = 16.sp,
+                        modifier = Modifier.padding(top = 1.dp, end = 12.dp),
+                    )
+                    Text(
+                        text = bullet,
+                        color = PlannerFlatColors.TextMuted,
+                        fontSize = 14.sp,
+                        lineHeight = 21.sp,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(24.dp))
+            PlanHairline()
+            Spacer(Modifier.height(20.dp))
+
+            // Primary CTA — macOS translucent glass
+            GlassButton(
+                onClick = { onAllow(permission) },
+                accentColor = accent,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 56.dp),
+                shape = RoundedCornerShape(16.dp),
+                isDarkTheme = isDark,
+                contentPadding = PaddingValues(horizontal = 18.dp, vertical = 16.dp),
+                horizontalArrangement = Arrangement.Center,
+            ) {
+                Text(
+                    text = if (permission == PermissionTarget.NOTIFICATION_ACCESS) {
+                        stringResource(R.string.kavach_agree_enable_notification_shield)
+                    } else {
+                        stringResource(R.string.kavach_allow)
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = ctaLabelColor,
+                )
+            }
+
+            if (permission == PermissionTarget.NOTIFICATION_ACCESS) {
+                Spacer(Modifier.height(12.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .border(1.dp, PlannerFlatColors.BorderSoft, RoundedCornerShape(14.dp))
+                        .clickable(onClick = onDismiss),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = stringResource(R.string.kavach_not_now),
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = PlannerFlatColors.TextMuted,
+                    )
+                }
+            }
+        }
+    }
+    } // CompositionLocalProvider
 }

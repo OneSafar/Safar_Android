@@ -1,5 +1,9 @@
 package com.safarparmar.app.ui.nishtha.goals
 
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -7,7 +11,6 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,9 +20,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -32,12 +32,21 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material.icons.filled.Timer
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
+import com.composables.ui.components.ButtonSize
+import com.composables.ui.components.ButtonStyle
+import com.composables.ui.components.DropdownMenu
+import com.composables.ui.components.DropdownMenuAlignment
+import com.composables.ui.components.DropdownMenuItem
+import com.composables.ui.components.DropdownMenuItemStyle
+import com.composables.ui.components.DropdownMenuPanel
+import com.composables.ui.components.HorizontalSeparator
+import com.composables.ui.components.IconButton as ComposablesIconButton
+import com.composables.ui.components.Icon as ComposablesIcon
+import com.composables.ui.components.Text as ComposablesText
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.Text
+import com.safarparmar.app.ui.nishtha.goals.GoalProgress as LinearProgressIndicator
+import com.composables.ui.components.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -47,12 +56,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.safarparmar.app.domain.model.Goal
+import com.safarparmar.app.R
 import com.safarparmar.app.ui.components.GoalRowSkeleton
 import com.safarparmar.app.ui.components.SafarEmptyState
 import com.safarparmar.app.ui.components.SafarErrorState
@@ -61,6 +72,7 @@ import com.safarparmar.app.ui.studyplanner.plan.PlanHairline
 import com.safarparmar.app.ui.theme.LoraFontFamily
 import com.safarparmar.app.util.IstDateUtils
 import com.safarparmar.app.util.assignedDateKey
+import com.safarparmar.app.util.isVisibleInGoals
 import com.safarparmar.app.util.isGoalCompleted
 import com.safarparmar.app.util.isMissedGoal
 import com.safarparmar.app.util.isTodayGoal
@@ -80,14 +92,21 @@ internal fun GoalsTab(
     onEdit: (Goal) -> Unit,
     onDelete: (Goal) -> Unit,
 ) {
+    val goalListScroll = rememberScrollState()
+    val goalContainerHeight = (LocalConfiguration.current.screenHeightDp * 0.5f).coerceIn(280f, 480f).dp
+    LaunchedEffect(filterMode) { goalListScroll.scrollTo(0) }
     val todayKey = IstDateUtils.todayKey()
-    val standardGoals = goals.filter { it.source != "ekagra" }
+    val standardGoals = goals.filter { it.isVisibleInGoals() }
     val pending = standardGoals.filter { it.isTodayGoal(todayKey) }
         .sortedBy { it.startedAt ?: it.createdAt ?: it.scheduledDate ?: "" }
     val scheduled = standardGoals.filter { it.isUpcomingGoal(todayKey) }
-        .sortedBy { it.assignedDateKey() ?: "" }
+        .map { goal -> goal to (goal.assignedDateKey() ?: "") }
+        .sortedBy { it.second }
+        .map { it.first }
     val missed = standardGoals.filter { it.isMissedGoal(todayKey) }
-        .sortedByDescending { it.assignedDateKey() ?: "" }
+        .map { goal -> goal to (goal.assignedDateKey() ?: "") }
+        .sortedByDescending { it.second }
+        .map { it.first }
     val completed = standardGoals.filter { it.isGoalCompleted() }
         .sortedByDescending { it.completedAt ?: it.createdAt ?: "" }
     val manualCompletedGoals = standardGoals.filter { it.isCompletedForStats() && !it.completedViaFocus }
@@ -133,9 +152,9 @@ internal fun GoalsTab(
     }
     if (goals.isEmpty()) {
         SafarEmptyState(
-            title = "No goals yet",
-            message = "Add a goal to get started on your study plan.",
-            primaryActionLabel = "Add Goal",
+            title = stringResource(R.string.goals_none_yet),
+            message = stringResource(R.string.goals_none_help),
+            primaryActionLabel = stringResource(R.string.goals_add_goal),
             onPrimaryAction = onAddClick,
             modifier = Modifier.fillMaxSize().background(GoalsFlatColors.Bg),
         )
@@ -150,64 +169,58 @@ internal fun GoalsTab(
         Column(
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Box(
+            Column(
                 modifier = Modifier
                     .padding(horizontal = 20.dp)
                     .fillMaxWidth()
-                    .heightIn(max = 336.dp)
+                    .height(goalContainerHeight)
                     .clip(RoundedCornerShape(16.dp))
                     .border(1.5.dp, GoalsFlatColors.Primary, RoundedCornerShape(16.dp))
-                    .background(GoalsFlatColors.Primary.copy(alpha = 0.03f)),
+                    .background(GoalsFlatColors.Primary.copy(alpha = 0.03f))
+                    .verticalScroll(goalListScroll)
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
             ) {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(0.dp),
-                ) {
-                    if (filterMode == "today") {
+                if (filterMode == "today") {
                         if (pending.isNotEmpty()) {
-                            item { FlatSectionEyebrow("Pending · ${pending.size} tasks") }
-                            itemsIndexed(pending, key = { _, g -> g.id }) { index, goal ->
+                            FlatSectionEyebrow(stringResource(R.string.goals_pending_tasks, pending.size))
+                            pending.forEachIndexed { index, goal ->
                                 GoalItem(goal, onComplete = { onComplete(goal) }, onReopen = { onReopen(goal) }, onEdit = { onEdit(goal) }, onDelete = { onDelete(goal) })
                                 if (index < pending.lastIndex) PlanHairline(alpha = 0.5f)
                             }
                         } else {
-                            item { EmptyGoalsCard("All caught up! Time to plan more?", "Anything scheduled for later stays in the upcoming section.") }
+                            EmptyGoalsCard(stringResource(R.string.goals_all_caught_up), stringResource(R.string.goals_upcoming_stays_help))
                         }
                         val completedToday = completed.filter { it.anchorDateKey() == todayKey }
                         if (completedToday.isNotEmpty()) {
-                            item {
-                                Spacer(Modifier.height(18.dp))
-                                PlanHairline()
-                                Spacer(Modifier.height(14.dp))
-                                FlatSectionEyebrow("Completed · ${completedToday.size} tasks")
-                            }
-                            itemsIndexed(completedToday, key = { _, g -> g.id }) { index, goal ->
+                            Spacer(Modifier.height(18.dp))
+                            PlanHairline()
+                            Spacer(Modifier.height(14.dp))
+                            FlatSectionEyebrow(stringResource(R.string.goals_completed_tasks, completedToday.size))
+                            completedToday.forEachIndexed { index, goal ->
                                 GoalItem(goal, onComplete = { onComplete(goal) }, onReopen = { onReopen(goal) }, onEdit = { onEdit(goal) }, onDelete = { onDelete(goal) })
                                 if (index < completedToday.lastIndex) PlanHairline(alpha = 0.5f)
                             }
                         }
                     } else if (filterMode == "upcoming") {
                         if (scheduled.isNotEmpty()) {
-                            item { FlatSectionEyebrow("Scheduled · ${scheduled.size} tasks") }
-                            itemsIndexed(scheduled, key = { _, g -> "scheduled-${g.id}" }) { index, goal ->
+                            FlatSectionEyebrow(stringResource(R.string.goals_scheduled_tasks, scheduled.size))
+                            scheduled.forEachIndexed { index, goal ->
                                 GoalItem(goal, onComplete = { onComplete(goal) }, onReopen = { onReopen(goal) }, onEdit = { onEdit(goal) }, onDelete = { onDelete(goal) })
                                 if (index < scheduled.lastIndex) PlanHairline(alpha = 0.5f)
                             }
                         } else {
-                            item { EmptyGoalsCard("No upcoming tasks", "You have no tasks scheduled for later dates.") }
+                            EmptyGoalsCard(stringResource(R.string.goals_no_upcoming), stringResource(R.string.goals_no_upcoming_help))
                         }
                     } else if (filterMode == "missed") {
                         if (missed.isNotEmpty()) {
-                            item { FlatSectionEyebrow("Missed · ${missed.size} tasks") }
-                            itemsIndexed(missed, key = { _, g -> "missed-${g.id}" }) { index, goal ->
+                            FlatSectionEyebrow(stringResource(R.string.goals_missed_tasks, missed.size))
+                            missed.forEachIndexed { index, goal ->
                                 GoalItem(goal, onComplete = { onComplete(goal) }, onReopen = { onReopen(goal) }, onEdit = { onEdit(goal) }, onDelete = { onDelete(goal) })
                                 if (index < missed.lastIndex) PlanHairline(alpha = 0.5f)
                             }
                         } else {
-                            item { EmptyGoalsCard("No missed goals", "Goals that pass their assigned date will appear here.") }
+                            EmptyGoalsCard(stringResource(R.string.goals_no_missed), stringResource(R.string.goals_no_missed_help))
                         }
-                    }
                 }
             }
 
@@ -271,7 +284,9 @@ internal fun EmptyGoalsCard(title: String, subtitle: String) {
             Icon(Icons.Default.CheckCircle, contentDescription = null, tint = GoalsFlatColors.Primary, modifier = Modifier.size(22.dp))
         }
         Text(title, fontFamily = LoraFontFamily, fontSize = 16.sp, color = GoalsFlatColors.Text, textAlign = TextAlign.Center)
-        Text(subtitle, fontSize = 12.sp, color = GoalsFlatColors.Muted, textAlign = TextAlign.Center)
+        if (subtitle.isNotBlank() && !subtitle.equals(title, ignoreCase = true)) {
+            Text(subtitle, fontSize = 12.sp, color = GoalsFlatColors.Muted, textAlign = TextAlign.Center)
+        }
     }
 }
 
@@ -312,24 +327,24 @@ internal fun LivePulseCard(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(
-            "Today Pulse",
+            stringResource(R.string.goals_today_pulse),
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
             letterSpacing = 2.sp,
             color = GoalsFlatColors.Progress,
         )
         Text(
-            "$completedToday completed",
+            stringResource(R.string.goals_completed_count, completedToday),
             fontFamily = LoraFontFamily,
             fontSize = 22.sp,
             color = GoalsFlatColors.Done,
         )
-        Text("$openManualGoals open manual goals", fontSize = 13.sp, color = GoalsFlatColors.Muted)
-        Text("$completionRate% overall completion rate", fontSize = 13.sp, color = GoalsFlatColors.Muted)
+        Text(stringResource(R.string.goals_open_manual_count, openManualGoals), fontSize = 13.sp, color = GoalsFlatColors.Muted)
+        Text(stringResource(R.string.goals_completion_rate, completionRate), fontSize = 13.sp, color = GoalsFlatColors.Muted)
 
         PlanHairline(alpha = 0.5f)
 
-        Text("Study time today", fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp, color = GoalsFlatColors.Muted)
+        Text(stringResource(R.string.goals_study_time_today), fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp, color = GoalsFlatColors.Muted)
         Text(
             formatStudyTime(studyToday),
             fontFamily = LoraFontFamily,
@@ -337,11 +352,11 @@ internal fun LivePulseCard(
             color = GoalsFlatColors.Progress,
         )
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(0.dp)) {
-            StatInfoCard("Manual", formatStudyTime(manualToday), "", Modifier.weight(1f), accent = GoalsFlatColors.Done)
-            StatInfoCard("Ekagra", formatStudyTime(ekagraToday), "", Modifier.weight(1f), accent = GoalsFlatColors.Ekagra)
+            StatInfoCard(stringResource(R.string.goals_manual), formatStudyTime(manualToday), "", Modifier.weight(1f), accent = GoalsFlatColors.Done)
+            StatInfoCard(stringResource(R.string.module_ekagra), formatStudyTime(ekagraToday), "", Modifier.weight(1f), accent = GoalsFlatColors.Ekagra)
         }
 
-        Text("Daily progress", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = GoalsFlatColors.Text)
+        Text(stringResource(R.string.goals_daily_progress), fontSize = 13.sp, fontWeight = FontWeight.Bold, color = GoalsFlatColors.Text)
         LinearProgressIndicator(
             progress = { (dailyProgress / 100f).coerceIn(0f, 1f) },
             modifier = Modifier
@@ -354,10 +369,10 @@ internal fun LivePulseCard(
         Text("$dailyProgress%", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = GoalsFlatColors.Done)
 
         Spacer(Modifier.height(4.dp))
-        Text("Total time studied", fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp, color = GoalsFlatColors.Muted)
-        GoalTimeRow(Icons.Default.Timer, "Ekagra Mode", "", formatStudyTime(totalEkagra), GoalsFlatColors.Ekagra)
+        Text(stringResource(R.string.goals_total_time_studied), fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp, color = GoalsFlatColors.Muted)
+        GoalTimeRow(Icons.Default.Timer, stringResource(R.string.goals_ekagra_mode), "", formatStudyTime(totalEkagra), GoalsFlatColors.Ekagra)
         Spacer(Modifier.height(8.dp))
-        GoalTimeRow(Icons.Default.Book, "Manual Goal", "", formatStudyTime(totalManual), GoalsFlatColors.Done)
+        GoalTimeRow(Icons.Default.Book, stringResource(R.string.goals_manual_goal), "", formatStudyTime(totalManual), GoalsFlatColors.Done)
     }
 }
 
@@ -367,7 +382,7 @@ internal fun ProTipCard() {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = GoalsFlatColors.Scheduled, modifier = Modifier.size(16.dp))
             Text(
-                "Pro tip",
+                stringResource(R.string.goals_pro_tip),
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 2.sp,
@@ -375,7 +390,7 @@ internal fun ProTipCard() {
             )
         }
         Text(
-            "Consistent daily completion is better than occasional bursts. Break large goals into smaller ekagra tasks.",
+            stringResource(R.string.goals_pro_tip_body),
             fontSize = 13.sp,
             color = GoalsFlatColors.Muted,
             lineHeight = 19.sp,
@@ -390,6 +405,7 @@ internal fun GoalItem(
     onReopen: (() -> Unit)? = null,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
+    completedViaEkagra: Boolean = goal.completedViaFocus,
 ) {
     var showMenu by remember { mutableStateOf(false) }
     val progress = goal.progressPercent()
@@ -409,34 +425,17 @@ internal fun GoalItem(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Box(
-            Modifier
-                .size(22.dp)
-                .clip(CircleShape)
-                .border(
-                    1.5.dp,
-                    if (goal.completed) GoalsFlatColors.Done else GoalsFlatColors.Hairline,
-                    CircleShape,
-                )
-                .background(if (goal.completed) GoalsFlatColors.Done else Color.Transparent)
-                .clickable(
-                    enabled = !goal.completed,
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                ) { onComplete() },
-            contentAlignment = Alignment.Center,
-        ) {
-            if (goal.completed) {
-                Text("✓", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-            }
-        }
+        com.composables.ui.components.Checkbox(checked = goal.completed,
+            enabled = !goal.completed || onReopen != null,
+            onCheckedChange = { checked -> if (checked) onComplete() else onReopen?.invoke() },
+            modifier = Modifier.size(48.dp))
         Column(Modifier.weight(1f)) {
             Text(
                 text = goal.title,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 14.sp,
                 color = if (goal.completed) GoalsFlatColors.Muted else GoalsFlatColors.Text,
-                textDecoration = if (goal.completed) TextDecoration.LineThrough else null,
+                style = androidx.compose.ui.text.TextStyle(textDecoration = if (goal.completed) TextDecoration.LineThrough else null),
             )
             if (!goal.description.isNullOrBlank()) {
                 Text(goal.description, fontSize = 12.sp, color = GoalsFlatColors.Muted, maxLines = 2)
@@ -452,10 +451,13 @@ internal fun GoalItem(
                         ""
                     }
                     FlatBadge("✓ Done$studiedText", GoalsFlatColors.Done)
+                    if (completedViaEkagra) {
+                        FlatBadge(stringResource(R.string.goals_completed_via_ekagra), GoalsFlatColors.Ekagra)
+                    }
                 } else {
                     FlatBadge(goal.goalKindLabel(), badgeColor)
                     if (goal.isMissedGoal()) {
-                        FlatBadge("Missed", GoalsFlatColors.Danger)
+                        FlatBadge(stringResource(R.string.goals_missed), GoalsFlatColors.Danger)
                     }
                     if (goal.unitType != "binary") {
                         FlatBadge(goal.unitTypeLabel(), GoalsFlatColors.Muted)
@@ -467,12 +469,12 @@ internal fun GoalItem(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     modifier = Modifier.padding(top = 5.dp),
                 ) {
-                    FlatBadge("Ekagra mode task", GoalsFlatColors.Ekagra)
+                    FlatBadge(stringResource(R.string.goals_ekagra_task), GoalsFlatColors.Ekagra)
                 }
             }
             goal.assignedDateKey()?.let {
                 Text(
-                    if (goal.isMissedGoal()) "Assigned ${IstDateUtils.labelFor(it)}" else IstDateUtils.labelFor(it),
+                    if (goal.isMissedGoal()) stringResource(R.string.goals_assigned_date, IstDateUtils.labelFor(it)) else IstDateUtils.labelFor(it),
                     fontSize = 11.sp,
                     color = GoalsFlatColors.Muted,
                     modifier = Modifier.padding(top = 4.dp),
@@ -497,45 +499,97 @@ internal fun GoalItem(
                 )
             }
         }
-        Box {
-            IconButton(onClick = { showMenu = true }, modifier = Modifier.size(28.dp)) {
-                Icon(
-                    Icons.Default.MoreVert,
-                    contentDescription = "Options",
-                    modifier = Modifier.size(18.dp),
-                    tint = GoalsFlatColors.Muted,
-                )
-            }
-            DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-                if (!goal.completed) {
+        DropdownMenu(
+            expanded = showMenu,
+            onExpandedChange = { showMenu = it },
+            alignment = DropdownMenuAlignment.End,
+            panel = {
+                DropdownMenuPanel {
+                    if (!goal.completed) {
+                        DropdownMenuItem(
+                            onClick = {
+                                showMenu = false
+                                onComplete()
+                            },
+                            leading = {
+                                ComposablesIcon(
+                                    imageVector = Icons.Default.CheckCircle,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp),
+                                    tint = GoalsFlatColors.Primary,
+                                )
+                            },
+                        ) {
+                            ComposablesText(stringResource(R.string.goals_mark_done))
+                        }
+                        DropdownMenuItem(
+                            onClick = {
+                                showMenu = false
+                                onEdit()
+                            },
+                            leading = {
+                                ComposablesIcon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp),
+                                )
+                            },
+                        ) {
+                            ComposablesText(stringResource(R.string.common_edit))
+                        }
+                    } else if (onReopen != null) {
+                        DropdownMenuItem(
+                            onClick = {
+                                showMenu = false
+                                onReopen()
+                            },
+                            leading = {
+                                ComposablesIcon(
+                                    imageVector = Icons.Default.Restore,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp),
+                                    tint = GoalsFlatColors.Primary,
+                                )
+                            },
+                        ) {
+                            ComposablesText(stringResource(R.string.goals_reopen))
+                        }
+                    }
                     DropdownMenuItem(
-                        text = { Text("Mark as done") },
-                        leadingIcon = { Icon(Icons.Default.CheckCircle, null, tint = GoalsFlatColors.Primary) },
-                        onClick = { showMenu = false; onComplete() },
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Edit") },
-                        leadingIcon = { Icon(Icons.Default.Edit, null) },
-                        onClick = { showMenu = false; onEdit() },
-                    )
-                } else if (onReopen != null) {
-                    DropdownMenuItem(
-                        text = { Text("Reopen") },
-                        leadingIcon = { Icon(Icons.Default.Restore, null, tint = GoalsFlatColors.Primary) },
-                        onClick = { showMenu = false; onReopen() },
+                        onClick = {
+                            showMenu = false
+                            onDelete()
+                        },
+                        style = DropdownMenuItemStyle.Destructive,
+                        leading = {
+                            ComposablesIcon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                                tint = GoalsFlatColors.Danger,
+                            )
+                        },
+                    ) {
+                        ComposablesText(stringResource(R.string.common_delete))
+                    }
+                }
+            },
+            anchor = {
+                ComposablesIconButton(
+                    onClick = { showMenu = showMenu.not() },
+                    style = ButtonStyle.Ghost,
+                    buttonSize = ButtonSize.Small,
+                    modifier = Modifier.size(28.dp),
+                ) {
+                    ComposablesIcon(
+                        imageVector = Icons.Default.MoreVert,
+                        contentDescription = stringResource(R.string.common_more_options),
+                        modifier = Modifier.size(18.dp),
+                        tint = GoalsFlatColors.Muted,
                     )
                 }
-                // "Repeat Task" lived here. Removed: it was a third way to say
-                // "repeat", it cloned goals one at a time with no dedupe (the source
-                // of duplicated goals), and the "Bring forward" picker covers the
-                // single-goal case by simply ticking one row.
-                DropdownMenuItem(
-                    text = { Text("Delete", color = GoalsFlatColors.Danger) },
-                    leadingIcon = { Icon(Icons.Default.Delete, null, tint = GoalsFlatColors.Danger) },
-                    onClick = { showMenu = false; onDelete() },
-                )
-            }
-        }
+            },
+        )
     }
 }
 
@@ -549,13 +603,13 @@ internal fun RolloverPromptItem(goal: Goal, onRetry: () -> Unit, onArchive: () -
     ) {
         Text(goal.title, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = GoalsFlatColors.Text)
         Text(
-            "This missed goal can be carried into today or archived.",
+            stringResource(R.string.goals_missed_action_help),
             fontSize = 12.sp,
             color = GoalsFlatColors.Muted,
         )
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            FlatFilledAction("Retry Today", GoalsFlatColors.Primary, onRetry, Modifier.weight(1f))
-            FlatOutlineAction("Archive", onArchive, Modifier.weight(1f))
+            FlatFilledAction(stringResource(R.string.goals_retry_today), GoalsFlatColors.Primary, onRetry, Modifier.weight(1f))
+            FlatOutlineAction(stringResource(R.string.goals_archive), onArchive, Modifier.weight(1f))
         }
     }
 }
@@ -594,15 +648,8 @@ internal fun FlatFilledAction(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(accent)
-            .clickable(onClick = onClick)
-            .padding(vertical = 11.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(label, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
+    com.composables.ui.components.Button(onClick = onClick, modifier = modifier) {
+        ComposablesText(label)
     }
 }
 
@@ -612,14 +659,7 @@ internal fun FlatOutlineAction(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
-            .border(1.dp, GoalsFlatColors.Hairline, RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick)
-            .padding(vertical = 11.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(label, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = GoalsFlatColors.Muted)
+    com.composables.ui.components.Button(onClick = onClick, modifier = modifier, style = ButtonStyle.Outlined) {
+        ComposablesText(label)
     }
 }

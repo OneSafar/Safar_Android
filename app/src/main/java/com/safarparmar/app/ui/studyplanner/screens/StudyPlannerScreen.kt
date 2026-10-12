@@ -189,6 +189,7 @@ import kotlin.math.sin
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.safarparmar.app.R
+import androidx.compose.ui.res.stringResource
 import com.safarparmar.app.BuildConfig
 import com.safarparmar.app.data.remote.api.UpdatePlanRequest
 import com.safarparmar.app.data.remote.api.StructuredChapter
@@ -460,6 +461,8 @@ fun StudyPlannerScreen(
     }.collectAsStateWithLifecycle(initialDetailState)
     val actions: PlannerActions = viewModel
     val snackbar = remember { SnackbarHostState() }
+    val undoLabel = stringResource(R.string.common_undo)
+    val viewLabel = stringResource(R.string.common_view)
     val coroutineScope = rememberCoroutineScope()
     var tourState by remember { mutableStateOf<ButterflyTourState?>(null) }
 
@@ -489,7 +492,7 @@ fun StudyPlannerScreen(
                 withTimeoutOrNull(5_000L) {
                     snackbar.showSnackbar(
                         message = it,
-                        actionLabel = "Undo",
+                        actionLabel = undoLabel,
                         withDismissAction = true,
                         duration = SnackbarDuration.Indefinite,
                     )
@@ -497,7 +500,7 @@ fun StudyPlannerScreen(
             } else {
                 snackbar.showSnackbar(
                     message = it,
-                    actionLabel = if (chromeState.messageOpensUnscheduled) "View" else null,
+                    actionLabel = if (chromeState.messageOpensUnscheduled) viewLabel else null,
                 )
             }
             if (result == SnackbarResult.ActionPerformed) {
@@ -627,20 +630,10 @@ fun StudyPlannerScreen(
         }
     }
 
-    // ── Internal back-press handling ────────────────────────────────────────────
-    // The Study Planner manages its own sub-screens via ViewModel state (PlannerSection)
-    // rather than NavController entries. Without this BackHandler the system back press
-    // would skip all internal sections and jump straight to Home.
-    //
-    // Hierarchy:
-    //   [sub-section B] → [sub-section A] → [plan list / YOUR_EXAMS] → Home (NavController)
-    val hasInternalBackState = chromeState.selectedPlan != null
-    BackHandler(enabled = hasInternalBackState) {
-        actions.navigateBack()
-        // navigateBack() always returns true when enabled (plan is open), so we just
-        // let it update the ViewModel state. The BackHandler disables itself automatically
-        // once selectedPlan becomes null (after closePlan()), letting the NavController
-        // handle the final back press back to Home.
+    // The exam list is this feature's root. Exit it to the actual caller instead
+    // of inserting the planner's Home tab into the Back path.
+    BackHandler {
+        if (!actions.navigateBack()) onBack()
     }
 
     val selectedPlanForDrawer = chromeState.selectedPlan
@@ -751,15 +744,20 @@ fun StudyPlannerScreen(
                     )
 
                     if (!canUsePremiumPlannerFeatures) {
-                        StudyPlannerPremiumLockOverlay(
-                            modifier = Modifier.fillMaxSize(),
-                            onUpgrade = { onNavigate(Routes.PREMIUM) },
-                        )
+                        Column(Modifier.fillMaxSize()) {
+                            Box(Modifier.padding(16.dp)) {
+                                PlannerPosterEntry(onClick = { onNavigate(Routes.TOPPERS_BATCH) })
+                            }
+                            StudyPlannerPremiumLockOverlay(
+                                modifier = Modifier.weight(1f).fillMaxWidth(),
+                                onUpgrade = { onNavigate(Routes.PREMIUM) },
+                            )
+                        }
                     }
 
                     TourManager(
                         dataStore = viewModel.dataStore,
-                        steps = studyPlannerTourSteps,
+                        steps = studyPlannerTourSteps(),
                         section = "study_planner",
                         askOnFirstVisit = false,
                         onTourStateReady = { tourState = it },
@@ -823,19 +821,19 @@ private fun StudyPlannerPremiumLockOverlay(
             ) {
                 Icon(
                     imageVector = Icons.Default.Lock,
-                    contentDescription = "Safar Premium feature",
+                    contentDescription = stringResource(R.string.planner_premium_feature),
                     tint = scheme.primary,
                     modifier = Modifier.size(32.dp),
                 )
             }
             Text(
-                text = "Safar Premium Feature",
+                text = stringResource(R.string.planner_premium_feature),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.ExtraBold,
                 color = scheme.onBackground,
             )
             Text(
-                text = "Upgrade to unlock Exam Planner, manual planning, AI syllabus setup, calendar, and insights.",
+                text = stringResource(R.string.planner_premium_body),
                 style = MaterialTheme.typography.bodyMedium,
                 textAlign = TextAlign.Center,
                 color = scheme.onSurfaceVariant,
@@ -849,7 +847,7 @@ private fun StudyPlannerPremiumLockOverlay(
             ) {
                 Icon(Icons.Default.Star, contentDescription = null, modifier = Modifier.size(16.dp), tint = scheme.onPrimary)
                 Spacer(Modifier.width(6.dp))
-                Text("Upgrade to Safar Premium", fontWeight = FontWeight.Bold, color = scheme.onPrimary)
+                Text(stringResource(R.string.planner_upgrade_premium), fontWeight = FontWeight.Bold, color = scheme.onPrimary)
             }
         }
     }
@@ -876,8 +874,8 @@ private fun StudyPlansScreen(
 
     pendingDelete?.let { plan ->
         ConfirmActionDialog(
-            title = "Delete plan?",
-            body = "This will delete ${plan.title} and its syllabus.",
+            title = stringResource(R.string.planner_delete_plan_question),
+            body = stringResource(R.string.planner_delete_plan_named, plan.title),
             onDismiss = { pendingDelete = null },
             onConfirm = { actions.deletePlan(plan.id); pendingDelete = null },
         )
@@ -913,61 +911,26 @@ private fun StudyPlansScreen(
                 contentPadding = PaddingValues(start = 16.dp, top = 20.dp, end = 16.dp, bottom = 32.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                // ── Top Quick Actions Grid (Variant 3) ──────────────────
-                item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        // 1. New Plan
-                        PlannerQuickActionCard(
-                            title = "New Plan",
-                            subtitle = "Start fresh or template",
-                            icon = Icons.Default.Add,
-                            iconBg = if (isDark) Color(0xFF34D399).copy(alpha = 0.15f) else Color(0xFF064E3B).copy(alpha = 0.12f),
-                            iconTint = if (isDark) Color(0xFF34D399) else Color(0xFF064E3B),
-                            borderColor = if (isDark) Color(0xFF272C35) else Color(0xFFE2E8F0),
-                            isLight = !isDark,
-                            onClick = {
-                                onAdvanceTour()
-                                onNavigate(Routes.CREATE_PLAN)
-                            },
-                            modifier = Modifier.weight(1f)
+                item(key = "toppers_batch") {
+                    PlannerPosterEntry(onClick = { onNavigate(Routes.TOPPERS_BATCH) })
+                }
+                item(key = "new_plan") {
+                    PlannerEntryAction(
+                        title = stringResource(R.string.planner_new_plan),
+                        subtitle = "Start fresh or build from a template",
+                        icon = Icons.Default.Add,
+                        primary = true,
+                        onClick = { onAdvanceTour(); onNavigate(Routes.CREATE_PLAN) },
+                    )
+                }
+                if (state.draftSyllabi.isNotEmpty()) {
+                    item(key = "drafts") {
+                        PlannerEntryAction(
+                            title = stringResource(R.string.planner_drafts_count, state.draftSyllabi.size),
+                            subtitle = stringResource(R.string.planner_resume_building),
+                            icon = Icons.AutoMirrored.Outlined.Article,
+                            onClick = { onAdvanceTour(); onNavigate("${Routes.CREATE_PLAN}?startAtSaved=true") },
                         )
-
-                        // 2. Drafts (or Templates if 0 drafts)
-                        if (state.draftSyllabi.isNotEmpty()) {
-                            PlannerQuickActionCard(
-                                title = "Drafts (${state.draftSyllabi.size})",
-                                subtitle = "Resume building →",
-                                icon = Icons.AutoMirrored.Outlined.Article,
-                                iconBg = Color(0xFFF59E0B).copy(alpha = 0.15f),
-                                iconTint = Color(0xFFD97706),
-                                borderColor = if (isDark) Color(0xFFB45309).copy(alpha = 0.4f) else Color(0xFFFDE68A),
-                                isLight = !isDark,
-                                onInfoClick = null,
-                                onClick = {
-                                    onAdvanceTour()
-                                    onNavigate("${Routes.CREATE_PLAN}?startAtSaved=true")
-                                },
-                                modifier = Modifier.weight(1f)
-                            )
-                        } else {
-                            PlannerQuickActionCard(
-                                title = "Templates",
-                                subtitle = "Browse exam syllabi →",
-                                icon = Icons.Outlined.AutoStories,
-                                iconBg = if (isDark) Color(0xFF818CF8).copy(alpha = 0.15f) else Color(0xFF4F46E5).copy(alpha = 0.10f),
-                                iconTint = if (isDark) Color(0xFF818CF8) else Color(0xFF4F46E5),
-                                borderColor = if (isDark) Color(0xFF272C35) else Color(0xFFE2E8F0),
-                                isLight = !isDark,
-                                onClick = {
-                                    onAdvanceTour()
-                                    onNavigate(Routes.CREATE_PLAN)
-                                },
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
                     }
                 }
 
@@ -982,8 +945,8 @@ private fun StudyPlansScreen(
                 if (state.plans.isEmpty() && !state.loading) {
                     item {
                         PlannerEmptyState(
-                            title = "No target exam yet",
-                            body = "Plan an exam and it will appear here.",
+                            title = stringResource(R.string.planner_no_target_exam),
+                            body = stringResource(R.string.planner_empty_plan_body),
                             action = "Plan Your Exams",
                             isLight = !isDark,
                             onAction = {
@@ -998,7 +961,7 @@ private fun StudyPlansScreen(
                 if (state.plans.isNotEmpty()) {
                     item {
                         Text(
-                            text = "ACTIVE EXAMS (${state.plans.size})",
+                            text = stringResource(R.string.planner_active_exams_count, state.plans.size),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 0.5.sp,
@@ -1090,7 +1053,7 @@ fun PlannerQuickActionCard(
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.Info,
-                            contentDescription = "What is Drafts?",
+                            contentDescription = stringResource(R.string.planner_what_are_drafts),
                             tint = textSecondary.copy(alpha = 0.7f),
                             modifier = Modifier.size(16.dp)
                         )
@@ -1159,7 +1122,7 @@ private fun DraftsInfoDialog(
                         )
                     }
                     Text(
-                        text = "What are Drafts?",
+                        text = stringResource(R.string.planner_what_are_drafts),
                         fontSize = 17.sp,
                         fontWeight = FontWeight.Bold,
                         color = textPrimary
@@ -1167,7 +1130,7 @@ private fun DraftsInfoDialog(
                 }
 
                 Text(
-                    text = "When you use \"Build It Myself\" to create your own exam syllabus (subjects, chapters, and topics) and leave before finishing, it is saved here as a draft.\n\nTap this card anytime to continue editing or delete your unfinished syllabi.",
+                    text = stringResource(R.string.planner_drafts_explainer),
                     fontSize = 14.sp,
                     color = textSecondary,
                     lineHeight = 20.sp
@@ -1186,7 +1149,7 @@ private fun DraftsInfoDialog(
                         ),
                         contentPadding = PaddingValues(horizontal = 18.dp, vertical = 8.dp)
                     ) {
-                        Text("Got it", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(R.string.common_got_it), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
@@ -1311,113 +1274,11 @@ private fun PlannerTargetExamRow(
     val textPrimary = if (isLight) Color(0xFF0F172A) else Color(0xFFF8FAFC)
     val textSecondary = if (isLight) Color(0xFF64748B) else Color(0xFF94A3B8)
 
-    Surface(
-        onClick = onOpen,
-        shape = RoundedCornerShape(16.dp),
-        color = bg,
-        border = androidx.compose.foundation.BorderStroke(if (isActive) 1.5.dp else 1.dp, border),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            // Clean flat icon container
-            Box(
-                modifier = Modifier
-                    .size(42.dp)
-                    .background(
-                        if (isDark) Color(0xFF818CF8).copy(alpha = 0.15f) else Color(0xFF4F46E5).copy(alpha = 0.10f),
-                        RoundedCornerShape(12.dp)
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.School,
-                    contentDescription = null,
-                    tint = if (isDark) Color(0xFF818CF8) else Color(0xFF4F46E5),
-                    modifier = Modifier.size(22.dp)
-                )
-            }
-
-            Spacer(Modifier.width(12.dp))
-
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(3.dp)
-            ) {
-                Text(
-                    text = title,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 15.sp,
-                    color = textPrimary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = subtitle,
-                    fontSize = 12.sp,
-                    color = textSecondary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-
-            Spacer(Modifier.width(8.dp))
-
-            // Days left pill
-            val badge = examBadgeLabel(days)
-            if (badge.isNotBlank()) {
-                Box(
-                    modifier = Modifier
-                        .background(
-                            if (isDark) Color(0xFF1E293B) else Color(0xFFF1F5F9),
-                            RoundedCornerShape(8.dp)
-                        )
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                ) {
-                    Text(
-                        text = badge,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = if (isDark) Color(0xFF94A3B8) else Color(0xFF475569)
-                    )
-                }
-            }
-
-            Box {
-                IconButton(
-                    onClick = { menuExpanded = true },
-                    modifier = Modifier.size(32.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.MoreVert,
-                        contentDescription = "Options",
-                        tint = textSecondary,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-                PlannerOverflowMenu(
-                    expanded = menuExpanded,
-                    onDismissRequest = { menuExpanded = false },
-                ) {
-                    PlannerOverflowMenuItem(
-                        text = "Rename exam",
-                        icon = Icons.Default.Edit,
-                        onClick = { menuExpanded = false; onRename() },
-                    )
-                    PlannerOverflowMenuItem(
-                        text = "Delete plan",
-                        icon = Icons.Default.Delete,
-                        destructive = true,
-                        onClick = { menuExpanded = false; onDelete() },
-                    )
-                }
-            }
-        }
-    }
+    PlannerExamEntry(
+        title = title, subtitle = subtitle, badge = examBadgeLabel(days),
+        upcoming = days != null && days >= 0, active = isActive,
+        onOpen = onOpen, onRename = onRename, onDelete = onDelete,
+    )
 }
 
 @Composable
@@ -1430,26 +1291,26 @@ private fun RenameExamDialog(
     val cleanTitle = title.trim()
     PlannerDialog(
         onDismissRequest = onDismiss,
-        title = "Rename exam",
+        title = stringResource(R.string.planner_rename_exam),
         text = {
             OutlinedTextField(
                 value = title,
                 onValueChange = { title = it },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
-                label = { Text("Exam name") },
+                label = { Text(stringResource(R.string.planner_exam_name)) },
                 supportingText = {
-                    if (cleanTitle.isEmpty()) Text("Enter an exam name")
+                    if (cleanTitle.isEmpty()) Text(stringResource(R.string.planner_enter_exam_name))
                 },
                 isError = cleanTitle.isEmpty(),
             )
         },
         dismissButton = {
-            PlannerDialogTextAction("Cancel", onClick = onDismiss)
+            PlannerDialogTextAction(stringResource(R.string.common_cancel), onClick = onDismiss)
         },
         confirmButton = {
             PlannerDialogAction(
-                text = "Rename",
+                text = stringResource(R.string.common_rename),
                 enabled = cleanTitle.isNotEmpty() && cleanTitle != currentTitle,
                 onClick = { onRename(cleanTitle) },
             )
@@ -1667,20 +1528,20 @@ private fun PlannerHomeEmptyState(onCreatePlan: () -> Unit) {
                 )
             }
             Text(
-                text = "Create your exam plan",
+                text = stringResource(R.string.planner_create_exam_plan),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.ExtraBold,
                 textAlign = TextAlign.Center,
             )
             Text(
-                text = "Set up an exam to see your daily study plan here.",
+                text = stringResource(R.string.planner_create_exam_plan_body),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
             Button(onClick = onCreatePlan) {
                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
-                Text("Create your exam plan")
+                Text(stringResource(R.string.planner_create_exam_plan))
             }
         }
     }
@@ -1692,9 +1553,10 @@ private fun PlannerHomeEmptyState(onCreatePlan: () -> Unit) {
 @Composable
 internal fun PlannerBottomBar(selected: PlannerSection, onSelect: (PlannerSection) -> Unit) {
     val sections = listOf(
+        PlannerSection.YOUR_EXAMS,
         PlannerSection.PLAN,
-        PlannerSection.CALENDAR,
         PlannerSection.SYLLABUS,
+        PlannerSection.CALENDAR,
         PlannerSection.INSIGHTS,
     )
     val icons = mapOf(
@@ -1708,7 +1570,7 @@ internal fun PlannerBottomBar(selected: PlannerSection, onSelect: (PlannerSectio
     val isLight = scheme.background.isLightBackground()
     val haptic = LocalHapticFeedback.current
 
-    val selectedIndex = sections.indexOf(if (selected == PlannerSection.REVISION) PlannerSection.CALENDAR else selected).coerceAtLeast(0)
+    val selectedIndex = sections.indexOf(selected).coerceAtLeast(0)
     val animatedIndex by animateFloatAsState(
         targetValue = selectedIndex.toFloat(),
         animationSpec = spring(
@@ -1803,7 +1665,7 @@ internal fun PlannerBottomBar(selected: PlannerSection, onSelect: (PlannerSectio
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 sections.forEach { section ->
-                    val isSelected = selected == section || (selected == PlannerSection.REVISION && section == PlannerSection.CALENDAR)
+                    val isSelected = selected == section
 
                     val contentColor by animateColorAsState(
                         targetValue = if (isSelected) {
@@ -1863,7 +1725,7 @@ internal fun PlannerExportButton(onClick: () -> Unit, modifier: Modifier = Modif
             modifier = Modifier.size(18.dp),
         )
         Spacer(Modifier.width(6.dp))
-        Text("Export", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+        Text(stringResource(R.string.common_export), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
     }
 }
 
@@ -1903,7 +1765,7 @@ internal fun PlannerExportButton(onClick: () -> Unit, modifier: Modifier = Modif
                     maxLines = 1,
                 )
                 Spacer(Modifier.width(8.dp))
-                Text("complete", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.common_complete_lower), color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             LinearProgressIndicator(progress = { percent / 100f }, modifier = Modifier.fillMaxWidth().height(9.dp).clip(CircleShape))
             Text(main, fontWeight = FontWeight.SemiBold, maxLines = 3, overflow = TextOverflow.Ellipsis)
@@ -1917,7 +1779,7 @@ internal fun PlannerExportButton(onClick: () -> Unit, modifier: Modifier = Modif
     val hasTopics = plan.flattenTopics().isNotEmpty()
     PlannerSurface {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Setup Guide", fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.planner_setup_guide), fontWeight = FontWeight.Bold)
             GuideStep("Set exam date", hasDate) { actions.setSection(PlannerSection.PLAN) }
             GuideStep("Add topics", hasTopics) { actions.setSection(PlannerSection.SYLLABUS) }
             GuideStep("Tap Build Planner", plan.flattenTopics().any { !it.topic.plannedDate.isNullOrBlank() }) { actions.setSection(PlannerSection.SYLLABUS) }
@@ -1990,7 +1852,7 @@ internal fun PlannerExportButton(onClick: () -> Unit, modifier: Modifier = Modif
 @Composable private fun OffDayPicker(selected: Set<Int>, onToggle: (Int) -> Unit) {
     val days = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text("My Rest Days", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(stringResource(R.string.planner_my_rest_days), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             days.forEachIndexed { index, label ->
                 FilterChip(selected = index in selected, onClick = { onToggle(index) }, label = { Text(label) })
@@ -2040,12 +1902,12 @@ internal fun PlannerExportButton(onClick: () -> Unit, modifier: Modifier = Modif
             PlannerDialogText(body)
         },
         dismissButton = {
-            PlannerDialogTextAction("Cancel", onClick = onDismiss)
+            PlannerDialogTextAction(stringResource(R.string.common_cancel), onClick = onDismiss)
         },
         confirmButton = {
             // Destructive confirm keeps the error colour, rendered as glass.
             PlannerDialogAction(
-                text = "Confirm",
+                text = stringResource(R.string.common_confirm),
                 accentColor = MaterialTheme.colorScheme.error,
                 onClick = onConfirm,
             )
@@ -2198,7 +2060,7 @@ fun PlannerContinueBuildingCard(
                             .padding(horizontal = 6.dp, vertical = 2.dp)
                     ) {
                         Text(
-                            text = "DRAFT",
+                            text = stringResource(R.string.common_draft_upper),
                             color = Color(0xFFD97706),
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,

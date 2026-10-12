@@ -59,7 +59,6 @@ import com.safarparmar.app.ui.theme.Slate700
 import com.safarparmar.app.ui.theme.LoraFontFamily
 import com.safarparmar.app.ui.theme.isLightBackground
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
@@ -117,15 +116,10 @@ fun SplashScreen(
         }
     }
 
-    var isLogoAnimating by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
     var isTaglineVisible by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        isLogoAnimating = true
-        delay(150L)
         isTaglineVisible = true
-        delay(1650L) 
-        viewModel.onStartSafar()
     }
     
     Box(Modifier.fillMaxSize()) {
@@ -152,7 +146,8 @@ fun SplashScreen(
                 verticalArrangement = Arrangement.Center
             ) {
                 SafarLogoAnimation(
-                    modifier = Modifier.size(logoSize)
+                    modifier = Modifier.size(logoSize),
+                    onAnimationFinished = viewModel::onStartSafar,
                 )
 
                 Spacer(Modifier.height(28.dp))
@@ -166,7 +161,7 @@ fun SplashScreen(
                             ),
                 ) {
                     Text(
-                        text = "Your Marks Matter, But So Does Your Mind",
+                        text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.splash_marks_mind),
                         style = MaterialTheme.typography.bodyLarge.copy(
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onBackground,

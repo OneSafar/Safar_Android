@@ -229,10 +229,19 @@ internal fun InsightsTab(
     isPremium: Boolean,
     onUpgrade: () -> Unit = {},
 ) {
-    val insights = remember(plan, state.calendar, state.analytics) {
-        PlannerInsightsCalculator.compute(plan, state.calendar, state.analytics)
+    val computed by androidx.compose.runtime.key(plan.id) {
+        androidx.compose.runtime.produceState<Pair<com.safarparmar.app.ui.studyplanner.logic.PlannerInsights, com.safarparmar.app.domain.model.studyplanner.PlanProgress>?>(initialValue = null, key1 = plan, key2 = state.calendar, key3 = state.analytics) {
+            value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+                PlannerInsightsCalculator.compute(plan, state.calendar, state.analytics) to plan.rollup()
+            }
+        }
     }
-    val rollup = remember(plan.id, plan.subjects, plan.dailyTodos, plan.dailyTodoLogs) { plan.rollup() }
+    val ready = computed
+    if (ready == null) {
+        com.safarparmar.app.ui.components.StatCardSkeleton()
+        return
+    }
+    val (insights, rollup) = ready
     val dailyGoal = (plan.dailyGoal ?: 1).coerceAtLeast(1)
     val examDays = daysUntil(plan.examDate)
         ?.coerceIn(Int.MIN_VALUE.toLong(), Int.MAX_VALUE.toLong())

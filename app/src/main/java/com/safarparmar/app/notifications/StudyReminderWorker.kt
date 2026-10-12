@@ -3,6 +3,7 @@ package com.safarparmar.app.notifications
 import android.content.Context
 import android.util.Log
 import com.safarparmar.app.BuildConfig
+import com.safarparmar.app.R
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
@@ -26,8 +27,8 @@ class StudyReminderWorker(
         }
 
         SafarNotificationManager(applicationContext).showStudyReminder(
-            title = "Your study time is ready",
-            body = "Start a 25-minute Ekagra session.",
+            title = applicationContext.getString(R.string.notifications_study_ready),
+            body = applicationContext.getString(R.string.notifications_study_ready_body),
             deepLink = "safar://ekagra",
         )
         return Result.success()

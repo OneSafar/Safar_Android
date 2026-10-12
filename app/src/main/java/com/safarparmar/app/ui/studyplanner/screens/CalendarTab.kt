@@ -185,6 +185,7 @@ import kotlin.math.sin
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.safarparmar.app.R
+import androidx.compose.ui.res.stringResource
 import com.safarparmar.app.data.remote.api.UpdatePlanRequest
 import com.safarparmar.app.domain.model.studyplanner.CalendarMap
 import com.safarparmar.app.domain.model.studyplanner.PlannerSection
@@ -286,12 +287,6 @@ internal fun CalendarTab(plan: StudyPlan, state: StudyPlannerUiState, actions: P
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 32.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            item(key = "schedule_navigation") {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(selected = true, onClick = {}, label = { Text("Calendar") })
-                    FilterChip(selected = false, onClick = { actions.openRevisionTopics() }, label = { Text("Revision") })
-                }
-            }
             item {
                 CalendarPlainHeader(plan = plan, isLight = isLight)
             }
@@ -316,7 +311,7 @@ internal fun CalendarTab(plan: StudyPlan, state: StudyPlannerUiState, actions: P
                             IconButton(onClick = { visibleMonth = visibleMonth.minusMonths(1) }) {
                                 Icon(
                                     imageVector = Icons.Default.ChevronLeft,
-                                    contentDescription = "Previous month",
+                                    contentDescription = stringResource(R.string.planner_previous_month),
                                     tint = PlannerFlatColors.TextDark,
                                     modifier = Modifier.size(28.dp),
                                 )
@@ -333,7 +328,7 @@ internal fun CalendarTab(plan: StudyPlan, state: StudyPlannerUiState, actions: P
                             IconButton(onClick = { visibleMonth = visibleMonth.plusMonths(1) }) {
                                 Icon(
                                     imageVector = Icons.Default.ChevronRight,
-                                    contentDescription = "Next month",
+                                    contentDescription = stringResource(R.string.planner_next_month),
                                     tint = PlannerFlatColors.TextDark,
                                     modifier = Modifier.size(28.dp),
                                 )
@@ -412,13 +407,13 @@ internal fun CalendarTab(plan: StudyPlan, state: StudyPlannerUiState, actions: P
                 Spacer(Modifier.height(10.dp))
                 PlanHairline()
                 CalendarActionRow(
-                    label = "View revision topics",
+                    label = stringResource(R.string.planner_view_revision_topics),
                     accent = PlannerFlatColors.PrimaryAccent,
                     onClick = { actions.openRevisionTopics() },
                 )
                 PlanHairline(alpha = 0.6f)
                 CalendarActionRow(
-                    label = "View missed topics",
+                    label = stringResource(R.string.planner_view_missed_topics),
                     accent = Color(0xFFDC2626),
                     onClick = { showUnscheduledTopicsScreen = true },
                 )
@@ -427,8 +422,8 @@ internal fun CalendarTab(plan: StudyPlan, state: StudyPlannerUiState, actions: P
         }
 
         if (showUnscheduledTopicsScreen) {
-            val refs = remember(plan.subjects) { plan.flattenTopics() }
-            val missedTopics = remember(refs, todayK) {
+            val refs = remember(PlannerReferenceKey(plan.subjects)) { plan.flattenTopics() }
+            val missedTopics = remember(PlannerReferenceKey(refs), todayK) {
                 refs.filter { ref -> ref.topic.isMissed(todayK) }
             }
             MissedTopicsScreen(
@@ -510,8 +505,8 @@ private fun calendarDateStatus(
     todayIso: String,
 ): CalendarDateStatus? {
     val planned = items.size
-    val done = items.count { it.status == TopicStatus.DONE }
-    val overdue = dateIso < todayIso && items.any { it.status != TopicStatus.DONE }
+    val done = items.count { it.status.isStudied }
+    val overdue = dateIso < todayIso && items.any { !it.status.isStudied }
     return when {
         overdue -> CalendarDateStatus.OVERDUE
         planned > 0 && done == planned -> CalendarDateStatus.DONE
@@ -582,7 +577,7 @@ internal fun CalendarDayChip(
                 if (isExamDay) {
                     Icon(
                         imageVector = Icons.Default.Flag,
-                        contentDescription = "Exam day",
+                        contentDescription = stringResource(R.string.planner_exam_day),
                         tint = PlannerAccent.Coral,
                         modifier = Modifier
                             .align(Alignment.TopEnd)
@@ -667,10 +662,10 @@ internal fun SelectedDayLogSheet(
                         }
                         changeDateTarget = null
                     },
-                ) { Text("Move") }
+                ) { Text(stringResource(R.string.common_move)) }
             },
             dismissButton = {
-                TextButton(onClick = { changeDateTarget = null }) { Text("Cancel") }
+                TextButton(onClick = { changeDateTarget = null }) { Text(stringResource(R.string.common_cancel)) }
             },
         ) {
             DatePicker(state = datePickerState)
@@ -717,7 +712,7 @@ internal fun SelectedDayLogSheet(
                     // "Light day" under budget, "Full day" at/over. Big topics
                     // count as more, so 2 big topics can already fill a 3-topic day.
                     run {
-                        val pointsByTopicId = remember(plan.subjects) {
+                        val pointsByTopicId = remember(PlannerReferenceKey(plan.subjects)) {
                             plan.flattenTopics().associate { it.topic.id to it.topic.effortPoints(it.chapter).toFloat() }
                         }
                         val pendingPoints = items
@@ -743,10 +738,10 @@ internal fun SelectedDayLogSheet(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        DayStatBox(value = planned, label = "To Study", color = Blue500, icon = Icons.AutoMirrored.Filled.MenuBook, modifier = Modifier.weight(1f))
-                        DayStatBox(value = done, label = "Completed", color = Emerald500, icon = Icons.Rounded.CheckCircle, modifier = Modifier.weight(1f))
-                        DayStatBox(value = revisedCount, label = "To Revise", color = Orange500, icon = Icons.Default.TrackChanges, modifier = Modifier.weight(1f))
-                        DayStatBox(value = missed, label = "Missed", color = Rose500, icon = Icons.Default.Cancel, modifier = Modifier.weight(1f))
+                        DayStatBox(value = planned, label = stringResource(R.string.planner_to_study), color = Blue500, icon = Icons.AutoMirrored.Filled.MenuBook, modifier = Modifier.weight(1f))
+                        DayStatBox(value = done, label = stringResource(R.string.common_completed), color = Emerald500, icon = Icons.Rounded.CheckCircle, modifier = Modifier.weight(1f))
+                        DayStatBox(value = revisedCount, label = stringResource(R.string.planner_to_revise), color = Orange500, icon = Icons.Default.TrackChanges, modifier = Modifier.weight(1f))
+                        DayStatBox(value = missed, label = stringResource(R.string.planner_missed), color = Rose500, icon = Icons.Default.Cancel, modifier = Modifier.weight(1f))
                     }
 
                     HorizontalDivider()
@@ -948,7 +943,7 @@ private fun ChangeDatePill(onClick: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = "Change Date",
+                text = stringResource(R.string.planner_change_date),
                 style = MaterialTheme.typography.labelSmall.copy(
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,

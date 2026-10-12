@@ -11,6 +11,21 @@ import org.junit.Test
 class EkagraTimeAccountingTest {
 
     @Test
+    fun `three loop series interrupted during break saves only completed focus`() {
+        val progress = calculateFocusProgress(
+            mode = TimerMode.BREAK,
+            currentPeriodTotalSeconds = 300,
+            currentPeriodRemainingSeconds = 120,
+            pomodoroFocusSeconds = 1500,
+            targetPomodoroLoops = 3,
+            completedPomodoroLoops = 2,
+        )
+
+        assertEquals(4500, progress.plannedSeconds)
+        assertEquals(3000, progress.actualSeconds)
+    }
+
+    @Test
     fun `two completed one-minute pomodoro loops aggregate to two minutes`() {
         val progress = calculateFocusProgress(
             mode = TimerMode.POMODORO,
@@ -38,6 +53,21 @@ class EkagraTimeAccountingTest {
 
         assertEquals(120, progress.plannedSeconds)
         assertEquals(66, progress.actualSeconds)
+    }
+
+    @Test
+    fun `ending during a pomodoro break preserves completed focus loops`() {
+        val progress = calculateFocusProgress(
+            mode = TimerMode.BREAK,
+            currentPeriodTotalSeconds = 300,
+            currentPeriodRemainingSeconds = 150,
+            pomodoroFocusSeconds = 1500,
+            targetPomodoroLoops = 4,
+            completedPomodoroLoops = 2,
+        )
+
+        assertEquals(6000, progress.plannedSeconds)
+        assertEquals(3000, progress.actualSeconds)
     }
 
     @Test

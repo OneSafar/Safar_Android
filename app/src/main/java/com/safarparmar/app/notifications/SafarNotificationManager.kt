@@ -13,7 +13,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import android.graphics.Bitmap
 import android.graphics.drawable.BitmapDrawable
-import coil.ImageLoader
+import coil.imageLoader
 import coil.request.ImageRequest
 import com.safarparmar.app.R
 import com.safarparmar.app.data.local.SafarDataStore
@@ -71,9 +71,10 @@ class SafarNotificationManager(
         if (imageUrl.isNullOrBlank()) return null
         return withContext(Dispatchers.IO) {
             try {
-                val loader = ImageLoader(context)
+                val loader = context.imageLoader
                 val request = ImageRequest.Builder(context)
                     .data(imageUrl)
+                    .size(512, 288)
                     .allowHardware(false)
                     .build()
                 val result = loader.execute(request)
@@ -140,6 +141,16 @@ class SafarNotificationManager(
             .setOnlyAlertOnce(onlyAlertOnce)
             .setPriority(priority)
             .setGroup(groupKey)
+
+        if (!ongoing &&
+            normalizedChannel != SafarNotificationChannels.FOCUS_TIMER &&
+            normalizedChannel != SafarNotificationChannels.EKAGRA_ALERT &&
+            normalizedChannel != SafarNotificationChannels.EKAGRA_VIBRATE_ALERT &&
+            normalizedChannel != SafarNotificationChannels.FOCUS_SHIELD_STATUS &&
+            normalizedChannel != SafarNotificationChannels.YOUTUBE_STUDY_V2_STATUS
+        ) {
+            builder.setDefaults(NotificationCompat.DEFAULT_ALL)
+        }
 
         if (imageBitmap != null) {
             builder.setLargeIcon(imageBitmap)

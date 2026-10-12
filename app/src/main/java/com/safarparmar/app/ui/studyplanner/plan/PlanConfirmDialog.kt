@@ -1,5 +1,8 @@
 package com.safarparmar.app.ui.studyplanner.plan
 
+import androidx.compose.ui.res.stringResource
+import com.safarparmar.app.R
+
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import com.safarparmar.app.ui.studyplanner.components.PlannerDialog
@@ -18,12 +21,12 @@ fun PlanConfirmDialog(
         onDismissRequest = onDismiss,
         title = title,
         text = { PlannerDialogText(body) },
-        dismissButton = { PlannerDialogTextAction("Cancel", onClick = onDismiss) },
+        dismissButton = { PlannerDialogTextAction(stringResource(R.string.common_cancel), onClick = onDismiss) },
         confirmButton = {
             // Destructive confirm keeps the error colour — GlassButton renders it
             // as translucent glass without changing the colour itself.
             PlannerDialogAction(
-                text = "Confirm",
+                text = stringResource(R.string.common_confirm),
                 onClick = onConfirm,
                 accentColor = MaterialTheme.colorScheme.error,
             )

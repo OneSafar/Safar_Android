@@ -4,6 +4,8 @@ import com.safarparmar.app.domain.model.*
 import com.safarparmar.app.util.Resource
 
 interface HomeRepository {
+    fun invalidateReadSnapshots() {}
+
     suspend fun getStreaks(): Resource<Streaks>
     suspend fun restoreCheckInStreak(): Resource<Streaks>
     suspend fun getMoods(): Resource<List<Mood>>
@@ -62,6 +64,7 @@ interface HomeRepository {
     suspend fun respondToRollover(id: String, action: String): Resource<GoalRolloverResult>
     suspend fun getGoalFocusSummary(goalIds: List<String>, dayKey: String?): Resource<GoalFocusSummary>
     suspend fun getEkagraAnalytics(): Resource<EkagraAnalyticsStats>
+    suspend fun getDashboardMonthlySummary(): Resource<DashboardMonthlySummary> = getMonthlyReport().toDashboardSummary()
     suspend fun getMonthlyReport(): Resource<MonthlyReport>
     suspend fun generateMonthlyReport(month: String): Resource<MonthlyReport>
     suspend fun getActiveTitle(): Resource<ActiveTitle>

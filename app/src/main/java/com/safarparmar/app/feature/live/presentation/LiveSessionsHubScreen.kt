@@ -18,7 +18,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -29,44 +28,60 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.safarparmar.app.R
 import com.safarparmar.app.ui.drawer.SafarDrawerScaffold
-import com.safarparmar.app.ui.dhyan.DhyanFlatColors
 import com.safarparmar.app.ui.navigation.Routes
 import com.safarparmar.app.ui.premium.PremiumViewModel
 import com.safarparmar.app.ui.studyplanner.plan.PlanEyebrow
 import com.safarparmar.app.ui.theme.LoraFontFamily
 
+import android.app.Activity
+import androidx.compose.ui.platform.LocalContext
+import com.safarparmar.app.ui.theme.ThemeViewModel
+
 /**
- * Live Sessions destination opened from Courses. It remains a separate route so
- * notification deep links and session-detail navigation keep working.
+ * Live Sessions destination opened from Courses/Drawer.
+ * Features a deep royal purple design system optimized for both light and dark modes.
  */
 @Composable
 fun LiveSessionsHubScreen(
     courseId: String = "",
+    initialView: String = "live",
     currentRoute: String = Routes.LIVE_SESSIONS_ROOT,
     isDarkTheme: Boolean = false,
     onNavigate: (String) -> Unit = {},
     onToggleDarkTheme: () -> Unit = {},
     premiumViewModel: PremiumViewModel = hiltViewModel(),
 ) {
-    val premiumStatus by premiumViewModel.premiumStatus.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val activity = context as? androidx.activity.ComponentActivity
+    val themeVm: ThemeViewModel = if (activity != null) {
+        hiltViewModel(activity)
+    } else {
+        hiltViewModel()
+    }
+    val currentIsDark by themeVm.isDarkTheme.collectAsStateWithLifecycle(initialValue = isDarkTheme)
+
+    val liveAccess by premiumViewModel.dhyanLiveAccess.collectAsStateWithLifecycle()
+    androidx.lifecycle.compose.LifecycleResumeEffect(premiumViewModel) {
+        premiumViewModel.refreshDhyanAccess()
+        onPauseOrDispose {}
+    }
+    val bgColor = LiveThemeColors.background(currentIsDark)
 
     SafarDrawerScaffold(
-        title = stringResource(R.string.nav_live_sessions),
+        title = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.live_title),
         subtitle = null,
         currentRoute = currentRoute,
-        isDarkTheme = isDarkTheme,
+        isDarkTheme = currentIsDark,
         onNavigate = onNavigate,
         onToggleDarkTheme = onToggleDarkTheme,
-        containerColor = DhyanFlatColors.Bg,
+        containerColor = bgColor,
     ) { padding ->
         Box(
             Modifier
@@ -75,35 +90,45 @@ fun LiveSessionsHubScreen(
         ) {
             LiveSessionsScreen(
                 courseId = courseId,
+                initialView = initialView,
                 onBack = {},
                 onOpenSession = { sessionId -> onNavigate(Routes.liveSession(sessionId)) },
+                onOpenCourses = { onNavigate(Routes.COURSES) },
                 showTopBar = false,
+                isDarkTheme = currentIsDark,
             )
-            if (!premiumStatus.isPremium) {
-                LiveSessionsPremiumLockOverlay(
+            DhyanLiveAccessOverlay(
+                    accessState = liveAccess,
+                    onRetry = premiumViewModel::refreshDhyanAccess,
                     modifier = Modifier.fillMaxSize(),
-                    onUpgradeClick = { onNavigate(Routes.PREMIUM) },
+                    isDarkTheme = currentIsDark,
+                    onEnrollClick = { onNavigate(Routes.PREMIUM) },
                 )
-            }
         }
     }
 }
 
 @Composable
-fun LiveSessionsPremiumLockOverlay(
+fun DhyanLiveLockOverlay(
     modifier: Modifier = Modifier,
-    onUpgradeClick: () -> Unit = {},
+    isDarkTheme: Boolean = false,
+    onEnrollClick: () -> Unit = {},
 ) {
+    val bgColor = LiveThemeColors.background(isDarkTheme)
+    val primaryColor = LiveThemeColors.primary(isDarkTheme)
+    val textPrimary = LiveThemeColors.textPrimary(isDarkTheme)
+    val textSecondary = LiveThemeColors.textSecondary(isDarkTheme)
+
     Box(
         modifier = modifier
-            .background(DhyanFlatColors.Bg.copy(alpha = 0.94f))
+            .background(bgColor.copy(alpha = 0.96f))
             .pointerInput(Unit) {
                 detectVerticalDragGestures { _, _ -> }
             }
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
-                onClick = onUpgradeClick,
+                onClick = onEnrollClick,
             ),
     ) {
         Column(
@@ -118,54 +143,82 @@ fun LiveSessionsPremiumLockOverlay(
                 modifier = Modifier
                     .size(64.dp)
                     .clip(CircleShape)
-                    .background(DhyanFlatColors.PrimarySoft)
-                    .border(1.dp, DhyanFlatColors.Primary.copy(alpha = 0.45f), CircleShape),
+                    .background(primaryColor.copy(alpha = 0.15f))
+                    .border(1.dp, primaryColor.copy(alpha = 0.45f), CircleShape),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     imageVector = Icons.Default.Lock,
-                    contentDescription = "Safar Premium feature",
-                    tint = DhyanFlatColors.Primary,
+                    contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.live_locked),
+                    tint = primaryColor,
                     modifier = Modifier.size(28.dp),
                 )
             }
-            PlanEyebrow("Dhyan")
+            PlanEyebrow("Live access")
             Text(
-                text = "Safar Premium Feature",
+                text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.live_unlock),
                 fontFamily = LoraFontFamily,
                 fontSize = 22.sp,
-                fontWeight = FontWeight.Normal,
-                color = DhyanFlatColors.Text,
+                fontWeight = FontWeight.Bold,
+                color = textPrimary,
                 textAlign = TextAlign.Center,
             )
             Text(
-                text = "Upgrade to unlock Live Classes, interactive meditation sessions, and real-time guidance.",
+                text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.live_unlock_body),
                 fontSize = 14.sp,
                 textAlign = TextAlign.Center,
-                color = DhyanFlatColors.Muted,
+                color = textSecondary,
                 lineHeight = 20.sp,
             )
             Box(
                 modifier = Modifier
                     .fillMaxWidth(0.85f)
-                    .heightIn(min = 52.dp)
+                    .heightIn(min = 50.dp)
                     .clip(RoundedCornerShape(14.dp))
-                    .background(DhyanFlatColors.Primary)
-                    .clickable(onClick = onUpgradeClick),
+                    .background(primaryColor)
+                    .clickable(onClick = onEnrollClick),
                 contentAlignment = Alignment.Center,
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
-                    Icon(Icons.Default.Star, null, tint = Color.White, modifier = Modifier.size(16.dp))
                     Text(
-                        "Upgrade to Safar Premium",
+                        "View Plans",
                         fontWeight = FontWeight.Bold,
-                        color = Color.White,
+                        color = if (isDarkTheme) Color(0xFF27141E) else Color.White,
                         fontSize = 14.sp,
                     )
                 }
+            }
+        }
+    }
+}
+
+
+@Composable
+fun DhyanLiveAccessOverlay(
+    accessState: String,
+    onRetry: () -> Unit,
+    modifier: Modifier = Modifier,
+    isDarkTheme: Boolean = false,
+    onEnrollClick: () -> Unit = {},
+) {
+    if (accessState == "ALLOWED") return
+    if (accessState == "DENIED") {
+        DhyanLiveLockOverlay(modifier, isDarkTheme, onEnrollClick)
+        return
+    }
+    Box(modifier.background(LiveThemeColors.background(isDarkTheme)).clickable {}, contentAlignment = Alignment.Center) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            if (accessState == "LOADING") {
+                androidx.compose.material3.CircularProgressIndicator()
+                Text("Checking Dhyan Live access…", color = LiveThemeColors.textPrimary(isDarkTheme))
+            } else {
+                Text("Could not check Dhyan Live access. Please try again.",
+                    modifier = Modifier.padding(24.dp), textAlign = TextAlign.Center,
+                    color = LiveThemeColors.textPrimary(isDarkTheme))
+                androidx.compose.material3.Button(onClick = onRetry) { Text("Retry") }
             }
         }
     }

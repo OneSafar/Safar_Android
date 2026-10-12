@@ -52,7 +52,14 @@ class FocusShieldRepository @Inject constructor(
         val packages: Set<String>,
     )
 
-    val isEnabled: StateFlow<Boolean> = dataStore.focusShieldEnabled
+    @Volatile
+    var pendingEnableAfterAppSelection: Boolean = false
+
+    private val _inMemoryEnabled = MutableStateFlow<Boolean?>(null)
+    val isEnabled: StateFlow<Boolean> = combine(
+        dataStore.focusShieldEnabled,
+        _inMemoryEnabled,
+    ) { fromDs, override -> override ?: fromDs }
         .stateIn(scope, SharingStarted.Eagerly, false)
 
     /**
@@ -69,7 +76,11 @@ class FocusShieldRepository @Inject constructor(
     val appUsageMode: StateFlow<String?> = dataStore.appUsageMode
         .stateIn(scope, SharingStarted.Eagerly, null)
 
-    val blockedPackages: StateFlow<Set<String>> = dataStore.focusShieldBlockedPackages
+    private val _inMemoryBlockedPackages = MutableStateFlow<Set<String>?>(null)
+    val blockedPackages: StateFlow<Set<String>> = combine(
+        dataStore.focusShieldBlockedPackages,
+        _inMemoryBlockedPackages,
+    ) { fromDs, override -> override ?: fromDs }
         .stateIn(scope, SharingStarted.Eagerly, emptySet())
 
     val scheduleEnabled: StateFlow<Boolean> = dataStore.focusShieldScheduleEnabled
@@ -144,11 +155,13 @@ class FocusShieldRepository @Inject constructor(
             return
         }
         
+        // Starting a break must not issue a second startForegroundService()
+        // request while the existing session's Kavach service is already running.
+        // A fresh start is still required if the service was actually stopped.
+        val alreadyProtectingSession = _sessionActive.value && _protectionActive.value
         _activationBlockedReason.value = null
-        _protectionStarting.value = true
-        _protectionActive.value = false
         activateBlocking(settings, resetUnlocks = isFocusPeriod && !_sessionActive.value)
-        if (!startKavachService(settings.packages)) {
+        if (!alreadyProtectingSession && !startKavachService(settings.packages)) {
             _sessionActive.value = false
             _sessionBlockedPackages.value = emptySet()
             ShieldPrefs.clear(appContext)
@@ -175,7 +188,10 @@ class FocusShieldRepository @Inject constructor(
         Snapshot.packages = emptySet()
         Snapshot.strict = false
         scope.launch {
-            if (!dataStore.focusShieldAlwaysOnMode.first()) {
+            // Reading DataStore may suspend. Pomodoro can activate a new session
+            // before this old deactivation resumes; do not stop its pending FGS.
+            val alwaysOn = dataStore.focusShieldAlwaysOnMode.first()
+            if (!alwaysOn && !_sessionActive.value) {
                 KavachAlwaysOnService.stop(appContext)
             }
         }
@@ -212,7 +228,10 @@ class FocusShieldRepository @Inject constructor(
         if (!isAlwaysOnMode.value && _sessionActive.value) {
             runCatching {
                 appContext.startService(
-                    Intent(appContext, TimerService::class.java).setAction(TimerService.ACTION_PAUSE),
+                    Intent(appContext, TimerService::class.java)
+                        .setAction(TimerService.ACTION_QUICK_UNLOCK)
+                        .putExtra("session", TimerService.live?.currentSessionId())
+                        .putExtra(TimerService.EXTRA_QUICK_UNLOCK_UNTIL, ShieldPrefs.getGraceUntilMs(appContext)),
                 )
             }.onFailure {
                 debugLog("Could not pause Ekagra for Quick Unlock: ${it.javaClass.simpleName}")
@@ -222,6 +241,22 @@ class FocusShieldRepository @Inject constructor(
 
     /** Settles any quick unlock whose window has expired. Cheap; safe to call often. */
     fun settleExpiredQuickUnlocks() = analyticsRecorder.settleExpiredUnlocks()
+
+    /** Cancels the current Study Mode break without changing protection or channel choices. */
+    fun endYoutubeQuickUnlock(expectedGraceUntilMs: Long) {
+        if (expectedGraceUntilMs <= 0L ||
+            ShieldPrefs.getGraceUntilMs(appContext) != expectedGraceUntilMs ||
+            ShieldPrefs.quickUnlockOrigin(appContext) != ShieldPrefs.QUICK_UNLOCK_ORIGIN_YOUTUBE_STUDY
+        ) return
+        ShieldPrefs.clearQuickUnlock(appContext)
+        analyticsRecorder.quickUnlockEnded()
+    }
+
+    /** The timer owns the expiry ticket and has verified the matching grace window. */
+    fun finishQuickUnlockForAutomaticResume() {
+        analyticsRecorder.settleExpiredUnlocks()
+        ShieldPrefs.clearQuickUnlock(appContext)
+    }
 
     /** Returning to a timer-linked focus session immediately restores protection. */
     fun endQuickUnlockForEkagraResume() {
@@ -265,12 +300,14 @@ class FocusShieldRepository @Inject constructor(
     }
 
     fun setEnabled(enabled: Boolean) {
+        val currentPackages = blockedPackages.value
+        val warning = if (enabled) activationWarning(currentPackages) else null
+        if (warning != null) {
+            reportProtectionFailure(warning)
+            return
+        }
+        _inMemoryEnabled.value = enabled
         scope.launch {
-            val warning = if (enabled) activationWarning(blockedPackages.value) else null
-            if (warning != null) {
-                reportProtectionFailure(warning)
-                return@launch
-            }
             dataStore.setFocusShieldEnabled(enabled)
             if (!enabled) {
                 // Turning Kavach off takes Beast Mode and active Quick Unlock with it
@@ -286,8 +323,8 @@ class FocusShieldRepository @Inject constructor(
                 }
                 // Normal mode is now ready; actual protection starts with Ekagra.
                 if (dataStore.focusShieldAlwaysOnMode.first()) startKavachService()
-                if (blockedPackages.value.isNotEmpty()) {
-                    homeRepository.trackKavachEvent("enabled", blockedPackages.value.size)
+                if (currentPackages.isNotEmpty()) {
+                    homeRepository.trackKavachEvent("enabled", currentPackages.size)
                 }
             }
         }
@@ -378,6 +415,7 @@ class FocusShieldRepository @Inject constructor(
     }
 
     fun setBlockedPackages(packages: Set<String>) {
+        _inMemoryBlockedPackages.value = packages
         scope.launch {
             dataStore.setFocusShieldBlockedPackages(packages)
             if (isEnabled.value && packages.isNotEmpty() && (isAlwaysOnMode.value || _sessionActive.value)) {
@@ -447,6 +485,8 @@ class FocusShieldRepository @Inject constructor(
         private const val KEY_ACTIVE = "active"
         private const val KEY_PACKAGES = "packages"
         private const val KEY_GRACE_UNTIL_MS = "grace_until_ms"
+        private const val KEY_GRACE_PACKAGE = "grace_package"
+        private const val KEY_GRACE_ORIGIN = "grace_origin"
         private const val KEY_ONE_TIME_UNLOCK_PACKAGE = "one_time_unlock_package"
         private const val KEY_RETURN_GRACE_UNTIL_ELAPSED = "return_grace_until_elapsed"
 
@@ -466,6 +506,8 @@ class FocusShieldRepository @Inject constructor(
                 putBoolean("strict", strict)
                 if (resetUnlocks) {
                     putLong(KEY_GRACE_UNTIL_MS, 0L)
+                    remove(KEY_GRACE_PACKAGE)
+                    remove(KEY_GRACE_ORIGIN)
                     putString(KEY_ONE_TIME_UNLOCK_PACKAGE, null)
                 }
             }.apply()
@@ -482,6 +524,8 @@ class FocusShieldRepository @Inject constructor(
                 .putBoolean(KEY_ACTIVE, false)
                 .putStringSet(KEY_PACKAGES, emptySet())
                 .putLong(KEY_GRACE_UNTIL_MS, 0L)
+                .remove(KEY_GRACE_PACKAGE)
+                .remove(KEY_GRACE_ORIGIN)
                 .putString(KEY_ONE_TIME_UNLOCK_PACKAGE, null)
                 .apply()
             QuickUnlockNotification.cancel(ctx)
@@ -499,14 +543,33 @@ class FocusShieldRepository @Inject constructor(
         fun getGraceUntilMs(ctx: Context): Long = prefs(ctx).getLong(KEY_GRACE_UNTIL_MS, 0L)
         fun isInGracePeriod(ctx: Context): Boolean = System.currentTimeMillis() < getGraceUntilMs(ctx)
 
+        fun isInGracePeriodForPackage(ctx: Context, packageName: String): Boolean {
+            if (!isInGracePeriod(ctx)) return false
+            val scopedPackage = prefs(ctx).getString(KEY_GRACE_PACKAGE, null)
+            // A blank value preserves an unlock created by an older installed build.
+            return scopedPackage.isNullOrBlank() || scopedPackage == packageName
+        }
+
+        fun quickUnlockOrigin(ctx: Context): String? =
+            prefs(ctx).getString(KEY_GRACE_ORIGIN, null).takeIf { isInGracePeriod(ctx) }
+
         /** Grants a quick-unlock grace window (flat duration, no per-session quota). */
-        fun applyEmergencyUnlock(ctx: Context, graceUntilMs: Long, minutes: Int = 0, userName: String? = null) {
+        fun applyEmergencyUnlock(
+            ctx: Context,
+            graceUntilMs: Long,
+            minutes: Int = 0,
+            userName: String? = null,
+            packageName: String? = null,
+            origin: String = QUICK_UNLOCK_ORIGIN_KAVACH,
+        ) {
             prefs(ctx).edit()
                 .putLong(KEY_GRACE_UNTIL_MS, graceUntilMs)
                 .putInt(KEY_LAST_QUICK_UNLOCK_MINUTES, minutes)
                 .putBoolean(KEY_QUICK_UNLOCK_JUST_EXPIRED, true)
+                .putString(KEY_GRACE_PACKAGE, packageName)
+                .putString(KEY_GRACE_ORIGIN, origin)
                 .apply()
-            QuickUnlockNotification.show(ctx, graceUntilMs, minutes, userName)
+            QuickUnlockNotification.show(ctx, graceUntilMs, minutes, userName, origin)
             if (BuildConfig.DEBUG) {
                 android.util.Log.d(TAG, "ShieldPrefs.applyEmergencyUnlock(graceUntilMs=$graceUntilMs, minutes=$minutes)")
             }
@@ -516,6 +579,8 @@ class FocusShieldRepository @Inject constructor(
             prefs(ctx).edit()
                 .putLong(KEY_GRACE_UNTIL_MS, 0L)
                 .putBoolean(KEY_QUICK_UNLOCK_JUST_EXPIRED, false)
+                .remove(KEY_GRACE_PACKAGE)
+                .remove(KEY_GRACE_ORIGIN)
                 .apply()
             QuickUnlockNotification.cancel(ctx)
             if (BuildConfig.DEBUG) android.util.Log.d(TAG, "ShieldPrefs.clearQuickUnlock()")
@@ -541,6 +606,9 @@ class FocusShieldRepository @Inject constructor(
                 android.util.Log.d(TAG, "ShieldPrefs.applyOneTimeUnlock(packageName=$packageName)")
             }
         }
+
+        const val QUICK_UNLOCK_ORIGIN_KAVACH = "kavach"
+        const val QUICK_UNLOCK_ORIGIN_YOUTUBE_STUDY = "youtube_study"
 
         fun isOneTimeUnlockedPackage(ctx: Context, packageName: String): Boolean =
             packageName.isNotBlank() &&

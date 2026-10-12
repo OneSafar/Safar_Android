@@ -71,12 +71,20 @@ object NetworkModule {
         maintenanceInterceptor: MaintenanceInterceptor,
         cookieManager: CookieManager,
         cache: Cache,
+        snapshots: com.safarparmar.app.data.repository.ReadSnapshotStore,
     ): OkHttpClient {
         val builder = OkHttpClient.Builder()
             .cookieJar(JavaNetCookieJar(cookieManager))
             .cache(cache)
             .addInterceptor(maintenanceInterceptor)
             .addInterceptor(authInterceptor)
+            .addInterceptor { chain ->
+                val changesData = chain.request().method !in setOf("GET", "HEAD", "OPTIONS")
+                if (changesData) snapshots.clear()
+                try { chain.proceed(chain.request()) } finally {
+                    if (changesData) snapshots.clear()
+                }
+            }
             // Per-call timeout override: any request that sets the X-Timeout-Seconds header
             // (stripped before sending) gets its connect/read/write timeouts bumped to that
             // value. Used for slow AI calls such as the Study Planner syllabus import, where
@@ -116,15 +124,19 @@ object NetworkModule {
                     .header("Cache-Control", "public, max-age=$maxAge")
                     .build()
             }
-            .addInterceptor(
-                HttpLoggingInterceptor().apply {
+            .addInterceptor { chain ->
+                // Support requests contain private intake answers and callback numbers.
+                // Never pass their request or response through the logger, even in debug.
+                if (chain.request().url.encodedPath.contains("/support/")) {
+                    chain.proceed(chain.request())
+                } else HttpLoggingInterceptor().apply {
                     level = if (BuildConfig.DEBUG) {
                         HttpLoggingInterceptor.Level.BODY
                     } else {
                         HttpLoggingInterceptor.Level.NONE
                     }
-                }
-            )
+                }.intercept(chain)
+            }
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)
@@ -172,6 +184,8 @@ object NetworkModule {
     @Provides @Singleton fun provideMehfilApi(r: Retrofit): MehfilApi = r.create(MehfilApi::class.java)
     @Provides @Singleton fun provideThoughtsApi(r: Retrofit): ThoughtsApi = r.create(ThoughtsApi::class.java)
     @Provides @Singleton fun provideNotificationApi(r: Retrofit): NotificationApi = r.create(NotificationApi::class.java)
+    @Provides @Singleton fun provideToppersBatchApi(r: Retrofit): com.safarparmar.app.feature.toppersbatch.ToppersBatchApi =
+        r.create(com.safarparmar.app.feature.toppersbatch.ToppersBatchApi::class.java)
     @Provides @Singleton fun providePlannerApi(r: Retrofit): PlannerApi = r.create(PlannerApi::class.java)
     @Provides @Singleton fun provideSyllabusApi(r: Retrofit): SyllabusApi = r.create(SyllabusApi::class.java)
     @Provides @Singleton fun provideLiveSessionApi(r: Retrofit): LiveSessionApi = r.create(LiveSessionApi::class.java)
@@ -179,6 +193,11 @@ object NetworkModule {
     @Provides @Singleton fun providePaymentApi(r: Retrofit): PaymentApi = r.create(PaymentApi::class.java)
     @Provides @Singleton fun provideStudyCircleApi(r: Retrofit): StudyCircleApi = r.create(StudyCircleApi::class.java)
     @Provides @Singleton fun provideLeaderboardApi(r: Retrofit): com.safarparmar.app.data.remote.api.LeaderboardApi = r.create(com.safarparmar.app.data.remote.api.LeaderboardApi::class.java)
+    @Provides @Singleton fun provideReferralApi(r: Retrofit): com.safarparmar.app.data.remote.api.ReferralApi = r.create(com.safarparmar.app.data.remote.api.ReferralApi::class.java)
+    @Provides @Singleton fun provideSupportApi(r: Retrofit): SupportApi = r.create(SupportApi::class.java)
     @Provides @Singleton fun provideGson(): Gson = Gson()
-    @Provides @Singleton fun provideMehfilSocketManager(gson: Gson): MehfilSocketManager = MehfilSocketManager(gson)
+    @Provides @Singleton fun provideMehfilSocketManager(
+        gson: Gson,
+        @ApplicationContext context: Context,
+    ): MehfilSocketManager = MehfilSocketManager(gson, context)
 }

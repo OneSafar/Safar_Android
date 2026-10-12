@@ -1,5 +1,8 @@
 package com.safarparmar.app.data.remote.maintenance
 
+import android.content.Context
+import com.safarparmar.app.R
+import dagger.hilt.android.qualifiers.ApplicationContext
 import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Response
@@ -11,6 +14,7 @@ import javax.inject.Singleton
 @Singleton
 class MaintenanceInterceptor @Inject constructor(
     private val maintenanceStateManager: MaintenanceStateManager,
+    @ApplicationContext private val context: Context,
 ) : Interceptor {
 
     override fun intercept(chain: Interceptor.Chain): Response {
@@ -25,8 +29,8 @@ class MaintenanceInterceptor @Inject constructor(
             val rawBody = response.body?.string().orEmpty()
 
             var detectedMaintenance = isMaintenanceHeader
-            var title = "App Under Maintenance !"
-            var message = "Check Back Soon......"
+            var title = context.getString(R.string.maintenance_default_title)
+            var message = context.getString(R.string.maintenance_default_message)
             var detail: String? = null
             var estimatedEnd: String? = null
             var isDbOp = true

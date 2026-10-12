@@ -3,6 +3,7 @@ package com.safarparmar.app.feature.youtubestudyv2
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.safarparmar.app.R
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -15,6 +16,7 @@ import kotlinx.coroutines.launch
 data class YoutubeStudyV2UiState(
     val enabled: Boolean = false,
     val accessibilityEnabled: Boolean = false,
+    val disclosureAccepted: Boolean = false,
     val reference: String = "",
     val resolving: Boolean = false,
     val allowed: List<YoutubeV2IdentityEntity> = emptyList(),
@@ -55,7 +57,7 @@ class YoutubeStudyV2ViewModel @Inject constructor(
         ResolvedYoutubeChannelDto("starter:safarparmar", "@safarparmar", "Safar"),
     )
 
-    val state = combine(local, setup, repository.allowedChannels, repository.visitedChannels, repository.classifications) { ui, setupState, allowed, visited, classifications ->
+    val state = combine(local, setup, repository.allowedChannels, repository.classifications) { ui, setupState, allowed, classifications ->
         val classMap = classifications.associate { it.channelId to YoutubeChannelClassification.fromWire(it.classification) }
 
         // Channels that were manually added via @handle (allowed table JOIN identity)
@@ -68,28 +70,12 @@ class YoutubeStudyV2ViewModel @Inject constructor(
             )
         }
 
-        // Channels seen by the accessibility service that are classified
-        val visitedDtos = visited
-            .filter { entity ->
-                val classification = classMap[entity.channelId]
-                classification == YoutubeChannelClassification.PRODUCTIVE || classification == YoutubeChannelClassification.DISTRACTING
-            }
-            .map { entity ->
-                ResolvedYoutubeChannelDto(
-                    channelId = entity.channelId,
-                    handle = entity.handle,
-                    displayName = entity.displayName,
-                    thumbnailUrl = entity.thumbnailUrl,
-                )
-            }
-
-        // Merge: allowed channels always appear; add classified-visited on top; no duplicates
-        val mergedList = (allowedDtos + visitedDtos).distinctBy { it.channelId }
+        val mergedList = allowedDtos.distinctBy { it.channelId }
 
         val mergedAvailable = if (!setupState.completed) {
-            (mergedList + starterChannels).distinctBy { it.handle.lowercase() }
+            (mergedList + starterChannels).distinctBy { it.handle.ifBlank { it.displayName }.lowercase() }
         } else {
-            mergedList.distinctBy { it.handle.lowercase() }
+            mergedList.distinctBy { it.handle.ifBlank { it.displayName }.lowercase() }
         }
         ui.copy(
             enabled = setupState.enabled,
@@ -121,6 +107,7 @@ class YoutubeStudyV2ViewModel @Inject constructor(
 
     fun acceptDisclosure() {
         preferences.acceptDisclosure()
+        refreshPermission()
     }
 
     fun goToStep2() {
@@ -137,23 +124,25 @@ class YoutubeStudyV2ViewModel @Inject constructor(
     }
 
     fun resolveAndAllow() {
+        if (local.value.resolving) return
         val reference = local.value.reference
-        local.value = local.value.copy(resolving = true, message = null)
+        if (reference.isBlank()) return
+        local.value = local.value.copy(resolving = true, message = null, isError = false)
         viewModelScope.launch {
             repository.resolveAndAllow(reference)
                 .onSuccess { resolution ->
                     val channel = resolution.channel
                     local.value = local.value.copy(
                         resolving = false,
-                        reference = "",
-                        message = "${channel.displayName} is now Productive.",
+                        reference = if (local.value.reference == reference) "" else local.value.reference,
+                        message = context.getString(R.string.youtube_channel_productive, channel.displayName),
                         isError = false,
                     )
                 }
                 .onFailure {
                     local.value = local.value.copy(
                         resolving = false,
-                        message = "Could not add channel. Check the @handle.",
+                        message = it.message ?: "Enter the channel name or @handle exactly as YouTube shows it.",
                         isError = true,
                     )
                 }
@@ -164,40 +153,22 @@ class YoutubeStudyV2ViewModel @Inject constructor(
         local.value = local.value.copy(availableExpanded = !local.value.availableExpanded)
     }
 
-    fun loadAvailable() {
-        if (local.value.loadingAvailable) return
-        local.value = local.value.copy(loadingAvailable = true, message = null)
-        viewModelScope.launch {
-            repository.availableChannels()
-                .onSuccess { channels ->
-                    local.value = local.value.copy(
-                        available = channels,
-                        loadingAvailable = false,
-                        isError = false,
-                    )
-                }
-                .onFailure {
-                    local.value = local.value.copy(
-                        loadingAvailable = false,
-                        message = "Could not load channels. Try again.",
-                        isError = true,
-                    )
-                }
-        }
-    }
-
     fun setAvailableProductive(channel: ResolvedYoutubeChannelDto, productive: Boolean) {
         viewModelScope.launch {
             repository.setAvailableProductive(channel, productive)
                 .onSuccess {
                     local.value = local.value.copy(
-                        message = "${it.displayName} is now ${if (productive) "Productive" else "Distracting"}.",
+                        message = context.getString(
+                            R.string.youtube_channel_classified,
+                            it.displayName,
+                            context.getString(if (productive) R.string.youtube_productive else R.string.youtube_distracting),
+                        ),
                         isError = false,
                     )
                 }
                 .onFailure {
                     local.value = local.value.copy(
-                        message = "Could not update channel. Try again.",
+                        message = context.getString(R.string.youtube_channel_update_failed),
                         isError = true,
                     )
                 }
@@ -217,17 +188,23 @@ class YoutubeStudyV2ViewModel @Inject constructor(
         local.value = local.value.copy(message = null, isError = false)
         viewModelScope.launch {
             repository.setAvailableClassification(channel, classification)
-            val label = when (classification) {
-                YoutubeChannelClassification.PRODUCTIVE -> "Productive"
-                YoutubeChannelClassification.DISTRACTING -> "Distracting"
-                else -> null
-            }
-            if (label != null) {
-                local.value = local.value.copy(
-                    message = "${channel.displayName} is now $label.",
-                    isError = false,
-                )
-            }
+                .onSuccess {
+                    val label = when (classification) {
+                        YoutubeChannelClassification.PRODUCTIVE -> context.getString(R.string.youtube_productive)
+                        YoutubeChannelClassification.DISTRACTING -> context.getString(R.string.youtube_distracting)
+                        else -> null
+                    }
+                    local.value = local.value.copy(
+                        message = label?.let { context.getString(R.string.youtube_channel_classified, channel.displayName, it) },
+                        isError = false,
+                    )
+                }
+                .onFailure {
+                    local.value = local.value.copy(
+                        message = context.getString(R.string.youtube_channel_update_failed),
+                        isError = true,
+                    )
+                }
         }
     }
 
@@ -239,12 +216,17 @@ class YoutubeStudyV2ViewModel @Inject constructor(
 
     fun refreshPermission() {
         val accessibilityEnabled = YoutubeStudyV2HealthMonitor.isAccessibilityEnabled(context)
-        local.value = local.value.copy(accessibilityEnabled = accessibilityEnabled)
-        if (accessibilityEnabled) {
-            preferences.acceptDisclosure()
+        local.value = local.value.copy(
+            accessibilityEnabled = accessibilityEnabled,
+            disclosureAccepted = preferences.isDisclosureAccepted(),
+        )
+        if (accessibilityEnabled && preferences.isDisclosureAccepted()) {
             if (!preferences.setupCompleted.value) {
                 preferences.completeSetup()
                 preferences.setEnabled(true)
+                // Accessibility may connect before setup flips enabled. Start
+                // foreground support here too so that ordering cannot leave it off.
+                YoutubeStudyV2GuardService.start(context)
             }
         } else {
             if (!preferences.setupCompleted.value && preferences.setupStep.value > 1) {

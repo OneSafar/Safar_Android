@@ -1,5 +1,8 @@
 package com.safarparmar.app.ui.studyplanner.create
 
+import androidx.compose.ui.res.stringResource
+import com.safarparmar.app.R
+
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.spring
@@ -76,7 +79,7 @@ private fun stepTitle(step: CreatePlanStep): String = when (step) {
     CreatePlanStep.MixedBagSubjectPicker -> "Mixed Bag"
     CreatePlanStep.BuildingPreview -> "Building your plan"
     CreatePlanStep.Preview -> "Review your plan"
-    CreatePlanStep.DailyTopics -> "Daily routine"
+    CreatePlanStep.DailyTopics -> "Daily topics"
 }
 
 /**
@@ -99,8 +102,8 @@ fun CreatePlanScreen(
     var showCelebration by remember { mutableStateOf(false) }
 
     LaunchedEffect(startAtSavedSyllabi) {
-        if (state.step == CreatePlanStep.ChoosePath) {
-            viewModel.chooseSource(if (startAtSavedSyllabi) PlanSource.Saved else PlanSource.Template)
+        if (startAtSavedSyllabi) {
+            viewModel.chooseSource(PlanSource.Saved)
         }
     }
 
@@ -119,11 +122,11 @@ fun CreatePlanScreen(
             } else if (state.selectedTemplateId != null) {
                 viewModel.clearSelectedTemplate()
             } else {
-                onBack()
+                viewModel.goToStep(CreatePlanStep.ChoosePath)
             }
             CreatePlanStep.ManualTopicTree -> viewModel.returnToSavedSyllabi()
             CreatePlanStep.PasteSyllabus, CreatePlanStep.SavedSyllabusPicker ->
-                onBack()
+                viewModel.goToStep(CreatePlanStep.ChoosePath)
             CreatePlanStep.PlanSettings -> viewModel.goToStep(
                 when (state.source) {
                     PlanSource.Template -> CreatePlanStep.TemplatePicker
@@ -178,13 +181,6 @@ fun CreatePlanScreen(
                     navigationIcon = {
                         Box(modifier = Modifier.padding(start = 12.dp)) {
                             com.safarparmar.app.ui.ekagra.focusshield.StudyPlannerCircularBackButton(onClick = { handleBack() })
-                        }
-                    },
-                    actions = {
-                        if (state.step == CreatePlanStep.TemplatePicker || state.step == CreatePlanStep.SavedSyllabusPicker) {
-                            androidx.compose.material3.TextButton(onClick = {
-                                viewModel.chooseSource(if (state.step == CreatePlanStep.TemplatePicker) PlanSource.Saved else PlanSource.Template)
-                            }) { Text(if (state.step == CreatePlanStep.TemplatePicker) "My syllabus" else "Exam syllabi") }
                         }
                     },
                     colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.Transparent),
@@ -312,8 +308,6 @@ fun CreatePlanScreen(
                     error = state.previewError,
                     premiumRequired = state.premiumRequired,
                     onBuildPlan = viewModel::continueFromSettings,
-                    onCustomizeDifficulty = viewModel::openChapterRating,
-                    subjectNames = viewModel.currentSubjectNames(),
                     onOpenDeepFocusOrder = viewModel::openDeepFocusOrder,
                     onOpenMixedBagPicker = viewModel::openMixedBagPicker,
                     modifier = Modifier.padding(padding),
@@ -353,7 +347,7 @@ fun CreatePlanScreen(
                         preview = preview,
                         isConfirming = state.isConfirming,
                         error = state.error,
-                        onConfirm = viewModel::confirmPlan,
+                        onConfirm = { viewModel.goToStep(CreatePlanStep.DailyTopics) },
                         // Already stretched once — offering it again would do nothing.
                         onScheduleAnyway = if (state.allowOverload) null else viewModel::scheduleAnyway,
                         onAdjust = {
@@ -421,7 +415,7 @@ private fun CelebrationOverlay(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Text("Your SAFAR plan is ready.", fontWeight = FontWeight.Black, style = MaterialTheme.typography.titleLarge)
+            Text(stringResource(R.string.planner_plan_ready), fontWeight = FontWeight.Black, style = MaterialTheme.typography.titleLarge)
             val topicsLine = if (todayTopicCount > 0) {
                 "Start with today's $todayTopicCount topic${if (todayTopicCount == 1) "" else "s"}. You've got this!"
             } else {

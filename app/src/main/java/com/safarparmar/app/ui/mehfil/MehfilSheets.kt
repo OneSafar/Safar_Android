@@ -59,6 +59,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -107,10 +108,10 @@ internal fun CommentsBottomSheet(
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                PlanEyebrow("Mehfil")
+                PlanEyebrow(stringResource(R.string.mehfil_title))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        "Comments",
+                        stringResource(R.string.mehfil_comments),
                         fontFamily = LoraFontFamily,
                         fontWeight = FontWeight.Normal,
                         fontSize = 22.sp,
@@ -128,7 +129,7 @@ internal fun CommentsBottomSheet(
                     CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MehfilFlatColors.Primary, strokeWidth = 2.dp)
                 }
                 comments.isEmpty() -> Box(Modifier.fillMaxWidth().height(100.dp), contentAlignment = Alignment.Center) {
-                    Text("No comments yet. Be the first!", color = MehfilFlatColors.Muted, fontSize = 13.sp)
+                    Text(stringResource(R.string.mehfil_no_comments), color = MehfilFlatColors.Muted, fontSize = 13.sp)
                 }
                 else -> CommentList(
                     comments = comments,
@@ -247,7 +248,7 @@ private fun CommentInputRow(
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
-            placeholder = { Text("Add a comment...", fontSize = 13.sp, color = MehfilFlatColors.Muted) },
+            placeholder = { Text(stringResource(R.string.mehfil_add_comment), fontSize = 13.sp, color = MehfilFlatColors.Muted) },
             modifier = Modifier.weight(1f),
             singleLine = true,
             shape = RoundedCornerShape(12.dp),
@@ -373,7 +374,7 @@ private fun SandeshCommentsPane(
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            PlanEyebrow("Sandesh")
+            PlanEyebrow(stringResource(R.string.mehfil_sandesh))
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -394,7 +395,7 @@ private fun SandeshCommentsPane(
                     )
                 }
                 Text(
-                    "Comments",
+                    stringResource(R.string.mehfil_comments),
                     fontFamily = LoraFontFamily,
                     fontWeight = FontWeight.Normal,
                     fontSize = 22.sp,
@@ -427,7 +428,7 @@ private fun SandeshCommentsPane(
             OutlinedTextField(
                 value = commentText,
                 onValueChange = onCommentTextChange,
-                placeholder = { Text("Add a comment...", fontSize = 13.sp, color = MehfilFlatColors.Muted) },
+                placeholder = { Text(stringResource(R.string.mehfil_add_comment), fontSize = 13.sp, color = MehfilFlatColors.Muted) },
                 modifier = Modifier.weight(1f),
                 singleLine = true,
                 shape = RoundedCornerShape(12.dp),
@@ -467,9 +468,9 @@ private fun SandeshListPane(
             .padding(horizontal = 16.dp)
             .padding(bottom = 40.dp),
     ) {
-        PlanEyebrow("Mehfil")
+        PlanEyebrow(stringResource(R.string.mehfil_title))
         Text(
-            "Sandesh",
+            stringResource(R.string.mehfil_sandesh_title),
             fontFamily = LoraFontFamily,
             fontWeight = FontWeight.Normal,
             fontSize = 22.sp,
@@ -477,7 +478,7 @@ private fun SandeshListPane(
             modifier = Modifier.padding(top = 6.dp),
         )
         Text(
-            "Messages from the community",
+            stringResource(R.string.mehfil_community_messages),
             fontSize = 12.sp,
             color = MehfilFlatColors.Muted,
             modifier = Modifier.padding(top = 4.dp, bottom = 12.dp),
@@ -523,7 +524,7 @@ private fun SandeshListPane(
                             tint = MehfilFlatColors.Primary,
                         )
                         Text(
-                            "${sandesh.commentCount} comments",
+                            stringResource(R.string.mehfil_comment_count, sandesh.commentCount),
                             fontSize = 12.sp,
                             color = MehfilFlatColors.Primary,
                             fontWeight = FontWeight.Medium,
@@ -567,9 +568,9 @@ internal fun CreatePostSheet(
                 .padding(bottom = 40.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            PlanEyebrow("Mehfil")
+            PlanEyebrow(stringResource(R.string.mehfil_title))
             Text(
-                "New Post",
+                stringResource(R.string.mehfil_new_post),
                 fontFamily = LoraFontFamily,
                 fontWeight = FontWeight.Normal,
                 fontSize = 22.sp,
@@ -579,13 +580,13 @@ internal fun CreatePostSheet(
             OutlinedTextField(
                 value = content,
                 onValueChange = { content = it },
-                placeholder = { Text("What's on your mind?", color = MehfilFlatColors.Muted) },
+                placeholder = { Text(stringResource(R.string.mehfil_whats_on_mind), color = MehfilFlatColors.Muted) },
                 modifier = Modifier.fillMaxWidth().heightIn(min = 120.dp),
                 minLines = 4,
                 shape = RoundedCornerShape(12.dp),
                 colors = mehfilFlatFieldColors(),
             )
-            Text("Space", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = MehfilFlatColors.Muted)
+            Text(stringResource(R.string.mehfil_space), fontSize = 13.sp, fontWeight = FontWeight.Medium, color = MehfilFlatColors.Muted)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf("REFLECTIVE", "ACADEMIC").forEach { item ->
                     val selected = space == item
@@ -604,7 +605,7 @@ internal fun CreatePostSheet(
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
-                            item.replaceFirstChar { it.uppercase() },
+                            if (item == "REFLECTIVE") stringResource(R.string.mehfil_reflective) else stringResource(R.string.mehfil_academic),
                             fontSize = 12.sp,
                             fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
                             color = if (selected) Color.White else MehfilFlatColors.Muted,
@@ -631,7 +632,7 @@ internal fun CreatePostSheet(
                     CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp, color = Color.White)
                 } else {
                     Text(
-                        if (isAnonymous) "Post without my name" else "Share post",
+                        if (isAnonymous) stringResource(R.string.mehfil_post_anonymously) else stringResource(R.string.mehfil_share_post),
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 14.sp,
                         color = if (canPost) Color.White else MehfilFlatColors.Muted,
@@ -663,8 +664,8 @@ private fun AnonymousPostToggle(isAnonymous: Boolean, onCheckedChange: (Boolean)
             tint = if (isAnonymous) MehfilFlatColors.Primary else MehfilFlatColors.Muted,
         )
         Column(Modifier.weight(1f)) {
-            Text("Hide my name", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = MehfilFlatColors.Text)
-            Text("Your name won't be shown", fontSize = 11.sp, color = MehfilFlatColors.Muted)
+            Text(stringResource(R.string.mehfil_hide_name), fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = MehfilFlatColors.Text)
+            Text(stringResource(R.string.mehfil_name_hidden_help), fontSize = 11.sp, color = MehfilFlatColors.Muted)
         }
         Switch(
             checked = isAnonymous,
@@ -700,19 +701,19 @@ internal fun GuidelinesSheet(onDismiss: () -> Unit) {
                 .padding(bottom = 40.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            PlanEyebrow("Mehfil")
+            PlanEyebrow(stringResource(R.string.mehfil_title))
             Text(
-                "Simple rules",
+                stringResource(R.string.mehfil_simple_rules),
                 fontFamily = LoraFontFamily,
                 fontWeight = FontWeight.Normal,
                 fontSize = 22.sp,
                 color = MehfilFlatColors.Text,
             )
             PlanHairline()
-            GuidelineItem(R.drawable.ic_graduation_cap, "Study room", "Ask about study, exams and careers.")
-            GuidelineItem(R.drawable.ic_chat, "Talk room", "Share your thoughts and support other students.")
-            GuidelineItem(R.drawable.ic_shield_check, "Be kind", "Do not post abuse, spam or unsafe content.")
-            GuidelineItem(R.drawable.ic_ghost, "Keep it safe", "Unsafe posts may be removed and the account may be blocked.")
+            GuidelineItem(R.drawable.ic_graduation_cap, stringResource(R.string.mehfil_rule_study_title), stringResource(R.string.mehfil_rule_study_body))
+            GuidelineItem(R.drawable.ic_chat, stringResource(R.string.mehfil_rule_talk_title), stringResource(R.string.mehfil_rule_talk_body))
+            GuidelineItem(R.drawable.ic_shield_check, stringResource(R.string.mehfil_rule_kind_title), stringResource(R.string.mehfil_rule_kind_body))
+            GuidelineItem(R.drawable.ic_ghost, stringResource(R.string.mehfil_rule_safe_title), stringResource(R.string.mehfil_rule_safe_body))
         }
     }
 }

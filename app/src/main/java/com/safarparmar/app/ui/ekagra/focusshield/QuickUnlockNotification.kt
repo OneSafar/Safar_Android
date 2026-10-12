@@ -4,6 +4,8 @@ import android.Manifest
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.app.NotificationCompat
@@ -16,8 +18,16 @@ import kotlin.math.ceil
 
 object QuickUnlockNotification {
     private const val NOTIFICATION_ID = 1005
+    internal const val ACTION_END_UNLOCK = "com.safarparmar.app.action.END_YOUTUBE_QUICK_UNLOCK"
+    internal const val EXTRA_GRACE_UNTIL = "grace_until_ms"
 
-    fun show(context: Context, graceUntilMs: Long, minutes: Int = 0, userName: String? = null) {
+    fun show(
+        context: Context,
+        graceUntilMs: Long,
+        minutes: Int = 0,
+        userName: String? = null,
+        origin: String = FocusShieldRepository.ShieldPrefs.QUICK_UNLOCK_ORIGIN_KAVACH,
+    ) {
         val remainingMs = (graceUntilMs - System.currentTimeMillis()).coerceAtLeast(0L)
         if (remainingMs <= 0L) {
             cancel(context)
@@ -38,11 +48,23 @@ object QuickUnlockNotification {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
+        val isYoutubeStudyUnlock =
+            origin == FocusShieldRepository.ShieldPrefs.QUICK_UNLOCK_ORIGIN_YOUTUBE_STUDY
         val notification = NotificationCompat.Builder(context, SafarNotificationChannels.FOCUS_SHIELD_STATUS)
             .setSmallIcon(SafarNotificationManager.SafarNotificationStyle.smallIconRes(context))
             .setColor(SafarNotificationManager.SafarNotificationStyle.brandColor(context))
-            .setContentTitle("KAVACH Quick Unlock Active")
-            .setContentText("Unlocked for $displayMins min. KAVACH will re-block when timer ends.")
+            .setContentTitle(
+                context.getString(
+                    if (isYoutubeStudyUnlock) R.string.youtube_quick_unlock_active else R.string.kavach_quick_unlock_active,
+                ),
+            )
+            .setContentText(
+                if (isYoutubeStudyUnlock) {
+                    context.getString(R.string.youtube_quick_unlock_notification_body, displayMins)
+                } else {
+                    context.getString(R.string.kavach_quick_unlock_notification_body, displayMins)
+                },
+            )
             .setContentIntent(contentIntent)
             .setOngoing(true)
             .setAutoCancel(false)
@@ -53,6 +75,23 @@ object QuickUnlockNotification {
             .setUsesChronometer(true)
             .setChronometerCountDown(true)
             .setTimeoutAfter(remainingMs)
+            .apply {
+                if (isYoutubeStudyUnlock) {
+                    val endIntent = Intent(context, QuickUnlockActionReceiver::class.java)
+                        .setAction(ACTION_END_UNLOCK)
+                        // Each unlock has its own action: an old notification cannot end a new unlock.
+                        .setData(Uri.parse("safar://end-youtube-unlock/$graceUntilMs"))
+                        .putExtra(EXTRA_GRACE_UNTIL, graceUntilMs)
+                    addAction(
+                        0,
+                        context.getString(R.string.kavach_end_unlock),
+                        PendingIntent.getBroadcast(
+                            context, NOTIFICATION_ID, endIntent,
+                            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+                        ),
+                    )
+                }
+            }
             .build()
 
         context.getSystemService(NotificationManager::class.java)

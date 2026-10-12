@@ -5,6 +5,8 @@ import android.content.Intent
 import android.content.ServiceConnection
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import android.os.Bundle
 import android.os.IBinder
 import android.util.Log
@@ -27,6 +29,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,6 +40,7 @@ import com.safarparmar.app.data.local.SafarDataStore
 import com.safarparmar.app.notifications.NotificationDeepLinkHandler
 import com.safarparmar.app.ui.ekagra.LocalTimerService
 import com.safarparmar.app.ui.ekagra.TimerService
+import com.safarparmar.app.ui.ekagra.EkagraPresencePrompt
 import com.safarparmar.app.ui.ekagra.focusshield.FocusShieldEntryPoint
 import com.safarparmar.app.ui.ekagra.focusshield.FocusShieldRepository
 import dagger.hilt.android.EntryPointAccessors
@@ -65,12 +69,20 @@ class MainActivity : AppCompatActivity(), PaymentResultWithDataListener {
     @Inject
     lateinit var youtubeStudyV2HealthMonitor: com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2HealthMonitor
 
+    @Inject
+    lateinit var referralManager: com.safarparmar.app.data.repository.ReferralManager
+
+    @Inject
+    lateinit var focusShieldRepository: com.safarparmar.app.ui.ekagra.focusshield.FocusShieldRepository
+
     private var timerService by mutableStateOf<TimerService?>(null)
+    private var timerServiceBound = false
+    var ekagraOpenRequest by mutableStateOf(0L)
+        private set
     var navigateToEkagra by mutableStateOf(false)
         private set
     var notificationRoute by mutableStateOf<String?>(null)
         private set
-
     companion object {
         const val EXTRA_NAVIGATE_EKAGRA = "navigate_to_ekagra"
         private const val TABLET_SMALLEST_WIDTH_DP = 600
@@ -78,7 +90,16 @@ class MainActivity : AppCompatActivity(), PaymentResultWithDataListener {
 
     private val serviceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
-            timerService = (binder as TimerService.TimerBinder).getService()
+            val localBinder = binder as? TimerService.TimerBinder
+            if (localBinder == null) {
+                // A BinderProxy cannot expose TimerService's in-process API. This can
+                // happen if the service is hosted remotely; leave the UI disconnected
+                // instead of crashing the whole activity on an unsafe cast.
+                Log.e("MainActivity", "Unexpected TimerService binder: ${binder?.javaClass?.name}")
+                timerService = null
+                return
+            }
+            timerService = localBinder.getService()
         }
         override fun onServiceDisconnected(name: ComponentName?) {
             timerService = null
@@ -97,13 +118,19 @@ class MainActivity : AppCompatActivity(), PaymentResultWithDataListener {
             } catch (e: Exception) {
                 Log.e("MainActivity", "Failed to start TimerService: ${e.message}")
             }
-            bindService(intent, serviceConnection, BIND_AUTO_CREATE)
+            timerServiceBound = bindService(intent, serviceConnection, BIND_AUTO_CREATE)
+            if (!timerServiceBound) {
+                Log.e("MainActivity", "Failed to bind TimerService")
+            }
         }
 
         if (intent.getBooleanExtra(EXTRA_NAVIGATE_EKAGRA, false)) {
+            ekagraOpenRequest++
             navigateToEkagra = true
         }
         consumeNotificationIntent(intent)
+        maintenanceStateManager.checkSystemStatus()
+        handleIncomingReferral(intent)
 
         enableEdgeToEdge()
         setContent {
@@ -112,14 +139,17 @@ class MainActivity : AppCompatActivity(), PaymentResultWithDataListener {
             val configuration = LocalConfiguration.current
 
             val maintenanceInfo by maintenanceStateManager.state.collectAsStateWithLifecycle()
+            val requiredUpdate by maintenanceStateManager.requiredUpdate.collectAsStateWithLifecycle()
             val isCheckingMaintenance by maintenanceStateManager.isChecking.collectAsStateWithLifecycle()
 
-            // Anchor font scale globally across the entire app so all screens, dialogs, and sheets maintain intended typography and layout
             val currentDensity = androidx.compose.ui.platform.LocalDensity.current
-            val customDensity = androidx.compose.ui.unit.Density(
-                density = currentDensity.density,
-                fontScale = 1.0f // Strictly anchored to 1.0f
-            )
+            val systemFontScale = configuration.fontScale
+            val customDensity = remember(currentDensity.density, systemFontScale) {
+                androidx.compose.ui.unit.Density(
+                    density = currentDensity.density,
+                    fontScale = systemFontScale
+                )
+            }
 
             CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides customDensity) {
                 SafarTheme(darkTheme = isDarkTheme) {
@@ -151,7 +181,9 @@ class MainActivity : AppCompatActivity(), PaymentResultWithDataListener {
                                 },
                                 label = "maintenance_switch",
                             ) { activeMaintenance ->
-                                if (activeMaintenance != null) {
+                                if (requiredUpdate != null) {
+                                    com.safarparmar.app.ui.update.ForceUpdateScreen(info = requiredUpdate!!)
+                                } else if (activeMaintenance != null) {
                                     com.safarparmar.app.ui.maintenance.MaintenanceScreen(
                                         info = activeMaintenance,
                                         isChecking = isCheckingMaintenance,
@@ -164,6 +196,7 @@ class MainActivity : AppCompatActivity(), PaymentResultWithDataListener {
                                             isDarkTheme = isDarkTheme,
                                             onToggleDarkTheme = { themeViewModel.toggleDarkTheme() },
                                         )
+                                        EkagraPresencePrompt(timerService)
                                     }
                                 }
                             }
@@ -177,8 +210,19 @@ class MainActivity : AppCompatActivity(), PaymentResultWithDataListener {
     fun resetNavigateToEkagra() { navigateToEkagra = false }
     fun resetNotificationRoute() { notificationRoute = null }
 
+    override fun onStart() {
+        super.onStart()
+        lifecycleScope.launch {
+            runCatching {
+                com.safarparmar.app.ui.ekagra.EkagraSessionSaveWorker.drainPendingSaves(applicationContext)
+            }
+        }
+        focusShieldRepository.restoreKavachIfEnabled()
+    }
+
     override fun onResume() {
         super.onResume()
+        maintenanceStateManager.checkSystemStatus()
         youtubeStudyV2HealthMonitor.checkOnAppResume(this)
     }
 
@@ -210,9 +254,18 @@ class MainActivity : AppCompatActivity(), PaymentResultWithDataListener {
         super.onNewIntent(intent)
         setIntent(intent)
         if (intent.getBooleanExtra(EXTRA_NAVIGATE_EKAGRA, false)) {
+            ekagraOpenRequest++
             navigateToEkagra = true
         }
         consumeNotificationIntent(intent)
+        handleIncomingReferral(intent)
+    }
+
+    private fun handleIncomingReferral(intent: Intent?) {
+        val data = intent?.data ?: return
+        if (data.scheme == "safar" && (data.host == "referral" || data.path?.contains("referral") == true || data.getQueryParameter("ref") != null || data.getQueryParameter("utm_source") != null)) {
+            referralManager.handleDeepLink(data)
+        }
     }
 
     private fun consumeNotificationIntent(intent: Intent?) {
@@ -227,7 +280,11 @@ class MainActivity : AppCompatActivity(), PaymentResultWithDataListener {
     }
 
     override fun onDestroy() {
-        unbindService(serviceConnection)
+        if (timerServiceBound) {
+            unbindService(serviceConnection)
+            timerServiceBound = false
+        }
+        timerService = null
         super.onDestroy()
     }
 

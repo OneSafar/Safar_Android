@@ -1,5 +1,6 @@
 package com.safarparmar.app.data.repository
 
+import com.safarparmar.app.BuildConfig
 import com.safarparmar.app.data.remote.api.AuthApi
 import com.safarparmar.app.data.remote.api.HomeApi
 import com.safarparmar.app.data.remote.dto.*
@@ -13,20 +14,23 @@ import javax.inject.Singleton
 @Singleton
 class HomeRepositoryImpl @Inject constructor(
     private val homeApi: HomeApi,
+    private val snapshots: ReadSnapshotStore,
     private val authApi: AuthApi
 ) : HomeRepository {
 
+    override fun invalidateReadSnapshots() = snapshots.clear()
+
     override suspend fun getStreaks(): Resource<Streaks> =
-        safeApiCall { homeApi.getStreaks() }.map { it.toDomain() }
+        snapshots.read("home.streaks") { safeApiCall { homeApi.getStreaks() }.map { it.toDomain() } }
 
     override suspend fun restoreCheckInStreak(): Resource<Streaks> =
         safeApiCall { homeApi.restoreCheckInStreak() }.map { it.toDomain() }
 
     override suspend fun getMoods(): Resource<List<Mood>> =
-        safeApiCall { homeApi.getMoods() }.map { list -> list.map { it.toDomain() } }
+        snapshots.read("home.moods") { safeApiCall { homeApi.getMoods() }.map { list -> list.map { it.toDomain() } } }
 
     override suspend fun getGoals(): Resource<List<Goal>> =
-        safeApiCall { homeApi.getGoals() }.map { list -> list.map { it.toDomain() } }
+        snapshots.read("home.goals") { safeApiCall { homeApi.getGoals() }.map { list -> list.map { it.toDomain() } } }
 
     override suspend fun addGoal(
         title: String,
@@ -178,6 +182,24 @@ class HomeRepositoryImpl @Inject constructor(
 
     override suspend fun getEkagraAnalytics(): Resource<EkagraAnalyticsStats> =
         safeApiCall { homeApi.getEkagraAnalytics() }.map { it.toDomain() }
+
+    override suspend fun getDashboardMonthlySummary(): Resource<DashboardMonthlySummary> =
+        loadDashboardMonthlySummary(
+            enabled = BuildConfig.DASHBOARD_MONTHLY_SUMMARY_ENABLED,
+            compact = {
+                when (val result = safeApiCall { homeApi.getDashboardMonthlySummary() }) {
+                    is Resource.Success -> Resource.Success(DashboardMonthlySummary(
+                        month = result.data.month ?: "",
+                        consistencyScore = result.data.consistencyScore ?: 0.0,
+                        completionRate = result.data.completionRate ?: 0.0,
+                        focusDepth = result.data.focusDepth ?: 0.0,
+                    ))
+                    is Resource.Error -> Resource.Error(result.message, result.code, result.errorCode)
+                    is Resource.Loading -> Resource.Loading()
+                }
+            },
+            legacy = { getMonthlyReport().toDashboardSummary() },
+        )
 
     override suspend fun getMonthlyReport(): Resource<MonthlyReport> =
         safeApiCall { homeApi.getMonthlyReport() }.map { it.toDomain() }

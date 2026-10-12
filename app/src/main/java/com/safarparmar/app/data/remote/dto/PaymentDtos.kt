@@ -2,7 +2,21 @@ package com.safarparmar.app.data.remote.dto
 
 data class CreateOrderRequestDto(
     val amount: Int,
-    val courseId: String
+    val courseId: String,
+    val couponCode: String? = null,
+)
+
+data class DhyanPricingDto(
+    val productId: String = "safar-30",
+    val durationMonths: Int = 6,
+    val standardPrice: Int = 49,
+    val premiumPrice: Int = 29,
+    val couponEligible: Boolean = false,
+    val alreadyHasLive: Boolean = false,
+    val accessState: String = "LOADING",
+    val availablePlanIds: List<String> = emptyList(),
+    val dhyanStartsAt: String? = null,
+    val dhyanExpiresAt: String? = null,
 )
 
 data class ExtendPlanRequestDto(

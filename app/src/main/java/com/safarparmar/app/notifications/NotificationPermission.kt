@@ -26,6 +26,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material3.*
+import com.composables.ui.components.AlertDialog as UiAlertDialog
+import com.composables.ui.components.Button as UiButton
+import com.composables.ui.components.ButtonStyle as UiButtonStyle
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -164,7 +167,7 @@ private fun NotificationRationaleDialog(
                         Spacer(Modifier.height(20.dp))
 
                         Text(
-                            text = "Stay in the loop",
+                            text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.notifications_stay_loop),
                             color = MaterialTheme.colorScheme.onSurface,
                             style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.Bold,
@@ -174,7 +177,7 @@ private fun NotificationRationaleDialog(
                         Spacer(Modifier.height(10.dp))
 
                         Text(
-                            text = "Get reminders for your study goals, focus sessions, daily streaks, and new classes. We’ll also send important account alerts so you never miss a thing!",
+                            text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.notifications_permission_body),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             style = MaterialTheme.typography.bodyMedium,
                             textAlign = TextAlign.Center,
@@ -219,7 +222,7 @@ private fun NotificationRationaleDialog(
                         Spacer(Modifier.height(24.dp))
 
                         // Allow button
-                        Button(
+                        com.safarparmar.app.ui.components.SafarButton(
                             onClick = onAllow,
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -231,7 +234,7 @@ private fun NotificationRationaleDialog(
                             ),
                         ) {
                             Text(
-                                text = "Allow Notifications",
+                                text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.notifications_allow),
                                 fontWeight = FontWeight.Bold,
                                 style = MaterialTheme.typography.labelLarge,
                             )
@@ -240,12 +243,12 @@ private fun NotificationRationaleDialog(
                         Spacer(Modifier.height(8.dp))
 
                         // Dismiss link
-                        TextButton(
+                        com.composables.ui.components.Button(style = com.composables.ui.components.ButtonStyle.Ghost,
                             onClick = onDismiss,
                             modifier = Modifier.fillMaxWidth(),
                         ) {
                             Text(
-                                text = "Not now",
+                                text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.common_not_now),
                                 color = MaterialTheme.colorScheme.primary,
                                 fontWeight = FontWeight.SemiBold,
                                 style = MaterialTheme.typography.labelLarge,
@@ -263,7 +266,8 @@ private fun NotificationSettingsDialog(
     onOpenSettings: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    AlertDialog(
+    UiAlertDialog(
+        visible = true,
         onDismissRequest = onDismiss,
         icon = {
             Icon(
@@ -271,18 +275,18 @@ private fun NotificationSettingsDialog(
                 contentDescription = null,
             )
         },
-        title = { Text("Notifications are off") },
+        title = { Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.notifications_off)) },
         text = {
-            Text("To receive study reminders and ekagra-session alerts, enable notifications from Android settings.")
+            Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.notifications_off_body))
         },
-        confirmButton = {
-            TextButton(onClick = onOpenSettings) {
-                Text("Open settings")
+        positiveButton = {
+            UiButton(onClick = onOpenSettings) {
+                Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.notifications_open_settings))
             }
         },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Not now")
+        negativeButton = {
+            UiButton(onClick = onDismiss, style = UiButtonStyle.Ghost) {
+                Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.common_not_now))
             }
         },
     )

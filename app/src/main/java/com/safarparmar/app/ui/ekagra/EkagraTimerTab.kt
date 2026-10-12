@@ -119,7 +119,7 @@ internal fun EkagraPipOverlay(
                     .clip(RoundedCornerShape(999.dp)).background(pipAccent))
             }
             Text(
-                when { shieldActive -> "SHIELD ACTIVE"; timerRunning -> "FOCUSING"; else -> "PAUSED" },
+                when { shieldActive -> stringResource(R.string.ekagra_shield_active); timerRunning -> stringResource(R.string.ekagra_focusing); else -> stringResource(R.string.ekagra_paused) },
                 fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.sp,
                 color = if (shieldActive) pipAccent else Color.White.copy(0.65f),
             )
@@ -139,32 +139,70 @@ internal fun ModeTabs(
     selected: TimerMode,
     accentColor: Color,
     ink: EkagraInk,
+    isDarkTheme: Boolean = false,
     onSelect: (TimerMode) -> Unit,
 ) {
     val modes = remember { TimerMode.entries.filter { it.showInPill } }
 
-    EkagraTextTabs(
-        items = modes,
-        selected = selected,
-        accent = accentColor,
-        ink = ink,
-        label = { it.label },
-        icon = { mode, color ->
+    val trackBg = if (isDarkTheme) Color.White.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.22f)
+    val trackBorder = if (isDarkTheme) Color.White.copy(alpha = 0.14f) else Color.White.copy(alpha = 0.38f)
+
+    Row(
+        modifier = Modifier
+            .clip(CircleShape)
+            .background(trackBg)
+            .border(1.dp, trackBorder, CircleShape)
+            .padding(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        modes.forEach { mode ->
+            val isSelected = mode == selected
+            val pillBg = if (isSelected) {
+                if (isDarkTheme) Color(0xFF1E293B) else Color.White
+            } else Color.Transparent
+            val contentColor = if (isSelected) {
+                if (isDarkTheme) Color.White else Color(0xFF0F172A)
+            } else {
+                if (isDarkTheme) Color.White.copy(alpha = 0.70f) else Color(0xFF334155)
+            }
+
             val iconVector = when (mode) {
                 TimerMode.FOCUS -> Icons.Default.HourglassEmpty
                 TimerMode.BREAK -> Icons.Default.FreeBreakfast
                 TimerMode.STOPWATCH -> Icons.Default.Timer
                 else -> Icons.Default.Timer
             }
-            EkagraChromeIcon(
-                imageVector = iconVector,
-                contentDescription = null,
-                tint = color,
-                baseSizeDp = 16f,
-            )
-        },
-        onSelect = onSelect,
-    )
+
+            Row(
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .then(
+                        if (isSelected) Modifier.shadow(elevation = 3.dp, shape = CircleShape)
+                        else Modifier
+                    )
+                    .background(pillBg)
+                    .clickable { onSelect(mode) }
+                    .padding(horizontal = 14.dp, vertical = 7.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Icon(
+                    imageVector = iconVector,
+                    contentDescription = null,
+                    tint = contentColor,
+                    modifier = Modifier.size(14.dp),
+                )
+                Text(
+                    text = stringResource(mode.labelRes),
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                    fontSize = 12.sp,
+                    color = contentColor,
+                    maxLines = 1,
+                )
+            }
+        }
+    }
 }
 
 // ─── Timer / Focus tab ─────────────────────────────────────────────────────────
@@ -174,6 +212,10 @@ internal fun ModeTabs(
 internal fun TimerFocusTab(
     modifier: Modifier,
     timerMode: TimerMode,
+    /** The mode shown as selected in the pill tab bar.
+     *  Defaults to [timerMode]. Callers can pass a different value so the user
+     *  can browse/preview other modes without touching the running session. */
+    selectedDisplayMode: TimerMode = timerMode,
     secondsLeft: Int,
     isRunning: Boolean,
     progress: Float,
@@ -188,6 +230,8 @@ internal fun TimerFocusTab(
     canStartBreak: Boolean,
     onStartBreak: () -> Unit,
     onReset: () -> Unit,
+    isBrowsingOtherMode: Boolean = false,
+    activeModeLabel: String = "",
     onGoToDuration: () -> Unit = {},
     shieldState: com.safarparmar.app.ui.ekagra.focusshield.FocusShieldUiState,
     isDarkTheme: Boolean,
@@ -202,6 +246,7 @@ internal fun TimerFocusTab(
     selectedStudyCircle: com.safarparmar.app.data.remote.dto.StudyCircleSummaryDto? = null,
     onSelectStudyCircle: (com.safarparmar.app.data.remote.dto.StudyCircleSummaryDto) -> Unit = {},
     showYoutubeBanner: Boolean = false,
+    onDismissYoutubeFocus: () -> Unit = {},
     onEnableYoutubeFocus: () -> Unit = {},
 ) {
     val scheme  = MaterialTheme.colorScheme
@@ -227,6 +272,7 @@ internal fun TimerFocusTab(
         ) {
             com.safarparmar.app.feature.kavachanalytics.ui.KavachSummaryPills(
                 ink = ink,
+                isDarkTheme = isDarkTheme,
                 themeAccent = themeAccent,
                 onOpenAnalytics = onOpenAnalytics,
                 myCircles = myCircles,
@@ -256,9 +302,10 @@ internal fun TimerFocusTab(
                     Spacer(Modifier.height(if (isCompactHeight) 8.dp else 12.dp))
 
                     ModeTabs(
-                        selected = timerMode,
+                        selected = selectedDisplayMode,
                         accentColor = themeAccent,
                         ink = ink,
+                        isDarkTheme = isDarkTheme,
                         onSelect = onModeChange,
                     )
                     Spacer(Modifier.height(if (isCompactHeight) 20.dp else 36.dp))
@@ -302,12 +349,12 @@ internal fun TimerFocusTab(
                             )
                             Text(
                                 text = when {
-                                    shieldState.isProtectionActive && alwaysOn -> "Kavach Always On · Active"
-                                    shieldState.isProtectionActive -> "Kavach active"
-                                    shieldState.isProtectionStarting -> "Kavach starting…"
-                                    shieldState.isEnabled && !isRunning -> "Kavach ready"
-                                    shieldState.isEnabled -> "Kavach unavailable"
-                                    else -> "Kavach off"
+                                    shieldState.isProtectionActive && alwaysOn -> stringResource(R.string.ekagra_kavach_always_active)
+                                    shieldState.isProtectionActive -> stringResource(R.string.ekagra_kavach_active)
+                                    shieldState.isProtectionStarting -> stringResource(R.string.ekagra_kavach_starting)
+                                    shieldState.isEnabled && !isRunning -> stringResource(R.string.ekagra_kavach_ready)
+                                    shieldState.isEnabled -> stringResource(R.string.ekagra_kavach_unavailable)
+                                    else -> stringResource(R.string.ekagra_kavach_off)
                                 },
                                 fontSize = EkagraChrome.text(12f),
                                 fontWeight = FontWeight.SemiBold,
@@ -319,31 +366,49 @@ internal fun TimerFocusTab(
                 }
             }
 
+
             val clampedProgress = progress.coerceIn(0f, 1f)
-            // ── One thin ring, one accent ─────────────────────────────────────
-            // The redesign replaces the 18dp band + bloom + frosted glass disc
-            // with a single hairline-weight arc, so the numerals carry the screen.
-            val ringColor  = themeAccent
-            val trackColor = ink.trackFaint
+            val ringColor  = if (isDarkTheme) Color.White else Color.White
+            val trackColor = if (isDarkTheme) Color.White.copy(alpha = 0.20f) else Color.White.copy(alpha = 0.40f)
 
             Box(contentAlignment = Alignment.Center, modifier = Modifier.size(EkagraChrome.size(252f))) {
+                // Ambient glow and soft radial background
+                androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize().padding(4.dp)) {
+                    // Soft outer bloom
+                    drawCircle(
+                        color = Color.White.copy(alpha = if (isDarkTheme) 0.10f else 0.22f),
+                        radius = size.minDimension / 2f,
+                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 16.dp.toPx())
+                    )
+                    // Soft inner radial wash
+                    drawCircle(
+                        brush = androidx.compose.ui.graphics.Brush.radialGradient(
+                            colors = listOf(
+                                Color.White.copy(alpha = if (isDarkTheme) 0.06f else 0.12f),
+                                Color.Transparent,
+                            ),
+                            center = center,
+                            radius = size.minDimension / 2f
+                        )
+                    )
+                }
+
                 // Track ring
-                CircularProgressIndicator(
+                com.safarparmar.app.ui.components.SafarCircularProgressIndicator(
                     progress      = { 1f },
                     modifier      = Modifier.fillMaxSize(),
                     color         = trackColor,
-                    strokeWidth   = EkagraChrome.stroke(5f),
+                    strokeWidth   = EkagraChrome.stroke(5.5f),
                     strokeCap     = StrokeCap.Round,
                     trackColor    = Color.Transparent,
                     gapSize       = 0.dp,
                 )
-                // Progress ring — a soft breath of width while running is the
-                // only motion left on the ring.
-                CircularProgressIndicator(
+                // Progress ring — glowing illuminated arc
+                com.safarparmar.app.ui.components.SafarCircularProgressIndicator(
                     progress      = { clampedProgress },
                     modifier      = Modifier.fillMaxSize(),
                     color         = ringColor,
-                    strokeWidth   = EkagraChrome.stroke(5f + pulse * 0.8f),
+                    strokeWidth   = EkagraChrome.stroke(6f + pulse * 0.8f),
                     strokeCap     = StrokeCap.Round,
                     trackColor    = Color.Transparent,
                     gapSize       = 0.dp,
@@ -398,10 +463,10 @@ internal fun TimerFocusTab(
                                shrinkVertically(animationSpec = tween(400, easing = FastOutSlowInEasing))
                     ) {
                         val subtext = when (timerMode) {
-                            TimerMode.STOPWATCH -> if (isRunning) "Stopwatch running" else "Ready to start"
-                            TimerMode.BREAK -> if (isRunning) "Break running" else "Ready to break"
-                            TimerMode.POMODORO -> if (isRunning) "Pomodoro running" else "Ready for Pomodoro"
-                            else -> if (isRunning) "Ekagra running" else "Ready to ekagra"
+                            TimerMode.STOPWATCH -> if (isRunning) stringResource(R.string.ekagra_stopwatch_running) else stringResource(R.string.ekagra_ready_start)
+                            TimerMode.BREAK -> if (isRunning) stringResource(R.string.ekagra_break_running) else stringResource(R.string.ekagra_ready_break)
+                            TimerMode.POMODORO -> if (isRunning) stringResource(R.string.ekagra_pomodoro_running) else stringResource(R.string.ekagra_ready_pomodoro)
+                            else -> if (isRunning) stringResource(R.string.ekagra_running) else stringResource(R.string.ekagra_ready)
                         }
                         Text(
                             subtext,
@@ -423,27 +488,39 @@ internal fun TimerFocusTab(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                EkagraGhostAction(
-                    label = if (timerMode == TimerMode.BREAK) "End break" else "End",
-                    ink   = ink,
-                    onClick = onReset,
-                )
+                if (!isBrowsingOtherMode) {
+                    EkagraGhostAction(
+                        label = if (timerMode == TimerMode.BREAK) stringResource(R.string.ekagra_end_break) else stringResource(R.string.common_end),
+                        ink = ink,
+                        onClick = onReset,
+                    )
+                }
                 EkagraPrimaryAction(
                     label = when {
-                        isRunning   -> "Pause"
-                        hasProgress -> "Resume"
-                        else        -> "Start"
+                        isRunning   -> stringResource(R.string.common_pause)
+                        hasProgress -> stringResource(R.string.common_resume)
+                        else        -> stringResource(R.string.common_start)
                     },
                     accent  = themeAccent,
                     onClick = onPlayPause,
                 )
                 if (canStartBreak) {
                     EkagraGhostAction(
-                        label = "Break",
+                        label = stringResource(R.string.ekagra_break),
                         ink   = ink,
                         onClick = onStartBreak,
                     )
                 }
+            }
+
+            if (isBrowsingOtherMode) {
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    text = stringResource(R.string.ekagra_other_mode_active, activeModeLabel),
+                    fontSize = EkagraChrome.text(12f),
+                    color = ink.secondaryText,
+                    textAlign = TextAlign.Center,
+                )
             }
 
             AnimatedVisibility(
@@ -480,93 +557,40 @@ internal fun TimerFocusTab(
               .padding(start = 20.dp, end = 20.dp, bottom = 12.dp),
       ) {
           EkagraYouTubeStudyBanner(
-              ink = ink,
-              isDarkTheme = isDarkTheme,
               onEnableClick = onEnableYoutubeFocus,
+              onDismiss = onDismissYoutubeFocus,
           )
       }
     }
 }
 
-// ─── Ekagra YouTube Study Banner ──────────────────────────────────────────────
+// ─── Ekagra YouTube Focus Banner ──────────────────────────────────────────────
 
 @Composable
 internal fun EkagraYouTubeStudyBanner(
-    ink: EkagraInk,
-    isDarkTheme: Boolean,
     onEnableClick: () -> Unit,
+    onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable { onEnableClick() },
-        shape = RoundedCornerShape(14.dp),
-        color = if (isDarkTheme) Color(0xFF1E293B).copy(alpha = 0.65f) else Color(0xFFF1F5F9),
-        border = BorderStroke(
-            1.dp,
-            if (isDarkTheme) Color.White.copy(alpha = 0.12f) else Color.Black.copy(alpha = 0.07f),
-        ),
+        modifier = modifier.widthIn(max = 280.dp),
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(11.dp),
-        ) {
-            // Authentic YouTube Red Logo Badge
-            Box(
-                modifier = Modifier
-                    .size(28.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(Color(0xFFFF0000)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Default.PlayArrow,
-                    contentDescription = "YouTube",
-                    tint = Color.White,
-                    modifier = Modifier.size(16.dp),
-                )
-            }
-
-            // Golden Ratio Typography & Visual Hierarchy
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(1.dp),
-            ) {
-                Text(
-                    text = "Studying on YouTube?",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = ink.primaryText,
-                    maxLines = 1,
-                )
-                Text(
-                    text = "Try YouTube Focus",
-                    fontSize = 10.5.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = ink.secondaryText,
-                    maxLines = 1,
-                )
-            }
-
-            // Clean "Enable" Action Button (No arrow icon)
-            Button(
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            com.composables.ui.components.Button(style = com.composables.ui.components.ButtonStyle.Ghost,
                 onClick = onEnableClick,
-                modifier = Modifier.height(28.dp),
-                shape = RoundedCornerShape(8.dp),
-                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 0.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (isDarkTheme) Color(0xFF38BDF8) else Color(0xFF0F172A),
-                    contentColor = Color.White,
-                ),
+                modifier = Modifier.weight(1f).heightIn(min = 48.dp),
             ) {
-                Text(
-                    text = "Enable",
-                    fontSize = 11.5.sp,
-                    fontWeight = FontWeight.SemiBold,
+                Icon(Icons.Default.PlayArrow, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(R.string.kavach_youtube_focus), fontWeight = FontWeight.SemiBold)
+            }
+            com.composables.ui.components.IconButton(style = com.composables.ui.components.ButtonStyle.Ghost, onClick = onDismiss) {
+                Icon(
+                    Icons.Default.Close,
+                    contentDescription = stringResource(R.string.ekagra_dismiss_youtube_shortcut),
                 )
             }
         }

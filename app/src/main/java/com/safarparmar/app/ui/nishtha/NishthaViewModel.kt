@@ -32,13 +32,15 @@ class NishthaViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(NishthaUiState())
     val uiState = _uiState.asStateFlow()
 
-    /** Captures offline/time-out failures that never reach server telemetry.
-     * Goal text and study details are deliberately excluded. */
-    private fun recordGoalOperationFailure(operation: String) {
-        FirebaseCrashlytics.getInstance().apply {
-            setCustomKey("goal_operation", operation)
-            recordException(IllegalStateException("Goal operation failed: $operation"))
-        }
+    /** A failed API result is not an app exception. Keep a privacy-safe breadcrumb
+     * for diagnostics without manufacturing a Crashlytics non-fatal event. */
+    private fun recordGoalOperationFailure(operation: String, error: Resource.Error<*>) {
+        runCatching {
+            FirebaseCrashlytics.getInstance().log(
+                "goal_operation_failed operation=$operation http_status=${error.code ?: "network_or_client"} " +
+                    "api_code=${error.errorCode ?: "none"}"
+            )
+        }.onFailure { android.util.Log.w("NishthaViewModel", "Crash reporting unavailable", it) }
     }
 
     // Monthly report is NOT loaded here — it's month-scoped and only the Analytics
@@ -47,25 +49,30 @@ class NishthaViewModel @Inject constructor(
     // a wasted network call on every launch.
     init {
         observeGoalEvents()
-        loadMoods()
-        loadJournals()
-        loadGoals()
-        loadGoalRolloverPrompts()
-        loadEkagraAnalytics()
-        loadStreaks()
-        loadLoginHistory()
-        loadAchievements()
+    }
+
+    /** Fetch only data consumed by the visible tab, including its detail sheets. */
+    fun loadTab(tab: NishthaTab) {
+        when (tab) {
+            NishthaTab.CHECK_IN -> loadMoods()
+            NishthaTab.JOURNAL -> loadJournals()
+            NishthaTab.GOALS -> { loadGoals(); loadGoalRolloverPrompts() }
+            NishthaTab.STREAKS -> { loadStreaks(); loadLoginHistory(); loadGoals() }
+            NishthaTab.ANALYTICS -> { loadGoals(); loadEkagraAnalytics(); loadAchievements() }
+        }
     }
 
     private fun observeGoalEvents() {
         viewModelScope.launch {
             com.safarparmar.app.ui.nishtha.goals.GoalEventBus.goalUpdatedFromEkagra.collect {
+                homeRepository.invalidateReadSnapshots()
                 loadGoals()
             }
         }
     }
 
     fun onEvent(event: NishthaEvent) {
+        if (event == NishthaEvent.LoadGoals || event == NishthaEvent.LoadStreaks) homeRepository.invalidateReadSnapshots()
         when (event) {
             is NishthaEvent.LoadMoods           -> loadMoods()
             is NishthaEvent.CreateMood          -> createMood(event.mood, event.intensity, event.notes)
@@ -195,7 +202,7 @@ class NishthaViewModel @Inject constructor(
                     )
                 }
                 is Resource.Error   -> {
-                    recordGoalOperationFailure("create")
+                    recordGoalOperationFailure("create", r)
                     _uiState.update { it.copy(isSavingGoal = false, goalError = r.message) }
                 }
                 is Resource.Loading -> Unit
@@ -236,7 +243,7 @@ class NishthaViewModel @Inject constructor(
                     loadGoals()
                 }
                 is Resource.Error   -> {
-                    recordGoalOperationFailure("edit")
+                    recordGoalOperationFailure("edit", r)
                     _uiState.update { it.copy(isSavingGoal = false, goalError = r.message) }
                 }
                 is Resource.Loading -> Unit
@@ -275,7 +282,7 @@ class NishthaViewModel @Inject constructor(
                     loadGoals()
                 }
                 is Resource.Error -> {
-                    recordGoalOperationFailure("edit")
+                    recordGoalOperationFailure("edit", r)
                     _uiState.update { it.copy(isSavingGoal = false, goalError = r.message) }
                 }
                 is Resource.Loading -> Unit
@@ -317,7 +324,7 @@ class NishthaViewModel @Inject constructor(
                                     scheduledDate = scheduledDate ?: it.scheduledDate,
                                 ) else it
                             },
-                            goalMessage = "Goal completed for $historyDateLabel. Open Completed and select $historyDateLabel to find it.",
+                            goalMessage = "Goal completed for $historyDateLabel. Open History and select $historyDateLabel to find it.",
                             goalAction = "complete",
                         )
                     }
@@ -325,7 +332,7 @@ class NishthaViewModel @Inject constructor(
                     loadEkagraAnalytics()
                 }
                 is Resource.Error   -> {
-                    recordGoalOperationFailure("complete")
+                    recordGoalOperationFailure("complete", r)
                     _uiState.update { it.copy(isSavingGoal = false, goalError = r.message) }
                     loadGoals()
                 }
@@ -348,7 +355,7 @@ class NishthaViewModel @Inject constructor(
                     )
                 }
                 is Resource.Error   -> {
-                    recordGoalOperationFailure("delete")
+                    recordGoalOperationFailure("delete", r)
                     _uiState.update { it.copy(isSavingGoal = false, goalError = r.message) }
                 }
                 is Resource.Loading -> Unit
@@ -384,7 +391,7 @@ class NishthaViewModel @Inject constructor(
                     )
                 }
                 is Resource.Error -> {
-                    recordGoalOperationFailure("restore")
+                    recordGoalOperationFailure("restore", r)
                     _uiState.update { it.copy(isSavingGoal = false, goalError = r.message) }
                 }
                 is Resource.Loading -> Unit
@@ -406,7 +413,7 @@ class NishthaViewModel @Inject constructor(
                     )
                 }
                 is Resource.Error -> {
-                    recordGoalOperationFailure("reopen")
+                    recordGoalOperationFailure("reopen", r)
                     _uiState.update { it.copy(isSavingGoal = false, goalError = r.message) }
                 }
                 is Resource.Loading -> Unit
@@ -432,7 +439,7 @@ class NishthaViewModel @Inject constructor(
                     }
                 }
                 is Resource.Error -> {
-                    recordGoalOperationFailure("repeat")
+                    recordGoalOperationFailure("repeat", r)
                     _uiState.update { it.copy(goalError = r.message) }
                 }
                 is Resource.Loading -> Unit
@@ -454,7 +461,7 @@ class NishthaViewModel @Inject constructor(
                     loadGoals()
                 }
                 is Resource.Error -> {
-                    recordGoalOperationFailure("repeat_bulk")
+                    recordGoalOperationFailure("repeat_bulk", r)
                     _uiState.update { it.copy(isSavingGoal = false, goalError = r.message) }
                 }
                 is Resource.Loading -> Unit
@@ -476,6 +483,7 @@ class NishthaViewModel @Inject constructor(
             var createdOrCovered = 0
             var firstError: String? = null
             for (goal in goals) {
+                var readyToRepeat = true
                 if (repeatDaily && goal.goalKind != "repeat") {
                     when (val update = homeRepository.updateGoalDetails(
                         id = goal.id,
@@ -494,10 +502,14 @@ class NishthaViewModel @Inject constructor(
                         status = goal.status,
                         carryForwardMode = goal.carryForwardMode,
                     )) {
-                        is Resource.Error -> if (firstError == null) firstError = update.message
+                        is Resource.Error -> {
+                            readyToRepeat = false
+                            if (firstError == null) firstError = update.message
+                        }
                         else -> Unit
                     }
                 }
+                if (!readyToRepeat) continue
                 when (val repeated = homeRepository.repeatGoal(goal.id, scheduledDate)) {
                     is Resource.Success -> createdOrCovered += 1
                     is Resource.Error -> if (firstError == null) firstError = repeated.message

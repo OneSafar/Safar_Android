@@ -1,5 +1,6 @@
 package com.safarparmar.app.ui.leaderboard
 
+import com.safarparmar.app.performance.decorativeFloat
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
@@ -108,7 +109,7 @@ fun PodiumVariationArchitecturalStudio(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
-                        text = "Last Week's Champions",
+                        text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.leaderboard_last_week_champions),
                         fontSize = 17.sp,
                         fontWeight = FontWeight.Bold,
                         color = PlannerFlatColors.TextDark,
@@ -125,7 +126,7 @@ fun PodiumVariationArchitecturalStudio(
 
                 if (podium.isEmpty()) {
                     Text(
-                        text = "Podium winners will appear once the weekly cycle completes.",
+                        text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.leaderboard_podium_pending),
                         fontSize = 13.sp,
                         color = PlannerFlatColors.TextMuted,
                         textAlign = TextAlign.Center,
@@ -199,7 +200,7 @@ private fun ArchitecturalPodiumColumn(
     )
 
     val floatTransition = rememberInfiniteTransition(label = "archFloat$place")
-    val floatOffset by floatTransition.animateFloat(
+    val floatOffset by floatTransition.decorativeFloat(
         initialValue = 0f, targetValue = -4f,
         animationSpec = infiniteRepeatable(tween(2250, easing = FastOutSlowInEasing, delayMillis = place * 150), RepeatMode.Reverse),
         label = "floatOffset",

@@ -1,6 +1,7 @@
 package com.safarparmar.app.ui.ekagra.focusshield
 
 import android.app.Notification
+import android.app.NotificationManager
 import android.app.Service
 import android.app.usage.UsageEvents
 import android.app.usage.UsageStatsManager
@@ -16,11 +17,12 @@ import androidx.core.app.ServiceCompat
 import androidx.core.app.NotificationCompat
 import com.safarparmar.app.BuildConfig
 import com.safarparmar.app.MainActivity
+import com.safarparmar.app.R
 import com.safarparmar.app.data.local.SafarDataStore
 import com.safarparmar.app.feature.kavachanalytics.data.KavachAnalyticsRecorder
 import com.safarparmar.app.feature.kavachanalytics.data.local.ProtectionSource
+import com.safarparmar.app.feature.youtubeinsights.YoutubeInsightsRepository
 import com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2Parser
-import com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2Preferences
 import com.safarparmar.app.notifications.SafarNotificationChannels
 import com.safarparmar.app.notifications.SafarNotificationManager
 import com.safarparmar.app.ui.navigation.Routes
@@ -32,6 +34,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * Blocking service used during an Ekagra protection window or continuously under Always On.
@@ -53,6 +56,7 @@ class KavachAlwaysOnService : Service() {
         private const val BLOCK_DEBOUNCE_MS = 750L
         /** Tighter poll while the overlay is up so it dismisses almost instantly. */
         private const val OVERLAY_DISMISS_POLL_MS = 250L
+        private const val YOUTUBE_UNLOCK_POLL_MS = 1_000L
 
         private val KNOWN_HOME_PACKAGES = setOf(
             "com.miui.home", "com.mi.android.globallauncher", "com.android.launcher",
@@ -61,18 +65,36 @@ class KavachAlwaysOnService : Service() {
             "com.vivo.launcher", "com.transsion.XOSLauncher",
         )
 
-        fun start(context: Context): Boolean {
-            val intent = Intent(context, KavachAlwaysOnService::class.java)
+        fun start(context: Context, isBootTrigger: Boolean = false): Boolean {
+            val appContext = context.applicationContext
+            // On Android 12+ (API 31+), starting a foreground service while running in the background
+            // is strictly forbidden by the OS unless a recognized system exemption applies.
+            // A rejected background start throws ForegroundServiceStartNotAllowedException.
+            // That is distinct from a timeout after an accepted foreground-service start.
+            // Active Kavach is cleanly restored in MainActivity.onStart() as soon as the app enters foreground.
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+                !com.safarparmar.app.util.AppForegroundTracker.isAppInForeground &&
+                !isBootTrigger
+            ) {
+                if (BuildConfig.DEBUG) {
+                    android.util.Log.w("FocusShield", "Deferred Kavach service start: app is currently in background")
+                }
+                return false
+            }
+
+            val intent = Intent(appContext, KavachAlwaysOnService::class.java)
             return runCatching {
+                // Ensure only the status channel exists; avoid synchronous 12-channel Binder calls on main thread
+                SafarNotificationChannels.ensureFocusShieldStatusChannel(appContext)
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    context.startForegroundService(intent)
+                    appContext.startForegroundService(intent)
                 } else {
-                    context.startService(intent)
+                    appContext.startService(intent)
                 }
                 true
-            }.getOrElse {
+            }.getOrElse { e ->
                 if (BuildConfig.DEBUG) {
-                    android.util.Log.e("FocusShield", "Could not start Kavach service", it)
+                    android.util.Log.e("FocusShield", "Could not start Kavach service", e)
                 }
                 false
             }
@@ -105,27 +127,65 @@ class KavachAlwaysOnService : Service() {
     private var lastUsageEventQueryMs = 0L
     private val foregroundAppTracker = ForegroundAppTracker()
     private var stopReasonAlreadyReported = false
+    private var youtubeKavachUnlockTracking = false
+    private val lifecycle = KavachServiceLifecycle()
 
     private fun focusShieldRepository(): FocusShieldRepository =
         dagger.hilt.android.EntryPointAccessors
             .fromApplication(applicationContext, FocusShieldEntryPoint::class.java)
             .focusShieldRepository()
 
+    private fun youtubeInsightsRepository() =
+        dagger.hilt.android.EntryPointAccessors
+            .fromApplication(applicationContext, FocusShieldEntryPoint::class.java)
+            .youtubeInsightsRepository()
+
     override fun onCreate() {
         super.onCreate()
-        promoteToForeground()
+        // Promote before settings, dependency lookup, or monitoring work.
+        if (!promoteToForeground()) {
+            stopSelf()
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        promoteToForeground()
-        if (monitorJob == null) startMonitoring()
-        return START_STICKY
+        if (!lifecycle.start(startId, ::promoteToForeground)) {
+            stopSelfResult(startId)
+            return START_NOT_STICKY
+        }
+        // Foreground promotion has already completed. Enrich the notification only
+        // now, outside Android's startForegroundService() deadline.
+        runCatching {
+            getSystemService(NotificationManager::class.java)
+                .notify(NOTIFICATION_ID, buildStatusNotification())
+        }.onFailure { error ->
+            android.util.Log.w("FocusShield", "Could not update Kavach notification", error)
+        }
+        stopReasonAlreadyReported = false
+        // The old settings read must not stop a newer request or leave a completed
+        // monitorJob attached to an otherwise running service.
+        monitorJob?.cancel()
+        startMonitoring(startId)
+        // Use START_NOT_STICKY so the OS does not resurrect the service with a null intent in
+        // background under heavy memory pressure, avoiding background start crashes.
+        return START_NOT_STICKY
     }
 
-    private fun promoteToForeground() {
-        runCatching {
-            SafarNotificationChannels.createAll(this)
-            val notification = buildStatusNotification()
+    private fun promoteToForeground(): Boolean {
+        // Every delivered start must acknowledge foreground promotion, including a
+        // start racing with shutdown. A local Boolean cannot represent OS state.
+        return runCatching {
+            // start() creates the channel before asking Android to start us.
+            // Keep the first notification independent of notification-manager I/O,
+            // resource/theme lookup,
+            // PendingIntent creation, settings, and repository initialization.
+            val notification = NotificationCompat.Builder(this, SafarNotificationChannels.FOCUS_SHIELD_STATUS)
+                .setSmallIcon(R.drawable.ic_safar_notification_sparkle)
+                .setContentTitle("KAVACH Protection")
+                .setContentText("Protection is active")
+                .setPriority(NotificationCompat.PRIORITY_LOW)
+                .setOngoing(true)
+                .build()
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                 ServiceCompat.startForeground(
                     this,
@@ -138,16 +198,17 @@ class KavachAlwaysOnService : Service() {
             } else {
                 startForeground(NOTIFICATION_ID, notification)
             }
-        }.onFailure { e ->
-            if (BuildConfig.DEBUG) {
-                android.util.Log.e("FocusShield", "Failed to promote Kavach to foreground", e)
-            }
+            true
+        }.getOrElse { e ->
+            android.util.Log.e("FocusShield", "Failed to promote Kavach to foreground", e)
+            false
         }
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onDestroy() {
+        runCatching { ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE) }
         blockOverlay.dismiss()
         protectionSource?.let { source ->
             runCatching { KavachAnalyticsRecorder.from(applicationContext).endProtection(source) }
@@ -162,16 +223,17 @@ class KavachAlwaysOnService : Service() {
             repository?.reportProtectionStopped()
         }
         monitorJob?.cancel()
+        stopYoutubeKavachUnlockTracking()
         scope.cancel()
         super.onDestroy()
     }
 
-    private fun startMonitoring() {
+    private fun startMonitoring(startId: Int) {
         monitorJob = scope.launch {
             var untilSync = 0L
             while (true) {
                 if (untilSync <= 0L) {
-                    if (!syncSettings()) return@launch
+                    if (!syncSettings(startId)) return@launch
                     untilSync = SETTINGS_SYNC_MS
                 }
                 val waitMs = monitorForegroundApp()
@@ -185,18 +247,14 @@ class KavachAlwaysOnService : Service() {
     }
 
     /** @return false when Always On should no longer be running, which stops the service. */
-    private suspend fun syncSettings(): Boolean {
+    private suspend fun syncSettings(startId: Int): Boolean {
         val alwaysOn = dataStore.focusShieldAlwaysOnMode.first()
         val strict = dataStore.focusShieldStrictMode.first()
         val enabled = dataStore.focusShieldEnabled.first()
         val configuredPackages = dataStore.focusShieldBlockedPackages.first()
-        // Content-level YouTube Study Mode owns YouTube whenever it is enabled;
-        // generic KAVACH must not block the whole app or suppress its notifications.
-        val packages = if (YoutubeStudyV2Preferences.isEnabled(this)) {
-            configuredPackages - YoutubeStudyV2Parser.YOUTUBE_PACKAGE
-        } else {
-            configuredPackages
-        }
+        // Kavach is the first gate. Study Mode cannot bypass a YouTube app block;
+        // a Normal-mode Kavach Quick Unlock is the only temporary exception.
+        val packages = configuredPackages
         // Peak Focus scheduling is intentionally outside the first activation/protection release.
         scheduleEnabled = false
         scheduleStartMinute = dataStore.focusShieldScheduleStartMinute.first()
@@ -206,18 +264,24 @@ class KavachAlwaysOnService : Service() {
 
         val timerLinkedActive = FocusShieldRepository.ShieldPrefs.isActive(this)
         if (!enabled || (!alwaysOn && !timerLinkedActive) || configuredPackages.isEmpty() || !ready) {
-            stopReasonAlreadyReported = true
-            if (enabled && (alwaysOn || timerLinkedActive)) {
-                val warning = when {
-                    configuredPackages.isEmpty() -> "Select at least one app for Kavach to block."
-                    !ready -> "Kavach stopped working. Check Usage Access and Display over other apps."
-                    else -> null
+            withContext(Dispatchers.Main.immediate) {
+                // Serialize with onStartCommand. Android also checks requests accepted
+                // but not yet delivered, which a local generation check cannot see.
+                if (!lifecycle.stopIfCurrent(startId, ::stopSelfResult)) return@withContext
+                stopReasonAlreadyReported = true
+                if (enabled && (alwaysOn || timerLinkedActive)) {
+                    val warning = when {
+                        configuredPackages.isEmpty() -> "Select at least one app for Kavach to block."
+                        !ready -> "Kavach stopped working. Check Usage Access and Display over other apps."
+                        else -> null
+                    }
+                    warning?.let { runCatching { focusShieldRepository().reportProtectionFailure(it) } }
                 }
-                warning?.let { runCatching { focusShieldRepository().reportProtectionFailure(it) } }
+                KavachAlwaysOnPrefs.clear(this@KavachAlwaysOnService)
+                FocusShieldRepository.Snapshot.active = false
+                // Keep the notification until onDestroy: demotion here would create
+                // a window where an incoming start has no foreground service.
             }
-            KavachAlwaysOnPrefs.clear(this)
-            FocusShieldRepository.Snapshot.active = false
-            stopSelf()
             return false
         }
         
@@ -257,6 +321,12 @@ class KavachAlwaysOnService : Service() {
 
     /** @return how long to wait before the next poll. */
     private fun monitorForegroundApp(): Long {
+        if (!getSystemService(android.os.PowerManager::class.java).isInteractive ||
+            getSystemService(android.app.KeyguardManager::class.java).isKeyguardLocked
+        ) {
+            stopYoutubeKavachUnlockTracking()
+            return YOUTUBE_UNLOCK_POLL_MS
+        }
         if (scheduleEnabled) {
             val cal = java.util.Calendar.getInstance()
             val currentMinute = cal.get(java.util.Calendar.HOUR_OF_DAY) * 60 + cal.get(java.util.Calendar.MINUTE)
@@ -273,18 +343,35 @@ class KavachAlwaysOnService : Service() {
         enforceBackgroundBlockedApps()
 
         val foregroundPackage = currentForegroundPackage()
-            ?: return poller.onSample(null, isBlockedApp = false)
+            ?: run {
+                stopYoutubeKavachUnlockTracking()
+                return poller.onSample(null, isBlockedApp = false)
+            }
 
         if (isStrictMode && FocusShieldRepository.ShieldPrefs.isInGracePeriod(this)) {
             FocusShieldRepository.ShieldPrefs.clearQuickUnlock(this)
         }
 
         // Normal mode honors quick unlock grace periods
-        if (!isStrictMode && FocusShieldRepository.ShieldPrefs.isInGracePeriod(this)) {
+        if (hasAppQuickUnlock(foregroundPackage)) {
+            if (foregroundPackage == YoutubeStudyV2Parser.YOUTUBE_PACKAGE &&
+                FocusShieldRepository.ShieldPrefs.quickUnlockOrigin(this) ==
+                FocusShieldRepository.ShieldPrefs.QUICK_UNLOCK_ORIGIN_KAVACH
+            ) {
+                recordYoutubeKavachUnlock()
+            } else {
+                stopYoutubeKavachUnlockTracking()
+            }
             blockOverlay.dismiss()
             lastBlockedPackage = null
-            return poller.onSample(null, isBlockedApp = false)
+            return if (youtubeKavachUnlockTracking) {
+                YOUTUBE_UNLOCK_POLL_MS
+            } else {
+                poller.onSample(null, isBlockedApp = false)
+            }
         }
+
+        stopYoutubeKavachUnlockTracking()
 
         if (foregroundPackage == packageName ||
             foregroundPackage == "com.android.settings"
@@ -296,10 +383,8 @@ class KavachAlwaysOnService : Service() {
         }
 
         if (isHomePackage(foregroundPackage)) {
-            // Blocking deliberately sends the app Home. Keep the result sheet over the
-            // launcher until the student dismisses it or chooses Quick Unlock. This is
-            // required for both Normal and Beast under either activation option.
-            // Reset visit bookkeeping only, so a later app-open is counted independently.
+            // The student left the blocked app; do not cover their launcher.
+            blockOverlay.dismiss()
             lastBlockedPackage = null
             countedAttemptPackage = null
             return poller.onSample(foregroundPackage, isBlockedApp = false)
@@ -315,6 +400,30 @@ class KavachAlwaysOnService : Service() {
         return poller.onSample(foregroundPackage, isBlockedApp = isBlocked)
     }
 
+    /** Every second in YouTube through a Kavach unlock is Distracting. */
+    private fun recordYoutubeKavachUnlock() {
+        youtubeKavachUnlockTracking = true
+        youtubeInsightsRepository().recordViewing(
+            channelKey = null,
+            category = YoutubeInsightsRepository.CATEGORY_DISTRACTING,
+            shorts = false,
+            source = YoutubeInsightsRepository.SOURCE_KAVACH,
+        )
+    }
+
+    private fun stopYoutubeKavachUnlockTracking() {
+        if (!youtubeKavachUnlockTracking) return
+        youtubeKavachUnlockTracking = false
+        youtubeInsightsRepository().finishViewing(YoutubeInsightsRepository.SOURCE_KAVACH)
+    }
+
+    private fun hasAppQuickUnlock(pkg: String): Boolean = allowsKavachQuickUnlock(
+        strict = isStrictMode,
+        packageUnlocked = FocusShieldRepository.ShieldPrefs.isInGracePeriodForPackage(this, pkg),
+        studyModeOrigin = FocusShieldRepository.ShieldPrefs.quickUnlockOrigin(this) ==
+            FocusShieldRepository.ShieldPrefs.QUICK_UNLOCK_ORIGIN_YOUTUBE_STUDY,
+    )
+
     private fun enforceBackgroundBlockedApps() {
         if (blockedPackages.isEmpty()) return
         val am = getSystemService(Context.ACTIVITY_SERVICE) as? android.app.ActivityManager ?: return
@@ -322,6 +431,7 @@ class KavachAlwaysOnService : Service() {
         for (proc in runningProcesses) {
             val pkgs = proc.pkgList ?: continue
             for (pkg in pkgs) {
+                if (hasAppQuickUnlock(pkg)) continue
                 if (pkg in blockedPackages && pkg != packageName) {
                     if (proc.importance <= android.app.ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND_SERVICE ||
                         proc.importance <= android.app.ActivityManager.RunningAppProcessInfo.IMPORTANCE_VISIBLE
@@ -353,35 +463,17 @@ class KavachAlwaysOnService : Service() {
             packageManager.getApplicationLabel(packageManager.getApplicationInfo(blockedPackage, 0)).toString()
         }.getOrDefault("This app")
 
-        // Force the blocked app to close / navigate to device home screen immediately for both modes.
-        goHome()
-        runCatching {
-            val am = getSystemService(Context.ACTIVITY_SERVICE) as? android.app.ActivityManager
-            am?.killBackgroundProcesses(blockedPackage)
-        }
-
         val expiredMinutes = if (!isStrictMode) {
             FocusShieldRepository.ShieldPrefs.consumeQuickUnlockJustExpired(this)
         } else 0
 
-        // Draw the result sheet over Home and leave it there until the student acts.
+        // Block interaction in place, preserving the app screen for the next unlock.
         blockOverlay.show(
             appName = appName,
             allowQuickUnlock = !isStrictMode,
             blockedPackage = blockedPackage,
             expiredMinutes = expiredMinutes,
         )
-    }
-
-    private fun goHome() {
-        val homeIntent = Intent(Intent.ACTION_MAIN).apply {
-            addCategory(Intent.CATEGORY_HOME)
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        }
-        packageManager.resolveActivity(homeIntent, 0)?.activityInfo?.let { info ->
-            homeIntent.component = android.content.ComponentName(info.packageName, info.name)
-        }
-        runCatching { startActivity(homeIntent) }
     }
 
     private fun currentForegroundPackage(): String? {
@@ -417,37 +509,47 @@ class KavachAlwaysOnService : Service() {
         packageName.contains("launcher", ignoreCase = true) || packageName in KNOWN_HOME_PACKAGES
 
     private fun buildStatusNotification(): Notification {
-        val openKavach = PendingIntent.getActivity(
-            this,
-            0,
-            Intent(this, MainActivity::class.java).apply {
-                data = android.net.Uri.parse("safar://${Routes.FOCUS_SHIELD}")
-                flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
-            },
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-        )
-        val cal = java.util.Calendar.getInstance()
-        val currentMinute = cal.get(java.util.Calendar.HOUR_OF_DAY) * 60 + cal.get(java.util.Calendar.MINUTE)
-        val isScheduleActive = !scheduleEnabled || FocusShieldRepository.ShieldPrefs.isWithinSchedule(currentMinute, scheduleStartMinute, scheduleEndMinute)
+        return try {
+            val openKavach = PendingIntent.getActivity(
+                this,
+                0,
+                Intent(this, MainActivity::class.java).apply {
+                    data = android.net.Uri.parse("safar://${Routes.FOCUS_SHIELD}")
+                    flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                },
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            )
+            val cal = java.util.Calendar.getInstance()
+            val currentMinute = cal.get(java.util.Calendar.HOUR_OF_DAY) * 60 + cal.get(java.util.Calendar.MINUTE)
+            val isScheduleActive = !scheduleEnabled || FocusShieldRepository.ShieldPrefs.isWithinSchedule(currentMinute, scheduleStartMinute, scheduleEndMinute)
 
-        val title = if (isAlwaysOnMode) "KAVACH Always On" else "KAVACH Active"
-        val text = when {
-            !isScheduleActive -> "KAVACH Scheduled (Outside active hours)"
-            isAlwaysOnMode -> "Always On protection is active."
-            else -> "KAVACH protection is active."
+            val title = getString(if (isAlwaysOnMode) R.string.kavach_always_on_title else R.string.kavach_active_title)
+            val text = when {
+                !isScheduleActive -> getString(R.string.kavach_outside_active_hours)
+                isAlwaysOnMode -> getString(R.string.kavach_always_on_notification_body)
+                else -> getString(R.string.kavach_active_notification_body)
+            }
+
+            NotificationCompat.Builder(this, SafarNotificationChannels.FOCUS_SHIELD_STATUS)
+                .setSmallIcon(SafarNotificationManager.SafarNotificationStyle.smallIconRes(this))
+                .setColor(SafarNotificationManager.SafarNotificationStyle.brandColor(this))
+                .setContentTitle(title)
+                .setContentText(text)
+                .setContentIntent(openKavach)
+                .setCategory(NotificationCompat.CATEGORY_STATUS)
+                .setPriority(NotificationCompat.PRIORITY_LOW)
+                .setOngoing(true)
+                .setOnlyAlertOnce(true)
+                .build()
+        } catch (t: Throwable) {
+            NotificationCompat.Builder(this, SafarNotificationChannels.FOCUS_SHIELD_STATUS)
+                .setSmallIcon(R.drawable.ic_safar_notification_sparkle)
+                .setContentTitle("KAVACH Protection")
+                .setContentText(getString(R.string.ekagra_protection_active))
+                .setPriority(NotificationCompat.PRIORITY_LOW)
+                .setOngoing(true)
+                .build()
         }
-
-        return NotificationCompat.Builder(this, SafarNotificationChannels.FOCUS_SHIELD_STATUS)
-            .setSmallIcon(SafarNotificationManager.SafarNotificationStyle.smallIconRes(this))
-            .setColor(SafarNotificationManager.SafarNotificationStyle.brandColor(this))
-            .setContentTitle(title)
-            .setContentText(text)
-            .setContentIntent(openKavach)
-            .setCategory(NotificationCompat.CATEGORY_STATUS)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
-            .setOngoing(true)
-            .setOnlyAlertOnce(true)
-            .build()
     }
 }
 

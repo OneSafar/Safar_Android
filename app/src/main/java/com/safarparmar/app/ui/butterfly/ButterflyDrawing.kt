@@ -1,6 +1,7 @@
 
 package com.safarparmar.app.ui.butterfly
 
+import com.safarparmar.app.performance.decorativeFloat
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -43,7 +44,7 @@ fun ButterflyDrawing(
 
     // Wing flap — full sin cycle so wings flip through centre
     val flapPhase by
-    infiniteTransition.animateFloat(
+    infiniteTransition.decorativeFloat(
         initialValue = 0f,
         targetValue = (2 * Math.PI).toFloat(),
         animationSpec =
@@ -56,7 +57,7 @@ fun ButterflyDrawing(
 
     // Shimmer phase — slower, offset from flap for organic feel
     val shimmerPhase by
-    infiniteTransition.animateFloat(
+    infiniteTransition.decorativeFloat(
         initialValue = 0f,
         targetValue = (2 * Math.PI).toFloat(),
         animationSpec =
@@ -69,7 +70,7 @@ fun ButterflyDrawing(
 
     // Aura orbit phase
     val auraPhase by
-    infiniteTransition.animateFloat(
+    infiniteTransition.decorativeFloat(
         initialValue = 0f,
         targetValue = (2 * Math.PI).toFloat(),
         animationSpec =

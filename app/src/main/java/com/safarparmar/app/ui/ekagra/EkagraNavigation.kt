@@ -108,6 +108,7 @@ internal fun EkagraBottomNav(
         ) {
             EkagraNavTab.entries.forEach { tab ->
                 val isSelected = tab == selectedTab
+                val tabLabel = stringResource(tab.labelRes)
 
                 val iconColor by animateColorAsState(
                     targetValue = if (isSelected) accentColor else ink.secondaryText,
@@ -135,7 +136,7 @@ internal fun EkagraBottomNav(
                 ) {
                     EkagraChromeIcon(
                         imageVector = tab.icon,
-                        contentDescription = tab.label,
+                        contentDescription = tabLabel,
                         tint = iconColor,
                         baseSizeDp = 20f,
                     )
@@ -148,7 +149,7 @@ internal fun EkagraBottomNav(
                     )
 
                     Text(
-                        text = tab.label,
+                        text = tabLabel,
                         fontSize = EkagraChrome.text(11f),
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
                         color = textColor,

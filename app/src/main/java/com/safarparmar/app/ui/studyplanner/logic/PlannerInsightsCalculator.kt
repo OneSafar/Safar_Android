@@ -23,17 +23,17 @@ object PlannerInsightsCalculator {
     ): PlannerInsights {
         val refs = plan.flattenTopics()
         val topics = refs.map { it.topic }
-        val remainingTopics = topics.count { it.status != TopicStatus.DONE }
+        val remainingTopics = topics.count { !it.status.isStudied }
         // Remaining work in effort points (server formula: small=1, medium=2,
         // big=4, scaled by partial progress), shown to the user as
         // topic-equivalents (points ÷ 2) so labels keep saying "topics/day".
         val remainingEquivalents = pointsToTopicEquivalents(
-            refs.filter { it.topic.status != TopicStatus.DONE }
+            refs.filter { !it.topic.status.isStudied }
                 .map { it.topic.remainingPoints(it.chapter) }
                 .sum(),
         )
         val totalTopics = topics.size
-        val doneTopics = topics.count { it.status == TopicStatus.DONE }
+        val doneTopics = topics.count { it.status.isStudied }
         val completionPercent = weightedCompletionPercent(refs.map { it.topic to it.chapter })
 
         val examDate = parsePlannerDate(plan.examDate)
@@ -91,7 +91,7 @@ object PlannerInsightsCalculator {
         val unfinishedScheduledBeforeExam = examDate?.let { ex ->
             refs.count { ref ->
                 val pd = ref.topic.plannedDate?.take(10) ?: return@count false
-                ref.topic.status != TopicStatus.DONE &&
+                !ref.topic.status.isStudied &&
                     runCatching { LocalDate.parse(pd) }.getOrNull()?.let { !it.isAfter(ex) } == true
             }
         } ?: 0
@@ -133,7 +133,7 @@ object PlannerInsightsCalculator {
 
         val subjectRows = plan.subjects.map { sub ->
             val stTopics = sub.chapters.flatMap { it.topics }
-            val rem = stTopics.count { it.status != TopicStatus.DONE }
+            val rem = stTopics.count { !it.status.isStudied }
             PlannerInsightSubjectRow(
                 subjectId = sub.id,
                 subjectName = sub.name,
@@ -142,7 +142,7 @@ object PlannerInsightsCalculator {
                 remainingTopics = rem,
                 overdueTopics = stTopics.count { t ->
                     val pd = t.plannedDate?.take(10) ?: return@count false
-                    pd < todayIso && t.status != TopicStatus.DONE
+                    pd < todayIso && !t.status.isStudied
                 },
                 revisionTopics = stTopics.count { it.status == TopicStatus.REVISION_NEEDED },
             )
@@ -152,10 +152,10 @@ object PlannerInsightsCalculator {
             sub.chapters.mapNotNull { ch ->
                 val chTopics = ch.topics
                 if (chTopics.isEmpty()) return@mapNotNull null
-                val rem = chTopics.count { it.status != TopicStatus.DONE }
+                val rem = chTopics.count { !it.status.isStudied }
                 val overdue = chTopics.count { t ->
                     val pd = t.plannedDate?.take(10) ?: return@count false
-                    pd < todayIso && t.status != TopicStatus.DONE
+                    pd < todayIso && !t.status.isStudied
                 }
                 if (rem == 0 && overdue == 0) return@mapNotNull null
                 PlannerInsightLaggingChapter(
@@ -246,7 +246,7 @@ object PlannerInsightsCalculator {
             PlannerInsightDayLoad(
                 date = key,
                 plannedCount = items.size,
-                doneCount = items.count { it.status == TopicStatus.DONE },
+                doneCount = items.count { it.status.isStudied },
             )
         }
         // Overload is judged in effort points against the daily budget, so a
@@ -302,7 +302,7 @@ object PlannerInsightsCalculator {
                 )
             }
 
-            if (ref.topic.status != TopicStatus.DONE) continue
+            if (!ref.topic.status.isStudied) continue
             // The last revision also sets completedDate. It is one action, so do
             // not add the same work a second time on that date.
             val completedDate = ref.topic.completedDate?.take(10) ?: continue
@@ -422,7 +422,7 @@ object PlannerInsightsCalculator {
                 PlannerInsightDayLoad(
                     date = key,
                     plannedCount = items.size,
-                    doneCount = items.count { it.status == TopicStatus.DONE }
+                    doneCount = items.count { it.status.isStudied }
                 )
             }
         val missedDays = pastDays.filter { it.plannedCount > 0 && it.doneCount < it.plannedCount }
@@ -470,8 +470,8 @@ object PlannerInsightsCalculator {
             val t = ref.topic
             if (t.status == TopicStatus.REVISION_NEEDED) rev++
             val pd = t.plannedDate?.take(10)
-            if (t.status != TopicStatus.DONE && pd.isNullOrBlank()) unplanned++
-            if (pd != null && t.status != TopicStatus.DONE) {
+            if (!t.status.isStudied && pd.isNullOrBlank()) unplanned++
+            if (pd != null && !t.status.isStudied) {
                 val d = runCatching { LocalDate.parse(pd) }.getOrNull() ?: continue
                 if (d.isBefore(today)) {
                     val daysPast = ChronoUnit.DAYS.between(d, today).toInt()

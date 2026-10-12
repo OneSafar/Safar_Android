@@ -1,7 +1,6 @@
 package com.safarparmar.app.ui.audio
 
-import android.media.AudioAttributes
-import android.media.MediaPlayer
+import com.safarparmar.app.performance.decorativeFloat
 import android.net.Uri
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -36,13 +35,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material3.BottomSheetDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
+import com.composables.ui.components.BottomSheet
+import com.composables.ui.components.BottomSheetDetent
+import com.composables.ui.components.rememberBottomSheetState
+import com.composables.ui.components.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
+import com.composables.ui.components.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -63,6 +61,7 @@ import com.safarparmar.app.ui.ekagra.EkagraDisplayTitle
 import com.safarparmar.app.ui.ekagra.EkagraEyebrow
 import com.safarparmar.app.ui.ekagra.EkagraHairline
 import com.safarparmar.app.ui.ekagra.EkagraInk
+import com.safarparmar.app.ui.theme.shimmer
 import com.safarparmar.app.ui.ekagra.EkagraPill
 import com.safarparmar.app.ui.ekagra.rememberEkagraInk
 import com.safarparmar.app.ui.theme.isLightBackground
@@ -107,7 +106,6 @@ private fun rememberAudioLibraryColors(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AudioLibraryPanel(
     selectedTrackId: String,
@@ -123,18 +121,13 @@ fun AudioLibraryPanel(
     var previewingTrackId by remember { mutableStateOf<String?>(null) }
     var isMuted by remember { mutableStateOf(false) }
 
-    val mediaPlayer = remember { mutableStateOf<MediaPlayer?>(null) }
+    val mediaPlayer = remember { mutableStateOf<FocusAwareMusicPlayer?>(null) }
 
     fun releasePreview() {
         val player = mediaPlayer.value
         mediaPlayer.value = null
         previewingTrackId = null
-        player?.let {
-            kotlin.concurrent.thread {
-                runCatching { it.stop() }
-                runCatching { it.release() }
-            }
-        }
+        player?.release()
     }
 
     fun playPreview(track: AudioTrack) {
@@ -150,26 +143,15 @@ fun AudioLibraryPanel(
 
         if (!isMuted) {
             try {
-                mediaPlayer.value = MediaPlayer().apply {
-                    setAudioAttributes(
-                        AudioAttributes.Builder()
-                            .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                            .setUsage(AudioAttributes.USAGE_MEDIA)
-                            .build(),
-                    )
-                    if (track.isLocal && track.localResId != null) {
-                        setDataSource(context, Uri.parse("android.resource://${context.packageName}/${track.localResId}"))
-                    } else {
-                        setDataSource(context, MediaFileCache.uriFor(context, track.url))
-                    }
-                    prepareAsync()
-                    setOnPreparedListener { start() }
-                    setOnCompletionListener { releasePreview() }
-                    setOnErrorListener { _, _, _ ->
-                        releasePreview()
-                        true
-                    }
+                val player = FocusAwareMusicPlayer(context)
+                mediaPlayer.value = player
+                val uri = if (track.isLocal && track.localResId != null) {
+                    Uri.parse("android.resource://${context.packageName}/${track.localResId}")
+                } else {
+                    MediaFileCache.uriFor(context, track.url)
                 }
+                player.play(uri, looping = false, volume = 1f,
+                    onCompletion = { releasePreview() }, onError = { releasePreview() })
             } catch (e: Exception) {
                 e.printStackTrace()
                 releasePreview()
@@ -204,12 +186,11 @@ fun AudioLibraryPanel(
         )
     }
 
-    ModalBottomSheet(
+    BottomSheet(
+        state = rememberBottomSheetState(initialDetent = BottomSheetDetent.FullyExpanded),
         onDismissRequest = onDismiss,
-        containerColor = colors.bg,
+        backgroundColor = colors.bg,
         shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        dragHandle = { BottomSheetDefaults.DragHandle(color = colors.hairline) },
     ) {
         Column(
             modifier = Modifier
@@ -233,14 +214,39 @@ fun AudioLibraryPanel(
             ) {
                 categories.forEach { category ->
                     val selected = selectedCategory == category
-                    val label = category?.displayName ?: "All"
-                    EkagraPill(
-                        label = label,
-                        selected = selected,
-                        accent = colors.accent,
-                        ink = ink,
-                        onClick = { selectedCategory = category },
-                    )
+                    val label = category?.let { androidx.compose.ui.res.stringResource(it.displayNameRes) }
+                        ?: androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.audio_category_all)
+                    if (category == AudioCategory.ORIGINALS) {
+                        Box(
+                            modifier = Modifier
+                                .clip(CircleShape)
+                                .background(
+                                    brush = androidx.compose.ui.graphics.Brush.linearGradient(
+                                        colors = listOf(Color(0xFFF9D423), Color(0xFFFF4E50))
+                                    )
+                                )
+                                .let { if (selected) it.border(2.dp, colors.accent, CircleShape) else it }
+                                .shimmer()
+                                .clickable { selectedCategory = category }
+                                .padding(horizontal = 14.dp, vertical = 7.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                text = label,
+                                fontSize = 12.sp,
+                                fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
+                                color = Color.White,
+                            )
+                        }
+                    } else {
+                        EkagraPill(
+                            label = label,
+                            selected = selected,
+                            accent = colors.accent,
+                            ink = ink,
+                            onClick = { selectedCategory = category },
+                        )
+                    }
                 }
             }
 
@@ -289,7 +295,7 @@ fun AudioLibraryPanel(
                                 } else {
                                     Icon(
                                         imageVector = if (isSelected) Icons.Default.MusicNote else Icons.Default.PlayArrow,
-                                        contentDescription = "Preview",
+                                        contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.audio_preview),
                                         tint = if (isSelected) colors.accent else colors.muted,
                                         modifier = Modifier.size(15.dp),
                                     )
@@ -298,14 +304,15 @@ fun AudioLibraryPanel(
 
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = track.name,
+                                    text = track.nameRes?.let { androidx.compose.ui.res.stringResource(it) } ?: track.name,
                                     fontSize = 14.sp,
                                     fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
                                     color = ink.primaryText,
                                 )
-                                if (track.description != null) {
+                                val desc = track.descriptionRes?.let { androidx.compose.ui.res.stringResource(it) } ?: track.description
+                                if (desc != null) {
                                     Text(
-                                        text = track.description,
+                                        text = desc,
                                         fontSize = 11.5.sp,
                                         color = ink.mutedText,
                                         maxLines = 1,
@@ -318,7 +325,7 @@ fun AudioLibraryPanel(
                             if (isSelected) {
                                 Icon(
                                     imageVector = Icons.Default.Check,
-                                    contentDescription = "Selected",
+                                    contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.common_selected),
                                     tint = colors.accent,
                                     modifier = Modifier.size(16.dp),
                                 )
@@ -341,7 +348,7 @@ fun EqualizerAnimation(color: Color) {
     ) {
         listOf(300, 400, 500, 350).forEachIndexed { index, delayMillis ->
             val infiniteTransition = rememberInfiniteTransition(label = "eq_$index")
-            val height by infiniteTransition.animateFloat(
+            val height by infiniteTransition.decorativeFloat(
                 initialValue = 0.3f,
                 targetValue = 1f,
                 animationSpec = infiniteRepeatable(

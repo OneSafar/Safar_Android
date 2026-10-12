@@ -1,5 +1,8 @@
 package com.safarparmar.app.ui.studyplanner.create.steps
 
+import androidx.compose.ui.res.stringResource
+import com.safarparmar.app.R
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -50,7 +53,7 @@ fun PasteSyllabusStep(
                 onValueChange = onPasteTextChange,
                 minLines = 8,
                 modifier = Modifier.fillMaxWidth().weight(1f),
-                label = { Text("Paste syllabus") },
+                label = { Text(stringResource(R.string.planner_paste_syllabus)) },
             )
             if (isStructuring) {
                 CircularProgressIndicator(modifier = Modifier.padding(top = 4.dp))
@@ -68,8 +71,8 @@ fun PasteSyllabusStep(
                             color = MaterialTheme.colorScheme.onErrorContainer,
                         )
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            OutlinedButton(onClick = onTryAgain) { Text("Try Again") }
-                            OutlinedButton(onClick = onBuildManually) { Text("Build Manually") }
+                            OutlinedButton(onClick = onTryAgain) { Text(stringResource(R.string.common_try_again)) }
+                            OutlinedButton(onClick = onBuildManually) { Text(stringResource(R.string.planner_build_manually)) }
                         }
                     }
                 }
@@ -79,11 +82,11 @@ fun PasteSyllabusStep(
                     enabled = pasteText.isNotBlank(),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text("Organize syllabus", fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.planner_organize_syllabus), fontWeight = FontWeight.Bold)
                 }
             }
         } else {
-            Text("We organized your syllabus.", fontWeight = FontWeight.Black, style = MaterialTheme.typography.headlineSmall)
+            Text(stringResource(R.string.planner_syllabus_organized), fontWeight = FontWeight.Black, style = MaterialTheme.typography.headlineSmall)
             Text(
                 "Please check once before building the plan.",
                 style = MaterialTheme.typography.bodyMedium,
@@ -108,7 +111,7 @@ fun PasteSyllabusStep(
                 }
             }
             Button(onClick = onContinue, modifier = Modifier.fillMaxWidth()) {
-                Text("Looks correct", fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.planner_looks_correct), fontWeight = FontWeight.Bold)
             }
         }
     }

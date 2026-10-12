@@ -162,7 +162,7 @@ fun KavachAboutScreen(
                 )
                 HorizontalDivider(color = KavachDesign.Surface, thickness = 1.dp)
                 KavachAboutPermissionRow(
-                    title = "Display over other apps",
+                    title = stringResource(R.string.kavach_permission_overlay_title),
                     granted = hasOverlay,
                 )
             }

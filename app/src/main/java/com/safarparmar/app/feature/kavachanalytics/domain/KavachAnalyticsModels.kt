@@ -137,7 +137,27 @@ data class AppUsageRow(
     val kavachSeconds: Int,
     val blockedAttempts: Int,
     val quickUnlockCount: Int,
-)
+    val allDayBreakdown: CategoryTotals? = null,
+    val kavachBreakdown: CategoryTotals? = null,
+) {
+    fun secondsFor(filter: KavachCategoryFilter, duringKavach: Boolean): Int {
+        val breakdown = if (duringKavach) kavachBreakdown else allDayBreakdown
+        return breakdown?.secondsFor(filter) ?: if (filter.matches(category)) {
+            if (duringKavach) kavachSeconds else allDaySeconds
+        } else 0
+    }
+
+    fun usageLabel(filter: KavachCategoryFilter, duringKavach: Boolean): String {
+        if (filter != KavachCategoryFilter.ALL) return filter.label
+        val active = listOf(KavachCategoryFilter.PRODUCTIVE, KavachCategoryFilter.DISTRACTING, KavachCategoryFilter.OTHERS)
+            .filter { secondsFor(it, duringKavach) > 0 }
+        return when (active.size) {
+            0 -> category.name.lowercase().replaceFirstChar { it.uppercase() }
+            1 -> active.single().label
+            else -> "Mixed activity"
+        }
+    }
+}
 
 data class CategoryTotals(
     val productiveSeconds: Int = 0,

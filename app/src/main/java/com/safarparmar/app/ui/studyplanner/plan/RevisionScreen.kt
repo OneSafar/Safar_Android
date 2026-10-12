@@ -1,5 +1,8 @@
 package com.safarparmar.app.ui.studyplanner.plan
 
+import androidx.compose.ui.res.stringResource
+import com.safarparmar.app.R
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -56,24 +59,7 @@ internal fun RevisionScreen(
             .filter { it.topic.status == TopicStatus.REVISION_NEEDED }
     }
     var editingRef by remember { mutableStateOf<TopicRef?>(null) }
-    var choosingTopic by remember { mutableStateOf(false) }
 
-    if (choosingTopic) {
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = { choosingTopic = false },
-            title = { Text("Choose a topic to revise") },
-            text = {
-                LazyColumn {
-                    items(plan.flattenTopics(), key = { it.topic.id }) { ref ->
-                        androidx.compose.material3.TextButton(onClick = { editingRef = ref; choosingTopic = false }) {
-                            Text("${ref.topic.name} · ${ref.subject.name}")
-                        }
-                    }
-                }
-            },
-            confirmButton = { androidx.compose.material3.TextButton(onClick = { choosingTopic = false }) { Text("Cancel") } },
-        )
-    }
     Column(modifier = modifier.fillMaxSize()) {
         Row(
             modifier = Modifier
@@ -86,13 +72,13 @@ internal fun RevisionScreen(
             }
             Column(Modifier.weight(1f)) {
                 Text(
-                    text = "Revision Tasks",
+                    text = stringResource(R.string.planner_revision_tasks),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.ExtraBold,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
-                    text = "Review dates and completed sessions",
+                    text = stringResource(R.string.planner_revision_subtitle),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -127,15 +113,15 @@ internal fun RevisionScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        androidx.compose.material3.Button(onClick = { choosingTopic = true }, enabled = plan.flattenTopics().isNotEmpty()) { Text("Schedule revision") }
+                        Text("🧠", fontSize = 36.sp)
                         Text(
-                            text = "No Revision Scheduled",
+                            text = stringResource(R.string.planner_no_revision_scheduled),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface,
                         )
                         Text(
-                            text = "Choose a topic and review dates",
+                            text = stringResource(R.string.planner_no_revision_body),
                             style = MaterialTheme.typography.bodySmall,
                             textAlign = TextAlign.Center,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,

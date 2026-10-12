@@ -31,6 +31,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.Apps
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LockOpen
@@ -38,6 +39,8 @@ import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -45,6 +48,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -67,6 +71,7 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -142,7 +147,7 @@ fun KavachCompactIntro(
                     modifier = Modifier.size(16.dp),
                 )
                 Text(
-                    text = "Learn More",
+                    text = stringResource(R.string.common_learn_more),
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = KavachDesign.Primary,
@@ -224,24 +229,13 @@ fun KavachIntroHeroCard(
 
 @Composable
 fun KavachIntroCopy(modifier: Modifier = Modifier) {
-    Column(
+    Text(
+        text = stringResource(R.string.kavach_intro_copy_body),
+        fontSize = 15.sp,
+        lineHeight = 22.sp,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Text(
-            text = stringResource(R.string.kavach_hero_title),
-            fontSize = 28.sp,
-            lineHeight = 34.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onBackground,
-        )
-        Text(
-            text = stringResource(R.string.kavach_intro_copy_body),
-            fontSize = 16.sp,
-            lineHeight = 23.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
+    )
 }
 
 @Composable
@@ -330,96 +324,93 @@ fun KavachPermissionDisclosureCard(
     hasOverlay: Boolean,
     hasNotifications: Boolean,
     hasNotificationSuppressionAccess: Boolean,
+    hasBatterySaver: Boolean = false,
     onOpenUsageAccess: () -> Unit,
     onOpenOverlay: () -> Unit,
     onOpenNotifications: () -> Unit,
     onOpenNotificationAccess: () -> Unit,
+    onOpenBatterySaver: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val scheme = MaterialTheme.colorScheme
+    val allGranted = hasUsageStats && hasOverlay && hasNotifications && hasNotificationSuppressionAccess && hasBatterySaver
 
-    Card(
+    Column(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = scheme.surfaceVariant.copy(alpha = 0.5f)),
-        border = BorderStroke(1.dp, scheme.outlineVariant),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
+        // Editorial Header
         Column(
-            modifier = Modifier.padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .background(KavachDesign.Primary.copy(alpha = 0.12f)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        Icons.Default.Shield,
-                        contentDescription = null,
-                        tint = KavachDesign.Primary,
-                        modifier = Modifier.size(20.dp),
-                    )
-                }
-                Column {
-                    val allGranted = hasUsageStats && hasOverlay && hasNotifications && hasNotificationSuppressionAccess
-                    Text(
-                        text = if (allGranted) "Permissions active 🛡️" else "Permissions & Access",
-                        fontSize = 17.sp,
-                        lineHeight = 22.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = scheme.onSurface,
-                    )
-                    Text(
-                        text = if (allGranted) "All Kavach focus protections are active." else stringResource(R.string.kavach_permissions_needed),
-                        fontSize = 12.sp,
-                        lineHeight = 16.sp,
-                        color = scheme.onSurfaceVariant,
-                    )
-                }
-            }
+            Text(
+                text = stringResource(R.string.kavach_focus_access),
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.2.sp,
+                color = KavachDesign.Primary,
+            )
+            Text(
+                text = if (allGranted) stringResource(R.string.kavach_permissions_active) else stringResource(R.string.kavach_permissions_access),
+                fontSize = 22.sp,
+                lineHeight = 28.sp,
+                fontWeight = FontWeight.Bold,
+                color = scheme.onSurface,
+            )
+            Text(
+                text = if (allGranted) stringResource(R.string.kavach_all_protections_active) else stringResource(R.string.kavach_permissions_needed),
+                fontSize = 13.sp,
+                lineHeight = 18.sp,
+                color = scheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
 
-            HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.5f), thickness = 1.dp)
+        HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.20f), thickness = 0.5.dp)
 
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                KavachPermissionStatusRow(
-                    title = "App Check",
-                    body = "Detects when blocked apps open.",
-                    granted = hasUsageStats,
-                    required = true,
-                    onClick = onOpenUsageAccess,
-                )
-                HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.3f), thickness = 0.5.dp)
-                KavachPermissionStatusRow(
-                    title = "Display over other apps",
-                    body = "Shows the KAVACH block screen over a distracting app.",
-                    granted = hasOverlay,
-                    required = true,
-                    onClick = onOpenOverlay,
-                )
-                HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.3f), thickness = 0.5.dp)
-                KavachPermissionStatusRow(
-                    title = "Notifications",
-                    body = "Shows timer progress on lock screen.",
-                    granted = hasNotifications,
-                    required = false,
-                    onClick = onOpenNotifications,
-                )
-                HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.3f), thickness = 0.5.dp)
-                KavachPermissionStatusRow(
-                    title = "Notification Shield",
-                    body = "Dismisses notifications from selected blocked apps.",
-                    granted = hasNotificationSuppressionAccess,
-                    required = false,
-                    onClick = onOpenNotificationAccess,
-                )
-            }
+        // Flat Editorial Permission Rows
+        Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
+            KavachPermissionStatusRow(
+                title = stringResource(R.string.kavach_app_check),
+                body = stringResource(R.string.kavach_app_check_body),
+                granted = hasUsageStats,
+                required = true,
+                onClick = onOpenUsageAccess,
+            )
+            HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.15f), thickness = 0.5.dp)
+            KavachPermissionStatusRow(
+                title = stringResource(R.string.kavach_display_over_apps),
+                body = stringResource(R.string.kavach_display_over_apps_body),
+                granted = hasOverlay,
+                required = true,
+                onClick = onOpenOverlay,
+            )
+            HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.15f), thickness = 0.5.dp)
+            KavachPermissionStatusRow(
+                title = stringResource(R.string.kavach_background_permission),
+                body = stringResource(R.string.kavach_background_permission_body),
+                granted = hasBatterySaver,
+                required = false,
+                onClick = onOpenBatterySaver,
+            )
+            HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.15f), thickness = 0.5.dp)
+            KavachPermissionStatusRow(
+                title = stringResource(R.string.kavach_notifications),
+                body = stringResource(R.string.kavach_notifications_body),
+                granted = hasNotifications,
+                required = false,
+                onClick = onOpenNotifications,
+            )
+            HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.15f), thickness = 0.5.dp)
+            KavachPermissionStatusRow(
+                title = stringResource(R.string.kavach_notification_shield),
+                body = stringResource(R.string.kavach_notification_shield_body),
+                granted = hasNotificationSuppressionAccess,
+                required = false,
+                onClick = onOpenNotificationAccess,
+            )
         }
     }
 }
@@ -437,23 +428,31 @@ private fun KavachPermissionStatusRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(enabled = !granted, onClick = onClick)
-            .padding(vertical = 8.dp),
+            .padding(vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        Column(Modifier.weight(1f)) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .padding(end = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
             Text(
                 text = title,
                 fontSize = 15.sp,
-                lineHeight = 18.sp,
-                fontWeight = FontWeight.Bold,
+                fontWeight = FontWeight.SemiBold,
                 color = scheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
             Text(
                 text = body,
-                fontSize = 12.sp,
+                fontSize = 12.5.sp,
                 lineHeight = 16.sp,
                 color = scheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
         }
         if (granted) {
@@ -461,28 +460,60 @@ private fun KavachPermissionStatusRow(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                 modifier = Modifier
-                    .clip(RoundedCornerShape(999.dp))
-                    .background(KavachDesign.SuccessBg)
-                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color(0xFF10B981).copy(alpha = 0.12f))
+                    .padding(horizontal = 10.dp, vertical = 6.dp),
             ) {
                 Icon(
-                    Icons.Default.CheckCircle,
+                    Icons.Default.Check,
                     contentDescription = null,
-                    tint = KavachDesign.SuccessText,
-                    modifier = Modifier.size(14.dp),
+                    tint = Color(0xFF059669),
+                    modifier = Modifier.size(13.dp),
                 )
                 Text(
-                    text = "Ready",
+                    text = stringResource(R.string.common_ready),
                     fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = KavachDesign.SuccessText,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF059669),
+                )
+            }
+        } else if (required) {
+            Button(
+                onClick = onClick,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = KavachDesign.Primary,
+                    contentColor = Color.White,
+                ),
+                shape = RoundedCornerShape(10.dp),
+                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 0.dp),
+                modifier = Modifier.height(32.dp),
+                elevation = ButtonDefaults.buttonElevation(0.dp, 0.dp, 0.dp, 0.dp),
+            ) {
+                Text(
+                    text = stringResource(R.string.common_allow),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
                 )
             }
         } else {
-            KavachStitchAllowButton(
-                text = if (required) "Allow" else "Optional",
+            Surface(
                 onClick = onClick,
-            )
+                shape = RoundedCornerShape(10.dp),
+                color = scheme.surfaceContainerHighest.copy(alpha = 0.6f),
+                contentColor = scheme.onSurfaceVariant,
+                modifier = Modifier.height(32.dp),
+            ) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier.padding(horizontal = 12.dp),
+                ) {
+                    Text(
+                        text = stringResource(R.string.common_optional),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                    )
+                }
+            }
         }
     }
 }
@@ -495,7 +526,7 @@ fun KavachEnabledSummaryCard(
     modifier: Modifier = Modifier,
 ) {
     val scheme = MaterialTheme.colorScheme
-    val appsLabel = if (blockedAppCount == 1) "1 app selected" else "$blockedAppCount apps selected"
+    val appsLabel = stringResource(R.string.kavach_apps_selected, blockedAppCount)
 
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -525,7 +556,7 @@ fun KavachEnabledSummaryCard(
             }
             Column(Modifier.weight(1f)) {
                 Text(
-                    text = "KAVACH is on",
+                    text = stringResource(R.string.kavach_is_on),
                     fontSize = 18.sp,
                     lineHeight = 24.sp,
                     fontWeight = FontWeight.Bold,
@@ -594,10 +625,12 @@ fun KavachLearnMoreSheet(
     hasOverlay: Boolean,
     hasNotifications: Boolean,
     hasNotificationSuppressionAccess: Boolean,
+    hasBatterySaver: Boolean = false,
     onOpenUsageAccess: () -> Unit,
     onOpenOverlay: () -> Unit,
     onOpenNotifications: () -> Unit,
     onOpenNotificationAccess: () -> Unit,
+    onOpenBatterySaver: () -> Unit = {},
     onDismiss: () -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -626,6 +659,7 @@ fun KavachLearnMoreSheet(
                 hasOverlay = hasOverlay,
                 hasNotifications = hasNotifications,
                 hasNotificationSuppressionAccess = hasNotificationSuppressionAccess,
+                hasBatterySaver = hasBatterySaver,
                 onOpenUsageAccess = {
                     onDismiss()
                     onOpenUsageAccess()
@@ -641,6 +675,10 @@ fun KavachLearnMoreSheet(
                 onOpenNotificationAccess = {
                     onDismiss()
                     onOpenNotificationAccess()
+                },
+                onOpenBatterySaver = {
+                    onDismiss()
+                    onOpenBatterySaver()
                 },
             )
         }
@@ -963,8 +1001,8 @@ fun KavachControlCenterContainer(
                 // on — a blocker that is hard to stop is a trap, not a tool.
                 KavachControlRow(
                     iconRes = R.drawable.ic_shield_check,
-                    title = "Always On Mode",
-                    subtitle = "Blocks your chosen apps 24/7. Turn it on or off anytime.",
+                    title = stringResource(R.string.kavach_always_on_mode),
+                    subtitle = stringResource(R.string.kavach_always_on_mode_body),
                     onClick = { onAlwaysOnChange(!alwaysOn) },
                     isDark = isDark,
                 ) {
@@ -982,8 +1020,8 @@ fun KavachControlCenterContainer(
 
                 KavachControlRow(
                     iconRes = R.drawable.ic_shield_check,
-                    title = "Notification Shield",
-                    subtitle = "Optional — hide notifications from blocked apps while you study.",
+                    title = stringResource(R.string.kavach_notification_shield),
+                    subtitle = stringResource(R.string.kavach_notification_shield_optional_body),
                     onClick = { if (!hasNotificationShield) onEnableNotificationShield() },
                     isDark = isDark,
                 ) {
@@ -997,7 +1035,7 @@ fun KavachControlCenterContainer(
                             )
                             Spacer(Modifier.width(6.dp))
                             Text(
-                                text = "On",
+                                text = stringResource(R.string.common_on),
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = accent,
@@ -1012,7 +1050,7 @@ fun KavachControlCenterContainer(
                             contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
                         ) {
                             Text(
-                                text = "Enable",
+                                text = stringResource(R.string.common_enable),
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = Color.White,
@@ -1136,9 +1174,9 @@ fun KavachInfoBottomSheet(
         permissionsBody.split(". ").map { it.trim() }.filter { it.isNotEmpty() }
     }
     val permissionTitles = listOf(
-        "App Check",
-        "KAVACH Alert",
-        "Notifications",
+        stringResource(R.string.kavach_app_check),
+        stringResource(R.string.kavach_alert),
+        stringResource(R.string.kavach_notifications),
     )
 
     ModalBottomSheet(
@@ -1356,7 +1394,7 @@ private fun KavachPermissionBadge(required: Boolean) {
     val scheme = MaterialTheme.colorScheme
     val bg = if (required) KavachDesign.Primary else scheme.surfaceVariant
     val fg = if (required) scheme.onPrimary else scheme.onSurfaceVariant
-    val label = if (required) "REQUIRED" else "OPTIONAL"
+    val label = if (required) stringResource(R.string.common_required_upper) else stringResource(R.string.common_optional_upper)
     Text(
         text = label,
         modifier = Modifier

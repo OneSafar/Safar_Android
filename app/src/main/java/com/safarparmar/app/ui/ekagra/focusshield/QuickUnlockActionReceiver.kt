@@ -6,7 +6,7 @@ import android.content.Intent
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
-/** Ends only the YouTube Study Mode unlock represented by this notification. */
+/** Ends only the YouTube Focus unlock represented by this notification. */
 @AndroidEntryPoint
 class QuickUnlockActionReceiver : BroadcastReceiver() {
     @Inject lateinit var repository: FocusShieldRepository

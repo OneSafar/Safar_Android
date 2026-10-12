@@ -65,6 +65,8 @@ class EkagraRepositoryImpl @Inject constructor(
     override suspend fun saveSession(
         clientSessionId: String?,
         mode: String,
+        endReason: String?,
+        ownerId: String?,
         startedAt: String,
         endedAt: String?,
         plannedDurationMinutes: Int,
@@ -85,6 +87,9 @@ class EkagraRepositoryImpl @Inject constructor(
                 SaveEkagraSessionRequest(
                     clientSessionId = clientSessionId,
                     mode = mode,
+                    endReason = endReason,
+                    ownerId = ownerId,
+                    completed = endReason == null || endReason == "completed",
                     startedAt = startedAt,
                     endedAt = endedAt,
                     plannedDurationMinutes = plannedDurationMinutes,
@@ -245,6 +250,7 @@ class EkagraRepositoryImpl @Inject constructor(
         durationMinutes = durationMinutes ?: 0,
         actualMinutes = actualMinutes ?: 0,
         actualSeconds = actualSeconds ?: 0,
+        rankedSeconds = rankedSeconds,
         status = status ?: "completed",
         rawStatus = rawStatus ?: "completed",
         taskText = taskText,
@@ -252,6 +258,8 @@ class EkagraRepositoryImpl @Inject constructor(
         isGoalLinked = isGoalLinked ?: false,
         pauseCount = pauseCount ?: 0,
         timerMode = timerMode,
+        sourceSessionId = sourceSessionId,
+        endReason = endReason,
     )
 
     private fun LinkedEkagraSessionDto.toDomain() = GoalLinkedSession(

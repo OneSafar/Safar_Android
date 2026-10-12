@@ -18,6 +18,10 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.flow.first
+import com.safarparmar.app.data.local.SafarDataStore
 
 class EkagraSessionSaveWorker(
     appContext: Context,
@@ -31,11 +35,12 @@ class EkagraSessionSaveWorker(
     }
 
     override suspend fun doWork(): Result {
-        val allSucceeded = drainPendingSaves(applicationContext)
+        val allSucceeded = runCatching { drainPendingSaves(applicationContext) }.getOrDefault(false)
         return if (allSucceeded) Result.success() else Result.retry()
     }
 
     companion object {
+        private val drainLock = Mutex()
         private const val TAG = "EkagraSaveWorker"
         private const val WORK_NAME = "ekagra_pending_session_save"
 
@@ -55,20 +60,66 @@ class EkagraSessionSaveWorker(
          * is still demonstrably alive gets the common case saved immediately; the
          * queue + WorkManager remain the retry path for offline/failure cases.
          */
-        suspend fun drainPendingSaves(context: Context): Boolean {
+        suspend fun drainPendingSaves(context: Context): Boolean = drainLock.withLock {
             val pending = EkagraPendingSessionSaveStore.getAll(context)
-            if (pending.isEmpty()) return true
+            if (pending.isEmpty()) return@withLock true
 
+            var failed = false
+            pending.forEach { session ->
+                if (session.ownerId != SafarDataStore(context).userId.first()) return@withLock false
+                when (val result = uploadPending(context, session)) {
+                    is Resource.Success -> {
+                        debugLog("Saved pending Ekagra session ${session.clientSessionId}")
+                    }
+                    is Resource.Error,
+                    is Resource.Loading -> {
+                        failed = true
+                        EkagraDiagnostics.record(context, "upload_failed", if (result is Resource.Error) result.message?.substringBefore(":").orEmpty() else "pending")
+                        debugLog("Pending Ekagra session save failed: ${session.clientSessionId}")
+                    }
+                }
+            }
+
+            !failed
+        }
+
+        suspend fun uploadOne(context: Context, session: PendingEkagraSessionSave): Resource<com.safarparmar.app.data.remote.dto.EkagraSession> =
+            drainLock.withLock { uploadPending(context, session) }
+
+        suspend fun linkLocalSession(context: Context, id: String, goalId: String, goalTitle: String?, markComplete: Boolean): Resource<Unit> = drainLock.withLock {
+            val account = SafarDataStore(context).userId.first().orEmpty()
+            val journal = EkagraSessionJournal.get(context)
+            val session = journal.find(id, account) ?: return@withLock Resource.Error("Session not found")
+            if (journal.setPendingGoal(id, account, goalId, goalTitle, markComplete)) {
+                // The choice is durable even when offline; the worker retries the save.
+                uploadPending(context, session)
+                Resource.Success(Unit)
+            } else {
+                val serverId = session.serverId ?: return@withLock Resource.Error("Session has not uploaded")
+                EntryPointAccessors.fromApplication(context, EkagraSessionSaveEntryPoint::class.java)
+                    .getEkagraRepository().linkSessionToGoal(serverId, goalId, markComplete)
+            }
+        }
+
+        private suspend fun uploadPending(context: Context, requested: PendingEkagraSessionSave): Resource<com.safarparmar.app.data.remote.dto.EkagraSession> {
+            val account = SafarDataStore(context).userId.first().orEmpty()
+            if (requested.ownerId != account) return Resource.Error("Session belongs to another account")
+            // Re-read under the upload lock: another caller may have uploaded while
+            // this caller waited. Acknowledged rows remain durable deduplication records.
+            val session = EkagraSessionJournal.get(context).find(requested.clientSessionId, account)
+                ?: return Resource.Error("Session is not in the durable journal")
+            session.serverId?.takeIf { it.isNotBlank() }?.let {
+                return Resource.Success(com.safarparmar.app.data.remote.dto.EkagraSession(id = it))
+            }
             val repository = EntryPointAccessors
                 .fromApplication(context, EkagraSessionSaveEntryPoint::class.java)
                 .getEkagraRepository()
 
-            var failed = false
-            pending.forEach { session ->
-                when (
-                    repository.saveSession(
+            val result = repository.saveSession(
                         clientSessionId = session.clientSessionId,
                         mode = session.mode,
+                        endReason = session.endReason,
+                        ownerId = session.ownerId,
                         startedAt = session.startedAt,
                         endedAt = session.endedAt,
                         plannedDurationMinutes = session.plannedDurationMinutes,
@@ -79,27 +130,13 @@ class EkagraSessionSaveWorker(
                         topicId = session.topicId,
                         planId = session.planId,
                         topicTitle = session.topicTitle,
-                        // Crash-recovery save: the user never confirmed the "mark topic
-                        // done" checkbox, so we preserve the association (crediting the
-                        // time) but never auto-complete the topic.
-                        markTopicDone = false,
+                        markTopicDone = session.markTopicDone,
+                        markGoalComplete = session.markGoalComplete,
                         taskTitle = session.taskTitle,
                         shieldEnabled = session.shieldEnabled,
                     )
-                ) {
-                    is Resource.Success -> {
-                        EkagraPendingSessionSaveStore.remove(context, session.clientSessionId)
-                        debugLog("Saved pending Ekagra session ${session.clientSessionId}")
-                    }
-                    is Resource.Error,
-                    is Resource.Loading -> {
-                        failed = true
-                        debugLog("Pending Ekagra session save failed: ${session.clientSessionId}")
-                    }
-                }
-            }
-
-            return !failed
+            if (result is Resource.Success) EkagraSessionJournal.get(context).acknowledge(session, result.data.id)
+            return result
         }
 
         fun enqueue(context: Context) {
@@ -114,7 +151,10 @@ class EkagraSessionSaveWorker(
 
             WorkManager.getInstance(context).enqueueUniqueWork(
                 WORK_NAME,
-                ExistingWorkPolicy.KEEP,
+                // Always leave a follow-up drain behind. KEEP can discard this
+                // request when a worker is already running after that worker took
+                // its queue snapshot, stranding the newly added session indefinitely.
+                ExistingWorkPolicy.APPEND_OR_REPLACE,
                 request,
             )
         }

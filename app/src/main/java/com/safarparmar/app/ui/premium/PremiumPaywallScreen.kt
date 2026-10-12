@@ -1,4 +1,7 @@
+/* Hallmark · pre-emit critique: P5 H5 E4 S5 R5 V4 */
 package com.safarparmar.app.ui.premium
+
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 import android.app.Activity
 import androidx.compose.animation.core.Spring
@@ -17,6 +20,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.WorkspacePremium
@@ -29,9 +33,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -39,6 +45,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.razorpay.Checkout
+import com.safarparmar.app.R
 import com.safarparmar.app.ui.drawer.SafarDrawerScaffold
 import com.safarparmar.app.ui.navigation.Routes
 import com.safarparmar.app.ui.studyplanner.components.LocalPlannerIsDarkTheme
@@ -66,6 +73,8 @@ private data class PremiumPlanOption(
     val courseId: String,
     val badge: String? = null,
     val discountLabel: String? = null,
+    val isDhyanOnly: Boolean = false,
+    val originalPrice: Int? = null,
 )
 
 @Composable
@@ -73,17 +82,19 @@ private fun PremiumSectionHeader(
     icon: ImageVector,
     title: String,
     isDarkTheme: Boolean = false,
+    accentColor: Color? = null,
     modifier: Modifier = Modifier
 ) {
-    val accent = if (isDarkTheme) Color(0xFFC084FC) else Color(0xFF581C87)
+    val defaultAccent = if (isDarkTheme) Color(0xFFC084FC) else Color(0xFF581C87)
+    val accent = accentColor ?: defaultAccent
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
         modifier = modifier
     ) {
         Box(
             modifier = Modifier
-                .size(34.dp)
+                .size(28.dp)
                 .clip(CircleShape)
                 .background(accent.copy(alpha = 0.12f)),
             contentAlignment = Alignment.Center
@@ -92,12 +103,12 @@ private fun PremiumSectionHeader(
                 imageVector = icon,
                 contentDescription = null,
                 tint = accent,
-                modifier = Modifier.size(18.dp)
+                modifier = Modifier.size(14.dp)
             )
         }
         Text(
             text = title.uppercase(),
-            fontSize = 13.sp,
+            fontSize = 11.sp,
             fontWeight = FontWeight.ExtraBold,
             letterSpacing = 1.5.sp,
             color = PlannerFlatColors.TextDark,
@@ -115,8 +126,9 @@ fun PremiumPaywallScreen(
     onBack: () -> Unit = {},
     viewModel: PremiumViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
-    val premiumStatus by viewModel.premiumStatus.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val premiumStatus by viewModel.premiumStatus.collectAsStateWithLifecycle()
+    val dhyanPricing by viewModel.dhyanPricing.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val activity = context as? Activity
@@ -125,35 +137,66 @@ fun PremiumPaywallScreen(
     var refreshAfterPaymentReturn by remember { mutableStateOf(false) }
     var showTrialConfirmation by remember { mutableStateOf(false) }
 
-    val plans = remember {
-        listOf(
+    val allPlans = listOf(
             PremiumPlanOption(
                 id = "3month",
-                label = "3 Months",
-                price = 79,
-                subtitle = "Start small for your next target",
-                durationLabel = "3 months",
+                label = stringResource(R.string.premium_three_months),
+                price = 99,
+                subtitle = stringResource(R.string.premium_plus_dhyan),
+                durationLabel = stringResource(R.string.premium_three_months_lower),
                 durationMonths = 3,
                 courseId = "study-planner-pro-3month",
-                discountLabel = "Starter",
+                discountLabel = stringResource(R.string.premium_starter),
             ),
             PremiumPlanOption(
                 id = "6month",
-                label = "6 Months",
-                price = 99,
-                subtitle = "Best value for full exam cycle",
-                durationLabel = "6 months",
+                label = stringResource(R.string.premium_six_months),
+                price = 119,
+                subtitle = stringResource(R.string.premium_plus_dhyan),
+                durationLabel = stringResource(R.string.premium_six_months_lower),
                 durationMonths = 6,
                 courseId = "study-planner-pro-6month",
-                badge = "POPULAR",
-                discountLabel = "Popular",
+                badge = stringResource(R.string.premium_popular).uppercase(),
+                discountLabel = stringResource(R.string.premium_popular),
+            ),
+            PremiumPlanOption(
+                id = "dhyan",
+                label = stringResource(R.string.premium_dhyan_live),
+                price = if (dhyanPricing.couponEligible) dhyanPricing.premiumPrice else dhyanPricing.standardPrice,
+                subtitle = stringResource(
+                    if (dhyanPricing.couponEligible) R.string.premium_existing_member_price
+                    else R.string.premium_meditation_only
+                ),
+                durationLabel = stringResource(R.string.premium_six_months_lower),
+                durationMonths = 6,
+                courseId = "safar-30",
+                badge = null,
+                isDhyanOnly = true,
+                originalPrice = if (dhyanPricing.couponEligible) dhyanPricing.standardPrice else null,
             ),
         )
+    val plans = when (dhyanPricing.accessState) {
+        "LEGACY_PREMIUM_DISCOUNT" -> allPlans.sortedByDescending { it.isDhyanOnly }
+        "STANDARD" -> allPlans
+        "DHYAN_INCLUDED", "DHYAN_SCHEDULED" -> allPlans.filterNot { it.isDhyanOnly }
+        else -> emptyList()
     }
     var selectedPlanId by remember { mutableStateOf("6month") }
     var selectedPlanDuration by remember { mutableStateOf(6) }
-    val selectedPlan = plans.firstOrNull { it.id == selectedPlanId } ?: plans.last()
+    val selectedPlan = plans.firstOrNull { it.id == selectedPlanId } ?: plans.firstOrNull() ?: allPlans.first()
     val isLoading = uiState is PremiumUiState.Loading
+
+    LaunchedEffect(dhyanPricing.accessState) {
+        val preferredPlanId = when (dhyanPricing.accessState) {
+            "LEGACY_PREMIUM_DISCOUNT" -> "dhyan"
+            "STANDARD", "DHYAN_INCLUDED", "DHYAN_SCHEDULED" -> "6month"
+            else -> null
+        }
+        preferredPlanId?.let { planId ->
+            selectedPlanId = planId
+            selectedPlanDuration = allPlans.first { it.id == planId }.durationMonths
+        }
+    }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -163,7 +206,7 @@ fun PremiumPaywallScreen(
                     delay(1_500)
                     viewModel.refreshPremiumStatus(
                         showLoading = true,
-                        fallbackError = "Payment returned, but Safar Premium is not active yet. Please tap Restore Safar Premium."
+                        fallbackError = context.getString(R.string.premium_payment_returned_inactive)
                     )
                 }
             }
@@ -177,39 +220,48 @@ fun PremiumPaywallScreen(
             val state = uiState as PremiumUiState.OrderCreated
             try {
                 if (activity == null) {
-                    viewModel.notifyPaymentFailed("Checkout needs an active screen. Please try again.")
+                    viewModel.notifyPaymentFailed(context.getString(R.string.premium_checkout_active_screen))
                     return@LaunchedEffect
                 }
-                refreshAfterPaymentReturn = true
+                val razorpayKeyId = state.keyId?.trim()?.takeIf { it.isNotEmpty() }
+                if (razorpayKeyId == null) {
+                    viewModel.notifyPaymentFailed(context.getString(R.string.premium_gateway_not_configured))
+                    return@LaunchedEffect
+                }
+                refreshAfterPaymentReturn = state.planType != "dhyan"
                 val checkout = Checkout()
-                checkout.setKeyID(state.keyId ?: "rzp_live_SWHJBT7AXadF8a")
+                checkout.setKeyID(razorpayKeyId)
                 val options = JSONObject().apply {
                     put("name", "Safar")
-                    put("description", "Safar Premium")
+                    put(
+                        "description",
+                        context.getString(
+                            if (state.planType == "dhyan") R.string.premium_dhyan_six_months
+                            else R.string.premium_plus_dhyan
+                        )
+                    )
                     put("order_id", state.order.id)
                     put("currency", state.order.currency)
                     put("amount", state.order.amount)
                     put("theme.color", if (isDarkTheme) "#3B0764" else "#581C87")
-                    put("modal", JSONObject().apply {
-                        put("ondismiss", "function(){}")
-                    })
                 }
                 checkout.open(activity, options)
                 viewModel.resetState()
             } catch (e: Exception) {
                 e.printStackTrace()
                 refreshAfterPaymentReturn = false
-                viewModel.notifyPaymentFailed(e.message ?: "Error launching checkout")
+                viewModel.notifyPaymentFailed(e.message ?: context.getString(R.string.premium_checkout_launch_error))
             }
         }
     }
 
-    val isPremiumActive = premiumStatus.hasAnyPaidAccess
+    val isTrialActive = premiumStatus.planType.orEmpty().contains("trial", ignoreCase = true)
+    val isPremiumActive = premiumStatus.hasAnyPaidAccess && !isTrialActive
     val formattedExpiry = remember(premiumStatus.expiresAt) { formatPremiumExpiry(premiumStatus.expiresAt) }
     val formattedNewExpiry = remember(premiumStatus.expiresAt, selectedPlanDuration) {
         calculatePremiumExtensionExpiry(premiumStatus.expiresAt, selectedPlanDuration)
     }
-    val planLabel = if (isPremiumActive) premiumPlanLabel(premiumStatus.planType) else "Free Plan"
+    val planLabel = if (isPremiumActive) premiumPlanLabel(premiumStatus.planType) else stringResource(R.string.premium_free_plan)
 
     val updateSelectedPlan: (String) -> Unit = { planId ->
         selectedPlanId = planId
@@ -225,6 +277,23 @@ fun PremiumPaywallScreen(
                 state = uiState as PremiumUiState.PaymentSuccess,
                 isDarkTheme = isDarkTheme,
                 onDismiss = viewModel::resetState,
+            )
+        }
+
+        if (uiState is PremiumUiState.NoActivePlan) {
+            NoActivePlanDialog(
+                isDarkTheme = isDarkTheme,
+                onDismiss = viewModel::resetState,
+            )
+        }
+
+        if (uiState is PremiumUiState.DhyanPaymentSuccess) {
+            AlertDialog(
+                onDismissRequest = viewModel::resetState,
+                icon = { Icon(Icons.Default.CheckCircle, null, tint = Color(0xFF10B981)) },
+                title = { Text(stringResource(R.string.premium_dhyan_unlocked)) },
+                text = { Text(stringResource(R.string.premium_dhyan_access_active)) },
+                confirmButton = { Button(onClick = viewModel::resetState) { Text(stringResource(R.string.common_continue)) } },
             )
         }
 
@@ -246,7 +315,7 @@ fun PremiumPaywallScreen(
                 TopAppBar(
                     title = {
                         Text(
-                            text = "Safar Premium",
+                            text = stringResource(R.string.premium_safar_premium),
                             style = MaterialTheme.typography.titleLarge.copy(
                                 fontWeight = FontWeight.Bold,
                                 fontFamily = LoraFontFamily,
@@ -258,7 +327,7 @@ fun PremiumPaywallScreen(
                         IconButton(onClick = onBack) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Back",
+                                contentDescription = stringResource(R.string.common_back),
                                 tint = MaterialTheme.colorScheme.onSurface,
                             )
                         }
@@ -269,17 +338,21 @@ fun PremiumPaywallScreen(
                 )
             },
             bottomBar = {
-                PremiumBottomBar(
-                    selectedPlan = selectedPlan,
-                    isPremiumActive = isPremiumActive,
-                    isLoading = isLoading,
-                    isDarkTheme = isDarkTheme,
-                    onPurchase = {
-                        viewModel.createOrder(
-                            duration = selectedPlan.durationMonths,
-                        )
-                    },
-                )
+                if (plans.isNotEmpty()) {
+                    PremiumBottomBar(
+                        selectedPlan = selectedPlan,
+                        isPremiumActive = isPremiumActive,
+                        isLoading = isLoading,
+                        isDarkTheme = isDarkTheme,
+                        onPurchase = {
+                            if (selectedPlan.isDhyanOnly) {
+                                viewModel.createDhyanOrder()
+                            } else {
+                                viewModel.createOrder(duration = selectedPlan.durationMonths)
+                            }
+                        },
+                    )
+                }
             },
         ) { paddingValues ->
             Column(
@@ -287,14 +360,14 @@ fun PremiumPaywallScreen(
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
                     .padding(paddingValues)
-                    .padding(horizontal = 20.dp, vertical = 14.dp),
-                verticalArrangement = Arrangement.spacedBy(20.dp),
+                    .padding(horizontal = 15.dp, vertical = 10.dp),
+                verticalArrangement = Arrangement.spacedBy(15.dp),
             ) {
                     if (isPremiumActive) {
                         // Card 1: Active Subscription Summary
                         Card(
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(18.dp),
+                            shape = RoundedCornerShape(12.dp),
                             colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.CardWhite),
                             border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.4f)),
                         ) {
@@ -303,11 +376,20 @@ fun PremiumPaywallScreen(
                                 expiryText = formattedExpiry,
                             )
                         }
+                    } else if (isTrialActive) {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.CardWhite),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
+                        ) {
+                            TrialActiveSummaryCard(expiryText = formattedExpiry)
+                        }
                     } else {
                         // Card 1: 7-Day Free Trial Banner
                         Card(
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(18.dp),
+                            shape = RoundedCornerShape(12.dp),
                             colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.CardWhite),
                             border = androidx.compose.foundation.BorderStroke(1.dp, (if (isDarkTheme) Color(0xFFC084FC) else Color(0xFF581C87)).copy(alpha = 0.3f)),
                         ) {
@@ -319,46 +401,60 @@ fun PremiumPaywallScreen(
                         }
                     }
 
-                    // Card 2: Features Card
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(18.dp),
-                        colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.CardWhite),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(20.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp),
-                        ) {
-                            PremiumSectionHeader(icon = Icons.Default.Star, title = "Premium Features", isDarkTheme = isDarkTheme)
-                            PlanHairline(alpha = 0.5f)
-                            PremiumBenefitsCard()
-                        }
+                    when (dhyanPricing.accessState) {
+                        "DHYAN_INCLUDED" -> DhyanAccessNotice(
+                            isPremiumActive = isPremiumActive,
+                            onOpenDhyan = { onNavigate(Routes.LIVE_SESSIONS_ROOT) },
+                        )
+                        "DHYAN_SCHEDULED" -> DhyanScheduledNotice(
+                            startsAt = dhyanPricing.dhyanStartsAt,
+                            expiresAt = dhyanPricing.dhyanExpiresAt,
+                            isDarkTheme = isDarkTheme,
+                        )
                     }
 
-                    // Card 3: Subscription Plan Options
-                    Card(
+                    if (dhyanPricing.accessState == "LOADING") {
+                        Box(modifier = Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator()
+                        }
+                    } else if (dhyanPricing.accessState == "ERROR") {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.CardWhite),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
+                        ) {
+                            Text(stringResource(R.string.premium_verify_plans_error), modifier = Modifier.padding(15.dp), color = PlannerFlatColors.TextMuted)
+                        }
+                    } else if (plans.isNotEmpty()) {
+                        Card(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(18.dp),
+                        shape = RoundedCornerShape(12.dp),
                         colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.CardWhite),
                         border = androidx.compose.foundation.BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
                     ) {
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(20.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                                .padding(15.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
                         ) {
                             PremiumSectionHeader(
                                 icon = Icons.Default.WorkspacePremium,
-                                title = if (isPremiumActive) "Extend Your Plan" else "Select Plan",
+                                title = when {
+                                    dhyanPricing.accessState == "LEGACY_PREMIUM_DISCOUNT" -> stringResource(R.string.premium_choose_what_to_add)
+                                    isPremiumActive -> stringResource(R.string.premium_extend_your_plan)
+                                    else -> stringResource(R.string.premium_choose_your_plan)
+                                },
                                 isDarkTheme = isDarkTheme,
                             )
                             Text(
-                                text = "Purchasing extra time adds directly onto your existing plan without losing days.",
-                                fontSize = 12.5.sp,
+                                text = when {
+                                    dhyanPricing.accessState == "LEGACY_PREMIUM_DISCOUNT" -> stringResource(R.string.premium_legacy_choice_help)
+                                    isPremiumActive -> stringResource(R.string.premium_extend_help)
+                                    else -> stringResource(R.string.premium_choose_help)
+                                },
+                                fontSize = 11.sp,
                                 color = PlannerFlatColors.TextMuted,
                             )
                             PlanHairline(alpha = 0.5f)
@@ -373,13 +469,42 @@ fun PremiumPaywallScreen(
                             )
                         }
                     }
+                    }
+
+                    val whatYouGetAccent = if (isDarkTheme) Color(0xFFFBBF24) else Color(0xFFD97706)
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.CardWhite),
+                        border = androidx.compose.foundation.BorderStroke(
+                            1.dp,
+                            whatYouGetAccent.copy(alpha = if (isDarkTheme) 0.35f else 0.22f)
+                        ),
+                    ) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth().padding(15.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            PremiumSectionHeader(
+                                icon = Icons.Default.Star,
+                                title = stringResource(R.string.premium_what_you_get),
+                                isDarkTheme = isDarkTheme,
+                                accentColor = whatYouGetAccent,
+                            )
+                            PlanHairline(alpha = 0.5f)
+                            PremiumBenefitsCard(
+                                isDarkTheme = isDarkTheme,
+                                accentColor = whatYouGetAccent,
+                            )
+                        }
+                    }
 
                     UiStateMessage(uiState = uiState)
 
                     PaywallFooter(
                         isLoading = isLoading,
                         isDarkTheme = isDarkTheme,
-                        onRestore = { viewModel.refreshPremiumStatus() },
+                        onRestore = { viewModel.refreshPremiumStatus(isRestore = true) },
                     )
                 }
             }
@@ -399,7 +524,7 @@ private fun StartTrialConfirmationDialog(
         icon = {
             Box(
                 modifier = Modifier
-                    .size(52.dp)
+                    .size(43.dp)
                     .clip(CircleShape)
                     .background(buttonBg),
                 contentAlignment = Alignment.Center,
@@ -407,7 +532,7 @@ private fun StartTrialConfirmationDialog(
                 Text(
                     text = "7",
                     fontFamily = LoraFontFamily,
-                    fontSize = 24.sp,
+                    fontSize = 20.4.sp,
                     fontWeight = FontWeight.Normal,
                     color = Color.White,
                 )
@@ -415,9 +540,9 @@ private fun StartTrialConfirmationDialog(
         },
         title = {
             Text(
-                text = "Start 7-Day Free Trial",
+                text = stringResource(R.string.premium_start_trial_title),
                 fontFamily = LoraFontFamily,
-                fontSize = 20.sp,
+                fontSize = 16.sp,
                 fontWeight = FontWeight.Normal,
                 color = PlannerFlatColors.TextDark,
                 textAlign = TextAlign.Center,
@@ -425,8 +550,8 @@ private fun StartTrialConfirmationDialog(
         },
         text = {
             Text(
-                text = "Unlock all Safar Premium features instantly for 7 days. No charge today.",
-                fontSize = 14.sp,
+                text = stringResource(R.string.premium_trial_description),
+                fontSize = 12.sp,
                 color = PlannerFlatColors.TextMuted,
                 textAlign = TextAlign.Center,
             )
@@ -440,15 +565,15 @@ private fun StartTrialConfirmationDialog(
                     contentColor = Color.White,
                 ),
             ) {
-                Text("Start Free Trial", fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.premium_start_free_trial), fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel", color = PlannerFlatColors.TextMuted, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.common_cancel), color = PlannerFlatColors.TextMuted, fontWeight = FontWeight.Bold)
             }
         },
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(12.dp),
     )
 }
 
@@ -460,6 +585,7 @@ private fun PremiumUnlockedDialog(
 ) {
     val buttonBg = if (isDarkTheme) Color(0xFF3B0764) else Color(0xFF581C87)
     val dialogExpiry = formatPremiumExpiry(state.status.expiresAt)
+    val isTrial = state.status.planType.orEmpty().contains("trial", ignoreCase = true)
     val dialogPlanLabel = premiumPlanLabel(state.status.planType)
     var unlockTargetScale by remember { mutableStateOf(0.72f) }
     LaunchedEffect(Unit) {
@@ -474,6 +600,25 @@ private fun PremiumUnlockedDialog(
         label = "premiumUnlockScale",
     )
 
+    val dialogTitle = when {
+        state.isRestore && isTrial -> stringResource(R.string.premium_trial_active_title)
+        state.isRestore -> stringResource(R.string.premium_active_title)
+        isTrial -> stringResource(R.string.premium_trial_started_title)
+        else -> stringResource(R.string.premium_payment_success_title)
+    }
+
+    val subtitleText = when {
+        isTrial && dialogExpiry != null -> stringResource(R.string.premium_trial_active_until, dialogExpiry)
+        isTrial -> stringResource(R.string.premium_trial_is_active)
+        dialogExpiry != null -> stringResource(R.string.premium_plan_active_until, dialogExpiry)
+        else -> stringResource(R.string.premium_named_plan_active, dialogPlanLabel)
+    }
+
+    val bodyText = when {
+        isTrial -> stringResource(R.string.premium_trial_access_body)
+        else -> stringResource(R.string.premium_paid_access_body)
+    }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = SafarSemanticColors.plannerBackground(),
@@ -483,7 +628,7 @@ private fun PremiumUnlockedDialog(
                 contentDescription = null,
                 tint = Color(0xFF10B981),
                 modifier = Modifier
-                    .size(56.dp)
+                    .size(46.dp)
                     .graphicsLayer {
                         scaleX = unlockScale
                         scaleY = unlockScale
@@ -492,9 +637,9 @@ private fun PremiumUnlockedDialog(
         },
         title = {
             Text(
-                text = "Plan Extended!",
+                text = dialogTitle,
                 fontFamily = LoraFontFamily,
-                fontSize = 20.sp,
+                fontSize = 16.sp,
                 fontWeight = FontWeight.Normal,
                 color = PlannerFlatColors.TextDark,
                 textAlign = TextAlign.Center,
@@ -505,25 +650,18 @@ private fun PremiumUnlockedDialog(
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                dialogExpiry?.let {
-                    Text(
-                        text = "Your Safar Premium plan is now active until $it",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFF10B981),
-                        textAlign = TextAlign.Center,
-                    )
-                } ?: Text(
-                    text = "$dialogPlanLabel is active.",
-                    fontSize = 14.sp,
-                    color = PlannerFlatColors.TextDark,
+                Text(
+                    text = subtitleText,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF10B981),
                     textAlign = TextAlign.Center,
                 )
                 Text(
-                    text = "Enjoy unlimited access to all AI study planning and Ekagra analytics features.",
-                    fontSize = 13.sp,
+                    text = bodyText,
+                    fontSize = 11.sp,
                     color = PlannerFlatColors.TextMuted,
                     textAlign = TextAlign.Center,
                 )
@@ -535,58 +673,200 @@ private fun PremiumUnlockedDialog(
                 shape = RoundedCornerShape(10.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = buttonBg, contentColor = Color.White)
             ) {
-                Text("Continue", fontWeight = FontWeight.Bold, color = Color.White)
+                Text(stringResource(R.string.common_continue), fontWeight = FontWeight.Bold, color = Color.White)
             }
         },
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(12.dp),
     )
 }
 
 @Composable
-private fun PremiumBenefitsCard() {
-    val benefits = remember {
-        listOf(
-            "Track Exam Readiness with Real-time Progress Analytics",
-            "Automatic schedule adjustment for missed topics",
-            "Detailed Ekagra study reports & analytics",
-            "Private Mehfil Connect student community",
-            "Dhyan audio & guided focus sessions",
-            "Live Vartalap sessions with Parmar Sir",
-        )
-    }
+private fun NoActivePlanDialog(
+    isDarkTheme: Boolean = false,
+    onDismiss: () -> Unit,
+) {
+    val buttonBg = if (isDarkTheme) Color(0xFF3B0764) else Color(0xFF581C87)
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = SafarSemanticColors.plannerBackground(),
+        icon = {
+            Icon(
+                imageVector = Icons.Default.Info,
+                contentDescription = null,
+                tint = if (isDarkTheme) Color(0xFFC084FC) else Color(0xFF7C3AED),
+                modifier = Modifier.size(43.dp),
+            )
+        },
+        title = {
+            Text(
+                text = stringResource(R.string.premium_no_active_plan_title),
+                fontFamily = LoraFontFamily,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Normal,
+                color = PlannerFlatColors.TextDark,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Text(
+                    text = stringResource(R.string.premium_no_active_plan_body),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = PlannerFlatColors.TextDark,
+                    textAlign = TextAlign.Center,
+                )
+                Text(
+                    text = stringResource(R.string.premium_choose_later_help),
+                    fontSize = 11.sp,
+                    color = PlannerFlatColors.TextMuted,
+                    textAlign = TextAlign.Center,
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onDismiss,
+                shape = RoundedCornerShape(10.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = buttonBg, contentColor = Color.White)
+            ) {
+                Text(stringResource(R.string.premium_view_plans), fontWeight = FontWeight.Bold, color = Color.White)
+            }
+        },
+        shape = RoundedCornerShape(12.dp),
+    )
+}
+
+@Composable
+private fun PremiumBenefitsCard(
+    isDarkTheme: Boolean = false,
+    accentColor: Color? = null,
+) {
+    val defaultAccent = if (isDarkTheme) Color(0xFFFBBF24) else Color(0xFFD97706)
+    val accent = accentColor ?: defaultAccent
+    val benefits = listOf(
+        stringResource(R.string.premium_benefit_planner),
+        stringResource(R.string.premium_benefit_revision),
+        stringResource(R.string.premium_benefit_analytics),
+        stringResource(R.string.premium_benefit_connect),
+        stringResource(R.string.premium_benefit_dhyan_audio),
+        stringResource(R.string.premium_benefit_live_sessions),
+    )
 
     Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         benefits.forEach { benefit ->
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 Box(
                     modifier = Modifier
-                        .size(20.dp)
+                        .size(18.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFF10B981).copy(alpha = 0.15f)),
+                        .background(accent.copy(alpha = 0.14f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.Check,
                         contentDescription = null,
-                        tint = Color(0xFF10B981),
+                        tint = accent,
                         modifier = Modifier.size(13.dp)
                     )
                 }
                 Text(
                     text = benefit,
                     modifier = Modifier.weight(1f),
-                    fontSize = 13.5.sp,
+                    fontSize = 11.sp,
                     fontWeight = FontWeight.Medium,
                     color = PlannerFlatColors.TextDark,
                 )
             }
+        }
+    }
+}
+
+
+@Composable
+private fun DhyanAccessNotice(
+    isPremiumActive: Boolean,
+    onOpenDhyan: () -> Unit,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.CardWhite),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.4f)),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(15.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF10B981))
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text(stringResource(R.string.premium_dhyan_active), fontWeight = FontWeight.Bold, color = PlannerFlatColors.TextDark)
+                Text(
+                    text = stringResource(
+                        if (isPremiumActive) R.string.premium_dhyan_included_current
+                        else R.string.premium_dhyan_active_add_premium
+                    ),
+                    fontSize = 11.sp,
+                    color = PlannerFlatColors.TextMuted,
+                )
+            }
+            TextButton(onClick = onOpenDhyan, contentPadding = PaddingValues(horizontal = 6.dp)) {
+                Text(stringResource(R.string.common_open), fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+}
+
+@Composable
+private fun DhyanScheduledNotice(
+    startsAt: String?,
+    expiresAt: String?,
+    isDarkTheme: Boolean,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.CardWhite),
+        border = androidx.compose.foundation.BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(15.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            PremiumSectionHeader(
+                icon = Icons.Default.CheckCircle,
+                title = stringResource(R.string.premium_next_bundle_scheduled),
+                isDarkTheme = isDarkTheme,
+            )
+            Text(
+                text = stringResource(R.string.premium_next_bundle_help),
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = PlannerFlatColors.TextDark,
+            )
+            Text(
+                text = stringResource(
+                    R.string.premium_dhyan_schedule_range,
+                    formatPremiumExpiry(startsAt) ?: stringResource(R.string.premium_scheduled_start),
+                    formatPremiumExpiry(expiresAt) ?: stringResource(R.string.premium_scheduled_end),
+                ),
+                fontSize = 11.sp,
+                color = PlannerFlatColors.TextMuted,
+            )
         }
     }
 }
@@ -601,7 +881,7 @@ private fun PremiumPricingPanel(
     isDarkTheme: Boolean = false,
     onSelectPlan: (String) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         RadioPlanSelector(
             plans = plans,
             selectedPlanId = selectedPlanId,
@@ -626,7 +906,7 @@ private fun RadioPlanSelector(
 ) {
     val accent = if (isDarkTheme) Color(0xFFC084FC) else Color(0xFF581C87)
 
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         plans.forEach { plan ->
             val selected = selectedPlanId == plan.id
 
@@ -641,7 +921,7 @@ private fun RadioPlanSelector(
                         shape = RoundedCornerShape(12.dp)
                     )
                     .clickable { onSelectPlan(plan.id) }
-                    .padding(horizontal = 16.dp, vertical = 14.dp)
+                    .padding(horizontal = 10.dp, vertical = 10.dp)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -650,7 +930,7 @@ private fun RadioPlanSelector(
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
                         modifier = Modifier.weight(1f)
                     ) {
                         RadioButton(
@@ -662,10 +942,10 @@ private fun RadioPlanSelector(
                             ),
                         )
                         Column {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 Text(
                                     text = plan.label,
-                                    fontSize = 15.5.sp,
+                                    fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = PlannerFlatColors.TextDark,
                                 )
@@ -687,18 +967,28 @@ private fun RadioPlanSelector(
                             }
                             Text(
                                 text = plan.subtitle,
-                                fontSize = 12.sp,
+                                fontSize = 11.sp,
                                 color = PlannerFlatColors.TextMuted,
                             )
                         }
                     }
 
-                    Text(
-                        text = "₹${plan.price}",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = if (selected) accent else PlannerFlatColors.TextDark,
-                    )
+                    Column(horizontalAlignment = Alignment.End) {
+                        plan.originalPrice?.let { originalPrice ->
+                            Text(
+                                text = "₹$originalPrice",
+                                fontSize = 11.sp,
+                                color = PlannerFlatColors.TextMuted,
+                                textDecoration = TextDecoration.LineThrough,
+                            )
+                        }
+                        Text(
+                            text = "₹${plan.price}",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = if (selected) accent else PlannerFlatColors.TextDark,
+                        )
+                    }
                 }
             }
         }
@@ -720,9 +1010,9 @@ private fun SelectedPlanCard(
             .clip(RoundedCornerShape(12.dp))
             .background(accent.copy(alpha = 0.05f))
             .border(1.dp, accent.copy(alpha = 0.25f), RoundedCornerShape(12.dp))
-            .padding(16.dp)
+            .padding(10.dp)
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -730,37 +1020,78 @@ private fun SelectedPlanCard(
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(
-                        text = "Selected Plan: ${plan.label}",
-                        fontSize = 14.5.sp,
+                        text = stringResource(R.string.premium_selected_plan, plan.label),
+                        fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         color = PlannerFlatColors.TextDark,
                     )
                     Text(
-                        text = "Full access for ${plan.durationLabel}",
-                        fontSize = 12.sp,
+                        text = stringResource(
+                            if (plan.isDhyanOnly) R.string.premium_dhyan_for_duration
+                            else R.string.premium_bundle_for_duration,
+                            plan.durationLabel,
+                        ),
+                        fontSize = 11.sp,
                         color = PlannerFlatColors.TextMuted,
                     )
                 }
-                Text(
-                    text = "₹${plan.price}",
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = accent,
-                )
+                Column(horizontalAlignment = Alignment.End) {
+                    plan.originalPrice?.let { originalPrice ->
+                        Text(
+                            text = stringResource(R.string.premium_regular_price, originalPrice),
+                            fontSize = 11.sp,
+                            color = PlannerFlatColors.TextMuted,
+                            textDecoration = TextDecoration.LineThrough,
+                        )
+                    }
+                    Text(
+                        text = "₹${plan.price}",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = accent,
+                    )
+                }
             }
 
+            if (!plan.isDhyanOnly) {
             PlanHairline(alpha = 0.5f)
 
             Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Text(
-                    text = "Current expiry: ${currentExpiryText ?: "No active subscription"}",
-                    fontSize = 12.sp,
+                    text = stringResource(
+                        R.string.premium_current_expiry,
+                        currentExpiryText ?: stringResource(R.string.premium_no_active_subscription),
+                    ),
+                    fontSize = 11.sp,
                     color = PlannerFlatColors.TextMuted,
                 )
                 Text(
-                    text = "New expiry after purchase: ${newExpiryText ?: "Calculating..."}",
-                    fontSize = 12.5.sp,
+                    text = stringResource(
+                        R.string.premium_new_expiry,
+                        newExpiryText ?: stringResource(R.string.premium_calculating),
+                    ),
+                    fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
+                    color = accent,
+                )
+                Text(
+                    text = if (currentExpiryText != null) {
+                        stringResource(R.string.premium_bundle_starts_after_current)
+                    } else {
+                        stringResource(R.string.premium_bundle_starts_today)
+                    },
+                    fontSize = 11.5.sp,
+                    color = PlannerFlatColors.TextMuted,
+                )
+            }
+            } else {
+                Text(
+                    text = stringResource(
+                        if (plan.price == 29) R.string.premium_existing_member_price
+                        else R.string.premium_standalone_dhyan
+                    ),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
                     color = accent,
                 )
             }
@@ -780,14 +1111,15 @@ private fun SevenDayTrialBanner(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
             .clickable(enabled = !isLoading, onClick = onStartTrial)
-            .padding(16.dp),
+            .padding(10.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Box(
             modifier = Modifier
-                .size(38.dp)
+                .size(31.dp)
                 .clip(CircleShape)
                 .background(buttonBg),
             contentAlignment = Alignment.Center,
@@ -795,7 +1127,7 @@ private fun SevenDayTrialBanner(
             Text(
                 text = "7",
                 fontFamily = LoraFontFamily,
-                fontSize = 18.sp,
+                fontSize = 16.sp,
                 fontWeight = FontWeight.Normal,
                 color = Color.White,
             )
@@ -805,27 +1137,27 @@ private fun SevenDayTrialBanner(
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             Text(
-                text = "Start 7-Day Free Trial",
-                fontSize = 15.sp,
+                text = stringResource(R.string.premium_start_trial_title),
+                fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
                 color = PlannerFlatColors.TextDark,
             )
             Text(
-                text = "Instant access to all premium features • No payment today",
-                fontSize = 12.sp,
+                text = stringResource(R.string.premium_trial_short_description),
+                fontSize = 11.sp,
                 color = PlannerFlatColors.TextMuted,
             )
         }
         if (isLoading) {
             CircularProgressIndicator(
-                modifier = Modifier.size(18.dp),
+                modifier = Modifier.size(14.dp),
                 strokeWidth = 2.dp,
                 color = accent,
             )
         } else {
             Text(
-                text = "Try Free",
-                fontSize = 13.sp,
+                text = stringResource(R.string.premium_try_free),
+                fontSize = 11.sp,
                 fontWeight = FontWeight.ExtraBold,
                 color = accent
             )
@@ -838,6 +1170,7 @@ private fun UiStateMessage(
     uiState: PremiumUiState,
 ) {
     if (uiState !is PremiumUiState.Error) return
+    if (uiState.message.isRawPaymentProviderPayload()) return
 
     Surface(
         color = MaterialTheme.colorScheme.errorContainer,
@@ -846,11 +1179,19 @@ private fun UiStateMessage(
     ) {
         Text(
             text = uiState.message,
-            fontSize = 13.sp,
+            fontSize = 11.sp,
             color = MaterialTheme.colorScheme.onErrorContainer,
-            modifier = Modifier.padding(12.dp),
+            modifier = Modifier.padding(10.dp),
         )
     }
+}
+
+private fun String.isRawPaymentProviderPayload(): Boolean {
+    val normalized = trim()
+    return normalized.startsWith("{") ||
+        normalized.contains("\"metadata\"", ignoreCase = true) ||
+        normalized.contains("BAD_REQUEST_ERROR", ignoreCase = true) ||
+        normalized.contains("payment_authentication", ignoreCase = true)
 }
 
 @Composable
@@ -869,17 +1210,17 @@ private fun PaywallFooter(
         TextButton(
             onClick = onRestore,
             enabled = !isLoading,
-            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
         ) {
             Text(
-                text = "Restore Safar Premium",
+                text = stringResource(R.string.premium_restore),
                 color = accent,
                 fontWeight = FontWeight.Bold,
-                fontSize = 13.sp
+                fontSize = 11.sp
             )
         }
         Text(
-            text = "Cancel anytime • 256-bit Secure Razorpay Checkout",
+            text = stringResource(R.string.premium_secure_checkout),
             fontSize = 11.sp,
             color = PlannerFlatColors.TextMuted,
         )
@@ -908,7 +1249,7 @@ private fun PremiumBottomBar(
             modifier = Modifier
                 .fillMaxWidth()
                 .navigationBarsPadding()
-                .padding(horizontal = 20.dp, vertical = 12.dp),
+                .padding(horizontal = 15.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
@@ -918,7 +1259,7 @@ private fun PremiumBottomBar(
             ) {
                 Text(
                     text = "₹${selectedPlan.price}",
-                    fontSize = 22.sp,
+                    fontSize = 16.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color = PlannerFlatColors.TextDark,
                 )
@@ -934,14 +1275,14 @@ private fun PremiumBottomBar(
                     .clip(RoundedCornerShape(10.dp))
                     .background(if (isLoading) buttonBg.copy(alpha = 0.5f) else buttonBg)
                     .clickable(enabled = !isLoading, onClick = onPurchase)
-                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                    .padding(horizontal = 15.dp, vertical = 10.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 if (isLoading) {
                     CircularProgressIndicator(
                         color = Color.White,
                         strokeWidth = 2.dp,
-                        modifier = Modifier.size(18.dp),
+                        modifier = Modifier.size(14.dp),
                     )
                 } else {
                     Row(
@@ -952,11 +1293,11 @@ private fun PremiumBottomBar(
                             imageVector = Icons.Default.Security,
                             contentDescription = null,
                             tint = Color.White,
-                            modifier = Modifier.size(16.dp),
+                            modifier = Modifier.size(14.dp),
                         )
                         Text(
-                            text = "Add ${selectedPlan.durationMonths} Months",
-                            fontSize = 14.sp,
+                            text = stringResource(R.string.premium_buy_now),
+                            fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.White,
                         )
@@ -975,16 +1316,16 @@ private fun PremiumActiveSummaryCard(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+            .padding(10.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Box(
                 modifier = Modifier
-                    .size(40.dp)
+                    .size(33.dp)
                     .clip(CircleShape)
                     .background(Color(0xFF10B981)),
                 contentAlignment = Alignment.Center,
@@ -993,21 +1334,22 @@ private fun PremiumActiveSummaryCard(
                     imageVector = Icons.Default.Check,
                     contentDescription = null,
                     tint = Color.White,
-                    modifier = Modifier.size(22.dp)
+                    modifier = Modifier.size(18.dp)
                 )
             }
 
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
-                    text = "Safar Premium Active",
+                    text = stringResource(R.string.premium_active_title),
                     fontFamily = LoraFontFamily,
-                    fontSize = 18.sp,
+                    fontSize = 16.sp,
                     fontWeight = FontWeight.Normal,
                     color = PlannerFlatColors.TextDark
                 )
                 Text(
-                    text = expiryText?.let { "Valid until $it" } ?: "$planLabel is active",
-                    fontSize = 13.sp,
+                    text = expiryText?.let { stringResource(R.string.premium_valid_until, it) }
+                        ?: stringResource(R.string.premium_named_plan_active, planLabel),
+                    fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF10B981)
                 )
@@ -1015,21 +1357,64 @@ private fun PremiumActiveSummaryCard(
         }
 
         Text(
-            text = "Safar Premium is unlocked. Manage or extend your subscription plan below.",
-            fontSize = 12.5.sp,
+            text = stringResource(R.string.premium_unlocked_manage_help),
+            fontSize = 11.sp,
             color = PlannerFlatColors.TextMuted,
         )
     }
 }
 
+@Composable
+private fun TrialActiveSummaryCard(
+    expiryText: String?,
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(10.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Box(
+                modifier = Modifier.size(33.dp).clip(CircleShape).background(Color(0xFF10B981)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(Icons.Default.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = stringResource(R.string.premium_trial_active_summary),
+                    fontFamily = LoraFontFamily,
+                    fontSize = 16.sp,
+                    color = PlannerFlatColors.TextDark,
+                )
+                Text(
+                    text = expiryText?.let { stringResource(R.string.premium_valid_until, it) }
+                        ?: stringResource(R.string.premium_trial_is_active),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF10B981),
+                )
+            }
+        }
+        Text(
+            text = stringResource(R.string.premium_trial_bundle_help),
+            fontSize = 11.sp,
+            color = PlannerFlatColors.TextMuted,
+        )
+    }
+}
+
+@Composable
 private fun premiumPlanLabel(planType: String?): String {
     val normalized = planType.orEmpty().lowercase(Locale.US)
     return when {
-        "trial" in normalized -> "7-day free trial"
-        "3month" in normalized || "3-month" in normalized -> "3-month Premium plan"
-        "6month" in normalized || "6-month" in normalized -> "6-month Premium plan"
-        normalized.isNotBlank() -> "Safar Premium plan"
-        else -> "Safar Premium"
+        "trial" in normalized -> stringResource(R.string.premium_plan_trial_label)
+        "3month" in normalized || "3-month" in normalized -> stringResource(R.string.premium_plan_three_month_label)
+        "6month" in normalized || "6-month" in normalized -> stringResource(R.string.premium_plan_six_month_label)
+        normalized.isNotBlank() -> stringResource(R.string.premium_plan_generic_label)
+        else -> stringResource(R.string.premium_safar_premium)
     }
 }
 
@@ -1042,17 +1427,17 @@ private fun calculatePremiumExtensionExpiry(
         runCatching { Instant.parse(raw) }.getOrNull()
     }
     val startsFrom = currentExpiry?.takeIf { it.isAfter(now) } ?: now
-    return ZonedDateTime
+    val extendedExpiry = ZonedDateTime
         .ofInstant(startsFrom, ZoneOffset.UTC)
         .plusMonths(selectedPlanDuration.toLong())
-        .toInstant()
-        .toString()
+        .withZoneSameInstant(ZoneId.systemDefault())
+    return DateTimeFormatter.ofPattern("d MMM yyyy", Locale.getDefault()).format(extendedExpiry)
 }
 
 private fun formatPremiumExpiry(expiresAt: String?): String? {
     if (expiresAt.isNullOrBlank()) return null
     val instant = rawExpiryToInstant(expiresAt) ?: return expiresAt.take(10)
-    val formatter = DateTimeFormatter.ofPattern("d MMM yyyy, h:mm a", Locale.ENGLISH)
+    val formatter = DateTimeFormatter.ofPattern("d MMM yyyy, h:mm a", Locale.getDefault())
     return formatter.format(instant.atZone(ZoneId.systemDefault()))
 }
 

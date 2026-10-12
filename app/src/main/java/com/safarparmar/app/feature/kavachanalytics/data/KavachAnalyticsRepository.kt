@@ -137,6 +137,7 @@ class KavachAnalyticsRepository @Inject constructor(
      * sync. Safe to call often — collection is watermark-driven.
      */
     suspend fun refresh(sync: Boolean = true) = withContext(ioDispatcher) {
+        youtubeInsightsRepository.flushTracking()
         runCatching { seedDefaultClassifications() }
         // Backstop for a quick unlock whose window lapsed while nothing was watching
         // — the service was killed, or the phone was idle. Without this the event
@@ -192,9 +193,6 @@ class KavachAnalyticsRepository @Inject constructor(
 
             val categories = categoryMap()
             val labels = dao.allClassifications().associate { it.packageName to it.appLabel }
-            val youtubeByDate = dao.youtubeAggregatesBetween(localDate, localDate)
-                .associateBy { it.localDate }
-
             val counts = DailyEventCounts(
                 blockedAttempts = events
                     .filter { it.type == KavachEventType.BLOCKED_ATTEMPT && !it.packageName.isNullOrBlank() }
@@ -216,20 +214,25 @@ class KavachAnalyticsRepository @Inject constructor(
                 nowMs = System.currentTimeMillis(),
             )
             dao.replaceAggregatesForDate(localDate, rows)
-            rows.firstOrNull { it.packageName == "com.google.android.youtube" }?.let { youtube ->
-                youtubeInsightsRepository.reconcileUsageStats(
-                    localDate = localDate,
-                    allDayYoutubeSeconds = youtube.allDaySeconds,
-                    protectedYoutubeSeconds = youtube.kavachSeconds,
-                )
+            if (rows.any { it.packageName == "com.google.android.youtube" }) {
+                youtubeInsightsRepository.reconcileUsageStats(localDate)
             }
 
             // Fill category totals for any session that ended on this day.
             sessions.filter { it.outcome != null }.forEach { session ->
+                val sessionStartDate = Instant.ofEpochMilli(session.startedAtMs).atZone(zone).toLocalDate().toString()
+                val sessionEndDate = Instant.ofEpochMilli(session.endedAtMs ?: session.startedAtMs)
+                    .atZone(zone).toLocalDate().toString()
+                val sessionIntervals = eachDate(sessionStartDate, sessionEndDate).flatMap { date ->
+                    dao.intervalsForDate(date).map {
+                        DatedUsageInterval(it.packageName, it.localDate, it.startMs, it.endMs)
+                    }
+                }
                 val totals = KavachDailyAggregator.sessionCategoryTotals(
-                    intervals = intervals,
+                    intervals = sessionIntervals,
                     window = session.startedAtMs..(session.endedAtMs ?: session.startedAtMs),
                     categoryOf = { categories[it] ?: AppCategory.UNCLASSIFIED },
+                    youtubeViewing = dao.youtubeIntervalsBetween(sessionStartDate, sessionEndDate),
                 )
                 dao.upsertSession(
                     session.copy(
@@ -245,11 +248,8 @@ class KavachAnalyticsRepository @Inject constructor(
                 )
             }
 
-            // A finished day never gains new intervals, so its raw transitions have
-            // served their purpose and are deleted.
-            if (localDate < LocalDate.now(zone).toString()) {
-                dao.deleteIntervalsForDate(localDate)
-            }
+            // Keep device-only intervals until the existing retention cleanup.
+            // Cross-midnight sessions and later content reconciliation need them.
         }
     }
 
@@ -306,6 +306,7 @@ class KavachAnalyticsRepository @Inject constructor(
                         it.distractingSeconds,
                         it.shortsSeconds,
                         it.unidentifiedSeconds,
+                        category,
                     )
                 }
                 val kavachContribution = youtube?.let {
@@ -315,6 +316,7 @@ class KavachAnalyticsRepository @Inject constructor(
                         it.protectedDistractingSeconds,
                         it.protectedShortsSeconds,
                         it.protectedUnidentifiedSeconds,
+                        category,
                     )
                 }
                 allDay = allDayContribution?.let(allDay::plus)
@@ -336,6 +338,10 @@ class KavachAnalyticsRepository @Inject constructor(
                         (kavachContribution?.totalSeconds ?: row.kavachSeconds),
                     blockedAttempts = (existing?.blockedAttempts ?: 0) + row.blockedAttempts,
                     quickUnlockCount = (existing?.quickUnlockCount ?: 0) + row.quickUnlockCount,
+                    allDayBreakdown = (existing?.allDayBreakdown ?: CategoryTotals()) +
+                        (allDayContribution ?: CategoryTotals().add(category, row.allDaySeconds)),
+                    kavachBreakdown = (existing?.kavachBreakdown ?: CategoryTotals()) +
+                        (kavachContribution ?: CategoryTotals().add(category, row.kavachSeconds)),
                 )
 
                 val point = byDate[row.localDate] ?: DailyTrendPoint(
@@ -604,7 +610,9 @@ class KavachAnalyticsRepository @Inject constructor(
         dao.deleteProtectionWindowsBefore(cutoffMs)
         // Raw intervals are far shorter-lived than the 12-month window: anything
         // older than a couple of days has already been aggregated.
-        dao.deleteIntervalsBefore(nowMs - RAW_INTERVAL_RETENTION_MS)
+        val rawCutoff = Instant.ofEpochMilli(nowMs - RAW_INTERVAL_RETENTION_MS).atZone(zone)
+            .toLocalDate().atStartOfDay(zone).toInstant().toEpochMilli()
+        dao.deleteIntervalsBefore(rawCutoff)
         dao.putMeta(KavachMetaEntity(META_LAST_PRUNE_DATE, cutoffKey))
     }
 

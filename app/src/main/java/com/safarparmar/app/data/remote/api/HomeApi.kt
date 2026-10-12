@@ -35,6 +35,7 @@ interface HomeApi {
     @POST("goals/{id}/rollover-action") suspend fun rolloverAction(@Path("id") id: String, @Body request: RolloverActionRequest): Response<RolloverActionResponse>
     @POST("goals/focus-summary") suspend fun getGoalFocusSummary(@Body request: FocusSummaryRequest): Response<GoalFocusSummaryResponse>
     @GET("ekagra-sessions/analytics") suspend fun getEkagraAnalytics(): Response<EkagraAnalyticsStatsDto>
+    @GET("dashboard/monthly-summary") suspend fun getDashboardMonthlySummary(): Response<DashboardMonthlySummaryDto>
     @GET("analytics/monthly-report") suspend fun getMonthlyReport(): Response<MonthlyReportDto>
     @POST("analytics/monthly-report/generate") suspend fun generateMonthlyReport(@Body request: GenerateReportRequest): Response<MonthlyReportDto>
     @GET("achievements/active-title") suspend fun getActiveTitle(): Response<ActiveTitleDto>

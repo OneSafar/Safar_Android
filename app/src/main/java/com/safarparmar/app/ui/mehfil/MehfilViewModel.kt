@@ -14,6 +14,8 @@ import com.safarparmar.app.domain.repository.AuthRepository
 import com.safarparmar.app.util.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
@@ -72,6 +74,11 @@ data class MehfilUiState(
     val isLoadingActivity: Boolean = false,
     val savedPosts: List<MehfilPost> = emptyList(),
     val isLoadingSaved: Boolean = false,
+    val savedFirstPage: Int = 1,
+    val savedLastPage: Int = 0,
+    val savedHasMore: Boolean = true,
+    val savedError: String? = null,
+    val savedRequestedPage: Int = 1,
     val savedPostIds: Set<String> = emptySet(),
     val savingPostIds: Set<String> = emptySet(),
     val userMessage: String? = null,
@@ -109,9 +116,14 @@ class MehfilViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(MehfilUiState())
     val uiState = _uiState.asStateFlow()
 
+    private var savedLoadJob: Job? = null
+    private var savedLoadRevision = 0L
+    private val savedPages = sortedMapOf<Int, List<MehfilPost>>()
+    private var savedEndPage: Int? = null
+    private val savedOverrides = mutableMapOf<String, Boolean>()
+
     init {
         loadSandesh()
-        loadSavedPosts()
         loadPremiumFeatures()
         loadStudyCircles()
         initSocket()
@@ -384,7 +396,7 @@ class MehfilViewModel @Inject constructor(
             state.copy(
                 posts = merged,
                 savedPostIds = (state.savedPostIds - patched.map { it.id }.toSet()) +
-                    patched.filter { it.isSaved }.map { it.id },
+                    patched.filter { savedOverrides[it.id] ?: it.isSaved }.map { it.id },
                 currentPage = page,
                 totalPages = if (hasMore) page + 1 else page,
                 hasMore = hasMore,
@@ -549,13 +561,23 @@ class MehfilViewModel @Inject constructor(
             _uiState.update { it.copy(savingPostIds = it.savingPostIds + thoughtId) }
             val result = if (alreadySaved) repo.unsavePost(thoughtId) else repo.savePost(thoughtId)
             when (result) {
-                is Resource.Success -> _uiState.update {
-                    it.copy(
-                        savedPostIds = if (alreadySaved) it.savedPostIds - thoughtId else it.savedPostIds + thoughtId,
-                        savedPosts = if (alreadySaved) it.savedPosts.filterNot { post -> post.id == thoughtId } else it.savedPosts,
-                        savingPostIds = it.savingPostIds - thoughtId,
-                        userMessage = if (alreadySaved) "Removed from saved posts." else "Post saved.",
-                    )
+                is Resource.Success -> {
+                    savedOverrides[thoughtId] = !alreadySaved
+                    _uiState.update {
+                        it.copy(
+                            savedPostIds = if (alreadySaved) it.savedPostIds - thoughtId else it.savedPostIds + thoughtId,
+                            savedPosts = if (alreadySaved) it.savedPosts.filterNot { post -> post.id == thoughtId } else it.savedPosts,
+                            savingPostIds = it.savingPostIds - thoughtId,
+                            userMessage = if (alreadySaved) "Removed from saved posts." else "Post saved.",
+                        )
+                    }
+                    // Offset pages shift after a save/unsave. Refresh page one rather than skip a post.
+                    if (savedPages.isNotEmpty()) {
+                        savedPages.clear()
+                        savedEndPage = null
+                        _uiState.update { it.copy(savedFirstPage = 1, savedLastPage = 0, savedHasMore = true) }
+                        loadSavedPosts()
+                    }
                 }
                 is Resource.Error -> _uiState.update {
                     it.copy(savingPostIds = it.savingPostIds - thoughtId, userMessage = "Could not save. Try again.")
@@ -580,31 +602,43 @@ class MehfilViewModel @Inject constructor(
         }
     }
 
-    fun loadSavedPosts() {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoadingSaved = true) }
-            // Load all pages so saved tab shows everything
-            var page = 1
-            val allPosts = mutableListOf<MehfilPost>()
-            var loaded = false
-            while (true) {
-                when (val r = repo.getSavedPosts(page)) {
+    fun loadSavedPosts(page: Int = 1) {
+        if (page < 1) return
+        if (savedLoadJob?.isActive == true && page != 1) return
+        val revision = ++savedLoadRevision
+        savedLoadJob?.cancel()
+        savedLoadJob = viewModelScope.launch {
+            _uiState.update { it.copy(isLoadingSaved = true, savedError = null, savedRequestedPage = page) }
+            try {
+                val result = repo.getSavedPosts(page)
+                if (revision != savedLoadRevision) return@launch
+                when (result) {
                     is Resource.Success -> {
-                        loaded = true
-                        allPosts.addAll(r.data)
-                        if (r.data.size < 20) break   // no more pages
-                        page++
+                        if (page == 1) { savedPages.clear(); savedEndPage = null }
+                        savedPages[page] = result.data
+                        if (result.data.size < 20) savedEndPage = page
+                        while (savedPages.size > 10) {
+                            if (page == savedPages.firstKey()) savedPages.remove(savedPages.lastKey())
+                            else savedPages.remove(savedPages.firstKey())
+                        }
+                        val posts = savedPages.values.flatten().distinctBy { it.id }
+                        _uiState.update { state -> state.copy(
+                            savedPosts = posts,
+                            savedPostIds = state.savedPostIds + posts.map { it.id },
+                            savedFirstPage = savedPages.firstKey(),
+                            savedLastPage = savedPages.lastKey(),
+                            savedHasMore = savedEndPage?.let { savedPages.lastKey() < it } ?: true,
+                        ) }
                     }
-                    is Resource.Error -> {
-                        _uiState.update { it.copy(isLoadingSaved = false, userMessage = "Could not load saved posts. Try again.") }
-                        break
-                    }
-                    is Resource.Loading -> break
+                    is Resource.Error -> _uiState.update { it.copy(savedError = result.message) }
+                    is Resource.Loading -> Unit
                 }
-            }
-            if (loaded) {
-                val savedIds = allPosts.map { it.id }.toSet()
-                _uiState.update { it.copy(isLoadingSaved = false, savedPosts = allPosts, savedPostIds = savedIds) }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (exception: Exception) {
+                _uiState.update { it.copy(savedError = exception.localizedMessage ?: "Could not load saved posts.") }
+            } finally {
+                if (revision == savedLoadRevision) _uiState.update { it.copy(isLoadingSaved = false) }
             }
         }
     }

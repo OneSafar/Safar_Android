@@ -17,9 +17,10 @@ import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.vector.PathParser
 import com.safarparmar.app.ui.theme.isLightBackground
+import kotlinx.coroutines.flow.first
 
-/** Timeline scaled ~50% faster than original (0.5×) to increase animation speed by 30%. */
-private fun splashMs(ms: Int): Int = (ms * 0.5f).toInt()
+/** Preserve the original choreography across a 1.8-second reveal. */
+private fun splashMs(ms: Int): Int = (ms * 0.8f).toInt()
 
 // Matches AuthScreen's logo assets: navy on light backgrounds, white on dark,
 // with the shared Safar yellow accent.
@@ -215,7 +216,7 @@ M314 690 C415 644 591 635 735 647
 """.trimIndent()
 
 @Composable
-fun SafarLogoAnimation(modifier: Modifier = Modifier) {
+fun SafarLogoAnimation(modifier: Modifier = Modifier, onAnimationFinished: () -> Unit = {}) {
     val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
     val logoColor = if (isDark) Color.White else SAFAR_LOGO_NAVY
 
@@ -225,7 +226,13 @@ fun SafarLogoAnimation(modifier: Modifier = Modifier) {
     }
     val transition = updateTransition(targetState = isAnimated, label = "logoAnimation")
 
-    // The timing is based on the React Times array (all values via splashMs — ~30% faster).
+    val onFinished by rememberUpdatedState(onAnimationFinished)
+    LaunchedEffect(transition) {
+        snapshotFlow { transition.currentState && !transition.isRunning }.first { it }
+        onFinished()
+    }
+
+    // Keep all stages synchronized through the same timeline scale.
 
     val tracePathLength by transition.animateFloat(
         transitionSpec = { tween(durationMillis = splashMs(1080), easing = FastOutSlowInEasing) },

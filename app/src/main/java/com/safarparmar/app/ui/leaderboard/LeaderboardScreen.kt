@@ -1,5 +1,6 @@
 package com.safarparmar.app.ui.leaderboard
 
+import com.safarparmar.app.performance.decorativeFloat
 import androidx.compose.animation.core.EaseOutBack
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
@@ -42,6 +43,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -52,6 +54,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
+import com.safarparmar.app.R
 import com.safarparmar.app.data.remote.dto.WeeklyLeaderboardEntryDto
 import com.safarparmar.app.data.remote.dto.WeeklyLeaderboardPeriodDto
 import com.safarparmar.app.ui.drawer.SafarDrawerScaffold
@@ -76,13 +79,14 @@ private fun formatMinutes(minutes: Int): String {
     return if (rest == 0) "${hours}h" else "${hours}h ${rest}m"
 }
 
+@Composable
 private fun formatWeekRange(period: WeeklyLeaderboardPeriodDto?): String {
-    if (period?.start.isNullOrBlank() || period?.end.isNullOrBlank()) return "This week"
+    if (period?.start.isNullOrBlank() || period?.end.isNullOrBlank()) return stringResource(R.string.leaderboard_this_week)
     return runCatching {
-        val parser = SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH)
+        val parser = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
         val start = requireNotNull(parser.parse(period?.start.orEmpty()))
         val end = requireNotNull(parser.parse(period?.end.orEmpty()))
-        val formatter = SimpleDateFormat("d MMM", Locale.ENGLISH)
+        val formatter = SimpleDateFormat("d MMM", Locale.getDefault())
         "${formatter.format(start)}–${formatter.format(end)}"
     }.getOrDefault("${period?.start}–${period?.end}")
 }
@@ -101,7 +105,7 @@ fun LeaderboardScreen(
     val currentUserId by viewModel.currentUserId.collectAsStateWithLifecycle()
 
     SafarDrawerScaffold(
-        title = "Leaderboard",
+        title = stringResource(R.string.nav_leaderboard),
         subtitle = null,
         currentRoute = currentRoute,
         isDarkTheme = isDarkTheme,
@@ -120,7 +124,7 @@ fun LeaderboardScreen(
                 } else {
                     Icon(
                         Icons.Default.Refresh,
-                        contentDescription = "Refresh rankings",
+                        contentDescription = stringResource(R.string.leaderboard_refresh_rankings),
                         tint = PlannerFlatColors.TextDark,
                     )
                 }
@@ -256,7 +260,7 @@ private fun PodiumSection(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "Last Week's Champions",
+                    text = stringResource(R.string.leaderboard_last_week_champions),
                     fontSize = 17.sp,
                     fontWeight = FontWeight.Bold,
                     color = textColor,
@@ -273,7 +277,7 @@ private fun PodiumSection(
 
             if (podium.isEmpty()) {
                 Text(
-                    text = "Podium winners will appear once the weekly cycle completes.",
+                    text = stringResource(R.string.leaderboard_podium_pending),
                     fontSize = 13.sp,
                     color = textMuted,
                     textAlign = TextAlign.Center,
@@ -357,7 +361,7 @@ private fun PodiumColumn(
 
     // ── Gentle float for the avatar (infinite, staggered per column) ───────
     val floatTransition = rememberInfiniteTransition(label = "podiumFloat$place")
-    val floatOffset by floatTransition.animateFloat(
+    val floatOffset by floatTransition.decorativeFloat(
         initialValue = 0f,
         targetValue = -4f,
         animationSpec = infiniteRepeatable(
@@ -369,7 +373,7 @@ private fun PodiumColumn(
 
     // ── Gold-only glow pulse on the avatar ring ─────────────────────────────
     val glowAlpha by if (place == 1) {
-        floatTransition.animateFloat(
+        floatTransition.decorativeFloat(
             initialValue = 0.35f,
             targetValue = 0.75f,
             animationSpec = infiniteRepeatable(
@@ -518,41 +522,43 @@ private fun UserSummaryCard(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp),
-        shape = RoundedCornerShape(18.dp),
+            .padding(horizontal = 12.dp),
+        shape = RoundedCornerShape(16.dp),
         color = cardBg,
         border = BorderStroke(1.dp, borderColor),
     ) {
         Row(
-            modifier = Modifier.padding(18.dp),
+            modifier = Modifier.padding(14.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             // Big Rank Typography
             Text(
                 text = if (isRanked) "#$rank" else "—",
-                fontSize = if ((rank ?: 0) >= 1000) 26.sp else 34.sp,
+                fontSize = if ((rank ?: 0) >= 1000) 22.sp else 28.sp,
                 fontWeight = FontWeight.Black,
                 letterSpacing = (-0.5).sp,
                 color = if (isRanked) accentCoral else textMuted,
-                modifier = Modifier.widthIn(min = 60.dp),
+                modifier = Modifier.widthIn(min = 52.dp),
             )
 
-            Spacer(Modifier.width(14.dp))
+            Spacer(Modifier.width(10.dp))
 
             Column(Modifier.weight(1f)) {
                 Text(
-                    text = if (isRanked) "Your Position" else "Not Ranked Yet",
-                    fontSize = 14.sp,
+                    text = stringResource(
+                        if (isRanked) R.string.leaderboard_your_position else R.string.leaderboard_not_ranked
+                    ),
+                    fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
                     color = textColor,
                 )
                 Text(
                     text = if (isRanked) {
-                        "${formatMinutes(entry!!.totalFocusMinutes)} focused this week"
+                        stringResource(R.string.leaderboard_focused_this_week, formatMinutes(entry!!.totalFocusMinutes))
                     } else {
-                        "Complete an Ekagra session to enter rankings"
+                        stringResource(R.string.leaderboard_enter_rankings_help)
                     },
-                    fontSize = 12.sp,
+                    fontSize = 11.sp,
                     color = textMuted,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -563,7 +569,7 @@ private fun UserSummaryCard(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(5.dp)
+                            .height(4.dp)
                             .clip(CircleShape)
                             .background(borderColor),
                     ) {
@@ -571,7 +577,7 @@ private fun UserSummaryCard(
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth(progress)
-                                    .height(5.dp)
+                                    .height(4.dp)
                                     .clip(CircleShape)
                                     .background(accentCoral),
                             )
@@ -593,19 +599,19 @@ private fun LiveRankingsHeader() {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp),
+            .padding(horizontal = 16.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = "Live Rankings",
-            fontSize = 17.sp,
+            text = stringResource(R.string.leaderboard_live_rankings),
+            fontSize = 15.sp,
             fontWeight = FontWeight.Bold,
             color = textColor,
         )
         Text(
-            text = "Ekagra Focus Time",
-            fontSize = 12.sp,
+            text = stringResource(R.string.leaderboard_ekagra_focus_time),
+            fontSize = 11.sp,
             fontWeight = FontWeight.Medium,
             color = textMuted,
         )
@@ -633,7 +639,7 @@ private fun LeaderboardRow(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 2.dp),
+            .padding(horizontal = 12.dp, vertical = 2.dp),
         shape = RoundedCornerShape(12.dp),
         color = rowBg,
         border = if (isCurrentUser) BorderStroke(1.dp, accentCoral.copy(alpha = 0.35f)) else null,
@@ -641,7 +647,7 @@ private fun LeaderboardRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 10.dp),
+                .padding(horizontal = 10.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             // Colored Rank Numeral Box (Golden, Silver, Bronze)
@@ -669,12 +675,12 @@ private fun LeaderboardRow(
                 shape = RoundedCornerShape(8.dp),
                 color = rankBg,
                 border = rankBorder,
-                modifier = Modifier.size(28.dp),
+                modifier = Modifier.size(24.dp),
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Text(
                         text = entry.rank.takeIf { it > 0 }?.toString() ?: "—",
-                        fontSize = 12.sp,
+                        fontSize = 11.sp,
                         fontWeight = if (entry.rank <= 3) FontWeight.ExtraBold else FontWeight.SemiBold,
                         color = rankTextColor,
                     )
@@ -686,7 +692,7 @@ private fun LeaderboardRow(
             // Avatar
             Box(
                 modifier = Modifier
-                    .size(38.dp)
+                    .size(32.dp)
                     .clip(CircleShape)
                     .background(bg),
                 contentAlignment = Alignment.Center,
@@ -702,7 +708,7 @@ private fun LeaderboardRow(
                 } else {
                     Text(
                         text = entry.name.take(2).uppercase(),
-                        fontSize = 12.sp,
+                        fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         color = textColor,
                     )
@@ -717,8 +723,8 @@ private fun LeaderboardRow(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = if (isCurrentUser) "You" else entry.name,
-                    fontSize = 14.sp,
+                    text = if (isCurrentUser) stringResource(R.string.study_circle_you) else entry.name,
+                    fontSize = 13.sp,
                     fontWeight = if (isCurrentUser) FontWeight.Bold else FontWeight.Medium,
                     color = textColor,
                     maxLines = 1,
@@ -734,7 +740,7 @@ private fun LeaderboardRow(
                             .padding(horizontal = 6.dp, vertical = 1.dp),
                     ) {
                         Text(
-                            text = "YOU",
+                            text = stringResource(R.string.study_circle_you).uppercase(),
                             fontSize = 9.sp,
                             fontWeight = FontWeight.Bold,
                             color = accentCoral,
@@ -748,7 +754,7 @@ private fun LeaderboardRow(
             // Focus Time
             Text(
                 text = formatMinutes(entry.totalFocusMinutes),
-                fontSize = 13.sp,
+                fontSize = 11.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = if (isCurrentUser) accentCoral else textColor,
             )
@@ -781,7 +787,7 @@ private fun PaginationBar(
         ) {
             Icon(
                 Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-                contentDescription = "Previous page",
+                contentDescription = stringResource(R.string.leaderboard_previous_page),
                 tint = if (currentPage > 1) textColor else textMuted.copy(alpha = 0.4f),
             )
         }
@@ -814,7 +820,7 @@ private fun PaginationBar(
         ) {
             Icon(
                 Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = "Next page",
+                contentDescription = stringResource(R.string.leaderboard_next_page),
                 tint = if (currentPage < totalPages) textColor else textMuted.copy(alpha = 0.4f),
             )
         }
@@ -828,7 +834,7 @@ private fun EmptyRankingsNotice() {
     val textMuted = PlannerFlatColors.TextMuted
 
     Text(
-        text = "This week's leaderboard is being prepared. It updates automatically as Ekagra sessions are completed.",
+        text = stringResource(R.string.leaderboard_preparing),
         fontSize = 13.sp,
         color = textMuted,
         textAlign = TextAlign.Center,
@@ -844,7 +850,7 @@ private fun LeaderboardLoadingSkeleton() {
     val shimmerColor = PlannerFlatColors.BorderSoft
 
     val transition = rememberInfiniteTransition(label = "leaderboardSkeleton")
-    val alpha by transition.animateFloat(
+    val alpha by transition.decorativeFloat(
         initialValue = 0.35f,
         targetValue = 0.75f,
         animationSpec = infiniteRepeatable(
@@ -913,7 +919,7 @@ private fun LeaderboardErrorState(
         verticalArrangement = Arrangement.Center,
     ) {
         Text(
-            text = "Unable to load leaderboard",
+            text = stringResource(R.string.leaderboard_load_error),
             fontSize = 17.sp,
             fontWeight = FontWeight.Bold,
             color = textColor,
@@ -944,7 +950,7 @@ private fun LeaderboardErrorState(
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    text = "Try Again",
+                    text = stringResource(R.string.common_try_again),
                     fontWeight = FontWeight.Bold,
                     fontSize = 13.5.sp,
                     color = accentCoral,

@@ -1,5 +1,8 @@
 package com.safarparmar.app.ui.studyplanner.create.steps
 
+import androidx.compose.ui.res.stringResource
+import com.safarparmar.app.R
+
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
@@ -138,7 +141,7 @@ fun DeepFocusOrderStep(
 
             val isLight = MaterialTheme.colorScheme.background.isLightBackground()
             MacOSPrimaryActionButton(
-                text = "Continue",
+                text = stringResource(R.string.common_continue),
                 onClick = onContinue,
                 isLight = isLight,
                 customAccent = PlannerFlatColors.PrimaryAccent,
@@ -183,7 +186,7 @@ fun DeepFocusOrderStep(
 
             val isLight = MaterialTheme.colorScheme.background.isLightBackground()
             MacOSPrimaryActionButton(
-                text = "Back to subjects",
+                text = stringResource(R.string.planner_back_to_subjects),
                 onClick = { onDrillIntoSubject(null) },
                 isLight = isLight,
                 customAccent = PlannerAccent.Teal,

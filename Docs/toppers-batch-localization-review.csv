@@ -1,0 +1,501 @@
+﻿resource,quantity,consumers,English,Hindi,Hinglish
+toppers_batch_uses_your_study_notification_settings_delivery_needs_a_connection,string,StudyPlanDialog,Uses your study notification settings. Delivery needs a connection.,आपकी पढ़ाई की सूचना सेटिंग लागू होती है। सूचना मिलने के लिए इंटरनेट चाहिए।,Aapki study notification settings lagu hoti hain. Notification ke liye connection chahiye.
+toppers_batch_notifications_are_disabled_your_study_date_can_still_be_saved,string,StudyPlanDialog,Notifications are disabled. Your study date can still be saved.,सूचनाएँ बंद हैं। आप फिर भी पढ़ाई की तारीख सहेज सकते हैं।,Notifications band hain. Aap phir bhi study date save kar sakte hain.
+toppers_batch_plan_revision,string,StudyPlanDialog; ToppersBatchActions,Plan revision,रिविज़न की योजना,Revision plan karein
+toppers_batch_watch_date,string,StudyPlanDialog,Watch date,लेक्चर देखने की तारीख,Lecture dekhne ki date
+toppers_batch_revise_your_notes_or_practise_questions,string,StudyPlanDialog,Revise your notes or practise questions.,अपने नोट्स दोहराएँ या प्रश्नों का अभ्यास करें।,Apne notes revise karein ya questions ki practice karein.
+toppers_batch_today,string,BatchStudentCalendar; StudyPlanDialog; ToppersBatchScreen; ToppersBatchViewModel,Today,आज,Aaj
+toppers_batch_tomorrow,string,StudyPlanDialog,Tomorrow,कल,Kal
+toppers_batch_choose_date,string,StudyPlanDialog; ToppersBatchActions,Choose date,तारीख चुनें,Date chunein
+toppers_batch_repeat_revision,string,StudyPlanDialog,Repeat revision,रिविज़न दोहराएँ,Revision repeat karein
+toppers_batch_suggested_dates_change_or_remove_any_date,string,StudyPlanDialog,Suggested dates. Change or remove any date.,सुझाई गई तारीखें। कोई भी तारीख बदलें या हटाएँ।,Sujhayi gayi dates. Koi bhi date badlein ya hatayein.
+toppers_batch_revision_count,string,StudyPlanDialog; ToppersBatchScreen,Revision %1$s,रिविज़न %1$s,Revision %1$s
+toppers_batch_remove,string,StudyPlanDialog,Remove,हटाएँ,Hatayein
+toppers_batch_add_reminder_optional,string,StudyPlanDialog,Add reminder (optional),रिमाइंडर जोड़ें (वैकल्पिक),Reminder jodein (optional)
+toppers_batch_remind_me,string,StudyPlanDialog,Remind me,याद दिलाएँ,Yaad dilayein
+toppers_batch_count_ist,string,StudyPlanDialog,%1$s IST,%1$s IST,%1$s IST
+toppers_batch_save_for_revision_without_a_date,string,StudyPlanDialog,Save for revision without a date,बिना तारीख के रिविज़न के लिए सहेजें,Bina date ke revision ke liye save karein
+toppers_batch_choose_today_or_a_future_date,string,BatchLocalization; StudyPlanDialog,Choose today or a future date.,आज या आगे की कोई तारीख चुनें।,Aaj ya aage ki koi date chunein.
+toppers_batch_remove_plan,string,PersonalPlanPanel; StudyPlanDialog,Remove plan,योजना हटाएँ,Plan hatayein
+toppers_batch_saving,string,PersonalPlanPanel; StudyPlanDialog,Saving…,सहेज रहे हैं…,Save ho raha hai…
+toppers_batch_save,string,StudyPlanDialog; ToppersBatchActions,Save,सहेजें,Save karein
+toppers_batch_cancel,string,PersonalPlanPanel; StudyPlanDialog; ToppersBatchActions,Cancel,रद्द करें,Cancel karein
+toppers_batch_previously_watched,string,StudyPlanDialog,Previously watched,पहले देखे गए लेक्चर,Pehle dekhe gaye lectures
+toppers_batch_about_previously_watched_lectures,string,StudyPlanDialog,About previously watched lectures,पहले देखे गए लेक्चर के बारे में,Pehle dekhe gaye lectures ke baare mein
+toppers_batch_select_completed_lectures,string,StudyPlanDialog,Select completed lectures,पूरे किए गए लेक्चर चुनें,Poore kiye gaye lectures chunein
+toppers_batch_select_lecture_count,string,StudyPlanDialog,Select lecture %1$s,लेक्चर %1$s चुनें,Lecture %1$s chunein
+toppers_batch_lecture_count,string,PersonalPlanPanel; StudyModePanel; StudyPlanDialog; ToppersBatchActions,Lecture %1$s,लेक्चर %1$s,Lecture %1$s
+toppers_batch_mark_all_done_till_count,string,StudyPlanDialog,Mark all done till %1$s,%1$s तक सभी पूरे चिह्नित करें,%1$s tak sabhi poore mark karein
+toppers_batch_no_lectures_to_select,string,StudyPlanDialog,No lectures to select.,चुनने के लिए कोई लेक्चर नहीं है।,Chunne ke liye koi lecture nahi hai.
+toppers_batch_count_selected,string,StudyPlanDialog,%1$s selected,%1$s चुने गए,%1$s chune gaye
+toppers_batch_hide,string,BatchStudentCalendar; StudyPlanDialog,Hide,छिपाएँ,Chhipayein
+toppers_batch_review,string,StudyPlanDialog,Review,समीक्षा करें,Review karein
+toppers_batch_clear,string,StudyPlanDialog,Clear,चयन हटाएँ,Selection hatayein
+toppers_batch_count_lecture_count_n_count,string,StudyPlanDialog,"%1$s · Lecture %2$s
+%3$s","%1$s · लेक्चर %2$s
+%3$s","%1$s · Lecture %2$s
+%3$s"
+toppers_batch_add_completion_date,string,StudyPlanDialog,Add completion date,पूरा करने की तारीख जोड़ें,Poora karne ki date jodein
+toppers_batch_completion_date,string,StudyPlanDialog,Completion date,पूरा करने की तारीख,Poora karne ki date
+toppers_batch_date_unknown,string,StudyPlanDialog,Date unknown,तारीख याद नहीं है,Date yaad nahi hai
+toppers_batch_choose_today_or_an_earlier_date,string,StudyPlanDialog,Choose today or an earlier date.,आज या पहले की कोई तारीख चुनें।,Aaj ya pehle ki koi date chunein.
+toppers_batch_save_count,string,StudyPlanDialog,Save (%1$s),सहेजें (%1$s),Save karein (%1$s)
+toppers_batch_selected_lectures_count_toward_your_progress,string,StudyPlanDialog,Selected lectures count toward your progress.,चुने गए लेक्चर आपकी प्रगति में गिने जाएँगे।,Chune gaye lectures aapki progress mein gine jayenge.
+toppers_batch_tick_a_checkbox_to_select_one_lecture_mark_all_done_till_a_lectur,string,StudyPlanDialog,Tick a checkbox to select one lecture. Mark all done till a lecture selects it and all available earlier lectures in this subject. Tap Save to apply.,एक लेक्चर चुनने के लिए चेकबॉक्स पर टैप करें। किसी लेक्चर तक सभी पूरे चिह्नित करने पर उस विषय के उपलब्ध पिछले लेक्चर भी चुने जाते हैं। लागू करने के लिए सहेजें पर टैप करें।,Ek lecture chunne ke liye checkbox par tap karein. Kisi lecture tak sabhi poore mark karne par us subject ke available pichhle lectures bhi chune jate hain. Lagu karne ke liye Save par tap karein.
+toppers_batch_add_a_date_to_show_completions_on_your_calendar_without_a_date_th,string,StudyPlanDialog,"Add a date to show completions on your calendar. Without a date, they won’t appear as completed today.",कैलेंडर में पूरे किए गए लेक्चर दिखाने के लिए तारीख जोड़ें। बिना तारीख के वे आज पूरे किए गए लेक्चर में नहीं दिखेंगे।,Calendar mein poore kiye gaye lectures dikhane ke liye date jodein. Bina date ke woh aaj poore kiye gaye lectures mein nahi dikhenge.
+toppers_batch_got_it,string,StudyModePanel; StudyPlanDialog,Got it,समझ गए,Samajh gaye
+toppers_batch_reschedule_missed_plans,string,StudyPlanDialog,Reschedule missed plans,छूटी योजनाओं की तारीख बदलें,Chhoote plans ki dates badlein
+toppers_batch_choose_plans_and_a_new_first_date_the_gaps_between_selected_dates,string,StudyPlanDialog,Choose plans and a new first date. The gaps between selected dates stay the same.,योजनाएँ और एक नई शुरुआती तारीख चुनें। चुनी गई तारीखों के बीच का अंतर वही रहेगा।,Plans aur ek nayi shuruaati date chunein. Chuni gayi dates ke beech ka gap wahi rahega.
+toppers_batch_select_count,string,StudyPlanDialog,Select %1$s,%1$s चुनें,%1$s chunein
+toppers_batch_new_first_date,string,StudyPlanDialog,New first date,नई शुरुआती तारीख,Nayi shuruaati date
+toppers_batch_preview,string,StudyPlanDialog,Preview,पूर्वावलोकन,Preview
+toppers_batch_waiting_for_release_this_plan_may_be_before_the_lecture_is_availa,string,StudyPlanDialog,Waiting for release. This plan may be before the lecture is available.,रिलीज़ का इंतज़ार है। यह योजना लेक्चर उपलब्ध होने से पहले की हो सकती है।,Release ka intezaar hai. Yeh plan lecture available hone se pehle ka ho sakta hai.
+toppers_batch_your_account_changed_please_reopen_the_tracker,string,BatchLocalization,Your account changed. Please reopen the tracker.,आपका अकाउंट बदल गया है। ट्रैकर फिर से खोलें।,Aapka account badal gaya hai. Tracker phir se kholein.
+toppers_batch_this_option_is_not_available,string,BatchLocalization,This option is not available,यह विकल्प उपलब्ध नहीं है,Yeh option available nahi hai
+toppers_batch_revision_planning_is_currently_unavailable,string,BatchLocalization,Revision planning is currently unavailable.,अभी रिविज़न की योजना बनाना उपलब्ध नहीं है।,Abhi revision planning available nahi hai.
+toppers_batch_reminders_are_unavailable_turn_off_remind_me_to_save_the_date,string,BatchLocalization,Reminders are unavailable. Turn off Remind me to save the date.,रिमाइंडर उपलब्ध नहीं हैं। तारीख सहेजने के लिए याद दिलाएँ बंद करें।,Reminders available nahi hain. Date save karne ke liye Yaad dilayein band karein.
+toppers_batch_choose_one_watch_date,string,BatchLocalization,Choose one watch date.,लेक्चर देखने की एक तारीख चुनें।,Lecture dekhne ki ek date chunein.
+toppers_batch_could_not_read_toppers_batch_data_please_try_again,string,BatchLocalization,Could not read Toppers Batch data. Please try again.,Toppers Batch का डेटा पढ़ नहीं सके। फिर से कोशिश करें।,Toppers Batch ka data padh nahi sake. Phir se koshish karein.
+toppers_batch_toppers_batch_text_field,string,ToppersBatchComponents,Toppers Batch text field,Toppers Batch का टेक्स्ट फ़ील्ड,Toppers Batch ka text field
+toppers_batch_toppers_batch_dialog,string,ToppersBatchComponents,Toppers Batch dialog,Toppers Batch संवाद,Toppers Batch dialog
+toppers_batch_recent_activity,string,ToppersBatchProgressChart,Recent activity,हाल की गतिविधि,Haal ki activity
+toppers_batch_darker_dates_mean_more_lectures_finished,string,ToppersBatchProgressChart,Darker dates mean more lectures finished.,गहरी रंग वाली तारीखों पर अधिक लेक्चर पूरे हुए हैं।,Gehre rang wali dates par zyada lectures poore hue hain.
+toppers_batch_count_count_lectures_finished,string,ToppersBatchProgressChart,"%1$s, %2$s lectures finished","%1$s, %2$s लेक्चर पूरे हुए","%1$s, %2$s lectures poore hue"
+toppers_batch_selected,string,ToppersBatchProgressChart,", selected",", चुना गया",", chuna gaya"
+toppers_batch_lectures_finished_over_time,string,ToppersBatchProgressChart,Lectures finished over time,समय के साथ पूरे किए गए लेक्चर,Samay ke saath poore kiye gaye lectures
+toppers_batch_cumulative_completion_last_14_days,string,ToppersBatchProgressChart,Cumulative completion · last 14 days,कुल पूरे किए गए लेक्चर · पिछले 14 दिन,Kul poore kiye gaye lectures · pichhle 14 din
+toppers_batch_finish_a_lecture_to_start_your_progress_graph,string,ToppersBatchProgressChart,Finish a lecture to start your progress graph.,प्रगति का ग्राफ़ शुरू करने के लिए एक लेक्चर पूरा करें।,Progress graph shuru karne ke liye ek lecture poora karein.
+toppers_batch_lectures_completed,string,ToppersBatchProgressChart,lectures completed,लेक्चर पूरे किए गए,Lectures poore kiye gaye
+toppers_batch_count_in_14_days,string,ToppersBatchProgressChart,+%1$s in 14 days,14 दिनों में +%1$s,14 din mein +%1$s
+toppers_batch_touch_the_chart_to_see_a_day_s_total,string,ToppersBatchProgressChart,Touch the chart to see a day's total,किसी दिन का कुल देखने के लिए चार्ट छुएँ,Kisi din ka total dekhne ke liye chart chhuyein
+toppers_batch_your_progress_last_14_days,string,ToppersBatchProgressChart,Your progress · last 14 days,आपकी प्रगति · पिछले 14 दिन,Aapki progress · pichhle 14 din
+toppers_batch_lecture_completion_history,string,ToppersBatchProgressChart,Lecture completion history. ,लेक्चर पूरे करने का इतिहास। ,Lecture poore karne ki history. 
+toppers_batch_count_count_completed,string,ToppersBatchProgressChart,%1$s: %2$s completed,%1$s: %2$s पूरे हुए,%1$s: %2$s poore hue
+toppers_batch_previous_week_or_page,string,LectureWeekBrowser,Previous week or page,पिछला सप्ताह या पृष्ठ,Pichhla hafta ya page
+toppers_batch_count_count_count_count_done,string,LectureWeekBrowser,%1$s%2$s · %3$s/%4$s done,%1$s%2$s · %3$s/%4$s पूरे हुए,%1$s%2$s · %3$s/%4$s poore hue
+toppers_batch_next_week_or_page,string,LectureWeekBrowser,Next week or page,अगला सप्ताह या पृष्ठ,Agla hafta ya page
+toppers_batch_count_count_done,string,LectureWeekBrowser,%1$s/%2$s done,%1$s/%2$s पूरे हुए,%1$s/%2$s poore hue
+toppers_batch_parmar_toppers_batch,string,ToppersBatchScreen,Parmar Toppers Batch,Parmar Toppers Batch,Parmar Toppers Batch
+toppers_batch_back_to_today,string,ToppersBatchScreen,Back to Today,आज पर वापस जाएँ,Aaj par wapas jayein
+toppers_batch_back_to_count,string,ToppersBatchScreen,Back to %1$s,%1$s पर वापस जाएँ,%1$s par wapas jayein
+toppers_batch_back_to_study_planner,string,ToppersBatchScreen,Back to Study Planner,स्टडी प्लानर पर वापस जाएँ,Study Planner par wapas jayein
+toppers_batch_opening_your_toppers_batch,string,ToppersBatchScreen,Opening your Toppers Batch…,आपका Toppers Batch खोल रहे हैं…,Aapka Toppers Batch khul raha hai…
+toppers_batch_safar_premium_is_needed_for_toppers_batch,string,BatchLocalization; ToppersBatchScreen,SAFAR Premium is needed for Toppers Batch.,Toppers Batch के लिए SAFAR Premium चाहिए।,Toppers Batch ke liye SAFAR Premium chahiye.
+toppers_batch_see_premium,string,ToppersBatchScreen,See Premium,Premium देखें,Premium dekhein
+toppers_batch_toppers_batch_is_not_available_for_this_account_yet,string,BatchLocalization; ToppersBatchScreen,Toppers Batch is not available for this account yet.,इस अकाउंट के लिए Toppers Batch अभी उपलब्ध नहीं है।,Is account ke liye Toppers Batch abhi available nahi hai.
+toppers_batch_try_again,string,ToppersBatchScreen,Try again,फिर कोशिश करें,Phir koshish karein
+toppers_batch_could_not_open_toppers_batch,string,ToppersBatchScreen,Could not open Toppers Batch.,Toppers Batch खोल नहीं सके।,Toppers Batch khol nahi sake.
+toppers_batch_preparing_your_lectures_and_study_plan,string,ToppersBatchScreen,Preparing your lectures and study plan,आपके लेक्चर और पढ़ाई की योजना तैयार कर रहे हैं,Aapke lectures aur study plan taiyar ho rahe hain
+toppers_batch_already_watched_some_lectures,string,ToppersBatchScreen,Already watched some lectures?,कुछ लेक्चर पहले ही देख चुके हैं?,Kuch lectures pehle hi dekh chuke hain?
+toppers_batch_restore_deleted_items,string,ToppersBatchScreen,Restore deleted items,हटाए गए आइटम वापस लाएँ,Hataye gaye items wapas layein
+toppers_batch_deleted_items,string,ToppersBatchScreen,Deleted items,हटाए गए आइटम,Hataye gaye items
+toppers_batch_close,string,BatchCompletionFeedback; BatchReleaseProgressPanel; ToppersBatchActions; ToppersBatchScreen,Close,बंद करें,Band karein
+toppers_batch_your_subjects,string,ToppersBatchScreen,Your subjects,आपके विषय,Aapke subjects
+toppers_batch_browse_lectures_backlog_and_revisions_by_subject,string,ToppersBatchScreen,"Browse lectures, backlog, and revisions by subject.","विषय के अनुसार लेक्चर, बैकलॉग और रिविज़न देखें।","Subject ke hisaab se lectures, backlog aur revision dekhein."
+toppers_batch_see_lectures,string,ToppersBatchScreen,See lectures,लेक्चर देखें,Lectures dekhein
+toppers_batch_library,string,ToppersBatchScreen; ToppersBatchViewModel,Library,लाइब्रेरी,Library
+toppers_batch_search_lectures,string,ToppersBatchScreen,Search lectures,लेक्चर खोजें,Lectures khojein
+toppers_batch_search_lecture_library,string,ToppersBatchScreen,Search lecture library,लेक्चर लाइब्रेरी में खोजें,Lecture library mein khojein
+toppers_batch_no_matching_lectures_try_another_search_or_filter,string,ToppersBatchScreen,No matching lectures. Try another search or filter.,कोई लेक्चर नहीं मिला। दूसरी खोज या फ़िल्टर आज़माएँ।,Koi lecture nahi mila. Doosri search ya filter azmayein.
+toppers_batch_open_count_count_of_count_lectures_done,string,ToppersBatchScreen,"Open %1$s, %2$s of %3$s lectures done","%1$s खोलें, %3$s में से %2$s लेक्चर पूरे हुए","%1$s kholein, %3$s mein se %2$s lectures poore hue"
+toppers_batch_gk,string,ToppersBatchDashboard; ToppersBatchScreen,GK,जीके,GK
+toppers_batch_25_week_timetable,string,ToppersBatchScreen,25-week timetable,25 सप्ताह की समय-सारणी,25 hafton ka timetable
+toppers_batch_schedule,string,ToppersBatchScreen,Schedule,समय-सारणी,Schedule
+toppers_batch_lectures_will_appear_when_the_official_list_is_added,string,ToppersBatchDashboard; ToppersBatchScreen,Lectures will appear when the official list is added.,आधिकारिक सूची जुड़ने पर लेक्चर दिखेंगे।,Official list judne par lectures dikhenge.
+toppers_batch_your_progress,string,ToppersBatchDashboard; ToppersBatchScreen,Your progress,आपकी प्रगति,Aapki progress
+toppers_batch_open_course_website,string,ToppersBatchScreen,Open course website,कोर्स की वेबसाइट खोलें,Course ki website kholein
+toppers_batch_backlog_count,string,ToppersBatchScreen,Backlog %1$s,बैकलॉग %1$s,Backlog %1$s
+toppers_batch_skipped_unfinished_lectures_plus_lectures_you_add_here,string,ToppersBatchScreen,"Skipped unfinished lectures, plus lectures you add here.",छूटे अधूरे लेक्चर और आपके जोड़े गए लेक्चर।,Chhoote adhoore lectures aur aapke jode gaye lectures.
+toppers_batch_no_backlog,string,ToppersBatchScreen,No backlog,कोई बैकलॉग नहीं,Koi backlog nahi
+toppers_batch_no_revision_planned,string,ToppersBatchScreen,No revision planned,रिविज़न की योजना नहीं है,Revision ka plan nahi hai
+toppers_batch_skipped_lectures_and_lectures_you_add_will_appear_here,string,ToppersBatchScreen,Skipped lectures and lectures you add will appear here.,छूटे लेक्चर और आपके जोड़े गए लेक्चर यहाँ दिखेंगे।,Chhoote lectures aur aapke jode gaye lectures yahan dikhenge.
+toppers_batch_finish_a_lecture_then_choose_when_to_revise_it,string,ToppersBatchScreen,"Finish a lecture, then choose when to revise it.","एक लेक्चर पूरा करें, फिर रिविज़न का समय चुनें।","Ek lecture poora karein, phir revision ka samay chunein."
+toppers_batch_gk_lectures_will_appear_when_the_official_list_is_added,string,ToppersBatchScreen,GK lectures will appear when the official list is added.,आधिकारिक सूची जुड़ने पर जीके लेक्चर दिखेंगे।,Official list judne par GK lectures dikhenge.
+toppers_batch_no_lectures_here_yet,string,ToppersBatchScreen,No lectures here yet.,यहाँ अभी कोई लेक्चर नहीं है।,Yahan abhi koi lecture nahi hai.
+toppers_batch_whole_course_progress,string,ToppersBatchScreen,Whole course progress,पूरे कोर्स की प्रगति,Poore course ki progress
+toppers_batch_lectures_left,string,ToppersBatchScreen,Lectures left,बाकी लेक्चर,Baaki lectures
+toppers_batch_in_your_backlog,string,ToppersBatchScreen,In your backlog,आपके बैकलॉग में,Aapke backlog mein
+toppers_batch_whole_course_by_subject,string,ToppersBatchScreen,Whole course by subject,विषय के अनुसार पूरा कोर्स,Subject ke hisaab se poora course
+toppers_batch_no_subjects_to_show_yet,string,ToppersBatchScreen,No subjects to show yet.,अभी दिखाने के लिए कोई विषय नहीं है।,Abhi dikhane ke liye koi subject nahi hai.
+toppers_batch_lectures_completed_in_each_subject,string,ToppersBatchScreen,Lectures completed in each subject,हर विषय में पूरे किए गए लेक्चर,Har subject mein poore kiye gaye lectures
+toppers_batch_month,string,BatchStudentCalendar; ToppersBatchScreen,Month,महीना,Mahina
+toppers_batch_list,string,BatchStudentCalendar; ToppersBatchScreen,List,सूची,List
+toppers_batch_previous_month,string,BatchStudentCalendar; ToppersBatchScreen,Previous month,पिछला महीना,Pichhla mahina
+toppers_batch_next_month,string,BatchStudentCalendar; ToppersBatchScreen,Next month,अगला महीना,Agla mahina
+toppers_batch_mon,string,,Mon,सोम,Som
+toppers_batch_count_count_lectures_done_count_classes_planned,string,ToppersBatchScreen,"%1$s, %2$s lectures done, %3$s classes planned","%1$s, %2$s लेक्चर पूरे हुए, %3$s कक्षाएँ तय हैं","%1$s, %2$s lectures poore hue, %3$s classes tay hain"
+toppers_batch_1_done,string,ToppersBatchScreen,1 done,1 पूरा,1 poora
+toppers_batch_2_done,string,ToppersBatchScreen,2 done,2 पूरे,2 poore
+toppers_batch_3_done,string,ToppersBatchScreen,3+ done,3+ पूरे,3+ poore
+toppers_batch_class,string,BatchCalendarModel; ToppersBatchScreen,Class,कक्षा,Class
+toppers_batch_selected_day,string,ToppersBatchScreen,Selected day,चुना गया दिन,Chuna gaya din
+toppers_batch_no_finished_lectures_or_planned_classes_this_month,string,ToppersBatchScreen,No finished lectures or planned classes this month.,इस महीने कोई लेक्चर पूरा नहीं हुआ और कोई कक्षा तय नहीं है।,Is mahine koi lecture poora nahi hua aur koi class tay nahi hai.
+toppers_batch_no_lectures_finished_or_classes_planned_for_this_day,string,ToppersBatchScreen,No lectures finished or classes planned for this day.,इस दिन कोई लेक्चर पूरा नहीं हुआ और कोई कक्षा तय नहीं है।,Is din koi lecture poora nahi hua aur koi class tay nahi hai.
+toppers_batch_not_done,string,ToppersBatchScreen,Not done,पूरा नहीं हुआ,Poora nahi hua
+toppers_batch_done,string,BatchWeeklyAgenda; ToppersBatchActions; ToppersBatchScreen,Done,पूरा हुआ,Poora hua
+toppers_batch_deleted_subjects,string,ToppersBatchScreen,Deleted subjects,हटाए गए विषय,Hataye gaye subjects
+toppers_batch_your_saved_work_stays_here_restore_an_item_when_you_need_it,string,ToppersBatchScreen,Your saved work stays here. Restore an item when you need it.,आपका काम यहाँ सहेजा रहता है। ज़रूरत होने पर आइटम वापस लाएँ।,Aapka kaam yahan save rehta hai. Zaroorat hone par item wapas layein.
+toppers_batch_nothing_deleted,string,ToppersBatchScreen,Nothing deleted.,कुछ हटाया नहीं गया है।,Kuch hataya nahi gaya hai.
+toppers_batch_deleted_lectures,string,ToppersBatchScreen,Deleted lectures,हटाए गए लेक्चर,Hataye gaye lectures
+toppers_batch_restore,string,ToppersBatchScreen,Restore,वापस लाएँ,Wapas layein
+toppers_batch_your_plan_today,string,PersonalPlanPanel,Your plan today,आज की आपकी योजना,Aaj ka aapka plan
+toppers_batch_nothing_planned_for_today,string,PersonalPlanPanel,Nothing planned for today,आज के लिए कुछ तय नहीं है,Aaj ke liye kuch tay nahi hai
+toppers_batch_add_a_lecture_below_you_decide_how_much_to_study,string,PersonalPlanPanel,Add a lecture below. You decide how much to study.,"नीचे एक लेक्चर जोड़ें। कितना पढ़ना है, आप तय करें।","Neeche ek lecture jodein. Kitna padhna hai, aap tay karein."
+toppers_batch_today_s_plan_completed,string,PersonalPlanPanel,Today’s plan completed,आज की योजना पूरी हुई,Aaj ka plan poora hua
+toppers_batch_add_lectures_to_today,string,PersonalPlanPanel,Add lectures to today,आज के लिए लेक्चर जोड़ें,Aaj ke liye lectures jodein
+toppers_batch_next_available_lecture_in_each_subject_tap_add_to_plan_it_for_tod,string,PersonalPlanPanel,Next available lecture in each subject. Tap Add to plan it for today.,हर विषय का अगला उपलब्ध लेक्चर। आज की योजना में जोड़ने के लिए जोड़ें पर टैप करें।,Har subject ka agla available lecture. Aaj ke plan mein jodne ke liye Add par tap karein.
+toppers_batch_add_count_lecture_count_to_today,string,PersonalPlanPanel,Add %1$s lecture %2$s to today,आज के लिए %1$s का लेक्चर %2$s जोड़ें,Aaj ke liye %1$s ka lecture %2$s jodein
+toppers_batch_adding,string,PersonalPlanPanel,Adding…,जोड़ रहे हैं…,Jud raha hai…
+toppers_batch_add,string,PersonalPlanPanel,Add,जोड़ें,Jodein
+toppers_batch_no_more_released_unplanned_lectures_browse_library_to_manage_your,string,PersonalPlanPanel,"No more released, unplanned lectures. Browse Library to manage your study dates.",कोई रिलीज़ हुआ बिना योजना वाला लेक्चर बाकी नहीं है। पढ़ाई की तारीखें बदलने के लिए लाइब्रेरी देखें।,Koi released bina plan wala lecture baaki nahi hai. Study dates badalne ke liye Library dekhein.
+toppers_batch_other_subjects,string,PersonalPlanPanel,Other subjects,अन्य विषय,Doosre subjects
+toppers_batch_lectures_will_appear_when_added,string,PersonalPlanPanel,Lectures will appear when added.,जोड़ने पर लेक्चर दिखेंगे।,Jodne par lectures dikhenge.
+toppers_batch_all_lectures_completed,string,PersonalPlanPanel,All lectures completed.,सभी लेक्चर पूरे हुए।,Sabhi lectures poore hue.
+toppers_batch_next_class_isn_t_released_yet,string,PersonalPlanPanel,Next class isn’t released yet.,अगली कक्षा अभी रिलीज़ नहीं हुई है।,Agli class abhi release nahi hui hai.
+toppers_batch_available_lectures_already_have_study_dates,string,PersonalPlanPanel,Available lectures already have study dates.,उपलब्ध लेक्चर की पढ़ाई की तारीखें पहले से तय हैं।,Available lectures ki study dates pehle se tay hain.
+toppers_batch_browse_all_lectures,string,PersonalPlanPanel,Browse all lectures,सभी लेक्चर देखें,Sabhi lectures dekhein
+toppers_batch_to_study,string,PersonalPlanPanel,To study,पढ़ने के लिए,Padhne ke liye
+toppers_batch_count_left,string,PersonalPlanPanel,%1$s left,%1$s बाकी,%1$s baaki
+toppers_batch_completed_in_your_plan,string,PersonalPlanPanel,Completed in your plan,आपकी योजना में पूरे हुए,Aapke plan mein poore hue
+toppers_batch_next_in_your_plan,string,PersonalPlanPanel; ToppersBatchDashboard,Next in your plan,आपकी योजना में अगला,Aapke plan mein agla
+toppers_batch_lecture_count_count,string,BatchWeeklyAgenda; PersonalPlanPanel; StudyModePanel,Lecture %1$s · %2$s,लेक्चर %1$s · %2$s,Lecture %1$s · %2$s
+toppers_batch_missed_plans,string,PersonalPlanPanel,Missed plans,छूटी योजनाएँ,Chhoote plans
+toppers_batch_reschedule_plans,string,PersonalPlanPanel,Reschedule plans,योजनाओं की तारीख बदलें,Plans ki dates badlein
+toppers_batch_watch,string,PersonalPlanPanel; StudyPlanDialog,Watch,देखें,Dekhein
+toppers_batch_revise,string,PersonalPlanPanel; StudyPlanDialog,Revise,दोहराएँ,Revise karein
+toppers_batch_remove_revision_plan,string,PersonalPlanPanel,Remove revision plan,रिविज़न की योजना हटाएँ,Revision plan hatayein
+toppers_batch_remove_from_today,string,PersonalPlanPanel,Remove from today,आज से हटाएँ,Aaj se hatayein
+toppers_batch_reminder_count_ist,string,PersonalPlanPanel,Reminder · %1$s IST,रिमाइंडर · %1$s IST,Reminder · %1$s IST
+toppers_batch_waiting_for_release,string,PersonalPlanPanel,Waiting for release,रिलीज़ का इंतज़ार,Release ka intezaar
+toppers_batch_complete_the_revision_planned_for_count_first,string,PersonalPlanPanel,Complete the revision planned for %1$s first.,पहले %1$s के लिए तय रिविज़न पूरा करें।,Pehle %1$s ke liye tay revision poora karein.
+toppers_batch_change_date_for_count_lecture_count,string,PersonalPlanPanel,Change date for %1$s lecture %2$s,%1$s के लेक्चर %2$s की तारीख बदलें,%1$s ke lecture %2$s ki date badlein
+toppers_batch_remove_revision_plan_2,string,PersonalPlanPanel,Remove revision plan?,रिविज़न की योजना हटाएँ?,Revision plan hatayein?
+toppers_batch_this_removes_all_pending_revision_dates_for_lecture_count_includi,string,PersonalPlanPanel,"This removes all pending revision dates for lecture %1$s, including future dates. Completed revisions and lecture completion are kept.","इससे लेक्चर %1$s की सभी बाकी रिविज़न तारीखें हटेंगी, आगे की तारीखें भी। पूरे किए गए रिविज़न और लेक्चर की पूर्णता बनी रहेगी।","Isse lecture %1$s ki sabhi baaki revision dates hatengi, aage ki dates bhi. Poore kiye gaye revisions aur lecture completion bani rahegi."
+toppers_batch_removing,string,PersonalPlanPanel,Removing…,हटा रहे हैं…,Hat raha hai…
+toppers_batch_progress,string,ToppersBatchViewModel,Progress,प्रगति,Progress
+toppers_batch_calendar,string,ToppersBatchViewModel,Calendar,कैलेंडर,Calendar
+toppers_batch_lectures,string,BatchWeeklyAgenda; ToppersBatchViewModel,Lectures,लेक्चर,Lectures
+toppers_batch_backlog,string,BatchWeeklyAgenda; ToppersBatchInsights; ToppersBatchViewModel,Backlog,बैकलॉग,Backlog
+toppers_batch_revision,string,BatchCalendarModel; BatchWeeklyAgenda; ToppersBatchInsights; ToppersBatchViewModel,Revision,रिविज़न,Revision
+toppers_batch_unlocks_count,string,ToppersBatchViewModel,Unlocks %1$s,%1$s को खुलेगा,%1$s ko khulega
+toppers_batch_lecture_marked_as_not_done,string,ToppersBatchViewModel,Lecture marked as not done.,लेक्चर अधूरा चिह्नित किया गया।,Lecture adhoora mark kiya gaya.
+toppers_batch_plan_removed,string,ToppersBatchViewModel,Plan removed.,योजना हटा दी गई।,Plan hata diya gaya.
+toppers_batch_lecture_planned_for_count,string,ToppersBatchViewModel,Lecture planned for %1$s.,लेक्चर %1$s के लिए तय किया गया।,Lecture %1$s ke liye plan kiya gaya.
+toppers_batch_plan_saved,string,ToppersBatchViewModel,Plan saved.,योजना सहेजी गई।,Plan save ho gaya.
+toppers_batch_plans_rescheduled,string,ToppersBatchViewModel,Plans rescheduled.,योजनाओं की तारीखें बदल दी गईं।,Plans ki dates badal di gayi.
+toppers_batch_previous_progress_saved,string,ToppersBatchViewModel,Previous progress saved.,पहले की प्रगति सहेजी गई।,Pehle ki progress save ho gayi.
+toppers_batch_study_dates_saved,string,ToppersBatchViewModel,Study dates saved.,पढ़ाई की तारीखें सहेजी गईं।,Study dates save ho gayi.
+toppers_batch_revision_completed,string,ToppersBatchViewModel,Revision completed.,रिविज़न पूरा हुआ।,Revision poora hua.
+toppers_batch_removed_from_backlog,string,ToppersBatchViewModel,Removed from backlog.,बैकलॉग से हटा दिया गया।,Backlog se hata diya gaya.
+toppers_batch_added_to_backlog,string,ToppersBatchViewModel,Added to backlog.,बैकलॉग में जोड़ दिया गया।,Backlog mein jod diya gaya.
+toppers_batch_personal_study_date_cleared,string,ToppersBatchViewModel,Personal study date cleared.,निजी पढ़ाई की तारीख हटा दी गई।,Personal study date hata di gayi.
+toppers_batch_personal_study_date_saved,string,ToppersBatchViewModel,Personal study date saved.,निजी पढ़ाई की तारीख सहेजी गई।,Personal study date save ho gayi.
+toppers_batch_revision_tag_removed,string,ToppersBatchViewModel,Revision tag removed.,रिविज़न टैग हटा दिया गया।,Revision tag hata diya gaya.
+toppers_batch_revision_tag_added,string,ToppersBatchViewModel,Revision tag added.,रिविज़न टैग जोड़ दिया गया।,Revision tag jod diya gaya.
+toppers_batch_class_date_cleared,string,ToppersBatchViewModel,Class date cleared.,कक्षा की तारीख हटा दी गई।,Class date hata di gayi.
+toppers_batch_added_to_today,string,ToppersBatchViewModel,Added to today.,आज की योजना में जोड़ा गया।,Aaj ke plan mein jod diya gaya.
+toppers_batch_saved,string,ToppersBatchViewModel,Saved.,सहेज लिया गया।,Save ho gaya.
+toppers_batch_lecture_name_saved,string,ToppersBatchViewModel,Lecture name saved.,लेक्चर का नाम सहेजा गया।,Lecture ka naam save ho gaya.
+toppers_batch_lecture_deleted_you_can_restore_it_in_lectures,string,ToppersBatchViewModel,Lecture deleted. You can restore it in Lectures.,लेक्चर हटाया गया। लेक्चर सूची से वापस ला सकते हैं।,Lecture hata diya gaya. Lecture list se wapas la sakte hain.
+toppers_batch_lecture_restored,string,ToppersBatchViewModel,Lecture restored.,लेक्चर वापस लाया गया।,Lecture wapas aa gaya.
+toppers_batch_this_colour_is_used_by_another_subject_choose_a_different_colour,string,BatchLocalization; ToppersBatchViewModel,This colour is used by another subject. Choose a different colour.,यह रंग दूसरे विषय में इस्तेमाल हो रहा है। कोई और रंग चुनें।,Yeh rang doosre subject mein istemal ho raha hai. Koi aur rang chunein.
+toppers_batch_course_link_saved,string,ToppersBatchViewModel,Course link saved.,कोर्स का लिंक सहेजा गया।,Course ka link save ho gaya.
+toppers_batch_lecture_added,string,ToppersBatchViewModel,Lecture added.,लेक्चर जोड़ दिया गया।,Lecture jod diya gaya.
+toppers_batch_count_deleted_restore_it_in_lectures,string,ToppersBatchViewModel,%1$s deleted. Restore it in Lectures.,%1$s हटाया गया। लेक्चर सूची से वापस लाएँ।,%1$s hata diya gaya. Lecture list se wapas layein.
+toppers_batch_count_restored,string,ToppersBatchViewModel,%1$s restored.,%1$s वापस लाया गया।,%1$s wapas aa gaya.
+toppers_batch_planned_lectures,string,BatchCalendarModel,Planned lectures,तय लेक्चर,Planned lectures
+toppers_batch_completed,string,BatchCalendarModel; ToppersBatchDashboard; ToppersBatchInsights,Completed,पूरे हुए,Poore hue
+toppers_batch_key_dates,string,BatchCalendarModel,Key dates,मुख्य तारीखें,Khaas dates
+toppers_batch_study_mode,string,StudyModePanel,Study mode,पढ़ाई का तरीका,Padhai ka tareeka
+toppers_batch_about_count,string,StudyModePanel,About %1$s,%1$s के बारे में,%1$s ke baare mein
+toppers_batch_your_daily_list_follows_official_parmar_topper_batch_schedule,string,StudyModePanel,Your daily list follows official Parmar topper batch schedule.,आपकी रोज़ की सूची आधिकारिक Parmar topper batch की समय-सारणी के अनुसार है।,Aapki roz ki list official Parmar topper batch schedule ke hisaab se hai.
+toppers_batch_your_dates_your_daily_workload,string,StudyModePanel,Your dates. Your daily workload.,आपकी तारीखें। आपकी रोज़ की पढ़ाई।,Aapki dates. Aapki roz ki padhai.
+toppers_batch_follow_parmar_s_official_class_dates_today_shows_the_lectures_sch,string,StudyModePanel,"Follow Parmar’s official class dates. Today shows the lectures scheduled by the batch, and upcoming classes follow that schedule.",Parmar की आधिकारिक कक्षा की तारीखों के अनुसार पढ़ें। आज में बैच की तय कक्षाएँ दिखती हैं और आगे की कक्षाएँ भी इसी समय-सारणी के अनुसार हैं।,Parmar ki official class dates ke hisaab se padhein. Aaj mein batch ki tay classes dikhti hain aur aage ki classes bhi isi schedule ke hisaab se hain.
+toppers_batch_tick_a_lecture_after_you_finish_it_you_do_not_need_to_choose_a_pe,string,StudyModePanel,Tick a lecture after you finish it. You do not need to choose a personal watch date in this mode.,लेक्चर पूरा करने पर उसे चिह्नित करें। इस तरीके में देखने की निजी तारीख चुनने की ज़रूरत नहीं है।,Lecture poora karne par use mark karein. Is mode mein personal watch date chunne ki zaroorat nahi hai.
+toppers_batch_choose_which_lectures_to_study_and_when_use_add_to_plan_a_release,string,StudyModePanel,"Choose which lectures to study and when. Use Add to plan a released lecture for today, or choose another date from its details.","क्या और कब पढ़ना है, चुनें। रिलीज़ हुए लेक्चर को आज के लिए तय करने हेतु जोड़ें का उपयोग करें या उसके विवरण से कोई और तारीख चुनें।","Kya aur kab padhna hai, chunein. Released lecture ko aaj ke liye plan karne ke liye Add use karein ya uske details se koi aur date chunein."
+toppers_batch_your_daily_progress_counts_only_tasks_planned_for_today_parmar_s,string,StudyModePanel,Your daily progress counts only tasks planned for today. Parmar’s schedule remains available for reference and does not add tasks to your plan.,आपकी रोज़ की प्रगति में केवल आज के लिए तय काम गिने जाते हैं। Parmar की समय-सारणी संदर्भ के लिए रहती है और आपकी योजना में काम नहीं जोड़ती।,Aapki roz ki progress mein sirf aaj ke liye tay tasks gine jate hain. Parmar ka schedule reference ke liye rehta hai aur aapke plan mein tasks nahi jodta.
+toppers_batch_switching_modes_keeps_your_saved_plans_and_completion_history,string,StudyModePanel,Switching modes keeps your saved plans and completion history.,तरीका बदलने पर आपकी सहेजी गई योजनाएँ और पूरा करने का इतिहास बना रहता है।,Mode badalne par aapke saved plans aur completion history bani rehti hai.
+toppers_batch_expanded,string,StudyModePanel,Expanded,खुला हुआ,Khula hua
+toppers_batch_collapsed,string,StudyModePanel,Collapsed,बंद हुआ,Band hua
+toppers_batch_collapse_count,string,StudyModePanel,Collapse %1$s,%1$s समेटें,%1$s sametein
+toppers_batch_expand_count,string,StudyModePanel,Expand %1$s,%1$s खोलें,%1$s kholein
+toppers_batch_count_lecture_count,string,StudyModePanel,%1$s - Lecture %2$s,%1$s - लेक्चर %2$s,%1$s - Lecture %2$s
+toppers_batch_official_classes_today,string,StudyModePanel,Official classes today,आज की आधिकारिक कक्षाएँ,Aaj ki official classes
+toppers_batch_reference_only_these_classes_do_not_change_your_plan,string,StudyModePanel,Reference only. These classes do not change your plan.,केवल संदर्भ के लिए। ये कक्षाएँ आपकी योजना नहीं बदलतीं।,Sirf reference ke liye. Yeh classes aapka plan nahi badalti.
+toppers_batch_no_official_classes_scheduled_today,string,StudyModePanel,No official classes scheduled today.,आज कोई आधिकारिक कक्षा तय नहीं है।,Aaj koi official class tay nahi hai.
+toppers_batch_count_count_lecture_count,string,,%1$s %2$s lecture %3$s,%1$s %2$s लेक्चर %3$s,%1$s %2$s lecture %3$s
+toppers_batch_count_ist_2,string,StudyModePanel; ToppersBatchActions, · %1$s IST, · %1$s IST, · %1$s IST
+toppers_batch_next_official_classes,string,StudyModePanel,Next official classes,अगली आधिकारिक कक्षाएँ,Agli official classes
+toppers_batch_no_upcoming_classes_scheduled,string,StudyModePanel,No upcoming classes scheduled.,आगे कोई कक्षा तय नहीं है।,Aage koi class tay nahi hai.
+toppers_batch_overall_batch_progress,string,ToppersBatchDashboard,Overall batch progress,बैच की कुल प्रगति,Batch ki kul progress
+toppers_batch_count_count_of_count_lectures_count,string,ToppersBatchDashboard,%1$s: %2$s of %3$s lectures · %4$s,%1$s: %3$s में से %2$s लेक्चर · %4$s,%1$s: %3$s mein se %2$s lectures · %4$s
+toppers_batch_continue_learning,string,ToppersBatchDashboard,Continue learning,पढ़ाई जारी रखें,Padhai jaari rakhein
+toppers_batch_lectures_completed_today_0,string,ToppersBatchDashboard,Lectures completed today · 0,आज पूरे किए गए लेक्चर · 0,Aaj poore kiye gaye lectures · 0
+toppers_batch_collapse_completed_lectures,string,ToppersBatchDashboard,Collapse completed lectures,पूरे किए गए लेक्चर समेटें,Poore kiye gaye lectures sametein
+toppers_batch_expand_completed_lectures,string,ToppersBatchDashboard,Expand completed lectures,पूरे किए गए लेक्चर खोलें,Poore kiye gaye lectures kholein
+toppers_batch_lectures_completed_today,string,ToppersBatchDashboard,Lectures completed today,आज पूरे किए गए लेक्चर,Aaj poore kiye gaye lectures
+toppers_batch_parmar_s_schedule,string,ToppersBatchDashboard,Parmar’s schedule,Parmar की समय-सारणी,Parmar ka schedule
+toppers_batch_for_reference,string,ToppersBatchDashboard,For reference,संदर्भ के लिए,Reference ke liye
+toppers_batch_today_count,string,BatchStudentCalendar; ToppersBatchDashboard,Today · %1$s,आज · %1$s,Aaj · %1$s
+toppers_batch_lecture_completed,string,ToppersBatchDashboard,Lecture completed,लेक्चर पूरा हुआ,Lecture poora hua
+toppers_batch_next_official_lecture,string,ToppersBatchDashboard,Next official lecture,अगला आधिकारिक लेक्चर,Agla official lecture
+toppers_batch_no_lecture_planned_for_this_subject_add_one_from_today_or_choose,string,ToppersBatchDashboard,No lecture planned for this subject. Add one from Today or choose a watch date in Library.,इस विषय का कोई लेक्चर तय नहीं है। आज से जोड़ें या लाइब्रेरी में देखने की तारीख चुनें।,Is subject ka koi lecture plan nahi hai. Aaj se jodein ya Library mein watch date chunein.
+toppers_batch_no_upcoming_lecture_scheduled_for_this_subject_open_library_to_se,string,ToppersBatchDashboard,No upcoming lecture scheduled for this subject. Open Library to see past classes.,इस विषय का आगे कोई लेक्चर तय नहीं है। पिछली कक्षाएँ देखने के लिए लाइब्रेरी खोलें।,Is subject ka aage koi lecture tay nahi hai. Pichhli classes dekhne ke liye Library kholein.
+toppers_batch_continue_to_lecture_count,string,ToppersBatchDashboard,Continue to lecture %1$s →,लेक्चर %1$s पर आगे बढ़ें →,Lecture %1$s par aage badhein →
+toppers_batch_view_all_count_lectures,string,ToppersBatchDashboard,View all %1$s lectures,%1$s के सभी लेक्चर देखें,%1$s ke sabhi lectures dekhein
+toppers_batch_count_lecture_count_2,string,BatchStudentCalendar; ToppersBatchDashboard,%1$s · Lecture %2$s,%1$s · लेक्चर %2$s,%1$s · Lecture %2$s
+toppers_batch_timetable,string,ToppersBatchDashboard,Timetable,समय-सारणी,Timetable
+toppers_batch_revision_due_count,string,ToppersBatchDashboard,Revision due · %1$s,बाकी रिविज़न · %1$s,Baaki revision · %1$s
+toppers_batch_manage_all_revisions,string,ToppersBatchDashboard,Manage all revisions,सभी रिविज़न सँभालें,Sabhi revisions manage karein
+toppers_batch_all,string,ToppersBatchInsights,All,सभी,Sabhi
+toppers_batch_unfinished,string,ToppersBatchInsights,Unfinished,अधूरे,Adhoore
+toppers_batch_official_schedule,string,BatchStudyMode; ToppersBatchActions,Official schedule,आधिकारिक समय-सारणी,Official schedule
+toppers_batch_my_own_pace,string,BatchStudyMode,My own pace,अपनी गति से,Apni pace se
+toppers_batch_not_set,string,BatchLocalization; BatchStudentCalendar,Not set,तय नहीं है,Tay nahi hai
+toppers_batch_time_not_set,string,BatchStudentCalendar,Time not set,समय तय नहीं है,Samay tay nahi hai
+toppers_batch_my_start_date,string,BatchCalendarModel; BatchStudentCalendar,My start date,मेरी शुरुआती तारीख,Meri shuruaati date
+toppers_batch_batch_start,string,BatchCalendarModel; BatchStudentCalendar,Batch start,बैच की शुरुआत,Batch ki shuruaat
+toppers_batch_first_lecture_done,string,BatchCalendarModel; BatchStudentCalendar,First lecture done,पहला लेक्चर पूरा हुआ,Pehla lecture poora hua
+toppers_batch_goal_date,string,BatchCalendarModel; BatchStudentCalendar,Goal date,लक्ष्य की तारीख,Goal date
+toppers_batch_next_classes,string,BatchStudentCalendar,Next classes,अगली कक्षाएँ,Agli classes
+toppers_batch_no_more_classes_scheduled_today,string,BatchStudentCalendar,No more classes scheduled today.,आज और कोई कक्षा तय नहीं है।,Aaj aur koi class tay nahi hai.
+toppers_batch_no_classes_or_activity_this_month,string,BatchStudentCalendar,No classes or activity this month.,इस महीने कोई कक्षा या गतिविधि नहीं है।,Is mahine koi class ya activity nahi hai.
+toppers_batch_revision_count_count,string,BatchStudentCalendar,Revision · %1$s%2$s,रिविज़न · %1$s%2$s,Revision · %1$s%2$s
+toppers_batch_no_activity,string,BatchStudentCalendar,No activity,कोई गतिविधि नहीं,Koi activity nahi
+toppers_batch_nothing_planned_or_done_this_day,string,BatchStudentCalendar,Nothing planned or done this day.,इस दिन कुछ तय या पूरा नहीं हुआ।,Is din kuch plan ya poora nahi hua.
+toppers_batch_see_next_class,string,BatchStudentCalendar,See next class,अगली कक्षा देखें,Agli class dekhein
+toppers_batch_no_lectures_completed,string,BatchStudentCalendar,No lectures completed.,कोई लेक्चर पूरा नहीं हुआ।,Koi lecture poora nahi hua.
+toppers_batch_no_classes_scheduled,string,BatchStudentCalendar,No classes scheduled.,कोई कक्षा तय नहीं है।,Koi class tay nahi hai.
+toppers_batch_revision_count_2,string,BatchStudentCalendar,↻ Revision%1$s,↻ रिविज़न%1$s,↻ Revision%1$s
+toppers_batch_previously_completed,string,BatchStudentCalendar; ToppersBatchActions,Previously completed,पहले पूरा किया गया,Pehle poora kiya gaya
+toppers_batch_completed_on_count,string,BatchStudentCalendar,Completed on %1$s,%1$s को पूरा हुआ,%1$s ko poora hua
+toppers_batch_completed_count,string,BatchStudentCalendar,Completed %1$s,%1$s को पूरा हुआ,%1$s ko poora hua
+toppers_batch_live_now,string,BatchStudentCalendar,Live now,अभी लाइव,Abhi live
+toppers_batch_date_not_set,string,BatchStudentCalendar,Date not set,तारीख तय नहीं है,Date tay nahi hai
+toppers_batch_next_to_study_lecture_count,string,BatchStudentCalendar,Next to study: Lecture %1$s,अगला पढ़ने के लिए: लेक्चर %1$s,Agla padhne ke liye: Lecture %1$s
+toppers_batch_count_important_dates,string,BatchStudentCalendar,%1$s important dates,मुख्य तारीखें %1$s,Khaas dates %1$s
+toppers_batch_important_dates,string,BatchStudentCalendar,Important dates,मुख्य तारीखें,Khaas dates
+toppers_batch_my_start_count,string,BatchStudentCalendar,My start: %1$s,मेरी शुरुआत: %1$s,Meri shuruaat: %1$s
+toppers_batch_batch_start_count,string,BatchStudentCalendar,Batch start: %1$s,बैच की शुरुआत: %1$s,Batch ki shuruaat: %1$s
+toppers_batch_first_class,string,BatchStudentCalendar,First class,पहली कक्षा,Pehli class
+toppers_batch_all_today_s_lectures_completed_proud_of_you,string,BatchCompletionFeedback,All today's lectures completed. Proud of you!,आज के सभी लेक्चर पूरे हुए। आप पर गर्व है!,Aaj ke sabhi lectures poore hue. Aap par garv hai!
+toppers_batch_keep_it_up_you_re_1_lecture_closer,string,BatchCompletionFeedback,Keep it up! You're 1 lecture closer.,ऐसे ही आगे बढ़ें! एक लेक्चर और करीब पहुँच गए।,Aise hi aage badhein! Ek lecture aur kareeb pahunch gaye.
+toppers_batch_congrats_you_re_consistent_and_on_track,string,BatchCompletionFeedback,Congrats! You're consistent and on track.,बधाई! आप नियमित हैं और सही दिशा में आगे बढ़ रहे हैं।,Badhai! Aap regular hain aur sahi disha mein aage badh rahe hain.
+toppers_batch_count_completed,string,BatchCompletionFeedback,%1$s · Completed,%1$s · पूरा हुआ,%1$s · Poora hua
+toppers_batch_undo,string,BatchCompletionFeedback,Undo,वापस करें,Undo karein
+toppers_batch_lecture_completed_2,string,BatchCompletionFeedback,Lecture Completed! 🎉,लेक्चर पूरा हुआ! 🎉,Lecture poora hua! 🎉
+toppers_batch_awesome,string,BatchCompletionFeedback,Awesome! 🙌,बहुत बढ़िया! 🙌,Bahut badhiya! 🙌
+toppers_batch_your_progress_vs_batch,string,BatchReleaseProgressPanel,Your Progress vs batch,बैच के मुकाबले आपकी प्रगति,Batch ke muqable aapki progress
+toppers_batch_no_lectures_released_yet,string,BatchReleaseProgressPanel,No lectures released yet.,अभी कोई लेक्चर रिलीज़ नहीं हुआ।,Abhi koi lecture release nahi hua.
+toppers_batch_your_progress_will_appear_here_when_lectures_are_released,string,BatchReleaseProgressPanel,Your progress will appear here when lectures are released.,लेक्चर रिलीज़ होने पर आपकी प्रगति यहाँ दिखेगी।,Lectures release hone par aapki progress yahan dikhegi.
+toppers_batch_count_of_count_completed,string,BatchReleaseProgressPanel,%1$s of %2$s completed,%2$s में से %1$s पूरे हुए,%2$s mein se %1$s poore hue
+toppers_batch_count_of_count_released_lectures_completed_count_left_to_watch,string,BatchReleaseProgressPanel,%1$s of %2$s released lectures completed; %3$s left to watch,%2$s रिलीज़ हुए लेक्चर में से %1$s पूरे हुए; %3$s देखने बाकी हैं,%2$s released lectures mein se %1$s poore hue; %3$s dekhne baaki hain
+toppers_batch_you_ve_completed_every_released_lecture,string,BatchReleaseProgressPanel,You've completed every released lecture.,आपने सभी रिलीज़ हुए लेक्चर पूरे कर लिए हैं।,Aapne sabhi released lectures poore kar liye hain.
+toppers_batch_view_remaining_released_lectures,string,BatchReleaseProgressPanel,View remaining released lectures,बाकी रिलीज़ हुए लेक्चर देखें,Baaki released lectures dekhein
+toppers_batch_view_remaining,string,BatchReleaseProgressPanel,View remaining,बाकी देखें,Baaki dekhein
+toppers_batch_released_lectures_by_subject,string,BatchReleaseProgressPanel,Released lectures by subject,विषय के अनुसार रिलीज़ हुए लेक्चर,Subject ke hisaab se released lectures
+toppers_batch_no_lectures_released_yet_2,string,BatchReleaseProgressPanel,No lectures released yet,अभी कोई लेक्चर रिलीज़ नहीं हुआ,Abhi koi lecture release nahi hua
+toppers_batch_count_of_count_completed_count_left,string,BatchReleaseProgressPanel,%1$s of %2$s completed · %3$s left,%2$s में से %1$s पूरे · %3$s बाकी,%2$s mein se %1$s poore · %3$s baaki
+toppers_batch_released_lectures_to_watch,string,BatchReleaseProgressPanel,Released lectures to watch,देखने के लिए रिलीज़ हुए लेक्चर,Dekhne ke liye released lectures
+toppers_batch_tap_a_lecture_to_open_its_details,string,BatchReleaseProgressPanel,Tap a lecture to open its details.,विवरण खोलने के लिए लेक्चर पर टैप करें।,Details kholne ke liye lecture par tap karein.
+toppers_batch_count_count_to_watch,string,BatchReleaseProgressPanel,%1$s · %2$s to watch,%1$s · %2$s देखने बाकी,%1$s · %2$s dekhne baaki
+toppers_batch_no_subjects_to_show,string,BatchWeeklyAgenda,No subjects to show,दिखाने के लिए कोई विषय नहीं,Dikhane ke liye koi subject nahi
+toppers_batch_choose_subject_count,string,BatchWeeklyAgenda,Choose subject: %1$s,विषय चुनें: %1$s,Subject chunein: %1$s
+toppers_batch_maths,string,BatchWeeklyAgenda,Maths,गणित,Maths
+toppers_batch_previous_week,string,BatchWeeklyAgenda,Previous week,पिछला सप्ताह,Pichhla hafta
+toppers_batch_undated,string,BatchWeeklyAgenda,Undated,बिना तारीख,Bina date
+toppers_batch_undated_2,string,BatchWeeklyAgenda,Undated ▾,बिना तारीख ▾,Bina date ▾
+toppers_batch_next_week,string,BatchWeeklyAgenda,Next week,अगला सप्ताह,Agla hafta
+toppers_batch_there_are_no_backlogs_yet,string,BatchWeeklyAgenda,There are no backlogs yet,अभी कोई बैकलॉग नहीं है,Abhi koi backlog nahi hai
+toppers_batch_there_are_no_revisions_yet,string,BatchWeeklyAgenda,There are no revisions yet,अभी कोई रिविज़न नहीं है,Abhi koi revision nahi hai
+toppers_batch_nothing_here_this_week,string,BatchWeeklyAgenda,Nothing here this week,इस सप्ताह कुछ नहीं है,Is hafte kuch nahi hai
+toppers_batch_no_items_to_show,string,BatchWeeklyAgenda,No items to show,दिखाने के लिए कोई आइटम नहीं,Dikhane ke liye koi item nahi
+toppers_batch_undo_completion_count,string,BatchWeeklyAgenda,Undo completion: %1$s,पूर्णता वापस करें: %1$s,Completion undo karein: %1$s
+toppers_batch_count_count_lecture_count_2,string,BatchWeeklyAgenda,"%1$s %2$s, lecture %3$s","%1$s %2$s, लेक्चर %3$s","%1$s %2$s, lecture %3$s"
+toppers_batch_actions_for_lecture_count,string,BatchWeeklyAgenda,Actions for lecture %1$s,लेक्चर %1$s की कार्रवाइयाँ,Lecture %1$s ke actions
+toppers_batch_class_not_started_count,string,BatchWeeklyAgenda,Class not started · %1$s,कक्षा शुरू नहीं हुई · %1$s,Class shuru nahi hui · %1$s
+toppers_batch_lecture_details,string,ToppersBatchActions,Lecture details,लेक्चर का विवरण,Lecture ke details
+toppers_batch_close_lecture_details,string,ToppersBatchActions,Close lecture details,लेक्चर का विवरण बंद करें,Lecture ke details band karein
+toppers_batch_available_in_parmar_academy,string,ToppersBatchActions,Available in Parmar Academy,Parmar Academy में उपलब्ध,Parmar Academy mein available
+toppers_batch_live_lecture_has_not_started,string,ToppersBatchActions,Live lecture has not started,लाइव लेक्चर शुरू नहीं हुआ है,Live lecture shuru nahi hua hai
+toppers_batch_live_lecture_is_over,string,ToppersBatchActions,Live Lecture is over,लाइव लेक्चर समाप्त हो गया है,Live lecture khatam ho gaya hai
+toppers_batch_open_in_youtube_app,string,ToppersBatchActions,Open in YouTube App,YouTube ऐप में खोलें,YouTube app mein kholein
+toppers_batch_live_schedule_unavailable,string,ToppersBatchActions,Live schedule unavailable,लाइव समय-सारणी उपलब्ध नहीं है,Live schedule available nahi hai
+toppers_batch_mark_as_completed,string,ToppersBatchActions,Mark as completed,पूरा चिह्नित करें,Poora mark karein
+toppers_batch_revision_done,string,ToppersBatchActions,Revision done,रिविज़न पूरा हुआ,Revision poora hua
+toppers_batch_undo_completion,string,ToppersBatchActions,Undo Completion,पूर्णता वापस करें,Completion undo karein
+toppers_batch_remove_from_backlog,string,ToppersBatchActions,Remove from backlog,बैकलॉग से हटाएँ,Backlog se hatayein
+toppers_batch_add_to_backlog,string,ToppersBatchActions,Add to backlog,बैकलॉग में जोड़ें,Backlog mein jodein
+toppers_batch_change_lecture_name,string,ToppersBatchActions,Change lecture name,लेक्चर का नाम बदलें,Lecture ka naam badlein
+toppers_batch_delete_lecture,string,ToppersBatchActions,Delete lecture,लेक्चर हटाएँ,Lecture hatayein
+toppers_batch_more_actions_for_count,string,ToppersBatchActions,More actions for %1$s,%1$s की और कार्रवाइयाँ,%1$s ke aur actions
+toppers_batch_class_not_started,string,BatchLocalization; BatchWeeklyAgenda; ToppersBatchActions,Class not started,कक्षा शुरू नहीं हुई,Class shuru nahi hui
+toppers_batch_to_do,string,BatchWeeklyAgenda; ToppersBatchActions,To do,करना बाकी,Karna baaki
+toppers_batch_edit_watch_date,string,ToppersBatchActions,Edit watch date,देखने की तारीख बदलें,Watch date badlein
+toppers_batch_watch_on,string,ToppersBatchActions,Watch on,इस दिन देखें,Is din dekhein
+toppers_batch_choose_a_date,string,ToppersBatchActions,Choose a date,तारीख चुनें,Date chunein
+toppers_batch_planned_watch,string,ToppersBatchActions,Planned watch,देखने की तय तारीख,Watch ki tay date
+toppers_batch_completed_on,string,ToppersBatchActions,Completed on,पूरा करने की तारीख,Poora karne ki date
+toppers_batch_next_revision,string,ToppersBatchActions,Next revision,अगला रिविज़न,Agla revision
+toppers_batch_count_count_done_2,string,ToppersBatchActions, · %1$s/%2$s done, · %1$s/%2$s पूरे हुए, · %1$s/%2$s poore hue
+toppers_batch_revision_tagged,string,ToppersBatchActions,↻ Revision tagged,↻ रिविज़न के लिए टैग किया,↻ Revision ke liye tag kiya
+toppers_batch_revision_2,string,ToppersBatchActions,↻ Revision,↻ रिविज़न,↻ Revision
+toppers_batch_revision_count_count_count,string,ToppersBatchActions,Revision %1$s/%2$s · %3$s,रिविज़न %1$s/%2$s · %3$s,Revision %1$s/%2$s · %3$s
+toppers_batch_open_in_parmar_academy,string,ToppersBatchActions,Open in Parmar Academy,Parmar Academy में खोलें,Parmar Academy mein kholein
+toppers_batch_open_lecture,string,ToppersBatchActions,Open lecture,लेक्चर खोलें,Lecture kholein
+toppers_batch_revise_count,string,ToppersBatchActions,Revise %1$s,%1$s को दोहराएँ,%1$s ko revise karein
+toppers_batch_watch_count,string,ToppersBatchActions,Watch %1$s,%1$s को देखें,%1$s ko dekhein
+toppers_batch_plan_lecture,string,ToppersBatchActions,Plan lecture,लेक्चर की योजना बनाएँ,Lecture plan karein
+toppers_batch_planned_count,string,ToppersBatchActions,Planned %1$s,%1$s के लिए तय,%1$s ke liye tay
+toppers_batch_skipped,string,ToppersBatchActions,Skipped,छूटा हुआ,Chhoota hua
+toppers_batch_added_by_you,string,ToppersBatchActions,Added by you,आपने जोड़ा,Aapne joda
+toppers_batch_could_not_open_this_link,string,ToppersBatchActions,Could not open this link.,यह लिंक खोल नहीं सके।,Yeh link khol nahi sake.
+toppers_batch_lecture_name,string,ToppersBatchActions,Lecture name,लेक्चर का नाम,Lecture ka naam
+toppers_batch_delete_this_lecture,string,ToppersBatchActions,Delete this lecture?,यह लेक्चर हटाएँ?,Yeh lecture hatayein?
+toppers_batch_your_work_will_stay_saved_restore_it_in_lectures,string,ToppersBatchActions,Your work will stay saved. Restore it in Lectures.,आपका काम सहेजा रहेगा। लेक्चर सूची से वापस लाएँ।,Aapka kaam save rahega. Lecture list se wapas layein.
+toppers_batch_add_a_lecture_in_this_subject,string,ToppersBatchActions,Add a lecture in this subject,इस विषय में एक लेक्चर जोड़ें,Is subject mein ek lecture jodein
+toppers_batch_change_colour,string,ToppersBatchActions,Change colour,रंग बदलें,Rang badlein
+toppers_batch_delete_subject,string,ToppersBatchActions,Delete subject,विषय हटाएँ,Subject hatayein
+toppers_batch_add_lecture_to_count,string,ToppersBatchActions,Add lecture to %1$s,%1$s में लेक्चर जोड़ें,%1$s mein lecture jodein
+toppers_batch_delete_count,string,ToppersBatchActions,Delete %1$s?,%1$s हटाएँ?,%1$s hatayein?
+toppers_batch_your_lectures_and_progress_stay_saved_you_can_restore_this_subjec,string,ToppersBatchActions,Your lectures and progress stay saved. You can restore this subject from Library.,आपके लेक्चर और प्रगति सहेजे रहेंगे। लाइब्रेरी से इस विषय को वापस ला सकते हैं।,Aapke lectures aur progress save rahenge. Library se is subject ko wapas la sakte hain.
+toppers_batch_subject_color,string,ToppersBatchActions,Subject color,विषय का रंग,Subject ka rang
+toppers_batch_delete,string,ToppersBatchActions,Delete,हटाएँ,Delete karein
+toppers_batch_pink,string,ToppersBatchActions,Pink,गुलाबी,Gulabi
+toppers_batch_red,string,ToppersBatchActions,Red,लाल,Laal
+toppers_batch_orange,string,ToppersBatchActions,Orange,नारंगी,Narangi
+toppers_batch_yellow,string,ToppersBatchActions,Yellow,पीला,Peela
+toppers_batch_green,string,ToppersBatchActions,Green,हरा,Hara
+toppers_batch_teal,string,ToppersBatchActions,Teal,हरा नीला,Hara neela
+toppers_batch_blue,string,ToppersBatchActions,Blue,नीला,Neela
+toppers_batch_purple,string,ToppersBatchActions,Purple,बैंगनी,Baingani
+toppers_batch_choose_a_color,string,ToppersBatchActions,Choose a color.,रंग चुनें।,Rang chunein.
+toppers_batch_count_color,string,ToppersBatchActions,%1$s color,%1$s रंग,%1$s rang
+toppers_batch_in_use,string,ToppersBatchActions,In use,इस्तेमाल में है,Istemaal mein hai
+toppers_batch_this_color_is_used_by_another_subject,string,ToppersBatchActions,This color is used by another subject.,यह रंग दूसरे विषय में इस्तेमाल हो रहा है।,Yeh rang doosre subject mein istemal ho raha hai.
+toppers_batch_reset_to_default_color,string,ToppersBatchActions,Reset to default color,डिफ़ॉल्ट रंग वापस करें,Default rang wapas karein
+toppers_batch_course_link,string,ToppersBatchActions,Course link,कोर्स का लिंक,Course ka link
+toppers_batch_save_the_website_where_you_watch_this_course,string,ToppersBatchActions,Save the website where you watch this course.,इस कोर्स को देखने की वेबसाइट सहेजें।,Is course ko dekhne ki website save karein.
+toppers_batch_parmar_academy,string,ToppersBatchActions,Parmar Academy,Parmar Academy,Parmar Academy
+toppers_batch_other_website,string,ToppersBatchActions,Other website,अन्य वेबसाइट,Doosri website
+toppers_batch_website_link,string,ToppersBatchActions,Website link,वेबसाइट का लिंक,Website ka link
+toppers_batch_use_a_secure_link_starting_with_https,string,ToppersBatchActions,Use a secure link starting with https://,https:// से शुरू होने वाला सुरक्षित लिंक इस्तेमाल करें,https:// se shuru hone wala secure link istemal karein
+toppers_batch_save_link,string,ToppersBatchActions,Save link,लिंक सहेजें,Link save karein
+toppers_batch_parmar_topper_batch_tracker,string,PlannerEntryComponents,Parmar Topper Batch Tracker,Parmar Topper Batch ट्रैकर,Parmar Topper Batch Tracker
+toppers_batch_lectures_revision_and_progress,string,PlannerEntryComponents,"Lectures, revision and progress","लेक्चर, रिविज़न और प्रगति","Lectures, revision aur progress"
+toppers_batch_complete,string,BatchWeeklyAgenda,Complete,पूरा करें,Poora karein
+toppers_batch_mark_as_done,string,ToppersBatchActions,Mark as done,पूरा चिह्नित करें,Poora mark karein
+toppers_batch_mark_as_not_done,string,ToppersBatchActions,Mark as not done,अधूरा चिह्नित करें,Adhoora mark karein
+toppers_batch_page,string,LectureWeekBrowser,Page,पृष्ठ,Page
+toppers_batch_show,string,BatchStudentCalendar,Show,दिखाएँ,Dikhayein
+toppers_batch_undo_completion_2,string,BatchWeeklyAgenda,Undo completion,पूर्णता वापस करें,Completion undo karein
+toppers_batch_week,string,LectureWeekBrowser,Week,सप्ताह,Hafta
+toppers_batch_revision_plan,string,, revision plan, रिविज़न की योजना, revision plan
+toppers_batch_overdue,string,BatchStudentCalendar, · Overdue, · समय निकल गया, · Overdue
+toppers_batch_today_2,string,BatchStudentCalendar,", today",", आज",", aaj"
+toppers_batch_completed_count_2,string,BatchStudentCalendar, · Completed%1$s, · पूरा हुआ%1$s, · Poora hua%1$s
+toppers_batch_pending,string,,pending,बाकी,baaki
+toppers_batch_revisions,string,,revisions,रिविज़न,revisions
+toppers_batch_classes,string,,classes,कक्षाएँ,classes
+toppers_batch_lecture,string,,lecture,लेक्चर,lecture
+toppers_batch_date,string,,date,तारीख,date
+toppers_batch_english,string,BatchLocalization,English,अंग्रेज़ी,English
+toppers_batch_mathematics,string,BatchLocalization,Mathematics,गणित,Maths
+toppers_batch_reasoning,string,BatchLocalization,Reasoning,रीज़निंग,Reasoning
+toppers_batch_general_knowledge,string,BatchLocalization,General Knowledge,सामान्य ज्ञान,General Knowledge
+toppers_batch_something_went_wrong_please_try_again,string,BatchLocalization,Something went wrong. Please try again.,कुछ गड़बड़ हुई। फिर से कोशिश करें।,Kuch gadbad hui. Phir se koshish karein.
+toppers_batch_your_plan_has_changed_refresh_and_try_again,string,BatchLocalization,Your plan has changed. Refresh and try again.,आपकी योजना बदल गई है। रीफ़्रेश करके फिर कोशिश करें।,Aapka plan badal gaya hai. Refresh karke phir koshish karein.
+toppers_batch_please_sign_in_again_to_open_your_tracker,string,BatchLocalization,Please sign in again to open your tracker.,ट्रैकर खोलने के लिए फिर से साइन इन करें।,Tracker kholne ke liye phir se sign in karein.
+toppers_batch_could_not_reach_safar_please_check_your_internet_connection,string,BatchLocalization,Could not reach SAFAR. Please check your internet connection.,SAFAR से संपर्क नहीं हुआ। अपना इंटरनेट कनेक्शन जाँचें।,SAFAR se connect nahi hua. Apna internet connection check karein.
+toppers_batch_safar_is_taking_too_long_to_respond_please_try_again,string,BatchLocalization,SAFAR is taking too long to respond. Please try again.,SAFAR से जवाब आने में देर हो रही है। फिर से कोशिश करें।,SAFAR se jawab aane mein der ho rahi hai. Phir se koshish karein.
+toppers_batch_connection_to_safar_was_interrupted_please_try_again,string,BatchLocalization,Connection to SAFAR was interrupted. Please try again.,SAFAR से कनेक्शन टूट गया। फिर से कोशिश करें।,SAFAR se connection toot gaya. Phir se koshish karein.
+toppers_batch_could_not_connect_to_safar_please_try_again,string,BatchLocalization,Could not connect to SAFAR. Please try again.,SAFAR से कनेक्ट नहीं हो सके। फिर से कोशिश करें।,SAFAR se connect nahi ho sake. Phir se koshish karein.
+toppers_batch_please_wait_a_moment_and_try_again,string,BatchLocalization,Please wait a moment and try again.,थोड़ा इंतज़ार करके फिर कोशिश करें।,Thoda intezaar karke phir koshish karein.
+toppers_batch_this_lecture_or_subject_is_no_longer_available_refresh_your_track,string,BatchLocalization,This lecture or subject is no longer available. Refresh your tracker.,यह लेक्चर या विषय अब उपलब्ध नहीं है। ट्रैकर रीफ़्रेश करें।,Yeh lecture ya subject ab available nahi hai. Tracker refresh karein.
+toppers_batch_check_your_selections_and_try_again,string,BatchLocalization,Check your selections and try again.,अपना चयन जाँचें और फिर कोशिश करें।,Apna selection check karein aur phir koshish karein.
+toppers_batch_request_failed,string,BatchLocalization,SAFAR could not complete this request. Please try again.,SAFAR यह अनुरोध पूरा नहीं कर सका। फिर से कोशिश करें।,SAFAR yeh request poori nahi kar saka. Phir se koshish karein.
+toppers_batch_some_plans_changed_during_saving_and_were_left_untouched_other_se,string,BatchLocalization,Some plans changed during saving and were left untouched. Other selected plans were saved. Refresh to review them.,"सहेजते समय कुछ योजनाएँ बदल गईं, इसलिए उन्हें नहीं बदला गया। बाकी चुनी योजनाएँ सहेजी गईं। समीक्षा के लिए रीफ़्रेश करें।","Save karte waqt kuch plans badal gaye, isliye unhein nahi badla gaya. Baaki chune plans save ho gaye. Review ke liye refresh karein."
+toppers_batch_choose_valid_dates_and_a_weekly_goal_from_1_to_100_lectures,string,BatchLocalization,Choose valid dates and a weekly goal from 1 to 100 lectures,सही तारीखें और 1 से 100 लेक्चर का साप्ताहिक लक्ष्य चुनें,Sahi dates aur 1 se 100 lectures ka weekly goal chunein
+toppers_batch_your_start_date_cannot_be_in_the_future,string,BatchLocalization,Your start date cannot be in the future,शुरुआती तारीख आगे की नहीं हो सकती,Shuruaati date future ki nahi ho sakti
+toppers_batch_target_date_must_be_on_or_after_your_start_date,string,BatchLocalization,Target date must be on or after your start date,लक्ष्य की तारीख शुरुआत की तारीख से पहले नहीं हो सकती,Goal date start date se pehle nahi ho sakti
+toppers_batch_could_not_import_saved_lecture_progress,string,BatchLocalization,Could not import saved lecture progress,सहेजी गई लेक्चर प्रगति इंपोर्ट नहीं हो सकी,Saved lecture progress import nahi ho saki
+toppers_batch_choose_lectures_and_a_valid_past_completion_date,string,BatchLocalization,Choose lectures and a valid past completion date,लेक्चर और पहले की सही पूर्णता तारीख चुनें,Lectures aur pehle ki sahi completion date chunein
+toppers_batch_choose_available_lectures_from_your_account,string,BatchLocalization,Choose available lectures from your account,अपने अकाउंट के उपलब्ध लेक्चर चुनें,Apne account ke available lectures chunein
+toppers_batch_a_revision_is_already_planned_on_one_of_these_dates_choose_anothe,string,BatchLocalization,A revision is already planned on one of these dates. Choose another start date.,इनमें से एक तारीख पर रिविज़न पहले से तय है। दूसरी शुरुआती तारीख चुनें।,Inmein se ek date par revision pehle se tay hai. Doosri shuruaati date chunein.
+toppers_batch_choose_a_valid_date,string,BatchLocalization,Choose a valid date,सही तारीख चुनें,Sahi date chunein
+toppers_batch_choose_a_valid_month,string,BatchLocalization,Choose a valid month,सही महीना चुनें,Sahi mahina chunein
+toppers_batch_check_the_subject_options_and_try_again,string,BatchLocalization,Check the subject options and try again,विषय के विकल्प जाँचें और फिर कोशिश करें,Subject ke options check karein aur phir koshish karein
+toppers_batch_enter_a_lecture_name_up_to_300_characters,string,BatchLocalization,Enter a lecture name up to 300 characters,अधिकतम 300 अक्षरों में लेक्चर का नाम लिखें,Zyada se zyada 300 characters mein lecture ka naam likhein
+toppers_batch_add_the_subject_back_first,string,BatchLocalization,Add the subject back first.,पहले विषय वापस लाएँ।,Pehle subject wapas layein.
+toppers_batch_enter_a_lecture_name_or_choose_a_color,string,BatchLocalization,Enter a lecture name or choose a color,लेक्चर का नाम लिखें या रंग चुनें,Lecture ka naam likhein ya rang chunein
+toppers_batch_choose_a_valid_plan_and_reminder_time,string,BatchLocalization,Choose a valid plan and reminder time,सही योजना और रिमाइंडर का समय चुनें,Sahi plan aur reminder time chunein
+toppers_batch_this_lecture_is_already_completed_plan_a_revision_instead,string,BatchLocalization,This lecture is already completed. Plan a revision instead.,यह लेक्चर पहले ही पूरा हो चुका है। अब रिविज़न की योजना बनाएँ।,Yeh lecture pehle hi poora ho chuka hai. Ab revision plan karein.
+toppers_batch_complete_this_lecture_before_planning_revision,string,BatchLocalization,Complete this lecture before planning revision.,रिविज़न की योजना से पहले यह लेक्चर पूरा करें।,Revision plan karne se pehle yeh lecture poora karein.
+toppers_batch_class_not_started_refresh_the_lecture_schedule,string,BatchLocalization,Class not started. Refresh the lecture schedule.,कक्षा शुरू नहीं हुई। लेक्चर की समय-सारणी रीफ़्रेश करें।,Class shuru nahi hui. Lecture schedule refresh karein.
+toppers_batch_parmar_class_dates_are_set_by_the_admin,string,BatchLocalization,Parmar class dates are set by the admin.,Parmar कक्षाओं की तारीखें एडमिन तय करते हैं।,Parmar classes ki dates admin tay karte hain.
+toppers_batch_choose_one_date_or_five_dates,string,BatchLocalization,Choose one date or five dates,एक या पाँच तारीखें चुनें,Ek ya paanch dates chunein
+toppers_batch_mark_the_lecture_as_done_before_setting_a_study_date,string,BatchLocalization,Mark the lecture as done before setting a study date,पढ़ाई की तारीख तय करने से पहले लेक्चर पूरा चिह्नित करें,Study date tay karne se pehle lecture poora mark karein
+toppers_batch_choose_1_to_5_different_study_dates,string,BatchLocalization,Choose 1 to 5 different study dates,पढ़ाई की 1 से 5 अलग तारीखें चुनें,Study ki 1 se 5 alag dates chunein
+toppers_batch_you_can_choose_up_to_five_study_dates_in_total,string,BatchLocalization,You can choose up to five study dates in total,आप कुल पाँच पढ़ाई की तारीखें चुन सकते हैं,Aap kul paanch study dates chun sakte hain
+toppers_batch_no_study_date_is_set_for_this_lecture,string,BatchLocalization,No study date is set for this lecture,इस लेक्चर की पढ़ाई की तारीख तय नहीं है,Is lecture ki study date tay nahi hai
+toppers_batch_you_need_safar_premium_to_use_this_study_plan,string,BatchLocalization,You need SAFAR Premium to use this study plan.,इस पढ़ाई की योजना के लिए SAFAR Premium चाहिए।,Is study plan ke liye SAFAR Premium chahiye.
+toppers_batch_this_study_plan_is_not_available_for_your_account_yet,string,BatchLocalization,This study plan is not available for your account yet.,इस अकाउंट के लिए पढ़ाई की यह योजना अभी उपलब्ध नहीं है।,Is account ke liye yeh study plan abhi available nahi hai.
+toppers_batch_open_your_study_plan_first,string,BatchLocalization,Open your study plan first.,पहले पढ़ाई की योजना खोलें।,Pehle study plan kholein.
+toppers_batch_could_not_open_your_study_plan_please_try_again,string,BatchLocalization,Could not open your study plan. Please try again.,पढ़ाई की योजना खोल नहीं सके। फिर से कोशिश करें।,Study plan khol nahi sake. Phir se koshish karein.
+toppers_batch_count_results,one,ToppersBatchScreen,%1$s result,%1$s परिणाम,%1$s results
+toppers_batch_count_results,other,ToppersBatchScreen,%1$s results,%1$s परिणाम,%1$s results
+toppers_batch_count_lectures_finished,one,ToppersBatchProgressChart,%1$s lecture finished,%1$s लेक्चर पूरा हुआ,%1$s lecture poore hue
+toppers_batch_count_lectures_finished,other,ToppersBatchProgressChart,%1$s lectures finished,%1$s लेक्चर पूरे हुए,%1$s lectures poore hue
+toppers_batch_count_revision_sessions_completed,one,ToppersBatchScreen,%1$s revision session completed,%1$s रिविज़न सत्र पूरा हुआ,%1$s revision session poore hue
+toppers_batch_count_revision_sessions_completed,other,ToppersBatchScreen,%1$s revision sessions completed,%1$s रिविज़न सत्र पूरे हुए,%1$s revision sessions poore hue
+toppers_batch_count_classes_scheduled_today,one,ToppersBatchDashboard,%1$s class scheduled today,आज %1$s कक्षा तय हैं,Aaj %1$s class tay hain
+toppers_batch_count_classes_scheduled_today,other,ToppersBatchDashboard,%1$s classes scheduled today,आज %1$s कक्षाएँ तय हैं,Aaj %1$s classes tay hain
+toppers_batch_count_revision_sessions,one,BatchStudentCalendar,%1$s revision session,%1$s रिविज़न सत्र,%1$s revision session
+toppers_batch_count_revision_sessions,other,BatchStudentCalendar,%1$s revision sessions,%1$s रिविज़न सत्र,%1$s revision sessions
+toppers_batch_count_lectures_to_revise_on_count,one,BatchStudentCalendar,%1$s lecture to revise on %2$s,%2$s को %1$s लेक्चर दोहराने हैं,%2$s ko %1$s lecture revise karne hain
+toppers_batch_count_lectures_to_revise_on_count,other,BatchStudentCalendar,%1$s lectures to revise on %2$s,%2$s को %1$s लेक्चर दोहराने हैं,%2$s ko %1$s lectures revise karne hain
+toppers_batch_count_planned_to_study,one,BatchStudentCalendar,%1$s planned to study,%1$s पढ़ने के लिए तय,%1$s padhne ke liye tay
+toppers_batch_count_planned_to_study,other,BatchStudentCalendar,%1$s planned to study,%1$s पढ़ने के लिए तय,%1$s padhne ke liye tay
+toppers_batch_count_done,one,BatchStudentCalendar; ToppersBatchScreen,%1$s done,%1$s पूरे,%1$s poore
+toppers_batch_count_done,other,BatchStudentCalendar; ToppersBatchScreen,%1$s done,%1$s पूरे,%1$s poore
+toppers_batch_count_revisions,one,BatchStudentCalendar,%1$s revision,%1$s रिविज़न,%1$s revisions
+toppers_batch_count_revisions,other,BatchStudentCalendar,%1$s revisions,%1$s रिविज़न,%1$s revisions
+toppers_batch_lectures_completed_today_count,one,ToppersBatchDashboard,Lecture completed today · %1$s,आज पूरे किए गए लेक्चर · %1$s,Aaj poore kiye gaye lecture · %1$s
+toppers_batch_lectures_completed_today_count,other,ToppersBatchDashboard,Lectures completed today · %1$s,आज पूरे किए गए लेक्चर · %1$s,Aaj poore kiye gaye lectures · %1$s
+toppers_batch_finished_on_this_day_count,one,ToppersBatchScreen,Finished on this day (%1$s),इस दिन पूरे हुए (%1$s),Is din poore hue (%1$s)
+toppers_batch_finished_on_this_day_count,other,ToppersBatchScreen,Finished on this day (%1$s),इस दिन पूरे हुए (%1$s),Is din poore hue (%1$s)
+toppers_batch_classes_planned_for_this_day_count,one,ToppersBatchScreen,Class planned for this day (%1$s),इस दिन की तय कक्षा (%1$s),Is din ki tay class (%1$s)
+toppers_batch_classes_planned_for_this_day_count,other,ToppersBatchScreen,Classes planned for this day (%1$s),इस दिन की तय कक्षाएँ (%1$s),Is din ki tay classes (%1$s)
+toppers_batch_save_count_plans,one,StudyPlanDialog,Save %1$s plan,%1$s योजनाएँ सहेजें,%1$s plan save karein
+toppers_batch_save_count_plans,other,StudyPlanDialog,Save %1$s plans,%1$s योजनाएँ सहेजें,%1$s plans save karein
+toppers_batch_count_lectures,one,ToppersBatchProgressChart,+%1$s lecture,+%1$s लेक्चर,+%1$s lecture
+toppers_batch_count_lectures,other,ToppersBatchProgressChart,+%1$s lectures,+%1$s लेक्चर,+%1$s lectures
+toppers_batch_count_of_count_lectures_done,one,StudyModePanel; ToppersBatchDashboard; ToppersBatchScreen,%1$s of %2$s lecture done,%2$s में से %1$s लेक्चर पूरे हुए,%2$s mein se %1$s lecture poore hue
+toppers_batch_count_of_count_lectures_done,other,StudyModePanel; ToppersBatchDashboard; ToppersBatchScreen,%1$s of %2$s lectures done,%2$s में से %1$s लेक्चर पूरे हुए,%2$s mein se %1$s lectures poore hue
+toppers_batch_count_of_count_lectures_completed,one,ToppersBatchDashboard,%1$s of %2$s lecture completed,%2$s में से %1$s लेक्चर पूरे हुए,%2$s mein se %1$s lecture poore hue
+toppers_batch_count_of_count_lectures_completed,other,ToppersBatchDashboard,%1$s of %2$s lectures completed,%2$s में से %1$s लेक्चर पूरे हुए,%2$s mein se %1$s lectures poore hue
+toppers_batch_count_of_count_lectures_complete,one,ToppersBatchScreen,%1$s of %2$s lecture complete,%2$s में से %1$s लेक्चर पूरे हुए,%2$s mein se %1$s lecture poore hue
+toppers_batch_count_of_count_lectures_complete,other,ToppersBatchScreen,%1$s of %2$s lectures complete,%2$s में से %1$s लेक्चर पूरे हुए,%2$s mein se %1$s lectures poore hue
+toppers_batch_count_of_count_tasks_done_count_left,one,PersonalPlanPanel,%1$s of %2$s task done · %3$s left,%2$s में से %1$s काम पूरे · %3$s बाकी,%2$s mein se %1$s task poore · %3$s baaki
+toppers_batch_count_of_count_tasks_done_count_left,other,PersonalPlanPanel,%1$s of %2$s tasks done · %3$s left,%2$s में से %1$s काम पूरे · %3$s बाकी,%2$s mein se %1$s tasks poore · %3$s baaki
+toppers_batch_released_total,one,BatchReleaseProgressPanel,%1$s lecture completed in batch till now.,बैच में अब तक %1$s लेक्चर पूरे हुए।,Batch mein ab tak %1$s lecture poore hue.
+toppers_batch_released_total,other,BatchReleaseProgressPanel,%1$s lectures completed in batch till now.,बैच में अब तक %1$s लेक्चर पूरे हुए।,Batch mein ab tak %1$s lectures poore hue.
+toppers_batch_released_remaining,one,BatchReleaseProgressPanel,%1$s released lecture left to watch.,%1$s रिलीज़ हुए लेक्चर देखने बाकी हैं।,%1$s released lecture dekhne baaki hain.
+toppers_batch_released_remaining,other,BatchReleaseProgressPanel,%1$s released lectures left to watch.,%1$s रिलीज़ हुए लेक्चर देखने बाकी हैं।,%1$s released lectures dekhne baaki hain.
+toppers_batch_classes_count,one,BatchStudentCalendar,%1$s class,%1$s कक्षा,%1$s class
+toppers_batch_classes_count,other,BatchStudentCalendar,%1$s classes,%1$s कक्षाएँ,%1$s classes
+toppers_batch_study_dates_count,one,BatchStudentCalendar,%1$s study date,पढ़ाई की %1$s तारीख,Study ki %1$s date
+toppers_batch_study_dates_count,other,BatchStudentCalendar,%1$s study dates,पढ़ाई की %1$s तारीखें,Study ki %1$s dates
+toppers_batch_week_lectures_count,one,BatchWeeklyAgenda,%1$s lecture this week,इस सप्ताह %1$s लेक्चर,Is hafte %1$s lecture
+toppers_batch_week_lectures_count,other,BatchWeeklyAgenda,%1$s lectures this week,इस सप्ताह %1$s लेक्चर,Is hafte %1$s lectures
+toppers_batch_pending_count,one,BatchWeeklyAgenda,%1$s pending lecture,%1$s बाकी लेक्चर,%1$s baaki lecture
+toppers_batch_pending_count,other,BatchWeeklyAgenda,%1$s pending lectures,%1$s बाकी लेक्चर,%1$s baaki lectures
+toppers_batch_revisions_count,one,BatchWeeklyAgenda; PersonalPlanPanel,%1$s revision,%1$s रिविज़न,%1$s revision
+toppers_batch_revisions_count,other,BatchWeeklyAgenda; PersonalPlanPanel,%1$s revisions,%1$s रिविज़न,%1$s revisions
+toppers_batch_complete_subject_lecture,string,PersonalPlanPanel; StudyModePanel,Complete %1$s lecture %2$s,%1$s का लेक्चर %2$s पूरा करें,%1$s ka lecture %2$s poora karein
+toppers_batch_undo_subject_lecture,string,PersonalPlanPanel; StudyModePanel,Undo completion of %1$s lecture %2$s,%1$s के लेक्चर %2$s की पूर्णता वापस करें,%1$s ke lecture %2$s ki completion undo karein
+toppers_batch_complete_subject_revision,string,PersonalPlanPanel,Complete %1$s lecture %2$s revision,%1$s के लेक्चर %2$s का रिविज़न पूरा करें,%1$s ke lecture %2$s ka revision poora karein
+toppers_batch_remove_subject_revision,string,PersonalPlanPanel,Remove %1$s lecture %2$s revision plan,%1$s के लेक्चर %2$s की रिविज़न योजना हटाएँ,%1$s ke lecture %2$s ka revision plan hatayein
+toppers_batch_remove_subject_today,string,PersonalPlanPanel,Remove %1$s lecture %2$s from today,%1$s का लेक्चर %2$s आज की योजना से हटाएँ,%1$s ka lecture %2$s aaj ke plan se hatayein
+toppers_batch_lectures_count,one,PersonalPlanPanel,%1$s lecture,%1$s लेक्चर,%1$s lecture
+toppers_batch_lectures_count,other,PersonalPlanPanel,%1$s lectures,%1$s लेक्चर,%1$s lectures

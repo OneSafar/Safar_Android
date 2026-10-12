@@ -1,5 +1,8 @@
 package com.safarparmar.app.ui.studyplanner.screens
 
+import androidx.compose.ui.res.stringResource
+import com.safarparmar.app.R
+import com.safarparmar.app.performance.decorativeFloat
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Animatable
@@ -134,9 +137,10 @@ private val FinishLineRed = Color(0xFFEF5350)
 private val RevisionDoneTeal = Color(0xFF26A69A)
 private val RevisionPendingOrange = Color(0xFFFFB300)
 private val RevisionSpikeGold = Color(0xFFE8C547)
-// Manual (custom-date) revision uses a distinct violet ring so it reads
-// differently from spaced revision — matching the Revision screen's cards.
-private val RevisionCustomViolet = Color(0xFF8B5CF6)
+// Manual (custom-date) revision uses a distinct violet ring and indigo spike so it reads
+// differently from spaced revision — matching the Web visualizer and cards.
+private val RevisionCustomViolet = Color(0xFF7C3AED)
+private val RevisionCustomSpike = Color(0xFF6366F1)
 
 private fun formatShortMonthDay(iso: String?): String? {
     val date = parsePlannerDate(iso?.take(10)) ?: return null
@@ -257,7 +261,7 @@ internal fun InsightsOverallProgressRedesign(
                         color = primaryText,
                     )
                     Text(
-                        text = "syllabus done",
+                        text = stringResource(R.string.planner_syllabus_done),
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = secondaryText,
@@ -270,13 +274,13 @@ internal fun InsightsOverallProgressRedesign(
             // be trusted. Now the caption states what is finished and what is
             // left, and one plain line explains why the % isn't just done/total.
             Text(
-                text = "$doneTopics done · ${(totalTopics - doneTopics).coerceAtLeast(0)} to go",
+                text = stringResource(R.string.planner_done_to_go, doneTopics, (totalTopics - doneTopics).coerceAtLeast(0)),
                 style = MaterialTheme.typography.bodySmall,
                 color = secondaryText,
                 textAlign = TextAlign.Center,
             )
             Text(
-                text = "Big topics count more",
+                text = stringResource(R.string.planner_big_topics_count_more),
                 style = MaterialTheme.typography.labelSmall,
                 color = secondaryText,
                 textAlign = TextAlign.Center,
@@ -305,7 +309,7 @@ internal fun InsightsMetricSquares(examDays: Int?, dailyGoal: Int, isLight: Bool
         MetricSquareCard(
             icon = Icons.Default.Timer,
             value = if (examDays == null) "—" else "$daysCounted",
-            label = "days to exam",
+            label = stringResource(R.string.planner_days_to_exam_lower),
             primaryText = primaryText,
             secondaryText = secondaryText,
             tint = tint,
@@ -316,7 +320,7 @@ internal fun InsightsMetricSquares(examDays: Int?, dailyGoal: Int, isLight: Bool
         MetricSquareCard(
             icon = Icons.Default.TrackChanges,
             value = "$goalCounted",
-            label = "daily goal",
+            label = stringResource(R.string.planner_daily_goal_lower),
             primaryText = primaryText,
             secondaryText = secondaryText,
             tint = tint,
@@ -386,7 +390,7 @@ internal fun ConsistencyStreakCard(
     val haptic = LocalHapticFeedback.current
     var selectedDate by remember { mutableStateOf<String?>(null) }
     val flamePulse = rememberInfiniteTransition(label = "streakFlame")
-    val flameScale by flamePulse.animateFloat(
+    val flameScale by flamePulse.decorativeFloat(
         initialValue = 1f,
         targetValue = if (consistency.studyStreak > 0) 1.08f else 1f,
         animationSpec = infiniteRepeatable(
@@ -423,9 +427,9 @@ internal fun ConsistencyStreakCard(
                 )
                 Text(
                     text = if (consistency.studyStreak > 0) {
-                        "Studied ${consistency.studyStreak} day${if (consistency.studyStreak == 1) "" else "s"} in a row"
+                        stringResource(R.string.planner_studied_days_row, consistency.studyStreak)
                     } else {
-                        "Study today to begin"
+                        stringResource(R.string.planner_study_today_begin)
                     },
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Black,
@@ -435,7 +439,7 @@ internal fun ConsistencyStreakCard(
                     modifier = Modifier.weight(1f),
                 )
                 Text(
-                    text = "Tap a day",
+                    text = stringResource(R.string.planner_tap_day),
                     style = MaterialTheme.typography.labelSmall,
                     color = secondaryText,
                     maxLines = 1,
@@ -521,7 +525,7 @@ private fun TappableWeekStreak(
                     if (active) {
                         Icon(
                             imageVector = Icons.Default.Check,
-                            contentDescription = "Studied",
+                            contentDescription = stringResource(R.string.planner_studied),
                             tint = Color.White,
                             modifier = Modifier.size(14.dp),
                         )
@@ -626,7 +630,7 @@ internal fun InsightsStudySpeedCard(
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Text(
-                text = "Daily study",
+                text = stringResource(R.string.planner_daily_study),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Black,
                 color = primaryText,
@@ -681,7 +685,7 @@ internal fun InsightsStudySpeedCard(
                     )
                     if (hasRecentPace && !nothingLeft) {
                         Text(
-                            text = "work/day",
+                            text = stringResource(R.string.planner_work_per_day),
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.SemiBold,
                             color = secondaryText,
@@ -732,7 +736,7 @@ internal fun SubjectProgressChart(
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
-                    text = "By subject",
+                    text = stringResource(R.string.planner_by_subject),
                     fontWeight = FontWeight.Black,
                     fontSize = 18.sp,
                     color = primaryText,
@@ -746,7 +750,7 @@ internal fun SubjectProgressChart(
                 }
             }
             if (chartSubjects.isEmpty()) {
-                Text(text = "Add topics to see progress here.", color = secondaryText)
+                Text(text = stringResource(R.string.planner_add_topics_progress), color = secondaryText)
             } else {
                 BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
                     val stackVertically = maxWidth < 340.dp
@@ -1064,7 +1068,7 @@ internal fun InsightsFinishLineCard(
                     modifier = Modifier.size(20.dp),
                 )
                 Text(
-                    text = "When you'll finish",
+                    text = stringResource(R.string.planner_when_finish),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Black,
                     color = primaryText,
@@ -1072,7 +1076,7 @@ internal fun InsightsFinishLineCard(
                 )
                 studyDaysLeft?.let { days ->
                     Text(
-                        text = "$days day${if (days == 1) "" else "s"} left to study",
+                        text = stringResource(R.string.planner_days_left_study, days),
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = secondaryText,
@@ -1082,14 +1086,14 @@ internal fun InsightsFinishLineCard(
             }
 
             Text(
-                text = if (basedOnRecentPace) "Based on your recent study" else "If you complete your daily goal",
+                text = if (basedOnRecentPace) stringResource(R.string.planner_based_recent_study) else stringResource(R.string.planner_if_daily_goal),
                 style = MaterialTheme.typography.bodySmall,
                 color = secondaryText,
             )
 
             if (timeline == null) {
                 Text(
-                    text = "Add exam date to see when you'll finish.",
+                    text = stringResource(R.string.planner_add_exam_date_finish),
                     style = MaterialTheme.typography.bodySmall,
                     color = secondaryText,
                 )
@@ -1118,7 +1122,7 @@ internal fun InsightsFinishLineCard(
                         verticalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
                         Text(
-                            text = "You may not finish the whole syllabus before the exam",
+                            text = stringResource(R.string.planner_may_not_finish),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = FinishLineRed,
@@ -1126,7 +1130,7 @@ internal fun InsightsFinishLineCard(
                         )
                         if (!showLateDetails) {
                             Text(
-                                text = "Tap to know more",
+                                text = stringResource(R.string.planner_tap_know_more),
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Medium,
                                 color = FinishLineRed.copy(alpha = 0.78f),
@@ -1139,9 +1143,9 @@ internal fun InsightsFinishLineCard(
                         ) {
                             Text(
                                 text = if (basedOnRecentPace) {
-                                    "At your current study speed, you may finish about $lateDays day${if (lateDays == 1) "" else "s"} after the exam."
+                                    stringResource(R.string.planner_current_pace_late, lateDays)
                                 } else {
-                                    "Even if you hit your daily goal, you may finish about $lateDays day${if (lateDays == 1) "" else "s"} after the exam."
+                                    stringResource(R.string.planner_goal_pace_late, lateDays)
                                 },
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.Medium,
@@ -1162,7 +1166,7 @@ internal fun InsightsFinishLineCard(
                     }
                     if (aheadDays != null && aheadDays > 0) {
                         Text(
-                            text = "On track — $aheadDays day${if (aheadDays == 1) "" else "s"} before exam",
+                            text = stringResource(R.string.planner_on_track_ahead, aheadDays),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = FinishLineGreen,
@@ -1248,10 +1252,10 @@ private fun FinishLineTimelineCanvas(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.Bottom,
         ) {
-            Text("Today", style = MaterialTheme.typography.labelSmall, color = secondaryText)
+            Text(stringResource(R.string.common_today), style = MaterialTheme.typography.labelSmall, color = secondaryText)
             timeline.examShortLabel?.let { label ->
                 Text(
-                    text = "Exam · $label",
+                    text = stringResource(R.string.planner_exam_label, label),
                     style = MaterialTheme.typography.labelSmall,
                     color = FinishLinePink,
                     fontWeight = FontWeight.SemiBold,
@@ -1263,7 +1267,7 @@ private fun FinishLineTimelineCanvas(
 
         if (timeline.isBehind && timeline.projectedShortLabel != null) {
             Text(
-                text = "Finish · ${timeline.projectedShortLabel}",
+                text = stringResource(R.string.planner_finish_label, timeline.projectedShortLabel),
                 style = MaterialTheme.typography.labelSmall,
                 color = FinishLineRed,
                 fontWeight = FontWeight.Bold,
@@ -1285,16 +1289,18 @@ internal fun InsightsRevisionPulseCard(
         plan.flattenTopics()
             .filter { it.topic.status == TopicStatus.REVISION_NEEDED }
             .map { ref ->
+                val isCustom = ref.topic.revisionScheduleType == "custom"
                 val completed = ref.topic.revisionCompletedDates.orEmpty().map { d -> d.take(10) }
                     .filter { d -> d.isNotBlank() }.toSet()
                 val remaining = ref.topic.revisionReminderDates.map { d -> d.take(10) }
                     .filter { d -> d.isNotBlank() }.toSet()
-                val total = (completed + remaining).size.coerceAtLeast(1)
+                // Custom revision has strictly 1 revision session (1 big ring)
+                val total = if (isCustom) 1 else (completed + remaining).size.coerceAtLeast(1)
                 RevisionTowerUi(
                     ref = ref,
                     total = total,
                     done = completed.size.coerceIn(0, total),
-                    isCustom = ref.topic.revisionScheduleType == "custom",
+                    isCustom = isCustom,
                 )
             }
             // Most-progressed towers first so the "almost there" ones lead the eye.
@@ -1343,18 +1349,18 @@ internal fun InsightsRevisionPulseCard(
                 )
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(
-                        text = "Revision",
+                        text = stringResource(R.string.planner_revision),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Black,
                         color = primaryText,
                     )
                     Text(
                         text = if (towers.isEmpty()) {
-                            "Mark topics to revise. They'll show up here."
+                            stringResource(R.string.planner_mark_topics_revision)
                         } else if (towers.size > 6) {
-                            "Swipe to see all · tap a topic"
+                            stringResource(R.string.planner_swipe_all_tap_topic)
                         } else {
-                            "Each ring is one revision · tap a topic"
+                            stringResource(R.string.planner_ring_revision_tap)
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = secondaryText,
@@ -1434,6 +1440,7 @@ internal fun InsightsRevisionPulseCard(
                                     .width(96.dp)
                                     .height(112.dp),
                                 doneColor = detailAccent,
+                                isCustom = tower.isCustom,
                             )
                         }
                     }
@@ -1444,7 +1451,7 @@ internal fun InsightsRevisionPulseCard(
                     modifier = Modifier.align(Alignment.CenterHorizontally),
                 ) {
                     Text(
-                        text = "See all to revise",
+                        text = stringResource(R.string.planner_see_all_revise),
                         color = PlannerFlatColors.PrimaryAccent,
                         fontWeight = FontWeight.Bold,
                     )
@@ -1527,11 +1534,17 @@ private fun RevisionSpikeRingColumn(
 ) {
     val spikeColor = when {
         selected -> RevisionPendingOrange
+        tower.isCustom -> RevisionCustomSpike
         else -> RevisionSpikeGold
     }
     // Completed rings: violet for manual (custom-date) revision, teal for spaced.
     val ringDoneColor = if (tower.isCustom) RevisionCustomViolet else RevisionDoneTeal
-    val baseColor = spikeColor.copy(alpha = if (isLight) 0.85f else 0.95f)
+    val baseColor = if (tower.isCustom) RevisionCustomSpike.copy(alpha = if (isLight) 0.85f else 0.95f) else spikeColor.copy(alpha = if (isLight) 0.85f else 0.95f)
+    val pendingColor = if (tower.isCustom) {
+        RevisionCustomViolet.copy(alpha = if (isLight) 0.40f else 0.50f)
+    } else {
+        RevisionPendingOrange.copy(alpha = if (isLight) 0.45f else 0.55f)
+    }
     val selBg = if (selected) {
         RevisionPendingOrange.copy(alpha = if (isLight) 0.08f else 0.12f)
     } else {
@@ -1559,8 +1572,9 @@ private fun RevisionSpikeRingColumn(
                 spikeColor = spikeColor,
                 baseColor = baseColor,
                 doneColor = ringDoneColor,
-                pendingColor = RevisionPendingOrange.copy(alpha = if (isLight) 0.45f else 0.55f),
+                pendingColor = pendingColor,
                 animateDrop = true,
+                isCustom = tower.isCustom,
             )
         }
 
@@ -1581,23 +1595,27 @@ private fun RevisionSpikeRingMini(
     isLight: Boolean,
     modifier: Modifier = Modifier,
     doneColor: Color = RevisionDoneTeal,
+    isCustom: Boolean = false,
 ) {
+    val spikeColor = if (isCustom) RevisionCustomSpike else RevisionSpikeGold
+    val pendingColor = if (isCustom) RevisionCustomViolet.copy(alpha = if (isLight) 0.40f else 0.50f) else RevisionPendingOrange.copy(alpha = if (isLight) 0.40f else 0.50f)
     Canvas(modifier = modifier) {
         drawSpikePillRings(
             total = total,
             done = done,
             drawProgress = 1f,
-            spikeColor = RevisionSpikeGold,
-            baseColor = RevisionSpikeGold.copy(alpha = 0.9f),
+            spikeColor = spikeColor,
+            baseColor = spikeColor.copy(alpha = 0.9f),
             doneColor = doneColor,
-            pendingColor = RevisionPendingOrange.copy(alpha = if (isLight) 0.40f else 0.50f),
+            pendingColor = pendingColor,
             animateDrop = false,
+            isCustom = isCustom,
         )
     }
 }
 
 /**
- * Reference layout: gold triangular spike + filled pill rings (bottom widest),
+ * Reference layout: gold/indigo triangular spike + filled pill rings (bottom widest),
  * spike visible above and between rings.
  */
 private fun DrawScope.drawSpikePillRings(
@@ -1609,6 +1627,7 @@ private fun DrawScope.drawSpikePillRings(
     doneColor: Color,
     pendingColor: Color,
     animateDrop: Boolean,
+    isCustom: Boolean = false,
 ) {
     val w = size.width
     val h = size.height
@@ -1618,7 +1637,7 @@ private fun DrawScope.drawSpikePillRings(
     val tipY = 2.dp.toPx().coerceAtMost(h * 0.05f)
     val spikeFootHalf = 3.5.dp.toPx()
 
-    // Gold spike — triangle behind the rings
+    // Gold / Indigo spike — triangle behind the rings
     val spikePath = Path().apply {
         moveTo(cx, tipY)
         lineTo(cx - spikeFootHalf, baseY)
@@ -1639,19 +1658,27 @@ private fun DrawScope.drawSpikePillRings(
     val stackBottom = baseY - 1.5.dp.toPx()
     val stackTop = tipY + h * 0.16f
     val slotH = ((stackBottom - stackTop) / slots).coerceAtLeast(7.dp.toPx())
-    val pillH = (slotH * 0.74f).coerceIn(9.dp.toPx(), 17.dp.toPx())
+    val pillH = if (isCustom || slots == 1) {
+        ((stackBottom - stackTop) * 0.42f).coerceIn(14.dp.toPx(), 22.dp.toPx())
+    } else {
+        (slotH * 0.74f).coerceIn(9.dp.toPx(), 17.dp.toPx())
+    }
     val maxPillW = w * 0.90f
-    val minPillW = (w * 0.46f).coerceAtMost(maxPillW)
+    val minPillW = if (isCustom || slots == 1) maxPillW else (w * 0.46f).coerceAtMost(maxPillW)
 
     fun pillWidth(slotIndex: Int): Float {
-        if (slots <= 1) return maxPillW
+        if (slots <= 1 || isCustom) return maxPillW
         val rise = slotIndex.toFloat() / (slots - 1).coerceAtLeast(1)
         return maxPillW - (maxPillW - minPillW) * rise
     }
 
     // Pending rings — outline pills above the done stack
     for (i in done until slots) {
-        val cy = stackBottom - (i + 0.5f) * slotH
+        val cy = if (isCustom || slots == 1) {
+            stackBottom - (stackBottom - stackTop) * 0.35f
+        } else {
+            stackBottom - (i + 0.5f) * slotH
+        }
         val pillW = pillWidth(i)
         drawRoundRect(
             color = pendingColor,
@@ -1668,7 +1695,11 @@ private fun DrawScope.drawSpikePillRings(
         val ringProgress = if (animateDrop) (dropped - i).coerceIn(0f, 1f) else 1f
         if (ringProgress <= 0f) continue
 
-        val restY = stackBottom - (i + 0.5f) * slotH
+        val restY = if (isCustom || slots == 1) {
+            stackBottom - (stackBottom - stackTop) * 0.35f
+        } else {
+            stackBottom - (i + 0.5f) * slotH
+        }
         val fromY = stackTop - pillH
         val cy = if (animateDrop) fromY + (restY - fromY) * ringProgress else restY
         val pillW = pillWidth(i)

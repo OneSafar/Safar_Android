@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="dhyan_deep_breaths">गहरी साँसें</string>
+    <string name="dhyan_courses_label">कोर्स</string>
+    <string name="dhyan_live_sessions_label">लाइव सेशन</string>
+    <string name="ekagra_background_audio">बैकग्राउंड ऑडियो</string>
+    <string name="ekagra_completion_sound">एकाग्र पूरा होने की आवाज़</string>
+    <string name="ekagra_timer_heading">एकाग्र टाइमर</string>
+    <string name="ekagra_dismiss_youtube_shortcut">YouTube फ़ोकस शॉर्टकट हटाएँ</string>
+</resources>

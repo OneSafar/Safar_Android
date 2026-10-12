@@ -1,4 +1,6 @@
 package com.safarparmar.app.ui.dashboard
+import com.composables.ui.components.ButtonStyle
+import com.composables.ui.components.Button as ComposablesButton
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
@@ -288,7 +290,7 @@ fun DashboardScreen(
                     onRetry = { viewModel.onEvent(DashboardEvent.Refresh) },
                     modifier = Modifier.align(Alignment.Center),
                 )
-            } else if (uiState.isLoading && uiState.userName.isEmpty()) {
+            } else if (!uiState.profileReady) {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize().padding(padding),
                     contentPadding = PaddingValues(16.dp),
@@ -298,7 +300,7 @@ fun DashboardScreen(
                 }
             } else {
                 SafarPullRefreshBox(
-                    isRefreshing = uiState.isLoading && uiState.userName.isNotEmpty(),
+                    isRefreshing = uiState.isLoading && uiState.profileReady,
                     onRefresh = { viewModel.onEvent(DashboardEvent.Refresh) },
                     modifier = Modifier.fillMaxSize(),
                 ) {
@@ -317,6 +319,7 @@ fun DashboardScreen(
                         // 2. Active Title Card
                         item {
                             StaggeredDashboardEntranceBox(index = 1) {
+                                DashboardSectionContent(uiState, setOf(DashboardSection.TITLE, DashboardSection.ACHIEVEMENTS), { viewModel.onEvent(DashboardEvent.Refresh) }) {
                                 ActiveTitleCard(
                                     title = uiState.activeTitle,
                                     titleImageUrl = uiState.activeTitleImageUrl,
@@ -324,31 +327,38 @@ fun DashboardScreen(
                                     hasEarnedAchievements = uiState.earnedAchievements.isNotEmpty(),
                                     onNavigateToAchievements = { onNavigate(Routes.ACHIEVEMENTS) }
                                 )
+                                }
                             }
                         }
 
                         // 3. Study Plan Progress
                         item {
                             StaggeredDashboardEntranceBox(index = 2) {
-                                StudyPlanProgressCard(uiState.studyPlan, isDarkTheme, onNavigate)
+                                DashboardSectionContent(uiState, setOf(DashboardSection.PLAN), { viewModel.onEvent(DashboardEvent.Refresh) }) {
+                                    StudyPlanProgressCard(uiState.studyPlan, isDarkTheme, onNavigate)
+                                }
                             }
                         }
 
                         // 4. macOS Quick Control Grid (Interactive Hub)
                         item {
                             StaggeredDashboardEntranceBox(index = 3) {
+                                DashboardSectionContent(uiState, setOf(DashboardSection.MOODS, DashboardSection.GOALS, DashboardSection.STREAKS, DashboardSection.ACHIEVEMENTS), { viewModel.onEvent(DashboardEvent.Refresh) }) {
                                 MacOSQuickControlGrid(
                                     uiState = uiState,
                                     isDark = isDarkTheme,
                                     onOpenSheet = { sheet -> activeSheet = sheet }
                                 )
+                                }
                             }
                         }
 
                         // 5. Analytics & Monthly Snapshot
                         item {
                             StaggeredDashboardEntranceBox(index = 4) {
-                                MonthlyCard(uiState.monthlyReport, isDarkTheme, onNavigate)
+                                DashboardSectionContent(uiState, setOf(DashboardSection.REPORT), { viewModel.onEvent(DashboardEvent.Refresh) }) {
+                                    MonthlyCard(uiState.monthlyReport, isDarkTheme, onNavigate)
+                                }
                             }
                         }
 
@@ -366,12 +376,12 @@ fun DashboardScreen(
 
             // ── Interactive Detail Bottom Sheets ─────────────────────────────
             if (activeSheet != DashboardSheetType.NONE) {
-                ModalBottomSheet(
+                com.composables.ui.components.BottomSheet(
+                    state = com.composables.ui.components.rememberBottomSheetState(initialDetent = com.composables.ui.components.BottomSheetDetent.FullyExpanded),
                     onDismissRequest = { activeSheet = DashboardSheetType.NONE },
-                    containerColor = DashboardFlatColors.Bg,
+                    backgroundColor = DashboardFlatColors.Bg,
                     contentColor = DashboardFlatColors.Text,
                     shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-                    dragHandle = { BottomSheetDefaults.DragHandle(color = DashboardFlatColors.Hairline) },
                 ) {
                     Box(
                         modifier = Modifier
@@ -428,8 +438,8 @@ private fun MacOSQuickControlGrid(
         ) {
             MacOSControlButton(
                 iconVector = Icons.Default.Favorite,
-                title = "Today Mood",
-                subtitle = uiState.todayMood?.mood?.replaceFirstChar { it.uppercase() } ?: "Check In",
+                title = stringResource(R.string.dashboard_today_mood),
+                subtitle = uiState.todayMood?.mood?.replaceFirstChar { it.uppercase() } ?: stringResource(R.string.dashboard_check_in),
                 isDarkTheme = isDark,
                 iconBackgroundColor = Color(0xFFFF2D55), // macOS Pink
                 modifier = Modifier.weight(1f),
@@ -438,8 +448,8 @@ private fun MacOSQuickControlGrid(
 
             MacOSControlButton(
                 iconVector = Icons.Default.TrackChanges,
-                title = "Today Goals",
-                subtitle = "${uiState.todayGoals.count { it.completed }}/${uiState.todayGoals.size} Done",
+                title = stringResource(R.string.dashboard_today_goals),
+                subtitle = stringResource(R.string.dashboard_goals_done, uiState.todayGoals.count { it.completed }, uiState.todayGoals.size),
                 isDarkTheme = isDark,
                 iconBackgroundColor = Color(0xFF0A84FF), // macOS Blue
                 modifier = Modifier.weight(1f),
@@ -453,8 +463,8 @@ private fun MacOSQuickControlGrid(
         ) {
             MacOSControlButton(
                 iconVector = Icons.Default.LocalFireDepartment,
-                title = "Streak",
-                subtitle = "${uiState.streaks.checkInStreak} Days Active",
+                title = stringResource(R.string.dashboard_streak),
+                subtitle = stringResource(R.string.dashboard_days_active, uiState.streaks.checkInStreak),
                 isDarkTheme = isDark,
                 iconBackgroundColor = Color(0xFFFF9500), // macOS Orange
                 modifier = Modifier.weight(1f),
@@ -463,8 +473,8 @@ private fun MacOSQuickControlGrid(
 
             MacOSControlButton(
                 iconVector = Icons.Default.EmojiEvents,
-                title = "Badges",
-                subtitle = "${uiState.earnedAchievements.size} Unlocked",
+                title = stringResource(R.string.dashboard_badges),
+                subtitle = stringResource(R.string.dashboard_unlocked_count, uiState.earnedAchievements.size),
                 isDarkTheme = isDark,
                 iconBackgroundColor = Color(0xAF5856D6), // macOS Purple
                 modifier = Modifier.weight(1f),
@@ -498,13 +508,13 @@ private fun WelcomeBanner(userName: String, isDark: Boolean) {
                 Spacer(Modifier.width(12.dp))
                 Column {
                     Text(
-                        text = "Welcome back,",
+                        text = stringResource(R.string.dashboard_welcome_back),
                         color = macSubtitleColor(isDark),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium
                     )
                     Text(
-                        text = userName.replaceFirstChar { it.uppercase() }.ifEmpty { "User" },
+                        text = userName.replaceFirstChar { it.uppercase() }.ifEmpty { stringResource(R.string.dashboard_default_user) },
                         color = macTextColor(isDark),
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold
@@ -524,7 +534,7 @@ private fun WelcomeBanner(userName: String, isDark: Boolean) {
                         modifier = Modifier.size(16.dp)
                     )
                     Text(
-                        text = "DAILY INSPIRATION",
+                        text = stringResource(R.string.dashboard_daily_inspiration).uppercase(),
                         fontSize = 10.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = macSubtitleColor(isDark),
@@ -532,7 +542,7 @@ private fun WelcomeBanner(userName: String, isDark: Boolean) {
                     )
                 }
                 Text(
-                    text = "\"Your limit is mostly your imagination.\"",
+                    text = stringResource(R.string.dashboard_inspiration_quote),
                     color = macSubtitleColor(isDark),
                     fontSize = 13.sp,
                     style = MaterialTheme.typography.bodyMedium
@@ -579,7 +589,7 @@ private fun StudyPlanProgressCard(
                     Icon(Icons.Default.Today, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
                 }
                 Text(
-                    text = "Study Plan Progress",
+                    text = stringResource(R.string.dashboard_study_plan_progress),
                     color = macTextColor(isDark),
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold
@@ -587,13 +597,13 @@ private fun StudyPlanProgressCard(
             }
             Spacer(Modifier.height(10.dp))
             Text(
-                "Create a study plan to track your syllabus completion.",
+                stringResource(R.string.dashboard_create_plan_help),
                 color = macSubtitleColor(isDark),
                 fontSize = 13.sp,
             )
             Spacer(Modifier.height(12.dp))
             MacOSButton(
-                text = "Create Plan",
+                text = stringResource(R.string.dashboard_create_plan),
                 icon = Icons.Default.Add,
                 onClick = ::openPlanner,
                 isDarkTheme = isDark,
@@ -632,7 +642,7 @@ private fun ActiveTitleCard(
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(
-                "CURRENT TITLE",
+                stringResource(R.string.dashboard_current_title).uppercase(),
                 fontSize = 10.sp,
                 letterSpacing = 2.sp,
                 color = macSubtitleColor(isDark),
@@ -682,7 +692,10 @@ private fun ActiveTitleCard(
                 }
                 Spacer(Modifier.height(12.dp))
                 Text(
-                    text = if (hasEarnedAchievements) "Tap to set achievement title" else "Unlock achievements to earn titles",
+                    text = stringResource(
+                        if (hasEarnedAchievements) R.string.dashboard_set_title
+                        else R.string.dashboard_unlock_titles
+                    ),
                     color = macTextColor(isDark),
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold
@@ -720,7 +733,7 @@ private fun MoodSheetContent(
             ) {
                 Icon(Icons.Default.Favorite, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
             }
-            Text("Today's Mood Check-In", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = macTextColor(isDark))
+            Text(stringResource(R.string.dashboard_mood_checkin_title), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = macTextColor(isDark))
         }
 
         if (todayMood != null) {
@@ -749,10 +762,10 @@ private fun MoodSheetContent(
                 }
             }
         } else {
-            Text("You haven't checked in your mood today. Reflecting on your state helps build self-awareness.", color = macSubtitleColor(isDark), fontSize = 14.sp)
+            Text(stringResource(R.string.dashboard_no_mood_help), color = macSubtitleColor(isDark), fontSize = 14.sp)
             Spacer(Modifier.height(4.dp))
             MacOSButton(
-                text = "Check In Now",
+                text = stringResource(R.string.dashboard_check_in_now),
                 icon = Icons.Default.FavoriteBorder,
                 onClick = {
                     onDismiss()
@@ -796,15 +809,16 @@ private fun TodayGoalsSheetContent(
                 ) {
                     Icon(Icons.Default.TrackChanges, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
                 }
-                Text("Today's Goals", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = macTextColor(isDark))
+                Text(stringResource(R.string.dashboard_today_goals), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = macTextColor(isDark))
             }
             Text("$completed / ${goals.size} Done", fontSize = 13.sp, color = macSubtitleColor(isDark), fontWeight = FontWeight.SemiBold)
         }
 
-        LinearProgressIndicator(
-            progress = { progress },
-            modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
-            color = macAccentBlue(),
+        com.composables.ui.components.ProgressIndicator(
+            progress = progress,
+            modifier = Modifier.fillMaxWidth(),
+            height = 8.dp,
+            indicatorColor = macAccentBlue(),
             trackColor = if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.05f),
         )
 
@@ -835,12 +849,12 @@ private fun TodayGoalsSheetContent(
                 }
             }
         } else {
-            Text("No goals scheduled for today.", color = macSubtitleColor(isDark), fontSize = 14.sp)
+            Text(stringResource(R.string.dashboard_no_goals), color = macSubtitleColor(isDark), fontSize = 14.sp)
         }
 
         Spacer(Modifier.height(4.dp))
         MacOSButton(
-            text = "Manage Goals",
+            text = stringResource(R.string.dashboard_manage_goals),
             icon = Icons.Default.TrackChanges,
             onClick = {
                 onDismiss()
@@ -875,7 +889,7 @@ private fun StreaksSheetContent(
             ) {
                 Icon(Icons.Default.LocalFireDepartment, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
             }
-            Text("Activity Streaks", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = macTextColor(isDark))
+            Text(stringResource(R.string.dashboard_activity_streaks), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = macTextColor(isDark))
         }
 
         Column(
@@ -893,7 +907,7 @@ private fun StreaksSheetContent(
         }
 
         MacOSButton(
-            text = "View Streak History",
+            text = stringResource(R.string.dashboard_view_streak_history),
             icon = Icons.Default.Loop,
             onClick = {
                 onDismiss()
@@ -934,7 +948,7 @@ private fun BadgesSheetContent(
                 ) {
                     Icon(Icons.Default.EmojiEvents, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
                 }
-                Text("Unlocked Badges", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = macTextColor(isDark))
+                Text(stringResource(R.string.dashboard_unlocked_badges), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = macTextColor(isDark))
             }
             Text("${earned.size} Unlocked", fontSize = 13.sp, color = macSubtitleColor(isDark), fontWeight = FontWeight.SemiBold)
         }
@@ -986,7 +1000,7 @@ private fun BadgesSheetContent(
         }
 
         MacOSButton(
-            text = "View All Achievements",
+            text = stringResource(R.string.dashboard_view_achievements),
             icon = Icons.Default.EmojiEvents,
             onClick = {
                 onDismiss()
@@ -1025,7 +1039,7 @@ private fun StreakRow(label: String, value: String, isDark: Boolean) {
 // ── Monthly Report Section ──────────────────────────────────────────────────
 
 @Composable
-private fun MonthlyCard(report: MonthlyReport?, isDark: Boolean, onNavigate: (String) -> Unit) {
+private fun MonthlyCard(report: DashboardMonthlySummary?, isDark: Boolean, onNavigate: (String) -> Unit) {
     if (report == null) return
     MacOSControlCard(isDarkTheme = isDark) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
@@ -1045,7 +1059,7 @@ private fun MonthlyCard(report: MonthlyReport?, isDark: Boolean, onNavigate: (St
         }
         Spacer(Modifier.height(4.dp))
         Text(
-            "A quick look at your performance this month.",
+            stringResource(R.string.dashboard_monthly_snapshot_help),
             color = macSubtitleColor(isDark),
             fontSize = 12.sp,
         )
@@ -1057,7 +1071,7 @@ private fun MonthlyCard(report: MonthlyReport?, isDark: Boolean, onNavigate: (St
         StatRow(stringResource(R.string.dashboard_focus), "${report.focusDepth.toInt()}m/day", isDark)
         Spacer(Modifier.height(10.dp))
         MacOSButton(
-            text = "View Full Report",
+            text = stringResource(R.string.dashboard_view_full_report),
             icon = Icons.Default.BarChart,
             onClick = { onNavigate(Routes.nishthaTab(4)) },
             isDarkTheme = isDark,
@@ -1081,7 +1095,10 @@ private fun StatRow(label: String, value: String, isDark: Boolean) {
 
 @Composable
 private fun WeeklyMoodChart(moods: List<Mood>, isDark: Boolean) {
-    val days = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+    val days = listOf(
+        R.string.day_mon, R.string.day_tue, R.string.day_wed, R.string.day_thu,
+        R.string.day_fri, R.string.day_sat, R.string.day_sun,
+    ).map { stringResource(it) }
     MacOSControlCard(isDarkTheme = isDark) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Box(
@@ -1097,7 +1114,7 @@ private fun WeeklyMoodChart(moods: List<Mood>, isDark: Boolean) {
         }
         Spacer(Modifier.height(4.dp))
         Text(
-            "Your emotional journey from Monday to Sunday.",
+            stringResource(R.string.dashboard_weekly_mood_help),
             color = macSubtitleColor(isDark),
             fontSize = 12.sp,
         )
@@ -1197,7 +1214,10 @@ private fun DashboardWelcomeOverlay(userName: String, isDark: Boolean, onDismiss
                 }
 
                 Text(
-                    text = "Welcome back,\n${userName.replaceFirstChar { it.uppercase() }.ifEmpty { "Friend" }}",
+                    text = stringResource(
+                        R.string.dashboard_welcome_overlay_title,
+                        userName.replaceFirstChar { it.uppercase() }.ifEmpty { stringResource(R.string.dashboard_default_friend) },
+                    ),
                     fontFamily = LoraFontFamily,
                     fontSize = 21.sp,
                     fontWeight = FontWeight.Normal,
@@ -1207,7 +1227,7 @@ private fun DashboardWelcomeOverlay(userName: String, isDark: Boolean, onDismiss
                 )
 
                 Text(
-                    text = "Your journey continues here.\nEvery small step forward counts — today is a new opportunity to grow, reflect, and be present.",
+                    text = stringResource(R.string.dashboard_welcome_overlay_body),
                     fontSize = 13.5.sp,
                     color = subtitleColor,
                     textAlign = TextAlign.Center,
@@ -1216,7 +1236,7 @@ private fun DashboardWelcomeOverlay(userName: String, isDark: Boolean, onDismiss
 
                 Spacer(Modifier.height(4.dp))
 
-                Button(
+                com.safarparmar.app.ui.components.SafarButton(
                     onClick = onDismiss,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -1235,7 +1255,7 @@ private fun DashboardWelcomeOverlay(userName: String, isDark: Boolean, onDismiss
                     )
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        text = "Let's begin",
+                        text = stringResource(R.string.dashboard_lets_begin),
                         color = Color.White,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
@@ -1252,7 +1272,7 @@ private fun ConfettiCelebration(
     modifier: Modifier = Modifier,
     isActive: Boolean = true
 ) {
-    if (!isActive) return
+    if (!isActive || !com.safarparmar.app.performance.decorativeMotionEnabled()) return
 
     val colors = listOf(
         Color(0xFFFFC107),
@@ -1381,7 +1401,7 @@ private fun CelebrationDialog(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text(
-                        "Congratulations! 🎉",
+                        stringResource(R.string.dashboard_congratulations),
                         fontFamily = LoraFontFamily,
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Normal,
@@ -1391,9 +1411,9 @@ private fun CelebrationDialog(
 
                     Text(
                         if (achievements.size > 1) {
-                            "You have unlocked new achievements!"
+                            stringResource(R.string.dashboard_new_achievements)
                         } else {
-                            "You unlocked a new achievement!"
+                            stringResource(R.string.dashboard_new_achievement)
                         },
                         fontSize = 14.sp,
                         color = subtitleColor,
@@ -1440,7 +1460,7 @@ private fun CelebrationDialog(
 
                     Spacer(Modifier.height(8.dp))
 
-                    Button(
+                    com.safarparmar.app.ui.components.SafarButton(
                         onClick = onDismiss,
                         modifier = Modifier
                             .fillMaxWidth()
@@ -1459,7 +1479,7 @@ private fun CelebrationDialog(
                         )
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            text = "Awesome!",
+                            text = stringResource(R.string.dashboard_awesome),
                             color = Color.White,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
@@ -1477,16 +1497,17 @@ private fun StaggeredDashboardEntranceBox(
     index: Int,
     content: @Composable () -> Unit,
 ) {
+    val motion = com.safarparmar.app.performance.LocalMotionPolicy.current
     var isVisible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         isVisible = true
     }
 
     val slideOffset by androidx.compose.animation.core.animateDpAsState(
-        targetValue = if (isVisible) 0.dp else (20 + index * 12).dp,
+        targetValue = if (isVisible) 0.dp else 8.dp,
         animationSpec = androidx.compose.animation.core.tween(
-            durationMillis = 320,
-            delayMillis = index * 40,
+            durationMillis = motion.navigationMillis,
+            delayMillis = 0,
             easing = androidx.compose.animation.core.FastOutSlowInEasing,
         ),
         label = "dashboardStaggeredOffset",
@@ -1494,8 +1515,8 @@ private fun StaggeredDashboardEntranceBox(
     val alphaAnim by androidx.compose.animation.core.animateFloatAsState(
         targetValue = if (isVisible) 1f else 0f,
         animationSpec = androidx.compose.animation.core.tween(
-            durationMillis = 280,
-            delayMillis = index * 40,
+            durationMillis = motion.navigationMillis,
+            delayMillis = 0,
         ),
         label = "dashboardStaggeredAlpha",
     )
@@ -1508,5 +1529,25 @@ private fun StaggeredDashboardEntranceBox(
             }
     ) {
         content()
+    }
+}
+
+@Composable
+private fun DashboardSectionContent(
+    state: DashboardUiState,
+    sections: Set<DashboardSection>,
+    onRetry: () -> Unit,
+    content: @Composable () -> Unit,
+) {
+    val missing = sections - state.loadedSections
+    val errors = sections.mapNotNull { state.sectionErrors[it] }
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (missing.isEmpty()) content()
+        else if (missing.any { it !in state.sectionErrors }) StatCardSkeleton()
+        if (errors.isNotEmpty()) {
+            ComposablesButton(onClick = onRetry, enabled = !state.isLoading, style = ButtonStyle.Ghost) {
+                com.composables.ui.components.Text("${errors.first()} Tap to retry.")
+            }
+        }
     }
 }

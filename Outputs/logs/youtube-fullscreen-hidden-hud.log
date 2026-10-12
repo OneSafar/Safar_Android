@@ -1,0 +1,542 @@
+--------- beginning of main
+09-12 19:42:05.454 23568 23568 D YTV2_DEBUG: t=128976024 tapAgeMs=284152 OBSERVATION fullscreen=false ad=false
+09-12 19:42:05.454 23568 23568 D YTV2_DUMP: --> PARSED: kind=NON_PLAYBACK watchConfirmed=false title='null' handle='null' display='null' channelId='null'
+09-12 19:42:09.806 23568 23568 D YTV2_DEBUG: t=128980376 tapAgeMs=5 CLICK id=null label=Search
+09-12 19:42:10.856 23568 23568 D YTV2_DEBUG: t=128981426 tapAgeMs=6 CLICK id=null label=null
+09-12 19:42:23.040 23568 23568 D YTV2_DEBUG: t=128993610 tapAgeMs=12190 OBSERVATION fullscreen=true ad=false
+09-12 19:42:23.040 23568 23568 D YTV2_DUMP: --> PARSED: kind=VIDEO watchConfirmed=true title='null' handle='null' display='null' channelId='null'
+09-12 19:42:25.111 23568 23568 D YTV2_DEBUG: t=128995681 tapAgeMs=4 CLICK id=null label=null
+09-12 19:42:29.485 23568 23568 D YTV2_DEBUG: t=129000055 tapAgeMs=3 CLICK id=null label=Enter full screen
+09-12 19:42:35.242 23568 23568 D YTV2_DEBUG: t=129005811 tapAgeMs=3 CLICK id=null label=Close
+09-12 19:42:42.048 23568 23568 D YTV2_DEBUG: t=129012618 tapAgeMs=6810 OBSERVATION fullscreen=false ad=false
+09-12 19:42:42.048 23568 23568 D YTV2_DUMP: --> PARSED: kind=VIDEO watchConfirmed=true title='SSC SELECTION POST (GRAD. LVL) 2026 | EXPECTED GK PAPER 3' handle='@parmarssc' display='PARMAR SSC' channelId='null'
+09-12 19:43:05.712 23568 23568 D YTV2_DEBUG: t=129036282 tapAgeMs=30474 OBSERVATION fullscreen=true ad=false
+09-12 19:43:05.712 23568 23568 D YTV2_DUMP: --> PARSED: kind=VIDEO watchConfirmed=true title='null' handle='null' display='null' channelId='null'
+09-12 19:43:05.777 23568 23568 D YTV2_DEBUG: t=129036346 tapAgeMs=27 CLICK id=com.google.android.youtube:id/fullscreen_button label=Enter full screen
+09-12 19:43:07.510 23568 23568 D YTV2_DEBUG: t=129038080 tapAgeMs=1760 OBSERVATION fullscreen=false ad=false
+09-12 19:43:07.510 23568 23568 D YTV2_DUMP: --> PARSED: kind=VIDEO watchConfirmed=true title='CGL DATES OUT !!!' handle='null' display='null' channelId='null'
+09-12 19:43:23.271 23568 23568 D YTV2_DEBUG: t=129053840 tapAgeMs=17521 OBSERVATION fullscreen=false ad=false
+09-12 19:43:23.271 23568 23568 D YTV2_DUMP: --> PARSED: kind=NON_PLAYBACK watchConfirmed=false title='null' handle='null' display='null' channelId='null'
+09-12 19:43:23.562 23568 23568 D YTV2_DEBUG: t=129054132 tapAgeMs=-1 OBSERVATION fullscreen=false ad=false
+09-12 19:43:23.562 23568 23568 D YTV2_DUMP: --> PARSED: kind=NON_PLAYBACK watchConfirmed=false title='null' handle='null' display='null' channelId='null'
+09-12 19:49:34.721 19238 19238 D YTV2_DEBUG: t=129425291 tapAgeMs=-1 OBSERVATION fullscreen=false ad=false nodes=204 treeMs=93.4 parseMs=203.6
+09-12 19:49:34.721 19238 19238 D YTV2_DUMP: --> PARSED: kind=VIDEO watchConfirmed=true title='SSC SELECTION POST (GRAD. LVL) 2026 | EXPECTED GK PAPER 3' handle='@parmarssc' display='PARMAR SSC' channelId='null'
+09-12 19:49:35.073 19238 19238 D YTV2_DEBUG: t=129425643 tapAgeMs=4 CLICK id=null label=null
+09-12 19:49:37.574 19238 19238 D YTV2_DEBUG: t=129428144 tapAgeMs=2 CLICK id=null label=Close
+09-12 19:49:52.807 19238 19238 D YTV2_DEBUG: t=129443377 tapAgeMs=1 CLICK id=com.google.android.youtube:id/player_control_play_pause_replay_button label=Play video
+09-12 19:49:59.106 19238 19238 D YTV2_DEBUG: allowlist check: title='SSC SELECTION POST (GRAD. LVL) 2026 | EXPECTED GK PAPER 3' handle='@parmarssc' display='PARMAR SSC'
+09-12 19:50:02.520 19238 19238 D YTV2_DEBUG: t=129453090 tapAgeMs=9714 SHEET not_allowlisted
+09-12 19:50:02.665 19238 19238 D YTV2_DEBUG: t=129453235 tapAgeMs=12 CLICK id=null label=Minimise
+09-12 19:50:04.464 19238 19238 D YTV2_DEBUG: t=129455034 tapAgeMs=1811 ACTION return_home
+09-12 19:50:04.833 19238 19238 D YTV2_DEBUG: t=129455403 tapAgeMs=2180 OBSERVATION fullscreen=false ad=false nodes=200 treeMs=24.1 parseMs=34.1
+09-12 19:50:04.833 19238 19238 D YTV2_DUMP: --> PARSED: kind=MINI_PLAYER watchConfirmed=false title='null' handle='null' display='null' channelId='null'
+09-12 19:50:05.033 19238 19238 D YTV2_DEBUG: t=129455603 tapAgeMs=79 CLICK id=null label=Home
+09-12 19:50:05.795 19238 19238 D YTV2_DEBUG: t=129456365 tapAgeMs=2 CLICK id=null label=Close minimised player
+09-12 19:50:05.974 19238 19238 D YTV2_DEBUG: t=129456544 tapAgeMs=181 OBSERVATION fullscreen=false ad=false nodes=196 treeMs=18.6 parseMs=135.9
+09-12 19:50:05.974 19238 19238 D YTV2_DUMP: --> PARSED: kind=VIDEO watchConfirmed=true title='null' handle='null' display='null' channelId='null'
+09-12 19:50:05.998 19238 19238 D YTV2_DEBUG: t=129456568 tapAgeMs=205 OBSERVATION fullscreen=false ad=false nodes=159 treeMs=13.2 parseMs=6.0
+09-12 19:50:05.998 19238 19238 D YTV2_DUMP: --> PARSED: kind=NON_PLAYBACK watchConfirmed=false title='null' handle='null' display='null' channelId='null'
+09-12 19:50:06.265 19238 19238 D YTV2_DEBUG: t=129456835 tapAgeMs=23 CLICK id=null label=null
+09-12 19:50:09.486 19238 19238 D YTV2_DEBUG: t=129460056 tapAgeMs=3244 OBSERVATION fullscreen=false ad=false nodes=133 treeMs=14.4 parseMs=26.3
+09-12 19:50:09.486 19238 19238 D YTV2_DUMP: --> PARSED: kind=SHORTS watchConfirmed=true title='null' handle='null' display='null' channelId='null'
+09-12 19:50:09.499 19238 19238 D YTV2_DEBUG: t=129460069 tapAgeMs=3257 SHEET shorts
+09-12 19:50:09.704 19238 19238 D YTV2_DEBUG: t=129460274 tapAgeMs=185 CLICK id=null label=null
+09-12 19:50:10.359 19238 19238 D YTV2_DEBUG: t=129460929 tapAgeMs=4 CLICK id=null label=Home
+09-12 19:50:10.432 19238 19238 D YTV2_DEBUG: t=129461002 tapAgeMs=3 CLICK id=null label=Home
+09-12 19:50:11.460 19238 19238 D YTV2_DEBUG: t=129462030 tapAgeMs=1031 OBSERVATION fullscreen=false ad=false nodes=176 treeMs=13.1 parseMs=28.5
+09-12 19:50:11.460 19238 19238 D YTV2_DUMP: --> PARSED: kind=NON_PLAYBACK watchConfirmed=false title='null' handle='null' display='null' channelId='null'
+09-12 19:50:11.487 19238 19238 D YTV2_DEBUG: t=129462057 tapAgeMs=0 CLICK id=null label=Home
+09-12 19:50:14.901 19238 19238 D YTV2_DEBUG: t=129465471 tapAgeMs=19 CLICK id=null label=null
+09-12 19:50:14.976 19238 19238 D YTV2_DEBUG: t=129465546 tapAgeMs=94 OBSERVATION fullscreen=false ad=false nodes=96 treeMs=5.3 parseMs=47.1
+09-12 19:50:14.976 19238 19238 D YTV2_DUMP: --> PARSED: kind=VIDEO watchConfirmed=true title='VACCINE KE SIDE EFFECTS - VLOG 76' handle='null' display='null' channelId='null'
+09-12 19:50:16.297 19238 19238 D YTV2_DEBUG: t=129466866 tapAgeMs=1414 OBSERVATION fullscreen=false ad=true nodes=159 treeMs=23.3 parseMs=75.3
+09-12 19:50:16.297 19238 19238 D YTV2_DUMP: --> PARSED: kind=VIDEO watchConfirmed=true title='VACCINE KE SIDE EFFECTS - VLOG 76' handle='null' display='LIKE AD' channelId='null'
+09-12 19:50:23.482 19238 19238 D YTV2_DEBUG: t=129474052 tapAgeMs=8600 OBSERVATION fullscreen=false ad=true nodes=185 treeMs=14.7 parseMs=91.1
+09-12 19:50:23.482 19238 19238 D YTV2_DUMP: --> PARSED: kind=VIDEO watchConfirmed=true title='BHIM Bharat's Own Payments App' handle='null' display='Tanmay Bhat' channelId='null'
+09-12 19:50:23.641 19238 19238 D YTV2_DEBUG: t=129474211 tapAgeMs=7 CLICK id=null label=Close ad panel
+09-12 19:50:25.673 19238 19238 D YTV2_DEBUG: t=129476243 tapAgeMs=0 CLICK id=com.google.android.youtube:id/player_control_play_pause_replay_button label=Pause video
+09-12 19:51:58.964 19238 19238 D YTV2_DEBUG: t=129569534 tapAgeMs=0 CLICK id=com.google.android.youtube:id/player_control_play_pause_replay_button label=Play video
+09-12 19:52:03.703 19238 19238 D YTV2_DEBUG: t=129574273 tapAgeMs=0 CLICK id=null label=null
+09-12 19:52:03.855 19238 19238 D YTV2_DEBUG: t=129574425 tapAgeMs=12 CLICK id=null label=null
+09-12 19:52:04.037 19238 19238 D YTV2_DEBUG: t=129574607 tapAgeMs=194 OBSERVATION fullscreen=false ad=false nodes=149 treeMs=70.3 parseMs=47.1
+09-12 19:52:04.037 19238 19238 D YTV2_DUMP: --> PARSED: kind=VIDEO watchConfirmed=true title='VACCINE KE SIDE EFFECTS - VLOG 76' handle='@tanmaybhat' display='Tanmay Bhat' channelId='null'
+09-12 19:52:05.027 19238 19238 D YTV2_DEBUG: allowlist check: title='VACCINE KE SIDE EFFECTS - VLOG 76' handle='@tanmaybhat' display='Tanmay Bhat'
+09-12 19:52:05.190 19238 19238 D YTV2_DEBUG: t=129575760 tapAgeMs=1347 SHEET not_allowlisted
+09-12 19:52:07.337 19238 19238 D YTV2_DEBUG: t=129577907 tapAgeMs=3494 ACTION return_home
+09-12 19:52:09.032 19238 19238 D YTV2_DEBUG: t=129579602 tapAgeMs=18 CLICK id=null label=Minimise
+09-12 19:52:09.501 19238 19238 D YTV2_DEBUG: t=129580071 tapAgeMs=487 OBSERVATION fullscreen=false ad=false nodes=160 treeMs=6.9 parseMs=8.3
+09-12 19:52:09.502 19238 19238 D YTV2_DUMP: --> PARSED: kind=MINI_PLAYER watchConfirmed=false title='null' handle='null' display='null' channelId='null'
+09-12 19:52:09.919 19238 19238 D YTV2_DEBUG: t=129580489 tapAgeMs=905 OBSERVATION fullscreen=false ad=false nodes=122 treeMs=5.6 parseMs=4.0
+09-12 19:52:09.919 19238 19238 D YTV2_DUMP: --> PARSED: kind=NON_PLAYBACK watchConfirmed=false title='null' handle='null' display='null' channelId='null'
+09-12 19:52:10.268 19238 19238 D YTV2_DEBUG: t=129580838 tapAgeMs=1 CLICK id=null label=Close minimised player
+09-12 19:52:14.211 19238 19238 D YTV2_DEBUG: t=129584781 tapAgeMs=3944 OBSERVATION fullscreen=false ad=false nodes=98 treeMs=2.5 parseMs=16.9
+09-12 19:52:14.212 19238 19238 D YTV2_DUMP: --> PARSED: kind=VIDEO watchConfirmed=true title='BHAAG GAURAV BHAAG | Stand Up Comedy | Gaurav Kapoor' handle='null' display='null' channelId='null'
+09-12 19:52:14.604 19238 19238 D YTV2_DEBUG: t=129585174 tapAgeMs=5 CLICK id=null label=null
+09-12 19:52:18.731 19238 19238 D YTV2_DEBUG: t=129589300 tapAgeMs=4131 OBSERVATION fullscreen=false ad=false nodes=162 treeMs=7.3 parseMs=54.8
+09-12 19:52:18.731 19238 19238 D YTV2_DUMP: --> PARSED: kind=VIDEO watchConfirmed=true title='BHAAG GAURAV BHAAG | Stand Up Comedy | Gaurav Kapoor' handle='@gauravkapoor' display='Gaurav Kapoor' channelId='null'
+09-12 19:52:19.642 19238 19238 D YTV2_DEBUG: allowlist check: title='BHAAG GAURAV BHAAG | Stand Up Comedy | Gaurav Kapoor' handle='@gauravkapoor' display='Gaurav Kapoor'
+09-12 19:52:19.740 19238 19238 D YTV2_DEBUG: t=129590310 tapAgeMs=5141 SHEET not_allowlisted
+09-12 19:52:21.533 19238 19238 D YTV2_DEBUG: t=129592103 tapAgeMs=6934 ACTION return_home
+09-12 19:52:21.886 19238 19238 D YTV2_DEBUG: t=129592456 tapAgeMs=7287 OBSERVATION fullscreen=false ad=false nodes=132 treeMs=9.1 parseMs=82.2
+09-12 19:52:21.886 19238 19238 D YTV2_DUMP: --> PARSED: kind=VIDEO watchConfirmed=true title='null' handle='null' display='Collapse ad' channelId='null'
+09-12 19:52:22.030 19238 19238 D YTV2_DEBUG: t=129592600 tapAgeMs=0 CLICK id=null label=Collapse ad
+09-12 19:52:22.493 19238 19238 D YTV2_DEBUG: t=129593063 tapAgeMs=463 OBSERVATION fullscreen=false ad=false nodes=190 treeMs=92.4 parseMs=16.6
+09-12 19:52:22.493 19238 19238 D YTV2_DUMP: --> PARSED: kind=VIDEO watchConfirmed=true title='BHAAG GAURAV BHAAG | Stand Up Comedy | Gaurav Kapoor' handle='@gauravkapoor' display='Gaurav Kapoor' channelId='null'
+09-12 19:52:23.066 19238 19238 D YTV2_DEBUG: t=129593636 tapAgeMs=1036 OBSERVATION fullscreen=false ad=false nodes=142 treeMs=5.4 parseMs=22.9
+09-12 19:52:23.067 19238 19238 D YTV2_DUMP: --> PARSED: kind=VIDEO watchConfirmed=true title='null' handle='null' display='Gaurav Kapoor' channelId='null'
+09-12 19:52:23.756 19238 19238 D YTV2_DEBUG: t=129594326 tapAgeMs=1726 OBSERVATION fullscreen=false ad=false nodes=153 treeMs=21.0 parseMs=8.1
+09-12 19:52:23.756 19238 19238 D YTV2_DUMP: --> PARSED: kind=MINI_PLAYER watchConfirmed=false title='null' handle='null' display='null' channelId='null'
+09-12 19:52:23.772 19238 19238 D YTV2_DEBUG: t=129594342 tapAgeMs=10 CLICK id=com.google.android.youtube:id/floaty_bar_controls_view label=Minimised player
+09-12 19:52:24.504 19238 19238 D YTV2_DEBUG: t=129595074 tapAgeMs=742 OBSERVATION fullscreen=false ad=false nodes=99 treeMs=45.1 parseMs=27.0
+09-12 19:52:24.504 19238 19238 D YTV2_DUMP: --> PARSED: kind=VIDEO watchConfirmed=true title='null' handle='null' display='null' channelId='null'
+09-12 19:52:25.968 19238 19238 D YTV2_DEBUG: t=129596538 tapAgeMs=2206 OBSERVATION fullscreen=false ad=false nodes=173 treeMs=135.4 parseMs=21.3
+09-12 19:52:25.969 19238 19238 D YTV2_DUMP: --> PARSED: kind=MINI_PLAYER watchConfirmed=false title='null' handle='null' display='null' channelId='null'
+09-12 19:52:26.189 19238 19238 D YTV2_DEBUG: t=129596759 tapAgeMs=2427 OBSERVATION fullscreen=false ad=false nodes=169 treeMs=175.9 parseMs=31.7
+09-12 19:52:26.189 19238 19238 D YTV2_DUMP: --> PARSED: kind=VIDEO watchConfirmed=true title='Subscriptions' handle='null' display='Create' channelId='null'
+09-12 19:52:26.587 19238 19238 D YTV2_DEBUG: t=129597157 tapAgeMs=2 CLICK id=null label=Close minimised player
+09-12 19:52:26.606 19238 19238 D YTV2_DEBUG: t=129597176 tapAgeMs=21 OBSERVATION fullscreen=false ad=false nodes=136 treeMs=2.5 parseMs=3.1
+09-12 19:52:26.606 19238 19238 D YTV2_DUMP: --> PARSED: kind=NON_PLAYBACK watchConfirmed=false title='null' handle='null' display='null' channelId='null'
+09-12 19:52:28.243 19238 19238 D YTV2_DEBUG: t=129598813 tapAgeMs=1658 OBSERVATION fullscreen=false ad=false nodes=236 treeMs=174.1 parseMs=82.7
+09-12 19:52:28.244 19238 19238 D YTV2_DUMP: --> PARSED: kind=VIDEO watchConfirmed=true title='Uttar Pradesh Model | UP Iss Hafte | Episode 1' handle='null' display='Rakhi Savan 🔥 in India's Got Latent By Samay Raina Season 2 Episode 6 – play Short' channelId='null'
+09-12 19:52:28.492 19238 19238 D YTV2_DEBUG: t=129599062 tapAgeMs=4 CLICK id=null label=null
+09-12 19:52:28.550 19238 19238 D YTV2_DEBUG: t=129599120 tapAgeMs=62 OBSERVATION fullscreen=false ad=false nodes=95 treeMs=3.6 parseMs=36.3
+09-12 19:52:28.550 19238 19238 D YTV2_DUMP: --> PARSED: kind=VIDEO watchConfirmed=true title='Uttar Pradesh Model | UP Iss Hafte | Episode 1' handle='null' display='null' channelId='null'
+09-12 19:52:29.801 19238 19238 D YTV2_DEBUG: t=129600371 tapAgeMs=1313 OBSERVATION fullscreen=false ad=false nodes=149 treeMs=6.5 parseMs=39.6
+09-12 19:52:29.802 19238 19238 D YTV2_DUMP: --> PARSED: kind=VIDEO watchConfirmed=true title='Uttar Pradesh Model | UP Iss Hafte | Episode 1' handle='@kunalkamra' display='Kunal Kamra' channelId='null'
+09-12 19:52:32.684 19238 19238 D YTV2_DEBUG: allowlist check: title='Uttar Pradesh Model | UP Iss Hafte | Episode 1' handle='@kunalkamra' display='Kunal Kamra'
+09-12 19:52:32.885 19238 19238 D YTV2_DEBUG: t=129603455 tapAgeMs=4397 SHEET not_allowlisted
+09-12 19:52:34.012 19238 19238 D YTV2_DEBUG: t=129604582 tapAgeMs=5524 ACTION return_home
+09-12 19:52:35.353 19238 19238 D YTV2_DEBUG: t=129605923 tapAgeMs=6865 OBSERVATION fullscreen=false ad=false nodes=190 treeMs=4.3 parseMs=18.3
+09-12 19:52:35.353 19238 19238 D YTV2_DUMP: --> PARSED: kind=VIDEO watchConfirmed=true title='30 minutes, 13 seconds' handle='null' display='Create' channelId='null'
+09-12 19:52:35.384 19238 19238 D YTV2_DEBUG: t=129605954 tapAgeMs=3 CLICK id=null label=Home
+09-12 19:52:35.871 19238 19238 D YTV2_DEBUG: t=129606440 tapAgeMs=489 OBSERVATION fullscreen=false ad=false nodes=201 treeMs=10.4 parseMs=13.1
+09-12 19:52:35.871 19238 19238 D YTV2_DUMP: --> PARSED: kind=MINI_PLAYER watchConfirmed=false title='null' handle='null' display='null' channelId='null'
+09-12 19:52:35.958 19238 19238 D YTV2_DEBUG: t=129606528 tapAgeMs=577 OBSERVATION fullscreen=false ad=false nodes=195 treeMs=8.4 parseMs=63.3
+09-12 19:52:35.959 19238 19238 D YTV2_DUMP: --> PARSED: kind=VIDEO watchConfirmed=true title='Subscriptions' handle='null' display='Create' channelId='null'
+09-12 19:52:36.259 19238 19238 D YTV2_DEBUG: t=129606829 tapAgeMs=4 CLICK id=null label=Close minimised player
+09-12 19:52:36.316 19238 19238 D YTV2_DEBUG: t=129606886 tapAgeMs=61 OBSERVATION fullscreen=false ad=false nodes=164 treeMs=7.6 parseMs=15.7
+09-12 19:52:36.316 19238 19238 D YTV2_DUMP: --> PARSED: kind=NON_PLAYBACK watchConfirmed=false title='null' handle='null' display='null' channelId='null'
+09-12 19:52:48.962 19238 19238 D YTV2_DEBUG: t=129619532 tapAgeMs=2 CLICK id=null label=Search
+09-12 19:52:49.204 19238 19238 D YTV2_DEBUG: t=129619774 tapAgeMs=244 OBSERVATION fullscreen=false ad=false nodes=98 treeMs=12.8 parseMs=48.1
+09-12 19:52:49.204 19238 19238 D YTV2_DUMP: --> PARSED: kind=VIDEO watchConfirmed=true title='SSC SELECTION POST (GRAD. LVL) 2026 | EXPECTED GK PAPER 3' handle='null' display='null' channelId='null'
+09-12 19:52:50.940 19238 19238 D YTV2_DEBUG: t=129621510 tapAgeMs=10 CLICK id=null label=null
+09-12 19:52:51.029 19238 19238 D YTV2_DEBUG: t=129621599 tapAgeMs=99 OBSERVATION fullscreen=false ad=false nodes=167 treeMs=6.8 parseMs=42.1
+09-12 19:52:51.029 19238 19238 D YTV2_DUMP: --> PARSED: kind=VIDEO watchConfirmed=true title='SSC SELECTION POST (GRAD. LVL) 2026 | EXPECTED GK PAPER 3' handle='@parmarssc' display='PARMAR SSC' channelId='null'
+09-12 19:52:59.018 19238 19238 D YTV2_DEBUG: t=129629588 tapAgeMs=8088 SHEET not_allowlisted
+09-12 19:52:59.034 19238 19238 D YTV2_DEBUG: t=129629604 tapAgeMs=12 CLICK id=null label=SSC SELECTION POST (GRAD. LVL) 2026 | EXPECTED GK PAPER 3 – 1 hour, 4 minutes, 6 seconds – Go to channel PARMAR SSC – PARMAR SSC, verified - 14K views - Streamed 2 hours ago – play video
+09-12 19:52:59.114 19238 19238 D YTV2_DEBUG: t=129629684 tapAgeMs=8 CLICK id=null label=Close minimised player
+09-12 19:53:00.372 19238 19238 D YTV2_DEBUG: t=129630942 tapAgeMs=1266 ACTION return_home
+09-12 19:53:00.680 19238 19238 D YTV2_DEBUG: t=129631250 tapAgeMs=1574 OBSERVATION fullscreen=false ad=false nodes=119 treeMs=9.8 parseMs=20.6
+09-12 19:53:00.680 19238 19238 D YTV2_DUMP: --> PARSED: kind=NON_PLAYBACK watchConfirmed=false title='null' handle='null' display='null' channelId='null'
+09-12 19:53:00.831 19238 19238 D YTV2_DEBUG: t=129631400 tapAgeMs=53 CLICK id=null label=Home
+09-12 19:53:07.852 19238 19238 D YTV2_DEBUG: t=129638422 tapAgeMs=7074 OBSERVATION fullscreen=false ad=false nodes=98 treeMs=9.3 parseMs=72.7
+09-12 19:53:07.852 19238 19238 D YTV2_DUMP: --> PARSED: kind=VIDEO watchConfirmed=true title='How I Use AI To Ship 100X Faster (COPY my setup)' handle='null' display='null' channelId='null'
+09-12 19:53:08.270 19238 19238 D YTV2_DEBUG: t=129638840 tapAgeMs=7 CLICK id=null label=null
+09-12 19:53:08.369 19238 19238 D YTV2_DEBUG: t=129638939 tapAgeMs=106 OBSERVATION fullscreen=false ad=false nodes=145 treeMs=7.5 parseMs=57.0
+09-12 19:53:08.370 19238 19238 D YTV2_DUMP: --> PARSED: kind=VIDEO watchConfirmed=true title='How I Use AI To Ship 100X Faster (COPY my setup)' handle='@mehulmpt' display='Mehul Mohan' channelId='null'
+09-12 19:53:11.246 19238 19238 D YTV2_DEBUG: allowlist check: title='How I Use AI To Ship 100X Faster (COPY my setup)' handle='@mehulmpt' display='Mehul Mohan'
+09-12 19:53:11.592 19238 19238 D YTV2_DEBUG: t=129642162 tapAgeMs=3329 SHEET not_allowlisted
+09-12 19:53:11.632 19238 19238 D YTV2_DEBUG: t=129642202 tapAgeMs=40 CLICK id=null label=null
+09-12 19:53:13.453 19238 19238 D YTV2_DEBUG: t=129644023 tapAgeMs=1861 ACTION return_home
+09-12 19:53:13.860 19238 19238 D YTV2_DEBUG: t=129644430 tapAgeMs=2268 OBSERVATION fullscreen=false ad=false nodes=169 treeMs=11.4 parseMs=88.0
+09-12 19:53:13.860 19238 19238 D YTV2_DUMP: --> PARSED: kind=VIDEO watchConfirmed=true title='null' handle='null' display='Like this comment along with 1 other person' channelId='null'
+09-12 19:53:14.103 19238 19238 D YTV2_DEBUG: t=129644673 tapAgeMs=8 CLICK id=com.google.android.youtube:id/close_button label=Close
+09-12 19:53:14.616 19238 19238 D YTV2_DEBUG: t=129645186 tapAgeMs=521 OBSERVATION fullscreen=false ad=false nodes=172 treeMs=150.6 parseMs=83.5
+09-12 19:53:14.616 19238 19238 D YTV2_DUMP: --> PARSED: kind=VIDEO watchConfirmed=true title='How I Use AI To Ship 100X Faster (COPY my setup)' handle='@mehulmpt' display='Mehul Mohan' channelId='null'
+09-12 19:53:16.203 19238 19238 D YTV2_DEBUG: t=129646773 tapAgeMs=2108 OBSERVATION fullscreen=false ad=false nodes=173 treeMs=119.1 parseMs=21.8
+09-12 19:53:16.203 19238 19238 D YTV2_DUMP: --> PARSED: kind=VIDEO watchConfirmed=true title='More videos' handle='null' display='like this video along with 15 other people' channelId='null'
+09-12 19:53:16.249 19238 19238 D YTV2_DEBUG: t=129646819 tapAgeMs=0 CLICK id=com.google.android.youtube:id/fullscreen_button label=Enter full screen
+09-12 19:53:16.789 19238 19238 D YTV2_DEBUG: t=129647359 tapAgeMs=540 OBSERVATION fullscreen=false ad=false nodes=123 treeMs=13.2 parseMs=32.4
+09-12 19:53:16.789 19238 19238 D YTV2_DUMP: --> PARSED: kind=VIDEO watchConfirmed=true title='null' handle='null' display='null' channelId='null'
+09-12 19:53:16.859 19238 19238 D YTV2_DEBUG: t=129647429 tapAgeMs=23 CLICK id=null label=Home
+09-12 19:53:17.152 19238 19238 D YTV2_DEBUG: t=129647722 tapAgeMs=316 OBSERVATION fullscreen=false ad=false nodes=133 treeMs=2.0 parseMs=2.1
+09-12 19:53:17.152 19238 19238 D YTV2_DUMP: --> PARSED: kind=MINI_PLAYER watchConfirmed=false title='null' handle='null' display='null' channelId='null'
+09-12 19:53:17.347 19238 19238 D YTV2_DEBUG: t=129647917 tapAgeMs=2 CLICK id=null label=Close minimised player
+09-12 19:53:17.370 19238 19238 D YTV2_DEBUG: t=129647940 tapAgeMs=25 OBSERVATION fullscreen=false ad=false nodes=127 treeMs=1.9 parseMs=2.2
+09-12 19:53:17.370 19238 19238 D YTV2_DUMP: --> PARSED: kind=NON_PLAYBACK watchConfirmed=false title='null' handle='null' display='null' channelId='null'
+09-12 19:53:28.119 19238 19238 D YTV2_DEBUG: t=129658689 tapAgeMs=10774 OBSERVATION fullscreen=true ad=true nodes=88 treeMs=9.2 parseMs=37.2
+09-12 19:53:28.119 19238 19238 D YTV2_DUMP: --> PARSED: kind=VIDEO watchConfirmed=true title='null' handle='null' display='null' channelId='null'
+09-12 19:53:28.576 19238 19238 D YTV2_DEBUG: t=129659146 tapAgeMs=7 CLICK id=null label=null
+09-12 19:53:33.617 19238 19238 D YTV2_DEBUG: t=129664187 tapAgeMs=5048 ACTION reveal_fullscreen_hud attempt=1
+09-12 19:53:34.242 19238 19238 D YTV2_DEBUG: t=129664812 tapAgeMs=5673 OBSERVATION fullscreen=true ad=false nodes=63 treeMs=19.4 parseMs=56.4
+09-12 19:53:34.242 19238 19238 D YTV2_DUMP: --> PARSED: kind=VIDEO watchConfirmed=true title='null' handle='null' display='null' channelId='null'
+09-12 19:53:34.571 19238 19238 D YTV2_DEBUG: t=129665141 tapAgeMs=4 CLICK id=null label=null
+09-12 19:53:37.204 19238 19238 D YTV2_DEBUG: t=129667774 tapAgeMs=2637 ACTION reveal_fullscreen_hud attempt=2
+09-12 19:53:37.709 19238 19238 D YTV2_DEBUG: t=129668279 tapAgeMs=10 CLICK id=null label=Play video
+09-12 19:53:39.720 19238 19238 D YTV2_DEBUG: t=129670290 tapAgeMs=2021 SHEET not_allowlisted
+09-12 19:53:52.303 19238 19238 D YTV2_DEBUG: t=129682873 tapAgeMs=14604 ACTION return_home
+09-12 19:53:53.308 19238 19238 D YTV2_DEBUG: t=129683878 tapAgeMs=0 CLICK id=com.google.android.youtube:id/player_control_play_pause_replay_button label=Play video
+09-12 19:53:58.568 19238 19238 D YTV2_DEBUG: t=129689138 tapAgeMs=2 CLICK id=null label=Close minimised player
+09-12 19:53:58.587 19238 19238 D YTV2_DEBUG: t=129689157 tapAgeMs=21 OBSERVATION fullscreen=false ad=false nodes=120 treeMs=2.1 parseMs=2.0
+09-12 19:53:58.587 19238 19238 D YTV2_DUMP: --> PARSED: kind=NON_PLAYBACK watchConfirmed=false title='null' handle='null' display='null' channelId='null'
+09-12 19:54:03.473 19238 19238 D YTV2_DEBUG: t=129694043 tapAgeMs=4907 OBSERVATION fullscreen=true ad=false nodes=65 treeMs=4.4 parseMs=22.2
+09-12 19:54:03.473 19238 19238 D YTV2_DUMP: --> PARSED: kind=VIDEO watchConfirmed=true title='null' handle='null' display='null' channelId='null'
+09-12 19:54:05.182 19238 19238 D YTV2_DEBUG: t=129695752 tapAgeMs=5 CLICK id=null label=null
+09-12 19:54:06.144 19238 19238 D YTV2_DEBUG: t=129696714 tapAgeMs=967 ACTION reveal_fullscreen_hud attempt=1
+09-12 19:54:08.562 19238 19238 D YTV2_DEBUG: t=129699132 tapAgeMs=3385 ACTION reveal_fullscreen_hud attempt=2
+09-12 19:54:09.451 19238 19238 D YTV2_DEBUG: t=129700021 tapAgeMs=3 CLICK id=null label=Play video
+09-12 19:54:10.939 19238 19238 D YTV2_DEBUG: t=129701509 tapAgeMs=1491 ACTION reveal_fullscreen_hud attempt=1
+09-12 19:54:12.194 19238 19238 D YTV2_DEBUG: t=129702764 tapAgeMs=2746 ACTION reveal_fullscreen_hud attempt=2
+09-12 19:54:14.467 19238 19238 D YTV2_DEBUG: t=129705037 tapAgeMs=5019 SHEET not_allowlisted
+09-12 19:54:26.158 19238 19238 D YTV2_DEBUG: t=129716728 tapAgeMs=16710 ACTION return_home
+09-12 20:00:14.404  5833  5833 D YTV2_DEBUG: t=130064974 tapAgeMs=-1 OBSERVATION fullscreen=false ad=false nodes=191 treeMs=20.2 parseMs=142.2
+09-12 20:00:14.404  5833  5833 D YTV2_DUMP: --> PARSED: kind=VIDEO watchConfirmed=true title='Terrorist Or Prisoner Of A Terror State? | Why Has The Trial Of Umar Khalid Not Started? | Akash B' handle='@thedeshbhakt' display='The Deshbhakt' channelId='null'
+09-12 20:00:15.927  5833  5833 D YTV2_DEBUG: t=130066497 tapAgeMs=-1 SHEET not_allowlisted
+09-12 20:00:16.003  5833  5833 D YTV2_DEBUG: t=130066573 tapAgeMs=14 CLICK id=null label=Close minimised player
+09-12 20:00:17.417  5833  5833 D YTV2_DEBUG: t=130067987 tapAgeMs=1428 ACTION return_home
+09-12 20:00:17.690  5833  5833 D YTV2_DEBUG: t=130068260 tapAgeMs=1701 OBSERVATION fullscreen=false ad=false nodes=135 treeMs=9.1 parseMs=21.0
+09-12 20:00:17.690  5833  5833 D YTV2_DUMP: --> PARSED: kind=NON_PLAYBACK watchConfirmed=false title='null' handle='null' display='null' channelId='null'
+09-12 20:00:17.787  5833  5833 D YTV2_DEBUG: t=130068357 tapAgeMs=0 CLICK id=null label=Home
+09-12 20:00:19.187  5833  5833 D YTV2_DEBUG: t=130069757 tapAgeMs=5 CLICK id=null label=Home
+09-12 20:00:24.544  5833  5833 D YTV2_DEBUG: t=130075114 tapAgeMs=19 CLICK id=null label=null
+09-12 20:00:24.724  5833  5833 D YTV2_DEBUG: t=130075294 tapAgeMs=199 OBSERVATION fullscreen=false ad=false nodes=101 treeMs=28.8 parseMs=64.0
+09-12 20:00:24.724  5833  5833 D YTV2_DUMP: --> PARSED: kind=VIDEO watchConfirmed=true title='GPT - 6 ASTRA - World's Deadliest Ai' handle='null' display='null' channelId='null'
+09-12 20:00:26.466  5833  5833 D YTV2_DEBUG: t=130077036 tapAgeMs=1941 OBSERVATION fullscreen=false ad=true nodes=215 treeMs=5.9 parseMs=43.7
+09-12 20:00:26.466  5833  5833 D YTV2_DUMP: --> PARSED: kind=VIDEO watchConfirmed=true title='Groww Stocks, Mutual Fund, IPO' handle='null' display='Groww Stocks, Mutual Fund, IPO' channelId='null'
+09-12 20:00:27.270  5833  5833 D YTV2_DEBUG: t=130077840 tapAgeMs=2745 SHEET not_allowlisted
+09-12 20:00:27.314  5833  5833 D YTV2_DEBUG: t=130077884 tapAgeMs=2 CLICK id=null label=Close minimised player
+09-12 20:00:28.163  5833  5833 D YTV2_DEBUG: t=130078733 tapAgeMs=851 ACTION return_home
+09-12 20:00:28.406  5833  5833 D YTV2_DEBUG: t=130078976 tapAgeMs=1094 OBSERVATION fullscreen=false ad=false nodes=146 treeMs=10.4 parseMs=19.2
+09-12 20:00:28.406  5833  5833 D YTV2_DUMP: --> PARSED: kind=NON_PLAYBACK watchConfirmed=false title='null' handle='null' display='null' channelId='null'
+09-12 20:00:30.064  5833  5833 D YTV2_DEBUG: t=130080634 tapAgeMs=1 CLICK id=null label=Home
+09-12 20:00:46.025  5833  5833 D YTV2_DEBUG: t=130096595 tapAgeMs=15962 OBSERVATION fullscreen=false ad=false nodes=169 treeMs=21.4 parseMs=100.0
+09-12 20:00:46.025  5833  5833 D YTV2_DUMP: --> PARSED: kind=VIDEO watchConfirmed=true title='GPT - 6 ASTRA - World's Deadliest Ai' handle='@technicalsagarindia' display='Technical Sagar' channelId='null'
+09-12 20:00:46.385  5833  5833 D YTV2_DEBUG: t=130096955 tapAgeMs=7 CLICK id=null label=null
+09-12 20:00:50.360  5833  5833 D YTV2_DEBUG: allowlist check: title='GPT - 6 ASTRA - World's Deadliest Ai' handle='@technicalsagarindia' display='Technical Sagar'
+09-12 20:00:51.118  5833  5833 D YTV2_DEBUG: t=130101687 tapAgeMs=4739 SHEET not_allowlisted
+09-12 20:01:02.392  5833  5833 D YTV2_DEBUG: t=130112962 tapAgeMs=16014 ACTION return_home
+09-12 20:01:04.228  5833  5833 D YTV2_DEBUG: t=130114798 tapAgeMs=17850 OBSERVATION fullscreen=false ad=false nodes=125 treeMs=27.8 parseMs=21.5
+09-12 20:01:04.228  5833  5833 D YTV2_DUMP: --> PARSED: kind=VIDEO watchConfirmed=true title='Subscriptions' handle='null' display='Create' channelId='null'
+09-12 20:01:04.236  5833  5833 D YTV2_DEBUG: t=130114806 tapAgeMs=2 CLICK id=com.google.android.youtube:id/floaty_bar_controls_view label=Minimised player
+09-12 20:01:04.266  5833  5833 D YTV2_DEBUG: t=130114836 tapAgeMs=16 CLICK id=null label=Home
+09-12 20:01:04.581  5833  5833 D YTV2_DEBUG: t=130115150 tapAgeMs=330 OBSERVATION fullscreen=false ad=false nodes=130 treeMs=8.5 parseMs=11.7
+09-12 20:01:04.581  5833  5833 D YTV2_DUMP: --> PARSED: kind=MINI_PLAYER watchConfirmed=false title='null' handle='null' display='null' channelId='null'
+09-12 20:01:04.737  5833  5833 D YTV2_DEBUG: t=130115307 tapAgeMs=1 CLICK id=null label=Close minimised player
+09-12 20:01:04.788  5833  5833 D YTV2_DEBUG: t=130115358 tapAgeMs=52 OBSERVATION fullscreen=false ad=false nodes=124 treeMs=6.9 parseMs=26.1
+09-12 20:01:04.788  5833  5833 D YTV2_DUMP: --> PARSED: kind=VIDEO watchConfirmed=true title='null' handle='null' display='null' channelId='null'
+09-12 20:01:04.867  5833  5833 D YTV2_DEBUG: t=130115437 tapAgeMs=131 OBSERVATION fullscreen=false ad=false nodes=124 treeMs=3.6 parseMs=25.9
+09-12 20:01:04.867  5833  5833 D YTV2_DUMP: --> PARSED: kind=VIDEO watchConfirmed=true title='Subscriptions' handle='null' display='Create' channelId='null'
+09-12 20:01:05.339  5833  5833 D YTV2_DEBUG: t=130115909 tapAgeMs=603 OBSERVATION fullscreen=false ad=false nodes=153 treeMs=7.3 parseMs=4.6
+09-12 20:01:05.340  5833  5833 D YTV2_DUMP: --> PARSED: kind=NON_PLAYBACK watchConfirmed=false title='null' handle='null' display='null' channelId='null'
+09-12 20:01:10.709  5833  5833 D YTV2_DEBUG: t=130121279 tapAgeMs=5973 OBSERVATION fullscreen=true ad=false nodes=73 treeMs=8.3 parseMs=58.5
+09-12 20:01:10.709  5833  5833 D YTV2_DUMP: --> PARSED: kind=VIDEO watchConfirmed=true title='null' handle='null' display='null' channelId='null'
+09-12 20:01:11.541  5833  5833 D YTV2_DEBUG: t=130122111 tapAgeMs=3 CLICK id=null label=null
+09-12 20:01:11.995  5833  5833 D YTV2_DEBUG: t=130122565 tapAgeMs=1 CLICK id=null label=Enter full screen
+09-12 20:01:13.789  5833  5833 D YTV2_DEBUG: t=130124359 tapAgeMs=1795 ACTION reveal_fullscreen_hud attempt=1
+09-12 20:01:15.950  5833  5833 D YTV2_DEBUG: t=130126520 tapAgeMs=3956 ACTION reveal_fullscreen_hud attempt=2
+09-12 20:01:16.458  5833  5833 D YTV2_DEBUG: t=130127028 tapAgeMs=4464 OBSERVATION fullscreen=true ad=false nodes=174 treeMs=10.3 parseMs=61.0
+09-12 20:01:16.458  5833  5833 D YTV2_DUMP: --> PARSED: kind=VIDEO watchConfirmed=true title='Adventure | Stand-up Comedy by Ravi Gupta' handle='@raviguptacomedy' display='null' channelId='null'
+09-12 20:01:17.652  5833  5833 D YTV2_DEBUG: allowlist check: title='Adventure | Stand-up Comedy by Ravi Gupta' handle='@raviguptacomedy' display='@raviguptacomedy'
+09-12 20:01:17.699  5833  5833 D YTV2_DEBUG: t=130128269 tapAgeMs=5705 SHEET not_allowlisted
+09-12 20:01:21.439  5833  5833 D YTV2_DEBUG: t=130132009 tapAgeMs=9445 ACTION return_home
+09-12 20:01:23.178  5833  5833 D YTV2_DEBUG: t=130133748 tapAgeMs=11184 OBSERVATION fullscreen=false ad=false nodes=126 treeMs=42.7 parseMs=32.6
+09-12 20:01:23.178  5833  5833 D YTV2_DUMP: --> PARSED: kind=VIDEO watchConfirmed=true title='null' handle='null' display='null' channelId='null'
+09-12 20:01:23.203  5833  5833 D YTV2_DEBUG: t=130133773 tapAgeMs=5 CLICK id=null label=Home
+09-12 20:01:23.518  5833  5833 D YTV2_DEBUG: t=130134088 tapAgeMs=320 OBSERVATION fullscreen=false ad=false nodes=136 treeMs=4.9 parseMs=11.1
+09-12 20:01:23.518  5833  5833 D YTV2_DUMP: --> PARSED: kind=MINI_PLAYER watchConfirmed=false title='null' handle='null' display='null' channelId='null'
+09-12 20:01:23.575  5833  5833 D YTV2_DEBUG: t=130134145 tapAgeMs=377 OBSERVATION fullscreen=false ad=false nodes=130 treeMs=15.3 parseMs=2.7
+09-12 20:01:23.575  5833  5833 D YTV2_DUMP: --> PARSED: kind=NON_PLAYBACK watchConfirmed=false title='null' handle='null' display='null' channelId='null'
+09-12 20:01:23.669  5833  5833 D YTV2_DEBUG: t=130134239 tapAgeMs=1 CLICK id=null label=Close minimised player
+09-12 20:09:27.124 17382 17382 D YTV2_DEBUG: t=130617694 tapAgeMs=-1 OBSERVATION fullscreen=false ad=false nodes=89 treeMs=13.5 parseMs=40.9
+09-12 20:09:27.125 17382 17382 D YTV2_DUMP: --> PARSED: kind=NON_PLAYBACK watchConfirmed=false title='null' handle='null' display='null' channelId='null'
+09-12 20:09:28.869 17382 17382 D YTV2_DEBUG: t=130619439 tapAgeMs=-1 OBSERVATION fullscreen=false ad=false nodes=82 treeMs=74.7 parseMs=53.3
+09-12 20:09:28.869 17382 17382 D YTV2_DUMP: --> PARSED: kind=SHORTS watchConfirmed=true title='null' handle='null' display='null' channelId='null'
+09-12 20:09:28.915 17382 17382 D YTV2_DEBUG: t=130619485 tapAgeMs=-1 SHEET shorts
+09-12 20:09:28.973 17382 17382 D YTV2_DEBUG: t=130619543 tapAgeMs=15 CLICK id=null label=Shorts
+09-12 20:09:30.002 17382 17382 D YTV2_DEBUG: t=130620572 tapAgeMs=0 CLICK id=null label=Home
+09-12 20:09:30.055 17382 17382 D YTV2_DEBUG: t=130620625 tapAgeMs=53 OBSERVATION fullscreen=false ad=false nodes=127 treeMs=11.1 parseMs=22.3
+09-12 20:09:30.055 17382 17382 D YTV2_DUMP: --> PARSED: kind=NON_PLAYBACK watchConfirmed=false title='null' handle='null' display='null' channelId='null'
+09-12 20:09:30.522 17382 17382 D YTV2_DEBUG: t=130621092 tapAgeMs=0 CLICK id=null label=Home
+09-12 20:09:32.763 17382 17382 D YTV2_DEBUG: t=130623333 tapAgeMs=0 CLICK id=null label=Shorts
+09-12 20:09:32.775 17382 17382 D YTV2_DEBUG: t=130623345 tapAgeMs=12 OBSERVATION fullscreen=false ad=false nodes=124 treeMs=7.5 parseMs=0.4
+09-12 20:09:32.775 17382 17382 D YTV2_DUMP: --> PARSED: kind=SHORTS watchConfirmed=true title='null' handle='null' display='null' channelId='null'
+09-12 20:09:32.782 17382 17382 D YTV2_DEBUG: t=130623352 tapAgeMs=19 SHEET shorts
+09-12 20:09:33.411 17382 17382 D YTV2_DEBUG: t=130623981 tapAgeMs=12 CLICK id=null label=Home
+09-12 20:09:33.590 17382 17382 D YTV2_DEBUG: t=130624160 tapAgeMs=2 CLICK id=null label=Home
+09-12 20:09:34.170 17382 17382 D YTV2_DEBUG: t=130624740 tapAgeMs=582 OBSERVATION fullscreen=false ad=false nodes=131 treeMs=3.7 parseMs=19.8
+09-12 20:09:34.170 17382 17382 D YTV2_DUMP: --> PARSED: kind=NON_PLAYBACK watchConfirmed=false title='null' handle='null' display='null' channelId='null'
+09-12 20:09:34.198 17382 17382 D YTV2_DEBUG: t=130624768 tapAgeMs=0 CLICK id=null label=Home
+09-12 20:09:35.488 17382 17382 D YTV2_DEBUG: t=130626057 tapAgeMs=5 CLICK id=null label=null
+09-12 20:09:35.592 17382 17382 D YTV2_DEBUG: t=130626162 tapAgeMs=110 OBSERVATION fullscreen=false ad=false nodes=91 treeMs=8.0 parseMs=72.7
+09-12 20:09:35.592 17382 17382 D YTV2_DUMP: --> PARSED: kind=VIDEO watchConfirmed=true title='INDIA'S GOT FIR | VIPUL GOYAL| STAND-UP COMEDY' handle='null' display='null' channelId='null'
+09-12 20:09:37.524 17382 17382 D YTV2_DEBUG: t=130628094 tapAgeMs=2042 OBSERVATION fullscreen=false ad=true nodes=202 treeMs=3.8 parseMs=82.1
+09-12 20:09:37.524 17382 17382 D YTV2_DUMP: --> PARSED: kind=VIDEO watchConfirmed=true title='Vicks India' handle='null' display='Vipul Goyal' channelId='null'
+09-12 20:09:38.464 17382 17382 D YTV2_DEBUG: t=130629034 tapAgeMs=2982 SHEET not_allowlisted
+09-12 20:09:38.531 17382 17382 D YTV2_DEBUG: t=130629101 tapAgeMs=2 CLICK id=null label=Close minimised player
+09-12 20:09:39.338 17382 17382 D YTV2_DEBUG: t=130629908 tapAgeMs=809 ACTION return_home
+09-12 20:09:39.626 17382 17382 D YTV2_DEBUG: t=130630196 tapAgeMs=1097 OBSERVATION fullscreen=false ad=false nodes=136 treeMs=7.9 parseMs=19.0
+09-12 20:09:39.627 17382 17382 D YTV2_DUMP: --> PARSED: kind=NON_PLAYBACK watchConfirmed=false title='null' handle='null' display='null' channelId='null'
+09-12 20:09:39.652 17382 17382 D YTV2_DEBUG: t=130630222 tapAgeMs=0 CLICK id=null label=Home
+09-12 20:09:40.501 17382 17382 D YTV2_DEBUG: t=130631071 tapAgeMs=849 OBSERVATION fullscreen=false ad=false nodes=204 treeMs=249.1 parseMs=100.3
+09-12 20:09:40.501 17382 17382 D YTV2_DUMP: --> PARSED: kind=VIDEO watchConfirmed=true title='INDIA'S GOT FIR | VIPUL GOYAL| STAND-UP COMEDY' handle='null' display='Create' channelId='null'
+09-12 20:09:40.649 17382 17382 D YTV2_DEBUG: t=130631218 tapAgeMs=4 CLICK id=null label=null
+09-12 20:09:40.737 17382 17382 D YTV2_DEBUG: t=130631307 tapAgeMs=93 OBSERVATION fullscreen=false ad=false nodes=98 treeMs=5.1 parseMs=61.4
+09-12 20:09:40.737 17382 17382 D YTV2_DUMP: --> PARSED: kind=VIDEO watchConfirmed=true title='INDIA'S GOT FIR | VIPUL GOYAL| STAND-UP COMEDY' handle='null' display='null' channelId='null'
+09-12 20:09:42.149 17382 17382 D YTV2_DEBUG: t=130632719 tapAgeMs=1505 OBSERVATION fullscreen=false ad=true nodes=109 treeMs=5.5 parseMs=41.5
+09-12 20:09:42.149 17382 17382 D YTV2_DUMP: --> PARSED: kind=VIDEO watchConfirmed=true title='INDIA'S GOT FIR | VIPUL GOYAL| STAND-UP COMEDY' handle='null' display='null' channelId='null'
+09-12 20:09:43.405 17382 17382 D YTV2_DEBUG: t=130633975 tapAgeMs=2761 SHEET not_allowlisted
+09-12 20:09:43.441 17382 17382 D YTV2_DEBUG: t=130634011 tapAgeMs=2 CLICK id=null label=Close minimised player
+09-12 20:09:44.131 17382 17382 D YTV2_DEBUG: t=130634701 tapAgeMs=692 ACTION return_home
+09-12 20:09:44.427 17382 17382 D YTV2_DEBUG: t=130634997 tapAgeMs=988 OBSERVATION fullscreen=false ad=false nodes=136 treeMs=12.9 parseMs=26.0
+09-12 20:09:44.427 17382 17382 D YTV2_DUMP: --> PARSED: kind=NON_PLAYBACK watchConfirmed=false title='null' handle='null' display='null' channelId='null'
+09-12 20:09:44.454 17382 17382 D YTV2_DEBUG: t=130635024 tapAgeMs=1 CLICK id=null label=Home
+09-12 20:09:44.608 17382 17382 D YTV2_DEBUG: t=130635177 tapAgeMs=37 CLICK id=null label=INDIA'S GOT FIR | VIPUL GOYAL| STAND-UP COMEDY – 3 minutes, 39 seconds – Go to channel Vipul Goyal – Vipul Goyal, verified - 30 lakh views - 1 year ago – play video
+09-12 20:09:45.285 17382 17382 D YTV2_DEBUG: t=130635855 tapAgeMs=715 OBSERVATION fullscreen=false ad=false nodes=110 treeMs=120.7 parseMs=107.1
+09-12 20:09:45.285 17382 17382 D YTV2_DUMP: --> PARSED: kind=VIDEO watchConfirmed=true title='INDIA'S GOT FIR | VIPUL GOYAL| STAND-UP COMEDY' handle='null' display='null' channelId='null'
+09-12 20:09:46.640 17382 17382 D YTV2_DEBUG: t=130637210 tapAgeMs=2070 OBSERVATION fullscreen=false ad=false nodes=93 treeMs=312.4 parseMs=45.3
+09-12 20:09:46.641 17382 17382 D YTV2_DUMP: --> PARSED: kind=VIDEO watchConfirmed=true title='null' handle='null' display='null' channelId='null'
+09-12 20:09:46.942 17382 17382 D YTV2_DEBUG: t=130637512 tapAgeMs=2372 OBSERVATION fullscreen=false ad=false nodes=145 treeMs=3.0 parseMs=3.7
+09-12 20:09:46.942 17382 17382 D YTV2_DUMP: --> PARSED: kind=MINI_PLAYER watchConfirmed=false title='null' handle='null' display='null' channelId='null'
+09-12 20:09:46.976 17382 17382 D YTV2_DEBUG: t=130637546 tapAgeMs=14 CLICK id=null label=Home
+09-12 20:09:47.429 17382 17382 D YTV2_DEBUG: t=130637999 tapAgeMs=1 CLICK id=null label=Close minimised player
+09-12 20:09:47.483 17382 17382 D YTV2_DEBUG: t=130638053 tapAgeMs=55 OBSERVATION fullscreen=false ad=false nodes=139 treeMs=3.3 parseMs=32.5
+09-12 20:09:47.483 17382 17382 D YTV2_DUMP: --> PARSED: kind=VIDEO watchConfirmed=true title='null' handle='null' display='null' channelId='null'
+09-12 20:09:47.587 17382 17382 D YTV2_DEBUG: t=130638157 tapAgeMs=159 OBSERVATION fullscreen=false ad=false nodes=139 treeMs=7.5 parseMs=23.6
+09-12 20:09:47.587 17382 17382 D YTV2_DUMP: --> PARSED: kind=VIDEO watchConfirmed=true title='Subscriptions' handle='null' display='Create' channelId='null'
+09-12 20:09:47.766 17382 17382 D YTV2_DEBUG: t=130638336 tapAgeMs=338 OBSERVATION fullscreen=false ad=false nodes=107 treeMs=14.4 parseMs=3.6
+09-12 20:09:47.766 17382 17382 D YTV2_DUMP: --> PARSED: kind=NON_PLAYBACK watchConfirmed=false title='null' handle='null' display='null' channelId='null'
+09-12 20:09:48.785 17382 17382 D YTV2_DEBUG: t=130639355 tapAgeMs=5 CLICK id=null label=null
+09-12 20:09:48.980 17382 17382 D YTV2_DEBUG: t=130639550 tapAgeMs=200 OBSERVATION fullscreen=false ad=false nodes=96 treeMs=27.5 parseMs=87.1
+09-12 20:09:48.980 17382 17382 D YTV2_DUMP: --> PARSED: kind=VIDEO watchConfirmed=true title='INDIA'S GOT FIR | VIPUL GOYAL| STAND-UP COMEDY' handle='null' display='null' channelId='null'
+09-12 20:09:50.291 17382 17382 D YTV2_DEBUG: t=130640861 tapAgeMs=1511 OBSERVATION fullscreen=false ad=false nodes=148 treeMs=34.7 parseMs=85.5
+09-12 20:09:50.291 17382 17382 D YTV2_DUMP: --> PARSED: kind=VIDEO watchConfirmed=true title='INDIA'S GOT FIR | VIPUL GOYAL| STAND-UP COMEDY' handle='null' display='Dislike this video' channelId='null'
+09-12 20:09:54.649 17382 17382 D YTV2_DEBUG: t=130645219 tapAgeMs=5869 OBSERVATION fullscreen=false ad=false nodes=179 treeMs=9.2 parseMs=71.6
+09-12 20:09:54.650 17382 17382 D YTV2_DUMP: --> PARSED: kind=VIDEO watchConfirmed=true title='INDIA'S GOT FIR | VIPUL GOYAL| STAND-UP COMEDY' handle='@vipulgoyal' display='Vipul Goyal' channelId='null'
+09-12 20:09:56.095 17382 17382 D YTV2_DEBUG: allowlist check: title='INDIA'S GOT FIR | VIPUL GOYAL| STAND-UP COMEDY' handle='@vipulgoyal' display='Vipul Goyal'
+09-12 20:09:56.999 17382 17382 D YTV2_DEBUG: t=130647569 tapAgeMs=8219 SHEET not_allowlisted
+09-12 20:10:03.442 17382 17382 D YTV2_DEBUG: t=130654012 tapAgeMs=14662 ACTION return_home
+09-12 20:10:04.230 17382 17382 D YTV2_DEBUG: allowlist check: title='INDIA'S GOT FIR | VIPUL GOYAL| STAND-UP COMEDY' handle='@vipulgoyal' display='Vipul Goyal'
+09-12 20:10:18.100 17382 17382 D YTV2_DEBUG: t=130668670 tapAgeMs=29320 OBSERVATION fullscreen=false ad=false nodes=163 treeMs=9.1 parseMs=44.7
+09-12 20:10:18.100 17382 17382 D YTV2_DUMP: --> PARSED: kind=VIDEO watchConfirmed=true title='KAHANI GHAR GHAR KI & Mini Series "FLATMATES' Announcement | Stand-Up Comedy by Vipul Goyal' handle='null' display='null' channelId='null'
+09-12 20:10:18.440 17382 17382 D YTV2_DEBUG: t=130669010 tapAgeMs=7 CLICK id=null label=null
+09-12 20:10:18.504 17382 17382 D YTV2_DEBUG: t=130669074 tapAgeMs=71 OBSERVATION fullscreen=false ad=false nodes=165 treeMs=5.3 parseMs=35.4
+09-12 20:10:18.504 17382 17382 D YTV2_DUMP: --> PARSED: kind=VIDEO watchConfirmed=true title='KAHANI GHAR GHAR KI & Mini Series "FLATMATES' Announcement | Stand-Up Comedy by Vipul Goyal' handle='@vipulgoyal' display='Vipul Goyal' channelId='null'
+09-12 20:10:27.439 17382 17382 D YTV2_DEBUG: t=130678009 tapAgeMs=1 CLICK id=null label=Close minimised player
+09-12 20:10:28.469 17382 17382 D YTV2_DEBUG: t=130679039 tapAgeMs=5 CLICK id=null label=null
+09-12 20:10:32.816 17382 17382 D YTV2_DEBUG: t=130683386 tapAgeMs=4352 SHEET not_allowlisted
+09-12 20:10:32.834 17382 17382 D YTV2_DEBUG: t=130683404 tapAgeMs=3 CLICK id=null label=Pause video
+09-12 20:10:32.870 17382 17382 D YTV2_DEBUG: t=130683440 tapAgeMs=4 CLICK id=null label=Minimise
+09-12 20:10:32.939 17382 17382 D YTV2_DEBUG: t=130683509 tapAgeMs=11 CLICK id=null label=Close minimised player
+09-12 20:10:41.602 17382 17382 D YTV2_DEBUG: t=130692172 tapAgeMs=8674 ACTION return_home
+09-12 20:10:41.916 17382 17382 D YTV2_DEBUG: t=130692486 tapAgeMs=8988 OBSERVATION fullscreen=false ad=false nodes=170 treeMs=8.1 parseMs=18.0
+09-12 20:10:41.916 17382 17382 D YTV2_DUMP: --> PARSED: kind=NON_PLAYBACK watchConfirmed=false title='null' handle='null' display='null' channelId='null'
+09-12 20:10:42.034 17382 17382 D YTV2_DEBUG: t=130692604 tapAgeMs=43 CLICK id=null label=Home
+09-12 20:10:55.510 17382 17382 D YTV2_DEBUG: t=130706080 tapAgeMs=31 CLICK id=null label=null
+09-12 20:10:55.653 17382 17382 D YTV2_DEBUG: t=130706223 tapAgeMs=174 OBSERVATION fullscreen=false ad=false nodes=98 treeMs=11.1 parseMs=40.6
+09-12 20:10:55.653 17382 17382 D YTV2_DUMP: --> PARSED: kind=VIDEO watchConfirmed=true title='null' handle='null' display='null' channelId='null'
+09-12 20:10:57.514 17382 17382 D YTV2_DEBUG: t=130708084 tapAgeMs=2035 OBSERVATION fullscreen=false ad=false nodes=152 treeMs=70.6 parseMs=15.0
+09-12 20:10:57.514 17382 17382 D YTV2_DUMP: --> PARSED: kind=MINI_PLAYER watchConfirmed=false title='null' handle='null' display='null' channelId='null'
+09-12 20:10:57.586 17382 17382 D YTV2_DEBUG: t=130708156 tapAgeMs=2107 SHEET not_allowlisted
+09-12 20:10:57.611 17382 17382 D YTV2_DEBUG: t=130708181 tapAgeMs=12 CLICK id=null label=Minimise
+09-12 20:10:57.682 17382 17382 D YTV2_DEBUG: t=130708252 tapAgeMs=2 CLICK id=null label=Close minimised player
+09-12 20:13:19.605 17382 17382 D YTV2_DEBUG: t=130850175 tapAgeMs=141925 ACTION return_home
+09-12 20:21:16.945 32289 32289 D YTV2_DEBUG: t=131327515 tapAgeMs=-1 OBSERVATION fullscreen=false ad=false nodes=107 treeMs=3.7 parseMs=24.1
+09-12 20:21:16.945 32289 32289 D YTV2_DUMP: --> PARSED: kind=NON_PLAYBACK watchConfirmed=false title='null' handle='null' display='null' channelId='null'
+09-12 20:21:19.572 32289 32289 D YTV2_DEBUG: t=131330142 tapAgeMs=-1 OBSERVATION fullscreen=false ad=false nodes=57 treeMs=126.7 parseMs=20.2
+09-12 20:21:19.572 32289 32289 D YTV2_DUMP: --> PARSED: kind=SHORTS watchConfirmed=true title='null' handle='null' display='null' channelId='null'
+09-12 20:21:19.614 32289 32289 D YTV2_DEBUG: t=131330184 tapAgeMs=-1 SHEET shorts
+09-12 20:21:19.637 32289 32289 D YTV2_DEBUG: t=131330207 tapAgeMs=8 CLICK id=null label=Let’s make a pizza!!… – play Short
+09-12 20:21:20.372 32289 32289 D YTV2_DEBUG: t=131330942 tapAgeMs=16 CLICK id=null label=Home
+09-12 20:21:20.631 32289 32289 D YTV2_DEBUG: t=131331201 tapAgeMs=275 OBSERVATION fullscreen=false ad=false nodes=107 treeMs=199.2 parseMs=38.6
+09-12 20:21:20.631 32289 32289 D YTV2_DUMP: --> PARSED: kind=NON_PLAYBACK watchConfirmed=false title='null' handle='null' display='null' channelId='null'
+09-12 20:21:20.796 32289 32289 D YTV2_DEBUG: t=131331366 tapAgeMs=3 CLICK id=null label=Home
+09-12 20:21:21.449 32289 32289 D YTV2_DEBUG: t=131332019 tapAgeMs=0 CLICK id=null label=null
+09-12 20:21:25.866 32289 32289 D YTV2_DEBUG: t=131336436 tapAgeMs=4417 OBSERVATION fullscreen=false ad=false nodes=57 treeMs=32.6 parseMs=11.3
+09-12 20:21:25.866 32289 32289 D YTV2_DUMP: --> PARSED: kind=SHORTS watchConfirmed=true title='null' handle='null' display='null' channelId='null'
+09-12 20:21:25.872 32289 32289 D YTV2_DEBUG: t=131336441 tapAgeMs=4423 SHEET shorts
+09-12 20:21:26.500 32289 32289 D YTV2_DEBUG: t=131337070 tapAgeMs=17 CLICK id=null label=Home
+09-12 20:21:26.817 32289 32289 D YTV2_DEBUG: t=131337387 tapAgeMs=334 OBSERVATION fullscreen=false ad=false nodes=107 treeMs=251.3 parseMs=32.3
+09-12 20:21:26.817 32289 32289 D YTV2_DUMP: --> PARSED: kind=NON_PLAYBACK watchConfirmed=false title='null' handle='null' display='null' channelId='null'
+09-12 20:21:27.032 32289 32289 D YTV2_DEBUG: t=131337602 tapAgeMs=3 CLICK id=null label=Home
+09-12 20:21:29.343 32289 32289 D YTV2_DEBUG: t=131339913 tapAgeMs=2314 OBSERVATION fullscreen=false ad=false nodes=80 treeMs=9.1 parseMs=12.3
+09-12 20:21:29.343 32289 32289 D YTV2_DUMP: --> PARSED: kind=SHORTS watchConfirmed=true title='null' handle='null' display='null' channelId='null'
+09-12 20:21:29.352 32289 32289 D YTV2_DEBUG: t=131339921 tapAgeMs=2322 SHEET shorts
+09-12 20:21:29.364 32289 32289 D YTV2_DEBUG: t=131339934 tapAgeMs=6 CLICK id=null label=null
+09-12 20:21:30.314 32289 32289 D YTV2_DEBUG: t=131340884 tapAgeMs=956 OBSERVATION fullscreen=false ad=false nodes=115 treeMs=125.4 parseMs=26.2
+09-12 20:21:30.314 32289 32289 D YTV2_DUMP: --> PARSED: kind=NON_PLAYBACK watchConfirmed=false title='null' handle='null' display='null' channelId='null'
+09-12 20:21:30.653 32289 32289 D YTV2_DEBUG: t=131341223 tapAgeMs=1 CLICK id=null label=Home
+09-12 20:21:30.898 32289 32289 D YTV2_DEBUG: t=131341468 tapAgeMs=1 CLICK id=null label=null
+09-12 20:21:33.101 32289 32289 D YTV2_DEBUG: t=131343671 tapAgeMs=2204 OBSERVATION fullscreen=false ad=false nodes=186 treeMs=246.9 parseMs=149.1
+09-12 20:21:33.101 32289 32289 D YTV2_DUMP: --> PARSED: kind=VIDEO watchConfirmed=true title='विपुल गोयल स्टैंड-अप कॉमेडी के माध्यम से इंडियाज़ गॉट टैलेंट से जुड़ी हालिया विवादों और जनता की तीखी प्रतिक्रियाओं पर अपनी राय रखते हैं। वे पुलिस पूछताछ और मीडिया कवरेज के अपने मज़ेदार अनुभवों को साझा करते हुए इस पूरी स्थिति पर कटाक्ष करते हैं।' handle='null' display='Vipul Goyal' channelId='null'
+09-12 20:21:33.216 32289 32289 D YTV2_DEBUG: t=131343786 tapAgeMs=7 CLICK id=null label=null
+09-12 20:21:33.361 32289 32289 D YTV2_DEBUG: t=131343931 tapAgeMs=152 OBSERVATION fullscreen=false ad=false nodes=98 treeMs=19.2 parseMs=99.1
+09-12 20:21:33.361 32289 32289 D YTV2_DUMP: --> PARSED: kind=VIDEO watchConfirmed=true title='null' handle='null' display='null' channelId='null'
+09-12 20:21:34.490 32289 32289 D YTV2_DEBUG: t=131345060 tapAgeMs=1281 OBSERVATION fullscreen=false ad=false nodes=173 treeMs=161.5 parseMs=125.7
+09-12 20:21:34.491 32289 32289 D YTV2_DUMP: --> PARSED: kind=VIDEO watchConfirmed=true title='null' handle='null' display='LIKE AD' channelId='null'
+09-12 20:21:34.569 32289 32289 D YTV2_DEBUG: t=131345139 tapAgeMs=1360 OBSERVATION fullscreen=false ad=true nodes=109 treeMs=3.3 parseMs=48.1
+09-12 20:21:34.569 32289 32289 D YTV2_DUMP: --> PARSED: kind=VIDEO watchConfirmed=true title='null' handle='null' display='null' channelId='null'
+09-12 20:21:42.608 32289 32289 D YTV2_DEBUG: t=131353178 tapAgeMs=9399 SHEET not_allowlisted
+09-12 20:21:42.637 32289 32289 D YTV2_DEBUG: t=131353207 tapAgeMs=8 CLICK id=null label=Close ad panel
+09-12 20:21:42.660 32289 32289 D YTV2_DEBUG: t=131353230 tapAgeMs=1 CLICK id=null label=Close minimised player
+09-12 20:21:42.880 32289 32289 D YTV2_DEBUG: t=131353450 tapAgeMs=221 ACTION return_home
+09-12 20:21:43.281 32289 32289 D YTV2_DEBUG: t=131353851 tapAgeMs=622 OBSERVATION fullscreen=false ad=false nodes=116 treeMs=15.9 parseMs=31.4
+09-12 20:21:43.281 32289 32289 D YTV2_DUMP: --> PARSED: kind=NON_PLAYBACK watchConfirmed=false title='null' handle='null' display='null' channelId='null'
+09-12 20:21:47.916 32289 32289 D YTV2_DEBUG: t=131358486 tapAgeMs=5257 OBSERVATION fullscreen=false ad=false nodes=98 treeMs=9.3 parseMs=94.4
+09-12 20:21:47.916 32289 32289 D YTV2_DUMP: --> PARSED: kind=VIDEO watchConfirmed=true title='Commonwealth Games 2026 With Static & Memory Hints | Daily Current Affairs Burning Issues #sports' handle='null' display='null' channelId='null'
+09-12 20:21:48.345 32289 32289 D YTV2_DEBUG: t=131358915 tapAgeMs=5 CLICK id=null label=null
+09-12 20:21:49.337 32289 32289 D YTV2_DEBUG: t=131359907 tapAgeMs=997 OBSERVATION fullscreen=false ad=false nodes=136 treeMs=26.1 parseMs=107.2
+09-12 20:21:49.338 32289 32289 D YTV2_DUMP: --> PARSED: kind=VIDEO watchConfirmed=true title='Commonwealth Games 2026 With Static & Memory Hints | Daily Current Affairs Burning Issues #sports​' handle='@parchamclasses' display='Parcham Classes' channelId='null'
+09-12 20:21:51.830 32289 32289 D YTV2_DEBUG: allowlist check: title='Commonwealth Games 2026 With Static & Memory Hints | Daily Current Affairs Burning Issues #sports​' handle='@parchamclasses' display='Parcham Classes'
+09-12 20:21:52.521 32289 32289 D YTV2_DEBUG: t=131363091 tapAgeMs=4181 SHEET not_allowlisted
+09-12 20:21:52.807 32289 32289 D YTV2_DEBUG: t=131363377 tapAgeMs=4467 ACTION return_home
+09-12 20:21:58.083 32289 32289 D YTV2_DEBUG: allowlist check: title='Commonwealth Games 2026 With Static & Memory Hints | Daily Current Affairs Burning Issues #sports​' handle='@parchamclasses' display='Parcham Classes'
+09-12 20:21:58.457 32289 32289 D YTV2_DEBUG: t=131369027 tapAgeMs=5 CLICK id=null label=Collapse ad
+09-12 20:22:00.043 32289 32289 D YTV2_DEBUG: t=131370613 tapAgeMs=2 CLICK id=null label=Play video
+09-12 20:22:01.236 32289 32289 D YTV2_DEBUG: allowlist check: title='Commonwealth Games 2026 With Static & Memory Hints | Daily Current Affairs Burning Issues #sports​' handle='@parchamclasses' display='Parcham Classes'
+09-12 20:22:01.367 32289 32289 D YTV2_DEBUG: t=131371937 tapAgeMs=1326 SHEET not_allowlisted
+09-12 20:22:01.563 32289 32289 D YTV2_DEBUG: t=131372133 tapAgeMs=1522 ACTION return_home
+09-12 20:22:02.263 32289 32289 D YTV2_DEBUG: allowlist check: title='Commonwealth Games 2026 With Static & Memory Hints | Daily Current Affairs Burning Issues #sports​' handle='@parchamclasses' display='Parcham Classes'
+09-12 20:22:02.337 32289 32289 D YTV2_DEBUG: t=131372907 tapAgeMs=2296 SHEET not_allowlisted
+09-12 20:22:02.450 32289 32289 D YTV2_DEBUG: t=131373020 tapAgeMs=2409 ACTION return_home
+09-12 20:22:03.171 32289 32289 D YTV2_DEBUG: allowlist check: title='Commonwealth Games 2026 With Static & Memory Hints | Daily Current Affairs Burning Issues #sports​' handle='@parchamclasses' display='Parcham Classes'
+09-12 20:22:03.311 32289 32289 D YTV2_DEBUG: t=131373881 tapAgeMs=3270 SHEET not_allowlisted
+09-12 20:22:03.575 32289 32289 D YTV2_DEBUG: t=131374144 tapAgeMs=3533 ACTION return_home
+09-12 20:22:04.359 32289 32289 D YTV2_DEBUG: allowlist check: title='Commonwealth Games 2026 With Static & Memory Hints | Daily Current Affairs Burning Issues #sports​' handle='@parchamclasses' display='Parcham Classes'
+09-12 20:22:04.487 32289 32289 D YTV2_DEBUG: t=131375057 tapAgeMs=4446 SHEET not_allowlisted
+09-12 20:22:04.752 32289 32289 D YTV2_DEBUG: t=131375322 tapAgeMs=4711 ACTION return_home
+09-12 20:22:05.476 32289 32289 D YTV2_DEBUG: allowlist check: title='Commonwealth Games 2026 With Static & Memory Hints | Daily Current Affairs Burning Issues #sports​' handle='@parchamclasses' display='Parcham Classes'
+09-12 20:22:05.620 32289 32289 D YTV2_DEBUG: t=131376190 tapAgeMs=5579 SHEET not_allowlisted
+09-12 20:22:05.883 32289 32289 D YTV2_DEBUG: t=131376453 tapAgeMs=5842 ACTION return_home
+09-12 20:22:06.442 32289 32289 D YTV2_DEBUG: allowlist check: title='Commonwealth Games 2026 With Static & Memory Hints | Daily Current Affairs Burning Issues #sports​' handle='@parchamclasses' display='Parcham Classes'
+09-12 20:22:06.496 32289 32289 D YTV2_DEBUG: t=131377066 tapAgeMs=6455 SHEET not_allowlisted
+09-12 20:22:06.705 32289 32289 D YTV2_DEBUG: t=131377274 tapAgeMs=6663 ACTION return_home
+09-12 20:22:07.307 32289 32289 D YTV2_DEBUG: allowlist check: title='Commonwealth Games 2026 With Static & Memory Hints | Daily Current Affairs Burning Issues #sports​' handle='@parchamclasses' display='Parcham Classes'
+09-12 20:22:07.366 32289 32289 D YTV2_DEBUG: t=131377936 tapAgeMs=7325 SHEET not_allowlisted
+09-12 20:22:07.566 32289 32289 D YTV2_DEBUG: t=131378136 tapAgeMs=7525 ACTION return_home
+09-12 20:22:08.247 32289 32289 D YTV2_DEBUG: allowlist check: title='Commonwealth Games 2026 With Static & Memory Hints | Daily Current Affairs Burning Issues #sports​' handle='@parchamclasses' display='Parcham Classes'
+09-12 20:22:08.376 32289 32289 D YTV2_DEBUG: t=131378946 tapAgeMs=8335 SHEET not_allowlisted
+09-12 20:22:08.639 32289 32289 D YTV2_DEBUG: t=131379208 tapAgeMs=8597 ACTION return_home
+09-12 20:22:09.438 32289 32289 D YTV2_DEBUG: allowlist check: title='Commonwealth Games 2026 With Static & Memory Hints | Daily Current Affairs Burning Issues #sports​' handle='@parchamclasses' display='Parcham Classes'
+09-12 20:22:09.525 32289 32289 D YTV2_DEBUG: t=131380095 tapAgeMs=9484 SHEET not_allowlisted
+09-12 20:22:09.721 32289 32289 D YTV2_DEBUG: t=131380291 tapAgeMs=9680 ACTION return_home
+09-12 20:22:10.509 32289 32289 D YTV2_DEBUG: allowlist check: title='Commonwealth Games 2026 With Static & Memory Hints | Daily Current Affairs Burning Issues #sports​' handle='@parchamclasses' display='Parcham Classes'
+09-12 20:22:10.581 32289 32289 D YTV2_DEBUG: t=131381151 tapAgeMs=10540 SHEET not_allowlisted
+09-12 20:22:10.705 32289 32289 D YTV2_DEBUG: t=131381275 tapAgeMs=10664 ACTION return_home
+09-12 20:22:11.435 32289 32289 D YTV2_DEBUG: allowlist check: title='Commonwealth Games 2026 With Static & Memory Hints | Daily Current Affairs Burning Issues #sports​' handle='@parchamclasses' display='Parcham Classes'
+09-12 20:22:11.486 32289 32289 D YTV2_DEBUG: t=131382056 tapAgeMs=11445 SHEET not_allowlisted
+09-12 20:22:11.585 32289 32289 D YTV2_DEBUG: t=131382155 tapAgeMs=11544 ACTION return_home
+09-12 20:22:12.386 32289 32289 D YTV2_DEBUG: allowlist check: title='Commonwealth Games 2026 With Static & Memory Hints | Daily Current Affairs Burning Issues #sports​' handle='@parchamclasses' display='Parcham Classes'
+09-12 20:22:12.507 32289 32289 D YTV2_DEBUG: t=131383077 tapAgeMs=12466 SHEET not_allowlisted
+09-12 20:22:12.774 32289 32289 D YTV2_DEBUG: t=131383344 tapAgeMs=12733 ACTION return_home
+09-12 20:22:13.550 32289 32289 D YTV2_DEBUG: allowlist check: title='Commonwealth Games 2026 With Static & Memory Hints | Daily Current Affairs Burning Issues #sports​' handle='@parchamclasses' display='Parcham Classes'
+09-12 20:22:13.617 32289 32289 D YTV2_DEBUG: t=131384187 tapAgeMs=13576 SHEET not_allowlisted
+09-12 20:22:13.879 32289 32289 D YTV2_DEBUG: t=131384449 tapAgeMs=13838 ACTION return_home
+09-12 20:22:14.549 32289 32289 D YTV2_DEBUG: allowlist check: title='Commonwealth Games 2026 With Static & Memory Hints | Daily Current Affairs Burning Issues #sports​' handle='@parchamclasses' display='Parcham Classes'
+09-12 20:22:14.616 32289 32289 D YTV2_DEBUG: t=131385186 tapAgeMs=14575 SHEET not_allowlisted
+09-12 20:22:14.769 32289 32289 D YTV2_DEBUG: t=131385339 tapAgeMs=14728 ACTION return_home
+09-12 20:22:15.465 32289 32289 D YTV2_DEBUG: allowlist check: title='Commonwealth Games 2026 With Static & Memory Hints | Daily Current Affairs Burning Issues #sports​' handle='@parchamclasses' display='Parcham Classes'
+09-12 20:22:15.583 32289 32289 D YTV2_DEBUG: t=131386153 tapAgeMs=15542 SHEET not_allowlisted
+09-12 20:22:15.845 32289 32289 D YTV2_DEBUG: t=131386415 tapAgeMs=15804 ACTION return_home
+09-12 20:22:16.563 32289 32289 D YTV2_DEBUG: allowlist check: title='Commonwealth Games 2026 With Static & Memory Hints | Daily Current Affairs Burning Issues #sports​' handle='@parchamclasses' display='Parcham Classes'
+09-12 20:22:16.702 32289 32289 D YTV2_DEBUG: t=131387272 tapAgeMs=16661 SHEET not_allowlisted
+09-12 20:22:16.964 32289 32289 D YTV2_DEBUG: t=131387534 tapAgeMs=16923 ACTION return_home
+09-12 20:22:17.613 32289 32289 D YTV2_DEBUG: allowlist check: title='Commonwealth Games 2026 With Static & Memory Hints | Daily Current Affairs Burning Issues #sports​' handle='@parchamclasses' display='Parcham Classes'
+09-12 20:22:17.698 32289 32289 D YTV2_DEBUG: t=131388268 tapAgeMs=17657 SHEET not_allowlisted
+09-12 20:22:17.798 32289 32289 D YTV2_DEBUG: t=131388367 tapAgeMs=17756 ACTION return_home
+09-12 20:22:18.082 32289 32289 D YTV2_DEBUG: allowlist check: title='Commonwealth Games 2026 With Static & Memory Hints | Daily Current Affairs Burning Issues #sports​' handle='@parchamclasses' display='Parcham Classes'
+09-12 20:22:18.136 32289 32289 D YTV2_DEBUG: t=131388706 tapAgeMs=18095 EVALUATION discarded; scheduling fresh read
+09-12 20:22:18.689 32289 32289 D YTV2_DEBUG: allowlist check: title='Commonwealth Games 2026 With Static & Memory Hints | Daily Current Affairs Burning Issues #sports​' handle='@parchamclasses' display='Parcham Classes'
+09-12 20:22:18.799 32289 32289 D YTV2_DEBUG: t=131389369 tapAgeMs=18758 SHEET not_allowlisted
+09-12 20:22:18.918 32289 32289 D YTV2_DEBUG: t=131389488 tapAgeMs=18877 ACTION return_home
+09-12 20:22:19.204 32289 32289 D YTV2_DEBUG: allowlist check: title='Commonwealth Games 2026 With Static & Memory Hints | Daily Current Affairs Burning Issues #sports​' handle='@parchamclasses' display='Parcham Classes'
+09-12 20:22:19.268 32289 32289 D YTV2_DEBUG: t=131389838 tapAgeMs=19227 EVALUATION discarded; scheduling fresh read
+09-12 20:22:19.671 32289 32289 D YTV2_DEBUG: allowlist check: title='Commonwealth Games 2026 With Static & Memory Hints | Daily Current Affairs Burning Issues #sports​' handle='@parchamclasses' display='Parcham Classes'
+09-12 20:22:19.794 32289 32289 D YTV2_DEBUG: t=131390364 tapAgeMs=19753 SHEET not_allowlisted
+09-12 20:22:19.902 32289 32289 D YTV2_DEBUG: t=131390472 tapAgeMs=19861 ACTION return_home
+09-12 20:22:20.606 32289 32289 D YTV2_DEBUG: allowlist check: title='Commonwealth Games 2026 With Static & Memory Hints | Daily Current Affairs Burning Issues #sports​' handle='@parchamclasses' display='Parcham Classes'
+09-12 20:22:20.682 32289 32289 D YTV2_DEBUG: t=131391252 tapAgeMs=20641 SHEET not_allowlisted
+09-12 20:22:20.784 32289 32289 D YTV2_DEBUG: t=131391354 tapAgeMs=20743 ACTION return_home
+09-12 20:22:21.414 32289 32289 D YTV2_DEBUG: allowlist check: title='Commonwealth Games 2026 With Static & Memory Hints | Daily Current Affairs Burning Issues #sports​' handle='@parchamclasses' display='Parcham Classes'
+09-12 20:22:21.481 32289 32289 D YTV2_DEBUG: t=131392051 tapAgeMs=21440 SHEET not_allowlisted
+09-12 20:22:21.586 32289 32289 D YTV2_DEBUG: t=131392156 tapAgeMs=21545 ACTION return_home
+09-12 20:22:22.127 32289 32289 D YTV2_DEBUG: allowlist check: title='Commonwealth Games 2026 With Static & Memory Hints | Daily Current Affairs Burning Issues #sports​' handle='@parchamclasses' display='Parcham Classes'
+09-12 20:22:22.254 32289 32289 D YTV2_DEBUG: t=131392824 tapAgeMs=22213 SHEET not_allowlisted
+09-12 20:22:22.517 32289 32289 D YTV2_DEBUG: t=131393087 tapAgeMs=22476 ACTION return_home
+09-12 20:22:23.156 32289 32289 D YTV2_DEBUG: allowlist check: title='Commonwealth Games 2026 With Static & Memory Hints | Daily Current Affairs Burning Issues #sports​' handle='@parchamclasses' display='Parcham Classes'
+09-12 20:22:23.293 32289 32289 D YTV2_DEBUG: t=131393863 tapAgeMs=23252 SHEET not_allowlisted
+09-12 20:22:23.391 32289 32289 D YTV2_DEBUG: t=131393961 tapAgeMs=23350 ACTION return_home
+09-12 20:22:24.082 32289 32289 D YTV2_DEBUG: allowlist check: title='Commonwealth Games 2026 With Static & Memory Hints | Daily Current Affairs Burning Issues #sports​' handle='@parchamclasses' display='Parcham Classes'
+09-12 20:22:24.196 32289 32289 D YTV2_DEBUG: t=131394766 tapAgeMs=24155 SHEET not_allowlisted
+09-12 20:22:24.462 32289 32289 D YTV2_DEBUG: t=131395032 tapAgeMs=24421 ACTION return_home
+09-12 20:22:25.179 32289 32289 D YTV2_DEBUG: allowlist check: title='Commonwealth Games 2026 With Static & Memory Hints | Daily Current Affairs Burning Issues #sports​' handle='@parchamclasses' display='Parcham Classes'
+09-12 20:22:25.292 32289 32289 D YTV2_DEBUG: t=131395862 tapAgeMs=25251 SHEET not_allowlisted
+09-12 20:22:25.556 32289 32289 D YTV2_DEBUG: t=131396126 tapAgeMs=25515 ACTION return_home
+09-12 20:22:26.284 32289 32289 D YTV2_DEBUG: allowlist check: title='Commonwealth Games 2026 With Static & Memory Hints | Daily Current Affairs Burning Issues #sports​' handle='@parchamclasses' display='Parcham Classes'
+09-12 20:22:26.410 32289 32289 D YTV2_DEBUG: t=131396979 tapAgeMs=26368 SHEET not_allowlisted
+09-12 20:22:26.674 32289 32289 D YTV2_DEBUG: t=131397243 tapAgeMs=26632 ACTION return_home
+09-12 20:22:27.233 32289 32289 D YTV2_DEBUG: allowlist check: title='Commonwealth Games 2026 With Static & Memory Hints | Daily Current Affairs Burning Issues #sports​' handle='@parchamclasses' display='Parcham Classes'
+09-12 20:22:27.338 32289 32289 D YTV2_DEBUG: t=131397908 tapAgeMs=27297 SHEET not_allowlisted
+09-12 20:22:27.499 32289 32289 D YTV2_DEBUG: t=131398069 tapAgeMs=27458 ACTION return_home
+09-12 20:22:28.242 32289 32289 D YTV2_DEBUG: allowlist check: title='Commonwealth Games 2026 With Static & Memory Hints | Daily Current Affairs Burning Issues #sports​' handle='@parchamclasses' display='Parcham Classes'
+09-12 20:22:28.369 32289 32289 D YTV2_DEBUG: t=131398939 tapAgeMs=28328 SHEET not_allowlisted
+09-12 20:22:28.636 32289 32289 D YTV2_DEBUG: t=131399206 tapAgeMs=28595 ACTION return_home
+09-12 20:22:29.342 32289 32289 D YTV2_DEBUG: allowlist check: title='Commonwealth Games 2026 With Static & Memory Hints | Daily Current Affairs Burning Issues #sports​' handle='@parchamclasses' display='Parcham Classes'
+09-12 20:22:29.470 32289 32289 D YTV2_DEBUG: t=131400040 tapAgeMs=29429 SHEET not_allowlisted
+09-12 20:22:29.513 32289 32289 D YTV2_DEBUG: t=131400083 tapAgeMs=29472 ACTION return_home
+09-12 20:22:30.231 32289 32289 D YTV2_DEBUG: allowlist check: title='Commonwealth Games 2026 With Static & Memory Hints | Daily Current Affairs Burning Issues #sports​' handle='@parchamclasses' display='Parcham Classes'
+09-12 20:22:30.357 32289 32289 D YTV2_DEBUG: t=131400927 tapAgeMs=30316 SHEET not_allowlisted
+09-12 20:22:30.480 32289 32289 D YTV2_DEBUG: t=131401050 tapAgeMs=30439 ACTION return_home
+09-12 20:22:31.073 32289 32289 D YTV2_DEBUG: allowlist check: title='Commonwealth Games 2026 With Static & Memory Hints | Daily Current Affairs Burning Issues #sports​' handle='@parchamclasses' display='Parcham Classes'
+09-12 20:22:31.152 32289 32289 D YTV2_DEBUG: t=131401722 tapAgeMs=31111 SHEET not_allowlisted
+09-12 20:22:31.275 32289 32289 D YTV2_DEBUG: t=131401845 tapAgeMs=31234 ACTION return_home
+09-12 20:22:32.004 32289 32289 D YTV2_DEBUG: allowlist check: title='Commonwealth Games 2026 With Static & Memory Hints | Daily Current Affairs Burning Issues #sports​' handle='@parchamclasses' display='Parcham Classes'
+09-12 20:22:32.129 32289 32289 D YTV2_DEBUG: t=131402699 tapAgeMs=32088 SHEET not_allowlisted
+09-12 20:22:32.392 32289 32289 D YTV2_DEBUG: t=131402962 tapAgeMs=32351 ACTION return_home
+09-12 20:22:33.120 32289 32289 D YTV2_DEBUG: allowlist check: title='Commonwealth Games 2026 With Static & Memory Hints | Daily Current Affairs Burning Issues #sports​' handle='@parchamclasses' display='Parcham Classes'
+09-12 20:22:33.538 32289 32289 D YTV2_DEBUG: t=131404108 tapAgeMs=33497 SHEET not_allowlisted
+09-12 20:22:33.803 32289 32289 D YTV2_DEBUG: t=131404372 tapAgeMs=33761 ACTION return_home
+09-12 20:22:34.548 32289 32289 D YTV2_DEBUG: allowlist check: title='Commonwealth Games 2026 With Static & Memory Hints | Daily Current Affairs Burning Issues #sports​' handle='@parchamclasses' display='Parcham Classes'
+09-12 20:22:34.674 32289 32289 D YTV2_DEBUG: t=131405244 tapAgeMs=34633 SHEET not_allowlisted
+09-12 20:22:34.817 32289 32289 D YTV2_DEBUG: t=131405387 tapAgeMs=34776 ACTION return_home
+09-12 20:22:35.488 32289 32289 D YTV2_DEBUG: allowlist check: title='Commonwealth Games 2026 With Static & Memory Hints | Daily Current Affairs Burning Issues #sports​' handle='@parchamclasses' display='Parcham Classes'
+09-12 20:22:35.631 32289 32289 D YTV2_DEBUG: t=131406201 tapAgeMs=35590 SHEET not_allowlisted
+09-12 20:22:35.892 32289 32289 D YTV2_DEBUG: t=131406462 tapAgeMs=35851 ACTION return_home
+09-12 20:22:36.662 32289 32289 D YTV2_DEBUG: allowlist check: title='Commonwealth Games 2026 With Static & Memory Hints | Daily Current Affairs Burning Issues #sports​' handle='@parchamclasses' display='Parcham Classes'
+09-12 20:22:36.774 32289 32289 D YTV2_DEBUG: t=131407344 tapAgeMs=36733 SHEET not_allowlisted
+09-12 20:22:36.885 32289 32289 D YTV2_DEBUG: t=131407455 tapAgeMs=36844 ACTION return_home
+09-12 20:22:37.608 32289 32289 D YTV2_DEBUG: allowlist check: title='Commonwealth Games 2026 With Static & Memory Hints | Daily Current Affairs Burning Issues #sports​' handle='@parchamclasses' display='Parcham Classes'
+09-12 20:22:37.680 32289 32289 D YTV2_DEBUG: t=131408250 tapAgeMs=37639 SHEET not_allowlisted
+09-12 20:22:37.809 32289 32289 D YTV2_DEBUG: t=131408378 tapAgeMs=37767 ACTION return_home
+09-12 20:22:38.504 32289 32289 D YTV2_DEBUG: allowlist check: title='Commonwealth Games 2026 With Static & Memory Hints | Daily Current Affairs Burning Issues #sports​' handle='@parchamclasses' display='Parcham Classes'
+09-12 20:22:38.657 32289 32289 D YTV2_DEBUG: t=131409227 tapAgeMs=38616 SHEET not_allowlisted
+09-12 20:22:38.919 32289 32289 D YTV2_DEBUG: t=131409489 tapAgeMs=38878 ACTION return_home
+09-12 20:22:39.548 32289 32289 D YTV2_DEBUG: allowlist check: title='Commonwealth Games 2026 With Static & Memory Hints | Daily Current Affairs Burning Issues #sports​' handle='@parchamclasses' display='Parcham Classes'
+09-12 20:22:39.679 32289 32289 D YTV2_DEBUG: t=131410249 tapAgeMs=39638 SHEET not_allowlisted
+09-12 20:22:39.791 32289 32289 D YTV2_DEBUG: t=131410361 tapAgeMs=39750 ACTION return_home
+09-12 20:22:40.047 32289 32289 D YTV2_DEBUG: allowlist check: title='Commonwealth Games 2026 With Static & Memory Hints | Daily Current Affairs Burning Issues #sports​' handle='@parchamclasses' display='Parcham Classes'
+09-12 20:22:40.118 32289 32289 D YTV2_DEBUG: t=131410688 tapAgeMs=40077 EVALUATION discarded; scheduling fresh read
+09-12 20:22:40.820 32289 32289 D YTV2_DEBUG: allowlist check: title='Commonwealth Games 2026 With Static & Memory Hints | Daily Current Affairs Burning Issues #sports​' handle='@parchamclasses' display='Parcham Classes'
+09-12 20:22:40.949 32289 32289 D YTV2_DEBUG: t=131411519 tapAgeMs=40908 SHEET not_allowlisted
+09-12 20:22:41.050 32289 32289 D YTV2_DEBUG: t=131411620 tapAgeMs=41009 ACTION return_home
+09-12 20:22:41.795 32289 32289 D YTV2_DEBUG: allowlist check: title='Commonwealth Games 2026 With Static & Memory Hints | Daily Current Affairs Burning Issues #sports​' handle='@parchamclasses' display='Parcham Classes'
+09-12 20:22:41.900 32289 32289 D YTV2_DEBUG: t=131412470 tapAgeMs=41859 SHEET not_allowlisted
+09-12 20:22:42.167 32289 32289 D YTV2_DEBUG: t=131412737 tapAgeMs=42126 ACTION return_home
+09-12 20:22:42.867 32289 32289 D YTV2_DEBUG: allowlist check: title='Commonwealth Games 2026 With Static & Memory Hints | Daily Current Affairs Burning Issues #sports​' handle='@parchamclasses' display='Parcham Classes'
+09-12 20:22:42.994 32289 32289 D YTV2_DEBUG: t=131413564 tapAgeMs=42953 SHEET not_allowlisted
+09-12 20:22:43.100 32289 32289 D YTV2_DEBUG: t=131413670 tapAgeMs=43059 ACTION return_home
+09-12 20:22:43.790 32289 32289 D YTV2_DEBUG: allowlist check: title='Commonwealth Games 2026 With Static & Memory Hints | Daily Current Affairs Burning Issues #sports​' handle='@parchamclasses' display='Parcham Classes'
+09-12 20:22:43.928 32289 32289 D YTV2_DEBUG: t=131414498 tapAgeMs=43887 SHEET not_allowlisted
+09-12 20:22:44.192 32289 32289 D YTV2_DEBUG: t=131414762 tapAgeMs=44151 ACTION return_home
+09-12 20:22:44.942 32289 32289 D YTV2_DEBUG: allowlist check: title='Commonwealth Games 2026 With Static & Memory Hints | Daily Current Affairs Burning Issues #sports​' handle='@parchamclasses' display='Parcham Classes'
+09-12 20:22:45.050 32289 32289 D YTV2_DEBUG: t=131415620 tapAgeMs=45009 SHEET not_allowlisted
+09-12 20:22:45.133 32289 32289 D YTV2_DEBUG: t=131415702 tapAgeMs=45091 ACTION return_home
+09-12 20:22:45.878 32289 32289 D YTV2_DEBUG: allowlist check: title='Commonwealth Games 2026 With Static & Memory Hints | Daily Current Affairs Burning Issues #sports​' handle='@parchamclasses' display='Parcham Classes'
+09-12 20:22:45.991 32289 32289 D YTV2_DEBUG: t=131416561 tapAgeMs=45950 SHEET not_allowlisted
+09-12 20:22:46.255 32289 32289 D YTV2_DEBUG: t=131416825 tapAgeMs=46214 ACTION return_home
+09-12 20:22:47.005 32289 32289 D YTV2_DEBUG: allowlist check: title='Commonwealth Games 2026 With Static & Memory Hints | Daily Current Affairs Burning Issues #sports​' handle='@parchamclasses' display='Parcham Classes'
+09-12 20:22:47.112 32289 32289 D YTV2_DEBUG: t=131417682 tapAgeMs=47071 SHEET not_allowlisted
+09-12 20:22:47.208 32289 32289 D YTV2_DEBUG: t=131417778 tapAgeMs=47167 ACTION return_home
+09-12 20:22:47.969 32289 32289 D YTV2_DEBUG: allowlist check: title='Commonwealth Games 2026 With Static & Memory Hints | Daily Current Affairs Burning Issues #sports​' handle='@parchamclasses' display='Parcham Classes'
+09-12 20:22:48.103 32289 32289 D YTV2_DEBUG: t=131418673 tapAgeMs=48062 SHEET not_allowlisted
+09-12 20:22:48.367 32289 32289 D YTV2_DEBUG: t=131418936 tapAgeMs=48325 ACTION return_home
+09-12 20:22:49.043 32289 32289 D YTV2_DEBUG: allowlist check: title='Commonwealth Games 2026 With Static & Memory Hints | Daily Current Affairs Burning Issues #sports​' handle='@parchamclasses' display='Parcham Classes'
+09-12 20:22:49.138 32289 32289 D YTV2_DEBUG: t=131419708 tapAgeMs=49097 SHEET not_allowlisted
+09-12 20:22:49.189 32289 32289 D YTV2_DEBUG: t=131419759 tapAgeMs=49148 ACTION return_home
+09-12 20:22:50.010 32289 32289 D YTV2_DEBUG: allowlist check: title='Commonwealth Games 2026 With Static & Memory Hints | Daily Current Affairs Burning Issues #sports​' handle='@parchamclasses' display='Parcham Classes'
+09-12 20:22:50.130 32289 32289 D YTV2_DEBUG: t=131420700 tapAgeMs=50089 SHEET not_allowlisted
+09-12 20:22:50.274 32289 32289 D YTV2_DEBUG: t=131420844 tapAgeMs=50233 ACTION return_home
+09-12 20:22:50.989 32289 32289 D YTV2_DEBUG: allowlist check: title='Commonwealth Games 2026 With Static & Memory Hints | Daily Current Affairs Burning Issues #sports​' handle='@parchamclasses' display='Parcham Classes'
+09-12 20:22:51.092 32289 32289 D YTV2_DEBUG: t=131421661 tapAgeMs=51050 SHEET not_allowlisted
+09-12 20:22:51.365 32289 32289 D YTV2_DEBUG: t=131421935 tapAgeMs=51324 ACTION return_home
+09-12 20:22:52.026 32289 32289 D YTV2_DEBUG: allowlist check: title='Commonwealth Games 2026 With Static & Memory Hints | Daily Current Affairs Burning Issues #sports​' handle='@parchamclasses' display='Parcham Classes'
+09-12 20:22:52.068 32289 32289 D YTV2_DEBUG: t=131422637 tapAgeMs=52027 EVALUATION discarded; scheduling fresh read

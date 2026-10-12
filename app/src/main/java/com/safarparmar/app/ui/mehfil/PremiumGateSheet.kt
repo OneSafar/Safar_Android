@@ -76,7 +76,7 @@ fun PremiumGateSheet(
                     )
                 }
                 Text(
-                    text = "Private Connect is in Safar Premium",
+                    text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.mehfil_private_premium),
                     fontFamily = LoraFontFamily,
                     fontWeight = FontWeight.Normal,
                     fontSize = 22.sp,
@@ -88,7 +88,7 @@ fun PremiumGateSheet(
             PlanHairline()
 
             Text(
-                text = "Safar Plus includes normal Mehfil. Upgrade to Safar Premium to send connection requests and start private chats.",
+                text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.mehfil_private_premium_body),
                 fontSize = 14.sp,
                 lineHeight = 20.sp,
                 color = MehfilFlatColors.Muted,

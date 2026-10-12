@@ -13,6 +13,20 @@ import org.junit.Test
 
 class StudyPlannerProgressTest {
     @Test
+    fun `revision immediately counts as completed study while appointments remain`() {
+        val dates = listOf("2026-09-12", "2026-09-17")
+        val topic = StudyTopic("r", "Read", TopicStatus.REVISION_NEEDED, revisionReminderDates = dates)
+        val chapter = StudyChapter(topics = listOf(topic, StudyTopic("t", "Unread")))
+        val plan = StudyPlan(subjects = listOf(StudySubject(chapters = listOf(chapter))))
+        assertEquals(50, plan.rollup().completionPercent)
+        assertEquals(1, plan.rollup().doneTopics)
+        assertEquals(1, plan.rollup().revisionTopics)
+        assertEquals(1, chapter.progressState().finishedTopics)
+        assertEquals(dates, topic.revisionReminderDates)
+        assertEquals(50, chapter.percentDone())
+    }
+
+    @Test
     fun `daily todo completion does not inflate exam progress or stale cache`() {
         val today = todayKey()
         val plan = StudyPlan(

@@ -1,0 +1,14 @@
+<resources>
+    <color name="widget_background">#FAF8F5</color>
+    <color name="widget_text">#211C29</color>
+    <color name="widget_secondary">#635B6C</color>
+    <color name="widget_accent">#6B3296</color>
+    <color name="widget_tint">#EBE2F2</color>
+    <color name="widget_divider">#E4DEE7</color>
+    <color name="widget_orange">#B34314</color>
+    <color name="widget_orange_tint">#FBE9DD</color>
+    <color name="widget_focus_surface">#EFE7F6</color>
+    <color name="widget_goals_surface">#FFFFFF</color>
+    <color name="widget_panel_border">#E6DFE8</color>
+    <color name="widget_progress_track">#F8D8BB</color>
+</resources>

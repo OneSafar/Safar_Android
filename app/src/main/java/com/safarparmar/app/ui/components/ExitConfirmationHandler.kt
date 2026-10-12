@@ -3,6 +3,8 @@ package com.safarparmar.app.ui.components
 import androidx.activity.compose.BackHandler
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.res.stringResource
+import com.safarparmar.app.R
 
 /**
  * Intercepts the back button on root screens and shows a confirmation dialog
@@ -26,19 +28,19 @@ fun ExitConfirmationHandler(
     if (showDialog) {
         AlertDialog(
             onDismissRequest = { showDialog = false },
-            title = { Text("Exit SAFAR?") },
-            text = { Text("Are you sure you want to exit?") },
+            title = { Text(stringResource(R.string.exit_title)) },
+            text = { Text(stringResource(R.string.exit_message)) },
             confirmButton = {
                 TextButton(onClick = {
                     showDialog = false
                     onConfirmExit()
                 }) {
-                    Text("Exit")
+                    Text(stringResource(R.string.exit_confirm))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDialog = false }) {
-                    Text("Stay")
+                    Text(stringResource(R.string.exit_stay))
                 }
             },
         )

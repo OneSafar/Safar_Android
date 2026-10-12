@@ -224,12 +224,16 @@ data class EkagraAnalyticsRecentSession(
 
 @Immutable
 data class EkagraAnalyticsFocusSession(
+    val sourceSessionId: String? = null,
+    val endReason: String? = null,
+    val pendingSync: Boolean = false,
     val id: String = "",
     val startedAt: String? = null,
     val endedAt: String? = null,
     val durationMinutes: Int = 0,
     val actualMinutes: Int = 0,
     val actualSeconds: Int = 0,
+    val rankedSeconds: Int? = null,
     val status: String = "completed",
     val rawStatus: String = "completed",
     val taskText: String? = null,

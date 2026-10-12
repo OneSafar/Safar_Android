@@ -30,33 +30,63 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltAndroidApp
-class SafarApplication : Application() {
+class SafarApplication : Application(), coil.ImageLoaderFactory {
 
+    override fun newImageLoader(): coil.ImageLoader {
+        val constrained = com.safarparmar.app.performance.isConstrainedDevice(this)
+        val maxBytes = minOf(
+            if (constrained) 16L * 1024 * 1024 else 32L * 1024 * 1024,
+            (Runtime.getRuntime().maxMemory() * if (constrained) 0.10 else 0.15).toLong(),
+        )
+        return coil.ImageLoader.Builder(this)
+            .memoryCache { coil.memory.MemoryCache.Builder(this).maxSizeBytes(maxBytes.toInt()).build() }
+            .components {
+                if (android.os.Build.VERSION.SDK_INT >= 28) add(coil.decode.ImageDecoderDecoder.Factory())
+                else add(coil.decode.GifDecoder.Factory())
+            }
+            .build()
+    }
+
+
+    @Inject lateinit var readSnapshots: com.safarparmar.app.data.repository.ReadSnapshotStore
     @Inject lateinit var dataStore: SafarDataStore
     @Inject lateinit var notificationTokenRegistrar: NotificationTokenRegistrar
     @Inject lateinit var kavachAnalyticsRepository: KavachAnalyticsRepository
     @Inject lateinit var kavachAnalyticsRecorder: KavachAnalyticsRecorder
     @Inject lateinit var focusShieldRepository: com.safarparmar.app.ui.ekagra.focusshield.FocusShieldRepository
     @Inject lateinit var youtubeInsightsRepository: YoutubeInsightsRepository
+    @Inject lateinit var referralManager: com.safarparmar.app.data.repository.ReferralManager
     @Inject @IoDispatcher lateinit var ioDispatcher: CoroutineDispatcher
 
     private val appExceptionHandler = CoroutineExceptionHandler { _, throwable ->
         Log.e("SAFAR_APP", "Unhandled application coroutine exception", throwable)
-        FirebaseCrashlytics.getInstance().recordException(throwable)
+        runCatching { FirebaseCrashlytics.getInstance().recordException(throwable) }
+            .onFailure { Log.w("SAFAR_APP", "Crash reporting unavailable", it) }
     }
 
     private val appScope by lazy { CoroutineScope(SupervisorJob() + ioDispatcher + appExceptionHandler) }
 
     override fun onCreate() {
         super.onCreate()
+        com.safarparmar.app.util.AppForegroundTracker.init(this)
         configureDebugStrictMode()
         configureCrashReporting()
-        SafarNotificationChannels.createAll(this)
-        fetchAndStoreFcmToken()
-        if (EkagraPendingSessionSaveStore.getAll(this).isNotEmpty()) {
-            EkagraSessionSaveWorker.enqueue(this)
+        // A cold start may be for KavachAlwaysOnService. Keep notification-manager
+        // Binder calls and Firebase token initialization off the main thread so
+        // the service can reach startForeground() within Android's deadline.
+        // Kavach creates its own status channel before startForegroundService().
+        appScope.launch {
+            SafarNotificationChannels.createAll(this@SafarApplication)
+            fetchAndStoreFcmToken()
+            referralManager.checkAndCaptureInstallReferrer()
+            KavachUsageCollectionWorker.schedule(this@SafarApplication)
         }
-        KavachUsageCollectionWorker.schedule(this)
+        appScope.launch {
+            if (EkagraPendingSessionSaveStore.getAll(this@SafarApplication).isNotEmpty()) {
+                EkagraSessionSaveWorker.enqueue(this@SafarApplication)
+                runCatching { EkagraSessionSaveWorker.drainPendingSaves(this@SafarApplication) }
+            }
+        }
         appScope.launch {
             // A Kavach session still marked active at launch never reached a normal
             // end — the process or the device died under it. Finalise it as
@@ -76,10 +106,12 @@ class SafarApplication : Application() {
             }
             runCatching { kavachAnalyticsRepository.refresh() }
         }
-        // Always On is meant to survive a reboot, an app update and a process
-        // death — a blocker the student has to remember to re-arm is not a blocker.
-        // The repository re-checks permissions and the app list before starting.
-        focusShieldRepository.restoreKavachIfEnabled()
+        // Note: Foreground services must NEVER be started from Application.onCreate()
+        // because Application.onCreate() runs for background processes (WorkManager,
+        // FCM receivers, etc.). On Android 12+, calling startForegroundService()
+        // from background triggers ForegroundServiceStartNotAllowedException and fatal
+        // ForegroundServiceDidNotStartInTimeException crashes.
+        // Active Kavach is cleanly restored in MainActivity.onStart() when in foreground.
 
         appScope.launch {
             notificationTokenRegistrar.registerStoredTokenIfNeeded()
@@ -104,6 +136,11 @@ class SafarApplication : Application() {
         }
     }
 
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        if (level >= android.content.ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW) readSnapshots.clear()
+    }
+
     private fun configureDebugStrictMode() {
         if (!BuildConfig.DEBUG) return
         StrictMode.setThreadPolicy(
@@ -123,11 +160,16 @@ class SafarApplication : Application() {
     }
 
     private fun configureCrashReporting() {
-        val crashlytics = FirebaseCrashlytics.getInstance()
-        crashlytics.setCrashlyticsCollectionEnabled(!BuildConfig.DEBUG)
+        val crashlytics = runCatching {
+            FirebaseCrashlytics.getInstance().also {
+                it.setCrashlyticsCollectionEnabled(!BuildConfig.DEBUG)
+            }
+        }.onFailure { Log.w("SAFAR_APP", "Crash reporting initialization failed", it) }.getOrNull()
         appScope.launch {
             dataStore.userId.collect { userId ->
-                crashlytics.setUserId(userId.orEmpty())
+                readSnapshots.clear()
+                runCatching { crashlytics?.setUserId(userId.orEmpty()) }
+                    .onFailure { Log.w("SAFAR_APP", "Could not update crash reporting user", it) }
             }
         }
     }

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="checkin_due_to">इसकी वजह</string>
+    <string name="checkin_reason_work">काम</string>
+    <string name="checkin_reason_family">परिवार</string>
+    <string name="checkin_reason_sleep">नींद</string>
+    <string name="checkin_reason_health">सेहत</string>
+    <string name="checkin_reason_relationship">रिश्ते</string>
+    <string name="checkin_reason_finance">पैसे</string>
+    <string name="checkin_reason_study">पढ़ाई</string>
+    <string name="checkin_reason_other">कुछ और</string>
+</resources>

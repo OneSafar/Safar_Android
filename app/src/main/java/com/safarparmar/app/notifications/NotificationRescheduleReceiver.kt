@@ -44,16 +44,23 @@ class NotificationRescheduleReceiver : BroadcastReceiver() {
 
         scope.launch {
             try {
-                rescheduleWorkers(context)
-            } catch (e: Exception) {
-                Log.e(TAG, "Worker reschedule failed after $action", e)
-            }
-            try {
-                restoreKavachAlwaysOn(context)
-            } catch (e: Exception) {
-                // Kept separate from the worker reschedule above so one failing
-                // cannot silently take the other down with it.
-                Log.e(TAG, "Kavach Always On restore failed after $action", e)
+                try {
+                    rescheduleWorkers(context)
+                } catch (e: Exception) {
+                    Log.e(TAG, "Worker reschedule failed after $action", e)
+                }
+                val isBootAction = action == Intent.ACTION_BOOT_COMPLETED || action == "android.intent.action.QUICKBOOT_POWERON"
+                if (isBootAction) {
+                    try {
+                        restoreKavachAlwaysOn(context)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Kavach Always On restore failed after $action", e)
+                    }
+                } else {
+                    if (BuildConfig.DEBUG) {
+                        Log.d(TAG, "Skipping background FGS launch for $action; will restore when user opens app.")
+                    }
+                }
             } finally {
                 pendingResult.finish()
             }
@@ -61,13 +68,12 @@ class NotificationRescheduleReceiver : BroadcastReceiver() {
     }
 
     /**
-     * Brings KAVACH Always On back after a reboot or app update.
+     * Brings KAVACH Always On back after a device reboot.
      *
-     * A blocker the student has to remember to switch on again after every restart
-     * is not a blocker — the one evening they forget is the evening it mattered.
-     * Starting a foreground service from the background is normally refused on
+     * Starting a foreground service from the background is forbidden on
      * Android 12+, but receiving BOOT_COMPLETED is one of the documented
-     * exemptions; the start is still guarded in case an OEM disagrees.
+     * exemptions. MY_PACKAGE_REPLACED is NOT exempt on Android 12+, so app updates
+     * defer restoration to MainActivity.onStart() when the app enters the foreground.
      */
     private suspend fun restoreKavachAlwaysOn(context: Context) {
         val dataStore = SafarDataStore(context)
@@ -88,8 +94,8 @@ class NotificationRescheduleReceiver : BroadcastReceiver() {
             return
         }
 
-        com.safarparmar.app.ui.ekagra.focusshield.KavachAlwaysOnService.start(context)
-        if (BuildConfig.DEBUG) Log.d(TAG, "Kavach Always On restored")
+        com.safarparmar.app.ui.ekagra.focusshield.KavachAlwaysOnService.start(context, isBootTrigger = true)
+        if (BuildConfig.DEBUG) Log.d(TAG, "Kavach Always On restored on boot")
     }
 
     private suspend fun rescheduleWorkers(context: Context) {

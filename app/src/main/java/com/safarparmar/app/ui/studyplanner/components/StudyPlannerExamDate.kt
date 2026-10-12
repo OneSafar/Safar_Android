@@ -1,5 +1,8 @@
 package com.safarparmar.app.ui.studyplanner.components
 
+import androidx.compose.ui.res.stringResource
+import com.safarparmar.app.R
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -69,10 +72,10 @@ fun PlannerExamDateField(
                         }
                         showPicker = false
                     },
-                ) { Text("OK") }
+                ) { Text(stringResource(R.string.common_ok)) }
             },
             dismissButton = {
-                TextButton(onClick = { showPicker = false }) { Text("Cancel") }
+                TextButton(onClick = { showPicker = false }) { Text(stringResource(R.string.common_cancel)) }
             },
         ) {
             DatePicker(state = datePickerState)
@@ -100,7 +103,7 @@ fun PlannerExamDateField(
         }
         if (examDateIso.isNotBlank()) {
             IconButton(onClick = { onExamDateChange("") }) {
-                Icon(Icons.Default.Clear, contentDescription = "Clear date")
+                Icon(Icons.Default.Clear, contentDescription = stringResource(R.string.planner_clear_date))
             }
         }
     }

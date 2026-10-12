@@ -1,5 +1,8 @@
 package com.safarparmar.app.ui.studyplanner.components
 
+import androidx.compose.ui.res.stringResource
+import com.safarparmar.app.R
+
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -29,11 +32,12 @@ fun TextInputDialog(
     title: String,
     label: String,
     onDismiss: () -> Unit,
+    initialValue: String = "",
     confirmLabel: String = "Save",
     emptyHint: String = "Please type a name first",
     onConfirm: (String) -> Unit,
 ) {
-    var text by remember { mutableStateOf("") }
+    var text by remember(initialValue) { mutableStateOf(initialValue) }
     PlannerDialog(
         onDismissRequest = onDismiss,
         title = title,
@@ -52,7 +56,7 @@ fun TextInputDialog(
             )
         },
         dismissButton = {
-            PlannerDialogTextAction("Cancel", onClick = onDismiss)
+            PlannerDialogTextAction(stringResource(R.string.common_cancel), onClick = onDismiss)
         },
         confirmButton = {
             PlannerDialogAction(

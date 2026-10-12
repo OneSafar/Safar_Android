@@ -1,5 +1,8 @@
 package com.safarparmar.app.ui.studyplanner.plan
 
+import androidx.compose.ui.res.stringResource
+import com.safarparmar.app.R
+
 import com.safarparmar.app.ui.studyplanner.components.PlannerDialog
 import com.safarparmar.app.ui.studyplanner.components.PlannerDialogAction
 import com.safarparmar.app.ui.studyplanner.components.PlannerDialogText
@@ -14,9 +17,11 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -209,7 +214,7 @@ fun StudyStyleOption(
                     color = scheme.primary.copy(alpha = 0.14f),
                 ) {
                     Text(
-                        text = "Your usual",
+                        text = stringResource(R.string.planner_your_usual),
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
@@ -344,7 +349,7 @@ fun PlanSettingsSheet(
                     }
                     Spacer(Modifier.width(12.dp))
                     Column {
-                        Text("Plan Settings", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, color = PlannerFlatColors.TextDark)
+                        Text(stringResource(R.string.planner_plan_settings), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, color = PlannerFlatColors.TextDark)
                         Text(
                             if (focusDailyGoal) {
                                 "Increase Topics per day to make room for more topics."
@@ -406,7 +411,7 @@ fun PlanSettingsSheet(
                         OutlinedTextField(
                             value = title,
                             onValueChange = { title = it },
-                            label = { Text("Plan title") },
+                            label = { Text(stringResource(R.string.planner_plan_title)) },
                             shape = RoundedCornerShape(14.dp),
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
@@ -441,7 +446,7 @@ fun PlanSettingsSheet(
                             OutlinedTextField(
                                 value = dailyGoal,
                                 onValueChange = { dailyGoal = it.filter(Char::isDigit).take(2) },
-                                label = { Text("Topics per day") },
+                                label = { Text(stringResource(R.string.planner_topics_per_day)) },
                                 shape = RoundedCornerShape(14.dp),
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true,
@@ -493,7 +498,7 @@ fun PlanSettingsSheet(
                     ) {
                         Icon(Icons.Default.CalendarMonth, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(8.dp))
-                        Text("Make new study dates", fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.planner_make_new_dates), fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -507,7 +512,7 @@ fun PlanSettingsSheet(
                     ) {
                         Icon(Icons.Default.FileDownload, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(8.dp))
-                        Text("Export PDF", fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(R.string.planner_export_pdf), fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
@@ -884,12 +889,12 @@ fun ReplaceTopicSheet(
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
-                    placeholder = { Text("Search topics in this chapter…") },
+                    placeholder = { Text(stringResource(R.string.planner_search_chapter_topics)) },
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(20.dp)) },
                     trailingIcon = {
                         if (searchQuery.isNotBlank()) {
                             IconButton(onClick = { searchQuery = "" }) {
-                                Icon(Icons.Default.Close, contentDescription = "Clear", modifier = Modifier.size(18.dp))
+                                Icon(Icons.Default.Close, contentDescription = stringResource(R.string.common_clear), modifier = Modifier.size(18.dp))
                             }
                         }
                     },
@@ -915,7 +920,7 @@ fun ReplaceTopicSheet(
                                 color = scheme.surfaceContainerHigh,
                             ) {
                                 Text(
-                                    text = "No matching topics found in this chapter",
+                                    text = stringResource(R.string.planner_no_matching_topics),
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .padding(28.dp),
@@ -1005,7 +1010,7 @@ fun ReplaceTopicSheet(
     scheduledTopicToMove?.let { ref ->
         PlannerDialog(
             onDismissRequest = { scheduledTopicToMove = null },
-            title = "Move this topic to today?",
+            title = stringResource(R.string.planner_move_topic_today_question),
             text = {
                 PlannerDialogText(
                     "\"${ref.topic.name}\" is planned for ${readableDate(ref.topic.plannedDate)}. " +
@@ -1013,10 +1018,10 @@ fun ReplaceTopicSheet(
                 )
             },
             dismissButton = {
-                PlannerDialogTextAction("Not now") { scheduledTopicToMove = null }
+                PlannerDialogTextAction(stringResource(R.string.common_not_now)) { scheduledTopicToMove = null }
             },
             confirmButton = {
-                PlannerDialogAction(text = "Move to today") {
+                PlannerDialogAction(text = stringResource(R.string.planner_move_to_today)) {
                     scheduledTopicToMove = null
                     onPull?.invoke(ref.topic.id)
                     onDismiss()
@@ -1060,13 +1065,13 @@ fun ManualSubjectOrderSheet(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
-                text = "Which subject first?",
+                text = stringResource(R.string.planner_which_subject_first),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.ExtraBold,
                 color = MaterialTheme.colorScheme.onSurface,
             )
             Text(
-                text = "You picked Manual mode — set the order you want to study these subjects in. Topics will be built one subject at a time, in this order.",
+                text = stringResource(R.string.planner_manual_order_body),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = 4.dp),
@@ -1106,7 +1111,7 @@ fun ManualSubjectOrderSheet(
                             },
                             enabled = index > 0,
                         ) {
-                            Icon(Icons.Default.KeyboardArrowUp, contentDescription = "Move up")
+                            Icon(Icons.Default.KeyboardArrowUp, contentDescription = stringResource(R.string.common_move_up))
                         }
                         IconButton(
                             onClick = {
@@ -1118,7 +1123,7 @@ fun ManualSubjectOrderSheet(
                             },
                             enabled = index < ordered.lastIndex,
                         ) {
-                            Icon(Icons.Default.KeyboardArrowDown, contentDescription = "Move down")
+                            Icon(Icons.Default.KeyboardArrowDown, contentDescription = stringResource(R.string.common_move_down))
                         }
                     }
                 }
@@ -1127,10 +1132,10 @@ fun ManualSubjectOrderSheet(
                 onClick = { onConfirm(ordered.map { it.id }) },
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text("Confirm order", fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.planner_confirm_order), fontWeight = FontWeight.Bold)
             }
             TextButton(onClick = onSkip, modifier = Modifier.fillMaxWidth()) {
-                Text("Skip for now")
+                Text(stringResource(R.string.common_skip_for_now))
             }
         }
     }
@@ -1181,7 +1186,7 @@ fun AnimatedCheckCircle(
         if (checkScale > 0f) {
             Icon(
                 imageVector = Icons.Default.CheckCircle,
-                contentDescription = "Checked",
+                contentDescription = stringResource(R.string.common_checked),
                 tint = scheme.primary,
                 modifier = Modifier
                     .fillMaxSize()
@@ -1207,6 +1212,7 @@ fun DailyTodoSetupSheet(
 ) {
     var taskName by remember { mutableStateOf("") }
     var pendingTodos by remember(plan.id) { mutableStateOf(plan.dailyTodos.orEmpty()) }
+    var todoToEditInSheet by remember { mutableStateOf<com.safarparmar.app.domain.model.studyplanner.DailyTodo?>(null) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     fun addTask() {
@@ -1241,10 +1247,10 @@ fun DailyTodoSetupSheet(
                 .padding(horizontal = 20.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(0.dp),
         ) {
-            PlanEyebrow("Daily routine")
+            PlanEyebrow("Daily topics")
             Spacer(Modifier.height(8.dp))
             Text(
-                text = "Add a daily routine",
+                text = stringResource(R.string.planner_add_daily_topics),
                 fontFamily = LoraFontFamily,
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Normal,
@@ -1252,7 +1258,7 @@ fun DailyTodoSetupSheet(
             )
             Spacer(Modifier.height(6.dp))
             Text(
-                text = "Add topics you want to do every day. You'll see them on Home.",
+                text = stringResource(R.string.planner_add_daily_topics_body),
                 fontSize = 13.5.sp,
                 color = muted,
                 lineHeight = 20.sp,
@@ -1275,7 +1281,7 @@ fun DailyTodoSetupSheet(
                 ) {
                     if (taskName.isEmpty()) {
                         Text(
-                            text = "e.g. Revise vocabulary",
+                            text = stringResource(R.string.planner_daily_topic_example),
                             fontSize = 14.sp,
                             color = muted,
                         )
@@ -1303,7 +1309,7 @@ fun DailyTodoSetupSheet(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Add,
-                        contentDescription = "Add daily to-do topic",
+                        contentDescription = stringResource(R.string.planner_add_daily_topic),
                         tint = Color.White,
                         modifier = Modifier.size(22.dp),
                     )
@@ -1314,7 +1320,7 @@ fun DailyTodoSetupSheet(
 
             if (pendingTodos.isEmpty()) {
                 Text(
-                    text = "No topics yet.",
+                    text = stringResource(R.string.planner_no_topics_yet),
                     fontSize = 13.sp,
                     color = muted,
                     modifier = Modifier
@@ -1337,6 +1343,7 @@ fun DailyTodoSetupSheet(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .glassSurface(shape = RoundedCornerShape(14.dp), isDarkTheme = isDark)
+                                .clickable { todoToEditInSheet = todo }
                                 .padding(start = 16.dp, end = 8.dp, top = 10.dp, bottom = 10.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -1349,6 +1356,23 @@ fun DailyTodoSetupSheet(
                                 color = ink,
                             )
                             GlassButton(
+                                onClick = { todoToEditInSheet = todo },
+                                accentColor = muted,
+                                shape = RoundedCornerShape(12.dp),
+                                isDarkTheme = isDark,
+                                contentPadding = PaddingValues(8.dp),
+                                tintTopAlpha = if (isDark) 0.28f else 0.22f,
+                                tintBottomAlpha = if (isDark) 0.14f else 0.10f,
+                                greyShadeAlpha = 0.08f,
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = stringResource(R.string.planner_rename_named, todo.name),
+                                    tint = ink,
+                                    modifier = Modifier.size(16.dp),
+                                )
+                            }
+                            GlassButton(
                                 onClick = { pendingTodos = pendingTodos - todo },
                                 accentColor = muted,
                                 shape = RoundedCornerShape(12.dp),
@@ -1360,7 +1384,7 @@ fun DailyTodoSetupSheet(
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Close,
-                                    contentDescription = "Remove ${todo.name}",
+                                    contentDescription = stringResource(R.string.planner_remove_named, todo.name),
                                     tint = ink,
                                     modifier = Modifier.size(16.dp),
                                 )
@@ -1368,6 +1392,21 @@ fun DailyTodoSetupSheet(
                         }
                     }
                 }
+            }
+
+            todoToEditInSheet?.let { todo ->
+                com.safarparmar.app.ui.studyplanner.components.TextInputDialog(
+                    title = stringResource(R.string.planner_rename_daily_topic),
+                    label = stringResource(R.string.planner_topic_name),
+                    initialValue = todo.name,
+                    confirmLabel = "Save",
+                    emptyHint = "Topic name cannot be empty",
+                    onDismiss = { todoToEditInSheet = null },
+                    onConfirm = { newName ->
+                        pendingTodos = pendingTodos.map { if (it.id == todo.id) it.copy(name = newName) else it }
+                        todoToEditInSheet = null
+                    }
+                )
             }
 
             Spacer(Modifier.height(12.dp))
@@ -1392,7 +1431,7 @@ fun DailyTodoSetupSheet(
                     modifier = Modifier.weight(1f),
                 ) {
                     Text(
-                        text = "Not now",
+                        text = stringResource(R.string.common_not_now),
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 15.sp,
                         color = ink,
@@ -1427,6 +1466,7 @@ fun DailyTodoSetupSheet(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun DailyTodoSection(
     plan: com.safarparmar.app.domain.model.studyplanner.StudyPlan,
@@ -1437,6 +1477,8 @@ fun DailyTodoSection(
     val scheme = MaterialTheme.colorScheme
     val isDark = !scheme.background.isLightBackground()
     var newTaskName by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("") }
+    var todoToEdit by remember { mutableStateOf<com.safarparmar.app.domain.model.studyplanner.DailyTodo?>(null) }
+    var todoToDelete by remember { mutableStateOf<com.safarparmar.app.domain.model.studyplanner.DailyTodo?>(null) }
     
     val todos = plan.dailyTodos.orEmpty()
     val logs = plan.dailyTodoLogs?.get(todayStr).orEmpty()
@@ -1455,7 +1497,7 @@ fun DailyTodoSection(
             verticalAlignment = Alignment.CenterVertically
         ) {
             PlanSectionHeader(
-                title = "Daily To-Do List", 
+                title = stringResource(R.string.planner_daily_todo_list), 
                 trailing = "${todos.size} tasks",
                 modifier = Modifier.weight(1f)
             )
@@ -1505,7 +1547,7 @@ fun DailyTodoSection(
                 value = newTaskName,
                 onValueChange = { newTaskName = it },
                 modifier = Modifier.weight(1f),
-                placeholder = { Text("e.g. Calculation Practice, Vocab, Table Learning", style = MaterialTheme.typography.bodyMedium) },
+                placeholder = { Text(stringResource(R.string.planner_daily_todo_example), style = MaterialTheme.typography.bodyMedium) },
                 singleLine = true,
                 textStyle = MaterialTheme.typography.bodyMedium,
                 shape = RoundedCornerShape(12.dp),
@@ -1541,7 +1583,7 @@ fun DailyTodoSection(
             ) {
                 Icon(
                     imageVector = Icons.Default.Add, 
-                    contentDescription = "Add",
+                    contentDescription = stringResource(R.string.common_add),
                     tint = if (newTaskName.isNotBlank()) scheme.onPrimary else scheme.onSurfaceVariant.copy(alpha = 0.5f)
                 )
             }
@@ -1568,13 +1610,13 @@ fun DailyTodoSection(
                         modifier = Modifier.size(36.dp)
                     )
                     Text(
-                        text = "No daily tasks yet",
+                        text = stringResource(R.string.planner_no_daily_tasks),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = scheme.onSurface
                     )
                     Text(
-                        text = "Add a few recurring habits you want to track every day.",
+                        text = stringResource(R.string.planner_no_daily_tasks_body),
                         style = MaterialTheme.typography.bodyMedium,
                         textAlign = TextAlign.Center,
                         color = scheme.onSurfaceVariant.copy(alpha = 0.8f)
@@ -1591,18 +1633,24 @@ fun DailyTodoSection(
                 Column(modifier = Modifier.fillMaxWidth()) {
                     todos.forEachIndexed { index, todo ->
                         val isDone = todo.id in logs
+                        var showMenu by remember { mutableStateOf(false) }
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable {
-                                    val newLogsForToday = if (isDone) logs - todo.id else logs + todo.id
-                                    actions.updatePlan(
-                                        com.safarparmar.app.data.remote.api.UpdatePlanRequest(
-                                            dailyTodoLogs = plan.dailyTodoLogs.orEmpty() + (todayStr to newLogsForToday)
+                                .combinedClickable(
+                                    onClick = {
+                                        val newLogsForToday = if (isDone) logs - todo.id else logs + todo.id
+                                        actions.updatePlan(
+                                            com.safarparmar.app.data.remote.api.UpdatePlanRequest(
+                                                dailyTodoLogs = plan.dailyTodoLogs.orEmpty() + (todayStr to newLogsForToday)
+                                            )
                                         )
-                                    )
-                                }
-                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                                    },
+                                    onLongClick = {
+                                        todoToEdit = todo
+                                    }
+                                )
+                                .padding(start = 16.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
@@ -1614,11 +1662,54 @@ fun DailyTodoSection(
                                 textDecoration = if (isDone) androidx.compose.ui.text.style.TextDecoration.LineThrough else null,
                                 modifier = Modifier.weight(1f)
                             )
-                            AnimatedCheckCircle(
-                                isDone = isDone,
-                                scheme = scheme,
-                                modifier = Modifier.padding(start = 12.dp)
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(2.dp),
+                            ) {
+                                Box {
+                                    IconButton(
+                                        onClick = { showMenu = true },
+                                        modifier = Modifier.size(36.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.MoreVert,
+                                            contentDescription = stringResource(R.string.planner_options_named, todo.name),
+                                            tint = scheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+                                    DropdownMenu(
+                                        expanded = showMenu,
+                                        onDismissRequest = { showMenu = false }
+                                    ) {
+                                        DropdownMenuItem(
+                                            text = { Text(stringResource(R.string.common_rename)) },
+                                            leadingIcon = {
+                                                Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
+                                            },
+                                            onClick = {
+                                                showMenu = false
+                                                todoToEdit = todo
+                                            }
+                                        )
+                                        DropdownMenuItem(
+                                            text = { Text(stringResource(R.string.common_delete), color = scheme.error) },
+                                            leadingIcon = {
+                                                Icon(Icons.Default.Delete, contentDescription = null, tint = scheme.error, modifier = Modifier.size(18.dp))
+                                            },
+                                            onClick = {
+                                                showMenu = false
+                                                todoToDelete = todo
+                                            }
+                                        )
+                                    }
+                                }
+                                AnimatedCheckCircle(
+                                    isDone = isDone,
+                                    scheme = scheme,
+                                    modifier = Modifier.padding(end = 8.dp)
+                                )
+                            }
                         }
                         if (index < todos.lastIndex) {
                             androidx.compose.material3.HorizontalDivider(
@@ -1631,5 +1722,44 @@ fun DailyTodoSection(
                 }
             }
         }
+    }
+
+    todoToEdit?.let { todo ->
+        com.safarparmar.app.ui.studyplanner.components.TextInputDialog(
+            title = stringResource(R.string.planner_rename_daily_topic),
+            label = stringResource(R.string.planner_topic_name),
+            initialValue = todo.name,
+            confirmLabel = stringResource(R.string.common_save),
+            emptyHint = stringResource(R.string.planner_topic_name_empty),
+            onDismiss = { todoToEdit = null },
+            onConfirm = { newName ->
+                val updatedTodos = todos.map { if (it.id == todo.id) it.copy(name = newName) else it }
+                actions.updatePlan(
+                    com.safarparmar.app.data.remote.api.UpdatePlanRequest(
+                        dailyTodos = updatedTodos
+                    )
+                )
+                todoToEdit = null
+            }
+        )
+    }
+
+    todoToDelete?.let { todo ->
+        PlanConfirmDialog(
+            title = stringResource(R.string.planner_delete_daily_topic_question),
+            body = stringResource(R.string.planner_remove_daily_named, todo.name),
+            onDismiss = { todoToDelete = null },
+            onConfirm = {
+                val updatedTodos = todos.filter { it.id != todo.id }
+                val updatedLogs = plan.dailyTodoLogs?.mapValues { entry -> entry.value.filter { id -> id != todo.id } }
+                actions.updatePlan(
+                    com.safarparmar.app.data.remote.api.UpdatePlanRequest(
+                        dailyTodos = updatedTodos,
+                        dailyTodoLogs = updatedLogs
+                    )
+                )
+                todoToDelete = null
+            }
+        )
     }
 }

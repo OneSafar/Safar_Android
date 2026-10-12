@@ -1191,12 +1191,13 @@ class CreatePlanViewModel @Inject constructor(
     fun ratingOutline(): List<DeepFocusOutlineSubject> = orderedOutline()
 
     /**
-     * Preview the current settings directly. Chapter ratings remain available
-     * through Customize plan rather than blocking every new plan.
+     * Routes the Plan Settings "continue" through the optional chapter-rating
+     * step for manual/paste sources; template plans arrive pre-weighted and go
+     * straight to preview.
      */
     fun continueFromSettings() {
         _uiState.update { it.copy(allowOverload = false) }
-        buildPreview()
+        if (canRateChapters() && currentOutline().isNotEmpty()) openChapterRating() else buildPreview()
     }
 
     fun setChapterRating(subjectName: String, chapterName: String, difficulty: String?) {

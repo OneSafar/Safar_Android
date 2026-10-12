@@ -41,6 +41,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -115,6 +116,7 @@ fun AuthScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
     val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
     val logoRes = if (isDark) R.drawable.ic_safar_logo_brand_dark else R.drawable.ic_safar_logo_brand_light
     val backgroundRes = if (isDark) R.drawable.auth_bg_dark else R.drawable.auth_bg
 
@@ -124,12 +126,11 @@ fun AuthScreen(
 
     LaunchedEffect(uiState.error) {
         uiState.error?.let { error ->
-            snackbarHostState.showSnackbar(message = error, actionLabel = "OK")
+            snackbarHostState.showSnackbar(message = error, actionLabel = context.getString(R.string.common_ok))
             viewModel.onEvent(AuthEvent.ClearError)
         }
     }
 
-    val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val credentialManager = remember(context) {
         CredentialManager.create(context)
@@ -490,7 +491,7 @@ fun GoogleSignInButton(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(64.dp)
+            .height(44.dp)
             .shadow(
                 elevation = shadowElevation,
                 shape = shape,
@@ -529,7 +530,7 @@ fun GoogleSignInButton(
             }
             Spacer(modifier = Modifier.width(12.dp))
             Text(
-                text = "Continue with Google",
+                text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.auth_continue_google),
                 color = TextDark,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.SemiBold,
@@ -564,7 +565,7 @@ fun LoginContent(
         val logoRes = if (isDark) R.drawable.ic_safar_logo_brand_dark else R.drawable.ic_safar_logo_brand_light
         AsyncImage(
             model = logoRes,
-            contentDescription = "SAFAR Logo",
+            contentDescription = stringResource(R.string.app_name),
             modifier = Modifier
                 .size(96.dp)
         )
@@ -572,7 +573,7 @@ fun LoginContent(
 
         // Welcome Text
         Text(
-            text = "Welcome back",
+            text = stringResource(R.string.auth_welcome_back),
             fontFamily = LoraFontFamily,
             fontSize = 32.sp,
             fontWeight = FontWeight.Bold,
@@ -580,7 +581,7 @@ fun LoginContent(
             modifier = Modifier.padding(bottom = 6.dp)
         )
         Text(
-            text = "Glad to see you again.",
+            text = stringResource(R.string.auth_glad_back),
             color = palette.supportingText,
             fontSize = 15.sp,
             modifier = Modifier.padding(bottom = 24.dp)
@@ -590,7 +591,7 @@ fun LoginContent(
         HtmlTextField(
             value = uiState.email,
             onValueChange = { onEvent(AuthEvent.EmailChanged(it)) },
-            placeholder = "Email address",
+            placeholder = stringResource(R.string.auth_label_email),
             leadingIcon = Icons.Default.Email,
             isError = !uiState.emailError.isNullOrBlank(),
             keyboardOptions = KeyboardOptions(
@@ -611,7 +612,7 @@ fun LoginContent(
         HtmlPasswordField(
             value = uiState.password,
             onValueChange = { onEvent(AuthEvent.PasswordChanged(it)) },
-            placeholder = "Password",
+            placeholder = stringResource(R.string.auth_label_password),
             passwordVisible = passwordVisible,
             onToggleVisibility = { passwordVisible = !passwordVisible },
             isError = !uiState.passwordError.isNullOrBlank(),
@@ -634,7 +635,7 @@ fun LoginContent(
             horizontalArrangement = Arrangement.End
         ) {
             Text(
-                text = "Forgot password?",
+                text = stringResource(R.string.auth_forgot_password),
                 color = palette.link,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium,
@@ -644,7 +645,7 @@ fun LoginContent(
 
         // Sign In Button
         HtmlPrimaryButton(
-            text = if (uiState.isLoading) "Signing in..." else "Sign In",
+            text = stringResource(if (uiState.isLoading) R.string.auth_signing_in else R.string.auth_sign_in),
             onClick = { onEvent(AuthEvent.Login) },
             enabled = !uiState.isLoading,
             isLoading = uiState.isLoading,
@@ -658,7 +659,7 @@ fun LoginContent(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Don't have an account? ",
+                text = stringResource(R.string.auth_no_account),
                 color = palette.supportingText,
                 fontWeight = FontWeight.Medium,
                 fontSize = 14.sp
@@ -668,7 +669,7 @@ fun LoginContent(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Sign Up",
+                    text = stringResource(R.string.auth_sign_up_here),
                     color = palette.accent,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium
@@ -715,7 +716,7 @@ fun SignupContent(
         val logoRes = if (isDark) R.drawable.ic_safar_logo_brand_dark else R.drawable.ic_safar_logo_brand_light
         AsyncImage(
             model = logoRes,
-            contentDescription = "SAFAR Logo",
+            contentDescription = stringResource(R.string.app_name),
             modifier = Modifier
                 .size(96.dp)
         )
@@ -723,7 +724,7 @@ fun SignupContent(
 
         // Welcome Text
         Text(
-            text = "Create account",
+            text = stringResource(R.string.auth_create_account),
             fontFamily = LoraFontFamily,
             fontSize = 32.sp,
             fontWeight = FontWeight.Bold,
@@ -731,7 +732,7 @@ fun SignupContent(
             modifier = Modifier.padding(bottom = 6.dp)
         )
         Text(
-            text = "Start your study journey with SAFAR",
+            text = stringResource(R.string.auth_start_study_journey),
             color = palette.supportingText,
             fontSize = 15.sp,
             modifier = Modifier.padding(bottom = 24.dp)
@@ -744,7 +745,7 @@ fun SignupContent(
                 HtmlTextField(
                     value = uiState.name,
                     onValueChange = { onEvent(AuthEvent.NameChanged(it)) },
-                    placeholder = "John Doe",
+                    placeholder = stringResource(R.string.auth_hint_full_name),
                     leadingIcon = Icons.Default.Person,
                     isError = !uiState.nameError.isNullOrBlank(),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
@@ -760,7 +761,7 @@ fun SignupContent(
                 HtmlTextField(
                     value = uiState.email,
                     onValueChange = { onEvent(AuthEvent.EmailChanged(it)) },
-                    placeholder = "you@gmail.com",
+                    placeholder = stringResource(R.string.auth_hint_email),
                     leadingIcon = Icons.Default.Email,
                     isError = !uiState.emailError.isNullOrBlank(),
                     keyboardOptions = KeyboardOptions(
@@ -779,7 +780,7 @@ fun SignupContent(
                 HtmlPasswordField(
                     value = uiState.password,
                     onValueChange = { onEvent(AuthEvent.PasswordChanged(it)) },
-                    placeholder = "At least 8 characters",
+                    placeholder = stringResource(R.string.auth_hint_password_signup),
                     passwordVisible = passwordVisible,
                     onToggleVisibility = { passwordVisible = !passwordVisible },
                     isError = !uiState.passwordError.isNullOrBlank(),
@@ -799,7 +800,7 @@ fun SignupContent(
                 HtmlPasswordField(
                     value = uiState.confirmPassword,
                     onValueChange = { onEvent(AuthEvent.ConfirmPasswordChanged(it)) },
-                    placeholder = "Re-enter password",
+                    placeholder = stringResource(R.string.auth_hint_confirm_password),
                     passwordVisible = confirmPasswordVisible,
                     onToggleVisibility = { confirmPasswordVisible = !confirmPasswordVisible },
                     isError = !uiState.confirmPasswordError.isNullOrBlank(),
@@ -818,7 +819,7 @@ fun SignupContent(
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 HtmlDropdownField(
                     value = uiState.examType,
-                    placeholder = "Select Target Exam",
+                    placeholder = stringResource(R.string.auth_select_target_exam),
                     options = examOptions,
                     onSelect = { onEvent(AuthEvent.ExamTypeChanged(it)) }
                 )
@@ -828,7 +829,7 @@ fun SignupContent(
                     HtmlTextField(
                         value = uiState.customExamType,
                         onValueChange = { onEvent(AuthEvent.CustomExamTypeChanged(it)) },
-                        placeholder = "Enter your exact exam (e.g., RRB NTPC)",
+                        placeholder = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.auth_exam_exact_hint),
                         leadingIcon = Icons.Default.School,
                         isError = !uiState.customExamTypeError.isNullOrBlank(),
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
@@ -842,7 +843,7 @@ fun SignupContent(
 
             HtmlDropdownField(
                 value = uiState.preparationStage,
-                placeholder = "Select Preparation Stage",
+                placeholder = stringResource(R.string.auth_select_preparation_stage),
                 options = prepStageOptions,
                 onSelect = { onEvent(AuthEvent.PreparationStageChanged(it)) }
             )
@@ -850,7 +851,7 @@ fun SignupContent(
             Column {
                 HtmlDropdownField(
                     value = uiState.gender,
-                    placeholder = "Select Gender",
+                    placeholder = stringResource(R.string.auth_hint_gender),
                     options = genderOptions,
                     onSelect = { onEvent(AuthEvent.GenderChanged(it)) }
                 )
@@ -864,7 +865,7 @@ fun SignupContent(
 
         // Sign Up Button
         HtmlPrimaryButton(
-            text = if (uiState.isLoading) "Creating account..." else "Create Account",
+            text = stringResource(if (uiState.isLoading) R.string.auth_creating_account else R.string.auth_create_account_btn),
             onClick = { onEvent(AuthEvent.Signup) },
             enabled = !uiState.isLoading,
             isLoading = uiState.isLoading,
@@ -878,7 +879,7 @@ fun SignupContent(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Already have an account? ",
+                text = stringResource(R.string.auth_have_account),
                 color = palette.supportingText,
                 fontWeight = FontWeight.Medium,
                 fontSize = 14.sp
@@ -888,7 +889,7 @@ fun SignupContent(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Sign In",
+                    text = stringResource(R.string.auth_sign_in),
                     color = palette.accent,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium
@@ -930,7 +931,7 @@ fun ForgotPasswordContent(
         val logoRes = if (isDark) R.drawable.ic_safar_logo_brand_dark else R.drawable.ic_safar_logo_brand_light
         AsyncImage(
             model = logoRes,
-            contentDescription = "SAFAR Logo",
+            contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.auth_safar_logo),
             modifier = Modifier.size(96.dp)
         )
         Spacer(modifier = Modifier.height(16.dp))
@@ -966,7 +967,7 @@ fun ForgotPasswordContent(
                 HtmlTextField(
                     value = uiState.email,
                     onValueChange = { onEvent(AuthEvent.EmailChanged(it)) },
-                    placeholder = "Email address",
+                    placeholder = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.auth_email_address),
                     leadingIcon = Icons.Default.Email,
                     isError = !uiState.emailError.isNullOrBlank(),
                     keyboardOptions = KeyboardOptions(
@@ -1007,7 +1008,7 @@ fun ForgotPasswordContent(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
                     HtmlPrimaryButton(
-                        text = "Back to Sign In",
+                        text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.auth_back_sign_in),
                         onClick = onBackToLogin,
                         enabled = true,
                     )
@@ -1015,7 +1016,7 @@ fun ForgotPasswordContent(
                         onClick = { onEvent(AuthEvent.ForgotPassword) },
                     ) {
                         Text(
-                            text = "Didn't receive email? Try again",
+                            text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.auth_email_retry),
                             color = palette.link,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.SemiBold,
@@ -1031,7 +1032,7 @@ fun ForgotPasswordContent(
                         HtmlPasswordField(
                             value = uiState.resetNewPassword,
                             onValueChange = { onEvent(AuthEvent.ResetNewPasswordChanged(it)) },
-                            placeholder = "New Password (min 8 chars)",
+                            placeholder = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.auth_new_password_hint),
                             passwordVisible = passwordVisible,
                             onToggleVisibility = { passwordVisible = !passwordVisible },
                             isError = !uiState.resetNewPasswordError.isNullOrBlank(),
@@ -1056,7 +1057,7 @@ fun ForgotPasswordContent(
                         HtmlPasswordField(
                             value = uiState.resetConfirmPassword,
                             onValueChange = { onEvent(AuthEvent.ResetConfirmPasswordChanged(it)) },
-                            placeholder = "Confirm Password",
+                            placeholder = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.auth_confirm_password),
                             passwordVisible = passwordVisible,
                             onToggleVisibility = { passwordVisible = !passwordVisible },
                             isError = !uiState.resetConfirmPasswordError.isNullOrBlank(),
@@ -1106,7 +1107,7 @@ fun ForgotPasswordContent(
                 modifier = Modifier.padding(end = 4.dp).size(14.dp)
             )
             Text(
-                text = "Back to Sign In",
+                text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.auth_back_sign_in),
                 color = palette.accent,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium

@@ -14,6 +14,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
+import androidx.navigation.navDeepLink
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.safarparmar.app.data.local.SafarDataStore
 import com.safarparmar.app.ui.achievements.AchievementsScreen
@@ -23,6 +24,7 @@ import com.safarparmar.app.ui.components.ExitConfirmationHandler
 import com.safarparmar.app.ui.dashboard.DashboardScreen
 import com.safarparmar.app.ui.dhyan.DhyanCoursesScreen
 import com.safarparmar.app.ui.dhyan.DhyanScreen
+import com.safarparmar.app.ui.dhyan.DhyanTab
 import com.safarparmar.app.ui.ekagra.EkagraScreen
 import com.safarparmar.app.ui.home.HomeScreen
 import com.safarparmar.app.ui.mehfil.DmChatScreen
@@ -33,6 +35,7 @@ import com.safarparmar.app.ui.profile.ProfileScreen
 import com.safarparmar.app.ui.settings.SettingsScreen
 import com.safarparmar.app.ui.splash.SplashScreen
 import com.safarparmar.app.ui.studyplanner.StudyPlannerScreen
+import com.safarparmar.app.feature.toppersbatch.ToppersBatchScreen
 import com.safarparmar.app.ui.launch.LaunchUsageQuestionnaireScreen
 import com.safarparmar.app.ui.studyplanner.screens.SyllabusSubjectsScreen
 import com.safarparmar.app.ui.ekagra.focusshield.FocusShieldStandaloneScreen
@@ -40,15 +43,20 @@ import com.safarparmar.app.ui.ekagra.focusshield.KavachAboutScreen
 import com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2Screen
 import com.safarparmar.app.feature.live.presentation.LiveSessionScreen
 import com.safarparmar.app.feature.live.presentation.LiveSessionsHubScreen
+import com.safarparmar.app.feature.habits.ui.HabitScreen
+import com.safarparmar.app.feature.habits.ui.insights.HabitInsightsScreen
 import com.safarparmar.app.ui.premium.PremiumPaywallScreen
 import com.safarparmar.app.ui.premium.PremiumViewModel
 import com.safarparmar.app.ui.leaderboard.LeaderboardScreen
 import com.safarparmar.app.ui.studycircle.StudyCircleDetailScreen
 import com.safarparmar.app.ui.studycircle.StudyCircleScreen
+import com.safarparmar.app.ui.support.SupportScreen
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+
+private const val DEEP_LINK_BASE = "safar://app"
 
 private val ADMIN_NOTIFICATION_ALLOWED_EMAILS = setOf(
     "safarparmar0@gmail.com",
@@ -69,6 +77,7 @@ fun SafarNavGraph(
     isDarkTheme       : Boolean = false,
     onToggleDarkTheme : () -> Unit = {},
 ) {
+    val motion = com.safarparmar.app.performance.LocalMotionPolicy.current
     val navController = rememberNavController()
     val currentEntry by navController.currentBackStackEntryAsState()
     val currentRoute = currentEntry?.destination?.route ?: Routes.SPLASH
@@ -100,6 +109,7 @@ fun SafarNavGraph(
         Routes.STUDY_PLANNER,
         Routes.FOCUS_SHIELD,
         Routes.NISHTHA,
+        Routes.ANALYTICS,
         Routes.EKAGRA,
         Routes.MEHFIL,
         Routes.STUDY_CIRCLES,
@@ -109,6 +119,8 @@ fun SafarNavGraph(
         Routes.PROFILE,
         Routes.SETTINGS,
         Routes.ADMIN_NOTIFICATIONS,
+        Routes.HABIT_TRACKER,
+        Routes.SUPPORT,
     )
 
     fun navigate(route: String) {
@@ -154,8 +166,10 @@ fun SafarNavGraph(
     // feature directly from the drawer with nothing behind it), go Home instead
     // of letting the system close the app.
     fun safeBack() {
-        val popped = navController.popBackStack()
-        if (!popped) navigate(Routes.HOME)
+        // Don't pop the only destination: a direct entry has no screen behind it.
+        if (navController.previousBackStackEntry == null || !navController.popBackStack()) {
+            navigateAndClear(Routes.HOME)
+        }
     }
 
     fun navigateTowardHomeAfterLogin() {
@@ -201,16 +215,16 @@ fun SafarNavGraph(
         navController = navController,
         startDestination = Routes.SPLASH,
         enterTransition = {
-            slideInHorizontally(animationSpec = tween(240)) { it / 5 } + fadeIn(animationSpec = tween(180))
+            if (motion.constrained) fadeIn(tween(motion.navigationMillis)) else slideInHorizontally(tween(motion.navigationMillis)) { it / 12 } + fadeIn(tween(motion.navigationMillis))
         },
         exitTransition = {
-            slideOutHorizontally(animationSpec = tween(220)) { -it / 8 } + fadeOut(animationSpec = tween(160))
+            if (motion.constrained) fadeOut(tween(motion.navigationMillis)) else slideOutHorizontally(tween(motion.navigationMillis)) { -it / 16 } + fadeOut(tween(motion.navigationMillis))
         },
         popEnterTransition = {
-            slideInHorizontally(animationSpec = tween(240)) { -it / 5 } + fadeIn(animationSpec = tween(180))
+            if (motion.constrained) fadeIn(tween(motion.navigationMillis)) else slideInHorizontally(tween(motion.navigationMillis)) { -it / 12 } + fadeIn(tween(motion.navigationMillis))
         },
         popExitTransition = {
-            slideOutHorizontally(animationSpec = tween(220)) { it / 8 } + fadeOut(animationSpec = tween(160))
+            if (motion.constrained) fadeOut(tween(motion.navigationMillis)) else slideOutHorizontally(tween(motion.navigationMillis)) { it / 16 } + fadeOut(tween(motion.navigationMillis))
         },
     ) {
 
@@ -248,7 +262,10 @@ fun SafarNavGraph(
 
         // ── Home (start destination after login) ──────────────────────────────
 
-        composable(Routes.HOME) {
+        composable(
+            route = Routes.HOME,
+            deepLinks = listOf(navDeepLink { uriPattern = "$DEEP_LINK_BASE/home" }),
+        ) {
             // Home is the base destination — intercept Back here to confirm before
             // exiting, instead of the app closing on a single stray Back press.
             ExitConfirmationHandler(onConfirmExit = { activity?.finish() })
@@ -273,15 +290,14 @@ fun SafarNavGraph(
             )
         }
 
-        composable(Routes.ACHIEVEMENTS) {
-            // getBackStackEntry(DASHBOARD) throws IllegalArgumentException if the parent
-            // isn't on the back stack (stack cleared by an auth redirect, a direct deep
-            // link, or a final recompose during the exit animation). Bail out of rendering
-            // rather than crashing — the screen is on its way out in that state anyway.
-            val parentEntry = remember(currentEntry) {
+        composable(Routes.ACHIEVEMENTS) { achievementsEntry ->
+            // Reuse Dashboard state when available. Analytics and direct entry also
+            // open this screen, so absence of Dashboard must not suppress rendering.
+            val stateOwner = remember(achievementsEntry) {
                 runCatching { navController.getBackStackEntry(Routes.DASHBOARD) }.getOrNull()
-            } ?: return@composable
-            val dashVm = androidx.hilt.navigation.compose.hiltViewModel<com.safarparmar.app.ui.dashboard.DashboardViewModel>(parentEntry)
+                    ?: achievementsEntry
+            }
+            val dashVm = androidx.hilt.navigation.compose.hiltViewModel<com.safarparmar.app.ui.dashboard.DashboardViewModel>(stateOwner)
             val uiState by dashVm.uiState.collectAsStateWithLifecycle()
             AchievementsScreen(
                 achievements = uiState.allAchievements,
@@ -324,6 +340,20 @@ fun SafarNavGraph(
             )
         }
 
+        composable(
+            route = Routes.ANALYTICS_ROUTE,
+            arguments = listOf(
+                navArgument("section") { type = NavType.StringType; defaultValue = "overview" },
+            ),
+        ) { entry ->
+            com.safarparmar.app.ui.nishtha.analytics.AnalyticsScreen(
+                isDarkTheme = isDarkTheme,
+                onNavigate = ::navigate,
+                onToggleDarkTheme = onToggleDarkTheme,
+                initialSection = entry.arguments?.getString("section") ?: "overview",
+            )
+        }
+
         // ── Ekagra ───────────────────────────────────────────────────────────
 
         composable(
@@ -351,7 +381,13 @@ fun SafarNavGraph(
             )
         }
 
-        composable(Routes.FOCUS_SHIELD) {
+        composable(
+            route = Routes.FOCUS_SHIELD,
+            deepLinks = listOf(
+                navDeepLink { uriPattern = "$DEEP_LINK_BASE/kavach" },
+                navDeepLink { uriPattern = "$DEEP_LINK_BASE/focus_shield" },
+            ),
+        ) {
             FocusShieldStandaloneScreen(
                 currentRoute = currentRoute,
                 isDarkTheme = isDarkTheme,
@@ -392,7 +428,34 @@ fun SafarNavGraph(
             com.safarparmar.app.feature.kavachanalytics.ui.AppCategoryEditorScreen(onBack = ::safeBack)
         }
 
+        composable(
+            route = Routes.YOUTUBE_STUDY_MODE_V2,
+            deepLinks = listOf(
+                navDeepLink { uriPattern = "$DEEP_LINK_BASE/youtube_focus" },
+                navDeepLink { uriPattern = "$DEEP_LINK_BASE/youtube_study_mode" },
+            ),
+        ) {
+            YoutubeStudyV2Screen(
+                onBack = ::safeBack,
+                isDarkTheme = isDarkTheme,
+            )
+        }
+
         // ── Study Planner ─────────────────────────────────────────────────────
+
+        composable(
+            route = Routes.TOPPERS_BATCH,
+            deepLinks = listOf(navDeepLink { uriPattern = "$DEEP_LINK_BASE/toppers_batch" }),
+        ) {
+            ToppersBatchScreen(
+                isDarkTheme = isDarkTheme,
+                onNavigate = ::navigate,
+                onBack = {
+                    if (!navController.popBackStack()) navigate(Routes.STUDY_PLANNER)
+                },
+                onToggleDarkTheme = onToggleDarkTheme,
+            )
+        }
 
         composable(Routes.STUDY_PLANNER) {
             StudyPlannerScreen(
@@ -503,6 +566,23 @@ fun SafarNavGraph(
             )
         }
 
+        composable(Routes.HABIT_TRACKER) {
+            HabitScreen(
+                currentRoute = Routes.HABIT_TRACKER,
+                isDarkTheme = isDarkTheme,
+                onNavigate = ::navigate,
+                onToggleDarkTheme = onToggleDarkTheme,
+            )
+        }
+
+        composable(Routes.HABIT_INSIGHTS) {
+            HabitInsightsScreen(
+                onBack = ::safeBack,
+                isDarkTheme = isDarkTheme,
+                onToggleDarkTheme = onToggleDarkTheme,
+            )
+        }
+
         composable(Routes.STUDY_CIRCLES) {
             StudyCircleScreen(
                 currentRoute = Routes.STUDY_CIRCLES,
@@ -593,8 +673,12 @@ fun SafarNavGraph(
 
         // ── Dhyan / Courses / Live ────────────────────────────────────────────
 
-        composable(Routes.DHYAN) {
+        composable(
+            route = Routes.DHYAN,
+            deepLinks = listOf(navDeepLink { uriPattern = "$DEEP_LINK_BASE/dhyan" }),
+        ) {
             DhyanScreen(
+                initialTab = DhyanTab.DHYAN,
                 currentRoute = currentRoute,
                 isDarkTheme = isDarkTheme,
                 onNavigate = ::navigate,
@@ -602,8 +686,30 @@ fun SafarNavGraph(
             )
         }
 
-        composable(Routes.COURSES) {
-            DhyanCoursesScreen(
+        composable(
+            route = Routes.COURSES,
+            deepLinks = listOf(navDeepLink { uriPattern = "$DEEP_LINK_BASE/courses" }),
+        ) {
+            DhyanScreen(
+                initialTab = DhyanTab.COURSES,
+                currentRoute = currentRoute,
+                isDarkTheme = isDarkTheme,
+                onNavigate = ::navigate,
+                onToggleDarkTheme = onToggleDarkTheme,
+            )
+        }
+
+        composable(
+            route = Routes.LIVE_SESSIONS_ROOT,
+            deepLinks = listOf(
+                navDeepLink { uriPattern = "$DEEP_LINK_BASE/live" },
+                navDeepLink { uriPattern = "$DEEP_LINK_BASE/live_sessions" },
+            ),
+        ) {
+            DhyanScreen(
+                initialTab = DhyanTab.LIVE,
+                courseId = "",
+                initialLiveView = "live",
                 currentRoute = currentRoute,
                 isDarkTheme = isDarkTheme,
                 onNavigate = ::navigate,
@@ -618,12 +724,19 @@ fun SafarNavGraph(
                     type = NavType.StringType
                     nullable = true
                     defaultValue = ""
-                }
+                },
+                navArgument("view") {
+                    type = NavType.StringType
+                    defaultValue = "live"
+                },
             )
         ) { entry ->
             val courseId = entry.arguments?.getString("courseId").orEmpty()
-            LiveSessionsHubScreen(
+            val liveView = entry.arguments?.getString("view").orEmpty()
+            DhyanScreen(
+                initialTab = DhyanTab.LIVE,
                 courseId = courseId,
+                initialLiveView = liveView,
                 currentRoute = currentRoute,
                 isDarkTheme = isDarkTheme,
                 onNavigate = ::navigate,
@@ -694,6 +807,10 @@ fun SafarNavGraph(
                     onToggleDarkTheme = onToggleDarkTheme,
                 )
             }
+        }
+
+        composable(Routes.SUPPORT) {
+            SupportScreen(onBack = ::safeBack)
         }
 
         composable(Routes.PREMIUM) {

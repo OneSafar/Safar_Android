@@ -1,6 +1,5 @@
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.hilt.android)
     alias(libs.plugins.ksp)
@@ -65,7 +64,7 @@ gradle.taskGraph.whenReady {
 
 android {
     namespace = "com.safarparmar.app"
-    compileSdk = 36
+    compileSdk = 37
     val defaultApiRoot = providers.gradleProperty("SAFAR_PROD_BASE_URL").orNull
         ?: providers.environmentVariable("SAFAR_PROD_BASE_URL").orNull
         ?: localProps.getProperty("SAFAR_PROD_BASE_URL")
@@ -93,12 +92,27 @@ android {
         applicationId = "com.safarparmar.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 44
-        versionName = "1.6.44"
+        versionCode = 76
+        versionName = "1.6.76"
+        val compactSummary = providers.gradleProperty("dashboardMonthlySummary").getOrElse("false")
+        require(compactSummary in setOf("true", "false")) { "dashboardMonthlySummary must be true or false" }
+        buildConfigField("boolean", "DASHBOARD_MONTHLY_SUMMARY_ENABLED", compactSummary)
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        // Compile-time override for manual comparison; normal builds select by device capabilities.
+        val effects = providers.gradleProperty("safarEffects").getOrElse("auto")
+        require(effects in setOf("auto", "constrained", "full")) { "safarEffects must be auto, constrained, or full" }
+        buildConfigField("String", "PERFORMANCE_EFFECTS", "\"$effects\"")
         buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"$googleWebClientId\"")
         ndk {
             debugSymbolLevel = "FULL"
+        }
+    }
+
+    // In-app language selection must work immediately, including for users whose
+    // device language was English when Play installed the app.
+    bundle {
+        language {
+            enableSplit = false
         }
     }
 
@@ -172,13 +186,10 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
-    }
-
     buildFeatures {
         compose = true
         buildConfig = true
+        resValues = true
     }
 
     testOptions {
@@ -186,10 +197,28 @@ android {
     }
 }
 
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+    }
+}
+
+configurations.all {
+    resolutionStrategy.eachDependency {
+        if (requested.group == "org.jetbrains.kotlin" && requested.name == "kotlin-metadata-jvm") {
+            useVersion("2.4.0")
+        }
+    }
+}
+
 dependencies {
+    implementation("com.composables:ui:0.2.0")
+    implementation("com.composables:composeunstyled:2.7.0")
+    implementation("com.composables:compose-interaction-capabilities:1.1.0")
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.vico.compose)
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.ui)
@@ -213,6 +242,8 @@ dependencies {
     //di
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
+    ksp("org.jetbrains.kotlin:kotlin-metadata-jvm:2.4.0")
+    annotationProcessor("org.jetbrains.kotlin:kotlin-metadata-jvm:2.4.0")
     implementation(libs.androidx.hilt.navigation.compose)
 
     //networking
@@ -254,6 +285,9 @@ dependencies {
     //payments
     implementation("com.razorpay:checkout:1.6.39")
 
+    // Google Play Install Referrer
+    implementation("com.android.installreferrer:installreferrer:2.2")
+
     //credentials / google sign in
     implementation(libs.androidx.credentials)
     implementation(libs.androidx.credentials.play.services)
@@ -266,6 +300,8 @@ dependencies {
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.turbine)
     testImplementation(libs.mockk)
+    androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation("androidx.compose.ui:ui-test-junit4")
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
 }

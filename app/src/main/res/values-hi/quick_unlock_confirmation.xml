@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="quick_unlock_again">काम पर वापस लौटें?</string>
+    <string name="quick_unlock_again_named">नमस्ते %1$s, वापस लौटने के लिए तैयार हैं?</string>
+    <string name="quick_unlock_again_body">आप आज पहले ही %1$d मिनट का ब्रेक चुन चुके हैं। अब अपने काम पर वापस लौटें?</string>
+    <string name="quick_unlock_return_home">ठीक है, होम पर लौटें</string>
+    <string name="quick_unlock_more">बस %1$d मिनट और</string>
+</resources>

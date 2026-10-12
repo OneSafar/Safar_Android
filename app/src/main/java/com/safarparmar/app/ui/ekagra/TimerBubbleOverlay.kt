@@ -46,19 +46,30 @@ import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 
 private val PillBg = Color(0xF0121417)
 
+enum class TimerBubbleAttention {
+    NONE,
+    CHECK_IN,
+    MISSED_CHECK_IN,
+}
+
 @Composable
 private fun ExpandedPill(
     secondsLeft: Int,
     progress: Float,
     kavachActive: Boolean,
     isRunning: Boolean,
+    attention: TimerBubbleAttention,
     snappedRight: Boolean,
     themeAccent: Color? = null,
     onPlayPause: () -> Unit,
     onCollapse: () -> Unit,
     onOpen: () -> Unit,
 ) {
-    val accent = if (kavachActive) Color(0xFF4ADE80) else (themeAccent ?: Color(0xFF7C6FF7))
+    val accent = when (attention) {
+        TimerBubbleAttention.CHECK_IN -> Color(0xFFFFC857)
+        TimerBubbleAttention.MISSED_CHECK_IN -> Color(0xFFFF8A65)
+        TimerBubbleAttention.NONE -> if (kavachActive) Color(0xFF4ADE80) else (themeAccent ?: Color(0xFF7C6FF7))
+    }
     val shape = RoundedCornerShape(percent = 50)
 
     Box(
@@ -92,8 +103,11 @@ private fun ExpandedPill(
 
             // Time + label (tap → open Ekagra)
             Column(
-                modifier = Modifier.clickable(onClick = onOpen),
-                verticalArrangement = Arrangement.spacedBy(1.dp),
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable(onClick = onOpen)
+                    .padding(horizontal = 4.dp, vertical = 2.dp),
+                 verticalArrangement = Arrangement.spacedBy(1.dp),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                     if (kavachActive) {
@@ -113,7 +127,11 @@ private fun ExpandedPill(
                     )
                 }
                 Text(
-                    text = if (isRunning) "Time remaining" else "Paused",
+                    text = when (attention) {
+                        TimerBubbleAttention.CHECK_IN -> "Check in now"
+                        TimerBubbleAttention.MISSED_CHECK_IN -> "Are you still there?"
+                        TimerBubbleAttention.NONE -> if (isRunning) "Time remaining" else "Paused"
+                    },
                     fontSize = 11.sp,
                     color = Color.White.copy(alpha = 0.55f),
                 )
@@ -132,7 +150,7 @@ private fun ExpandedPill(
             ) {
                 Icon(
                     imageVector = Icons.Default.Close,
-                    contentDescription = "Collapse",
+                    contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.ekagra_collapse),
                     tint = Color.White.copy(alpha = 0.7f),
                     modifier = Modifier.size(16.dp),
                 )
@@ -163,11 +181,16 @@ private fun ExpandedPill(
 @Composable
 private fun CollapsedTab(
     kavachActive: Boolean,
+    attention: TimerBubbleAttention,
     snappedRight: Boolean,
     themeAccent: Color? = null,
     onExpand: () -> Unit,
 ) {
-    val accent = if (kavachActive) Color(0xFF4ADE80) else (themeAccent ?: Color(0xFF7C6FF7))
+    val accent = when (attention) {
+        TimerBubbleAttention.CHECK_IN -> Color(0xFFFFC857)
+        TimerBubbleAttention.MISSED_CHECK_IN -> Color(0xFFFF8A65)
+        TimerBubbleAttention.NONE -> if (kavachActive) Color(0xFF4ADE80) else (themeAccent ?: Color(0xFF7C6FF7))
+    }
     val shape = if (snappedRight)
         RoundedCornerShape(topStart = 20.dp, bottomStart = 20.dp)
     else
@@ -184,7 +207,7 @@ private fun CollapsedTab(
     ) {
         Icon(
             imageVector = Icons.Default.Timer,
-            contentDescription = "Expand timer",
+            contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.ekagra_expand_timer),
             tint = accent,
             modifier = Modifier.size(20.dp),
         )
@@ -199,6 +222,7 @@ private class BubbleComposeView(context: Context) : AbstractComposeView(context)
     var totalSeconds by mutableIntStateOf(1)
     var kavachActive by mutableStateOf(false)
     var isRunning    by mutableStateOf(true)
+    var attention    by mutableStateOf(TimerBubbleAttention.NONE)
     var snappedRight by mutableStateOf(true)
     var collapsed    by mutableStateOf(false)
     var themeAccent  by mutableStateOf<Color?>(null)
@@ -264,6 +288,7 @@ private class BubbleComposeView(context: Context) : AbstractComposeView(context)
             if (collapsed) {
                 CollapsedTab(
                     kavachActive = kavachActive,
+                    attention = attention,
                     snappedRight = snappedRight,
                     themeAccent = themeAccent,
                     onExpand = {
@@ -277,6 +302,7 @@ private class BubbleComposeView(context: Context) : AbstractComposeView(context)
                     progress = progress,
                     kavachActive = kavachActive,
                     isRunning = isRunning,
+                    attention = attention,
                     snappedRight = snappedRight,
                     themeAccent = themeAccent,
                     onPlayPause = onPlayPause,
@@ -346,22 +372,30 @@ object TimerBubbleOverlay {
         totalSeconds: Int,
         kavachActive: Boolean,
         isRunning: Boolean = true,
+        attention: TimerBubbleAttention = TimerBubbleAttention.NONE,
     ) {
         if (!canDrawOverlays(context)) return
         val wm = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
         if (!attached) {
-            attach(context, wm, secondsLeft, totalSeconds, kavachActive, isRunning)
+            attach(context, wm, secondsLeft, totalSeconds, kavachActive, isRunning, attention)
         } else {
-            update(secondsLeft, totalSeconds, kavachActive, isRunning)
+            update(secondsLeft, totalSeconds, kavachActive, isRunning, attention)
         }
     }
 
-    fun update(secondsLeft: Int, totalSeconds: Int, kavachActive: Boolean, isRunning: Boolean = true) {
+    fun update(
+        secondsLeft: Int,
+        totalSeconds: Int,
+        kavachActive: Boolean,
+        isRunning: Boolean = true,
+        attention: TimerBubbleAttention = TimerBubbleAttention.NONE,
+    ) {
         val view = bubbleView ?: return
         view.secondsLeft  = secondsLeft
         view.totalSeconds = totalSeconds.coerceAtLeast(1)
         view.kavachActive = kavachActive
         view.isRunning    = isRunning
+        view.attention    = attention
     }
 
     fun hide() {
@@ -434,6 +468,7 @@ object TimerBubbleOverlay {
         totalSeconds: Int,
         kavachActive: Boolean,
         isRunning: Boolean,
+        attention: TimerBubbleAttention,
     ) {
         val (screenW, screenH) = getScreenDimensions(context)
 
@@ -465,6 +500,7 @@ object TimerBubbleOverlay {
             this.totalSeconds = totalSeconds.coerceAtLeast(1)
             this.kavachActive = kavachActive
             this.isRunning    = isRunning
+            this.attention    = attention
             this.snappedRight = currentX > screenW / 2
             setViewTreeLifecycleOwner(lo)
             setViewTreeSavedStateRegistryOwner(lo)
@@ -536,6 +572,7 @@ object TimerBubbleOverlay {
             try {
                 val intent = Intent(context, TimerService::class.java).apply {
                     action = TimerService.ACTION_PLAY_PAUSE
+                    putExtra("session", TimerService.live?.currentSessionId())
                 }
                 context.startService(intent)
             } catch (_: Exception) {}
@@ -572,4 +609,3 @@ object TimerBubbleOverlay {
         }
     }
 }
-

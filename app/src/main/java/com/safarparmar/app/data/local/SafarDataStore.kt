@@ -3,6 +3,7 @@ package com.safarparmar.app.data.local
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.datastore.core.DataStore
+import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import androidx.datastore.preferences.core.*
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.security.crypto.EncryptedSharedPreferences
@@ -15,11 +16,22 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
-private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "safar_prefs")
+/** Installed on the single store so reads and edits recover through the same path. */
+internal fun safarPreferencesCorruptionHandler() = ReplaceFileCorruptionHandler<Preferences> { error ->
+    android.util.Log.e("SafarDataStore", "Corrupt local preferences; restoring defaults", error)
+    emptyPreferences()
+}
+
+private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(
+    name = "safar_prefs",
+    corruptionHandler = safarPreferencesCorruptionHandler(),
+)
 
 @Singleton
 class SafarDataStore @Inject constructor(
@@ -126,6 +138,16 @@ class SafarDataStore @Inject constructor(
         val PREMIUM_FEATURE_STUDY_PLANNER_INSIGHTS = booleanPreferencesKey("premium_feature_study_planner_insights")
         val PREMIUM_FEATURE_NISHTHA_ANALYTICS = booleanPreferencesKey("premium_feature_nishtha_analytics")
         val PREMIUM_FEATURE_FOCUS_ANALYTICS = booleanPreferencesKey("premium_feature_focus_analytics")
+        val PREMIUM_FEATURE_LIVE_SESSIONS = booleanPreferencesKey("premium_feature_live_sessions")
+
+        // Referral & Attribution
+        val REFERRAL_UTM_SOURCE   = stringPreferencesKey("referral_utm_source")
+        val REFERRAL_UTM_MEDIUM   = stringPreferencesKey("referral_utm_medium")
+        val REFERRAL_UTM_CAMPAIGN = stringPreferencesKey("referral_utm_campaign")
+        val REFERRAL_RAW          = stringPreferencesKey("referral_raw")
+        val REFERRAL_SYNCED       = booleanPreferencesKey("referral_synced")
+        val REFERRAL_SYNCED_USER = stringPreferencesKey("referral_synced_user")
+        val DEVICE_INSTALL_ID     = stringPreferencesKey("device_install_id")
 
         // Focus Shield
         val FOCUS_SHIELD_ENABLED          = booleanPreferencesKey("focus_shield_enabled")
@@ -155,6 +177,8 @@ class SafarDataStore @Inject constructor(
         val TIMER_ALERT_STYLE = stringPreferencesKey("ekagra_timer_alert_style")
         val FOCUS_DURATION_MINUTES = intPreferencesKey("ekagra_focus_duration_minutes")
         val BREAK_DURATION_MINUTES = intPreferencesKey("ekagra_break_duration_minutes")
+        val EKAGRA_TAGS            = stringPreferencesKey("ekagra_custom_tags_v1")
+        val EKAGRA_TAG_COLORS     = stringPreferencesKey("ekagra_tag_colors_v1")
 
         val NOTIFICATION_BELL_LAST_SEEN_AT = stringPreferencesKey("notification_bell_last_seen_at")
         val NOTIFICATION_BELL_DISMISSED_IDS = stringSetPreferencesKey("notification_bell_dismissed_ids")
@@ -172,10 +196,12 @@ class SafarDataStore @Inject constructor(
     val authToken: Flow<String?> = context.dataStore.data
         .catch { emit(emptyPreferences()) }
         .map { prefs -> securePrefs.getString(SecureKeys.AUTH_TOKEN, null) ?: prefs[Keys.AUTH_TOKEN] }
+        .flowOn(Dispatchers.IO)
 
     val refreshToken: Flow<String?> = context.dataStore.data
         .catch { emit(emptyPreferences()) }
         .map { prefs -> securePrefs.getString(SecureKeys.REFRESH_TOKEN, null) ?: prefs[Keys.REFRESH_TOKEN] }
+        .flowOn(Dispatchers.IO)
 
     val userId: Flow<String?> = context.dataStore.data
         .catch { emit(emptyPreferences()) }
@@ -294,6 +320,59 @@ class SafarDataStore @Inject constructor(
         .catch { emit(emptyPreferences()) }
         .map { it[Keys.SELECTED_STUDY_CIRCLE_ID] }
 
+    // ── Referral & Attribution Flows ──────────────────────────────────────────
+
+    val referralUtmSource: Flow<String?> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[Keys.REFERRAL_UTM_SOURCE] }
+
+    val referralUtmMedium: Flow<String?> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[Keys.REFERRAL_UTM_MEDIUM] }
+
+    val referralUtmCampaign: Flow<String?> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[Keys.REFERRAL_UTM_CAMPAIGN] }
+
+    val referralRaw: Flow<String?> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[Keys.REFERRAL_RAW] }
+
+    val referralSynced: Flow<Boolean> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[Keys.REFERRAL_SYNCED] ?: false }
+
+    val referralSyncedUser: Flow<String?> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[Keys.REFERRAL_SYNCED_USER] }
+
+    suspend fun saveReferralInfo(source: String?, medium: String?, campaign: String?, raw: String?) {
+        context.dataStore.edit { prefs ->
+            if (source != null) prefs[Keys.REFERRAL_UTM_SOURCE] = source
+            if (medium != null) prefs[Keys.REFERRAL_UTM_MEDIUM] = medium
+            if (campaign != null) prefs[Keys.REFERRAL_UTM_CAMPAIGN] = campaign
+            if (raw != null) prefs[Keys.REFERRAL_RAW] = raw
+            prefs[Keys.REFERRAL_SYNCED] = false
+        }
+    }
+
+    suspend fun setReferralSynced(synced: Boolean, userId: String? = null) {
+        context.dataStore.edit { prefs ->
+            prefs[Keys.REFERRAL_SYNCED] = synced
+            if (synced) prefs[Keys.REFERRAL_SYNCED_USER] = userId ?: ""
+        }
+    }
+
+    suspend fun getOrCreateDeviceInstallId(): String {
+        // Read and create in one transaction: auth and install capture run concurrently.
+        val prefs = context.dataStore.edit { current ->
+            if (current[Keys.DEVICE_INSTALL_ID].isNullOrBlank()) {
+                current[Keys.DEVICE_INSTALL_ID] = java.util.UUID.randomUUID().toString()
+            }
+        }
+        return requireNotNull(prefs[Keys.DEVICE_INSTALL_ID])
+    }
+
     // ── Focus Shield Flows ────────────────────────────────────────────────────
 
     val focusShieldEnabled: Flow<Boolean> = context.dataStore.data
@@ -400,6 +479,40 @@ class SafarDataStore @Inject constructor(
         .catch { emit(emptyPreferences()) }
         .map { it[Keys.BREAK_DURATION_MINUTES] ?: 5 }
 
+    val ekagraTags: Flow<List<String>> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { prefs ->
+            val raw = prefs[Keys.EKAGRA_TAGS]
+            if (raw.isNullOrBlank()) {
+                com.safarparmar.app.ui.ekagra.DEFAULT_EKAGRA_TAGS
+            } else {
+                val list = raw.split("|||").map { it.trim() }.filter { it.isNotEmpty() }
+                if (list.isEmpty()) com.safarparmar.app.ui.ekagra.DEFAULT_EKAGRA_TAGS else list
+            }
+        }
+
+    val ekagraTagColors: Flow<Map<String, String>> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { prefs ->
+            val raw = prefs[Keys.EKAGRA_TAG_COLORS]
+            if (raw.isNullOrBlank()) {
+                com.safarparmar.app.ui.ekagra.DEFAULT_TAG_COLORS
+            } else {
+                try {
+                    val json = org.json.JSONObject(raw)
+                    val map = mutableMapOf<String, String>()
+                    val keys = json.keys()
+                    while (keys.hasNext()) {
+                        val k = keys.next()
+                        map[k] = json.getString(k)
+                    }
+                    com.safarparmar.app.ui.ekagra.DEFAULT_TAG_COLORS + map
+                } catch (e: Exception) {
+                    com.safarparmar.app.ui.ekagra.DEFAULT_TAG_COLORS
+                }
+            }
+        }
+
     val isPremium: Flow<Boolean> = context.dataStore.data
         .catch { emit(emptyPreferences()) }
         .map { it[Keys.IS_PREMIUM] ?: false }
@@ -436,6 +549,10 @@ class SafarDataStore @Inject constructor(
         .catch { emit(emptyPreferences()) }
         .map { it[Keys.PREMIUM_FEATURE_FOCUS_ANALYTICS] ?: false }
 
+    val premiumFeatureLiveSessions: Flow<Boolean> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[Keys.PREMIUM_FEATURE_LIVE_SESSIONS] ?: false }
+
     val overlayPermissionAsked: Flow<Boolean> = context.dataStore.data
         .catch { emit(emptyPreferences()) }
         .map { it[Keys.OVERLAY_PERMISSION_ASKED] ?: false }
@@ -448,12 +565,16 @@ class SafarDataStore @Inject constructor(
 
     suspend fun setLoggedIn(value: Boolean) = context.dataStore.edit { it[Keys.IS_LOGGED_IN] = value }
     suspend fun setAuthToken(token: String) {
-        securePrefs.edit().putString(SecureKeys.AUTH_TOKEN, token).apply()
+        withContext(Dispatchers.IO) {
+            securePrefs.edit().putString(SecureKeys.AUTH_TOKEN, token).apply()
+        }
         context.dataStore.edit { it.remove(Keys.AUTH_TOKEN) }
     }
 
     suspend fun setRefreshToken(token: String) {
-        securePrefs.edit().putString(SecureKeys.REFRESH_TOKEN, token).apply()
+        withContext(Dispatchers.IO) {
+            securePrefs.edit().putString(SecureKeys.REFRESH_TOKEN, token).apply()
+        }
         context.dataStore.edit { it.remove(Keys.REFRESH_TOKEN) }
     }
     suspend fun setOnboardingDone(done: Boolean) = context.dataStore.edit { it[Keys.IS_ONBOARDING_DONE] = done }
@@ -561,6 +682,7 @@ class SafarDataStore @Inject constructor(
         studyPlannerInsights: Boolean = false,
         nishthaAnalytics: Boolean = false,
         focusAnalytics: Boolean = false,
+        liveSessions: Boolean = false,
     ) = context.dataStore.edit { prefs ->
         prefs[Keys.IS_PREMIUM] = isPremium
         if (planType.isNullOrBlank()) prefs.remove(Keys.PREMIUM_PLAN_TYPE) else prefs[Keys.PREMIUM_PLAN_TYPE] = planType
@@ -569,6 +691,7 @@ class SafarDataStore @Inject constructor(
         prefs[Keys.PREMIUM_FEATURE_STUDY_PLANNER_INSIGHTS] = studyPlannerInsights
         prefs[Keys.PREMIUM_FEATURE_NISHTHA_ANALYTICS] = nishthaAnalytics
         prefs[Keys.PREMIUM_FEATURE_FOCUS_ANALYTICS] = focusAnalytics
+        prefs[Keys.PREMIUM_FEATURE_LIVE_SESSIONS] = liveSessions
     }
 
     suspend fun addNotifiedAchievement(achievementId: String) = context.dataStore.edit { prefs ->
@@ -663,6 +786,99 @@ class SafarDataStore @Inject constructor(
         it[Keys.BREAK_DURATION_MINUTES] = minutes.coerceAtLeast(1)
     }
 
+    suspend fun setEkagraTags(tags: List<String>) = context.dataStore.edit { prefs ->
+        prefs[Keys.EKAGRA_TAGS] = tags.map { it.trim() }.filter { it.isNotEmpty() }.distinct().joinToString("|||")
+    }
+
+    suspend fun setEkagraTagColor(tag: String, colorHex: String) {
+        val cleanTag = tag.trim()
+        val cleanColor = colorHex.trim()
+        if (cleanTag.isEmpty() || cleanColor.isEmpty()) return
+        context.dataStore.edit { prefs ->
+            val raw = prefs[Keys.EKAGRA_TAG_COLORS]
+            val json = if (!raw.isNullOrBlank()) {
+                try { org.json.JSONObject(raw) } catch (e: Exception) { org.json.JSONObject() }
+            } else {
+                org.json.JSONObject()
+            }
+            json.put(cleanTag, cleanColor)
+            prefs[Keys.EKAGRA_TAG_COLORS] = json.toString()
+        }
+    }
+
+    suspend fun removeEkagraTagColor(tag: String) {
+        val cleanTag = tag.trim()
+        context.dataStore.edit { prefs ->
+            val raw = prefs[Keys.EKAGRA_TAG_COLORS] ?: return@edit
+            try {
+                val json = org.json.JSONObject(raw)
+                val keys = json.keys()
+                var matchKey: String? = null
+                while (keys.hasNext()) {
+                    val k = keys.next()
+                    if (k.equals(cleanTag, ignoreCase = true)) {
+                        matchKey = k
+                        break
+                    }
+                }
+                if (matchKey != null) {
+                    json.remove(matchKey)
+                    prefs[Keys.EKAGRA_TAG_COLORS] = json.toString()
+                }
+            } catch (e: Exception) { }
+        }
+    }
+
+    suspend fun addEkagraTag(tag: String, colorHex: String? = null) {
+        val clean = tag.trim()
+        if (clean.isEmpty()) return
+        if (!colorHex.isNullOrBlank()) {
+            setEkagraTagColor(clean, colorHex)
+        }
+        context.dataStore.edit { prefs ->
+            val raw = prefs[Keys.EKAGRA_TAGS]
+            val current = if (raw.isNullOrBlank()) {
+                com.safarparmar.app.ui.ekagra.DEFAULT_EKAGRA_TAGS
+            } else {
+                raw.split("|||").map { it.trim() }.filter { it.isNotEmpty() }
+            }
+            if (!current.any { it.equals(clean, ignoreCase = true) }) {
+                prefs[Keys.EKAGRA_TAGS] = (current + clean).joinToString("|||")
+            }
+        }
+    }
+
+    suspend fun removeEkagraTag(tag: String) {
+        val clean = tag.trim()
+        removeEkagraTagColor(clean)
+        context.dataStore.edit { prefs ->
+            val raw = prefs[Keys.EKAGRA_TAGS]
+            val current = if (raw.isNullOrBlank()) {
+                com.safarparmar.app.ui.ekagra.DEFAULT_EKAGRA_TAGS
+            } else {
+                raw.split("|||").map { it.trim() }.filter { it.isNotEmpty() }
+            }
+            prefs[Keys.EKAGRA_TAGS] = current.filterNot { it.equals(clean, ignoreCase = true) }.joinToString("|||")
+        }
+    }
+
+    suspend fun updateEkagraTag(oldTag: String, newTag: String) {
+        val cleanOld = oldTag.trim()
+        val cleanNew = newTag.trim()
+        if (cleanNew.isEmpty()) return
+        context.dataStore.edit { prefs ->
+            val raw = prefs[Keys.EKAGRA_TAGS]
+            val current = if (raw.isNullOrBlank()) {
+                com.safarparmar.app.ui.ekagra.DEFAULT_EKAGRA_TAGS
+            } else {
+                raw.split("|||").map { it.trim() }.filter { it.isNotEmpty() }
+            }
+            prefs[Keys.EKAGRA_TAGS] = current.map { if (it.equals(cleanOld, ignoreCase = true)) cleanNew else it }
+                .distinct()
+                .joinToString("|||")
+        }
+    }
+
     suspend fun setUserId(id: String?) {
         id?.let { context.dataStore.edit { prefs -> prefs[Keys.USER_ID] = it } }
     }
@@ -691,10 +907,12 @@ class SafarDataStore @Inject constructor(
     }
 
     suspend fun clearSession() {
-        securePrefs.edit()
-            .remove(SecureKeys.AUTH_TOKEN)
-            .remove(SecureKeys.REFRESH_TOKEN)
-            .apply()
+        withContext(Dispatchers.IO) {
+            securePrefs.edit()
+                .remove(SecureKeys.AUTH_TOKEN)
+                .remove(SecureKeys.REFRESH_TOKEN)
+                .apply()
+        }
         context.dataStore.edit {
             it.remove(Keys.IS_LOGGED_IN)
             it.remove(Keys.AUTH_TOKEN)
@@ -709,6 +927,7 @@ class SafarDataStore @Inject constructor(
             it.remove(Keys.PREMIUM_FEATURE_STUDY_PLANNER_INSIGHTS)
             it.remove(Keys.PREMIUM_FEATURE_NISHTHA_ANALYTICS)
             it.remove(Keys.PREMIUM_FEATURE_FOCUS_ANALYTICS)
+            it.remove(Keys.PREMIUM_FEATURE_LIVE_SESSIONS)
         }
     }
 

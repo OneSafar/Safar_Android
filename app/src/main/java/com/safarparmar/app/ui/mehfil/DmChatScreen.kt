@@ -49,6 +49,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -60,6 +61,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
+import com.safarparmar.app.R
 import com.safarparmar.app.ui.studyplanner.plan.PlanHairline
 
 @Composable
@@ -72,7 +74,8 @@ fun DmChatScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val dmState = uiState.dmState
     val effectiveTargetUserId = targetUserId?.ifBlank { null } ?: uiState.dmTargetUserId?.ifBlank { null }
-    val effectiveTargetName = (targetUserName?.ifBlank { null } ?: uiState.dmTargetUserName.ifBlank { null }) ?: "student"
+    val studentLabel = stringResource(R.string.mehfil_student)
+    val effectiveTargetName = (targetUserName?.ifBlank { null } ?: uiState.dmTargetUserName.ifBlank { null }) ?: studentLabel
 
     // If neither Waiting nor Open, and no target was provided, pop back (e.g. room was closed).
     if (dmState is DmState.Idle && effectiveTargetUserId.isNullOrBlank()) {
@@ -87,8 +90,8 @@ fun DmChatScreen(
             peerName = targetName,
             error = uiState.dmError,
             onBack = onBack,
-            title = "Connection Request Sent!",
-            subtitle = "Waiting for ${targetName.ifBlank { "the student" }} to accept your Mehfil Connect request.\n\nYou will automatically enter the chat room once accepted.",
+            title = stringResource(R.string.mehfil_connection_request_sent),
+            subtitle = stringResource(R.string.mehfil_waiting_accept, targetName.ifBlank { studentLabel }),
             onRetry = {
                 if (!effectiveTargetUserId.isNullOrBlank()) {
                     viewModel.sendDmRequest(
@@ -107,8 +110,8 @@ fun DmChatScreen(
             peerName = effectiveTargetName,
             error = uiState.dmError,
             onBack = onBack,
-            title = "Connecting to Chat...",
-            subtitle = "Entering private chat with $effectiveTargetName...",
+            title = stringResource(R.string.mehfil_connecting_chat),
+            subtitle = stringResource(R.string.mehfil_entering_chat, effectiveTargetName),
             onRetry = {
                 if (!effectiveTargetUserId.isNullOrBlank()) {
                     viewModel.sendDmRequest(
@@ -178,7 +181,7 @@ fun DmChatScreen(
                         text = msg.text,
                         isMine = msg.isMine,
                         avatarUrl = if (msg.isMine) msg.senderAvatar else msg.senderAvatar ?: dmState.peerAvatar,
-                        avatarName = if (msg.isMine) "You" else dmState.peerName,
+                        avatarName = if (msg.isMine) stringResource(R.string.common_you) else dmState.peerName,
                         state = msg.state,
                     )
                 }
@@ -194,8 +197,8 @@ private fun DmWaitingScreen(
     error: String?,
     onBack: () -> Unit,
     onRetry: (() -> Unit)? = null,
-    title: String = "Connection Request Sent!",
-    subtitle: String = "Waiting for ${peerName.ifBlank { "the student" }} to accept your Mehfil Connect request.\n\nYou will automatically enter the chat room once accepted.",
+    title: String,
+    subtitle: String,
 ) {
     BackHandler { onBack() }
     Scaffold(
@@ -225,14 +228,14 @@ private fun DmWaitingScreen(
                     ) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
+                            contentDescription = stringResource(R.string.common_back),
                             tint = Color.White,
                             modifier = Modifier.size(18.dp),
                         )
                     }
                     DmAvatar(name = peerName, avatarUrl = null, size = 34.dp)
                     Text(
-                        peerName.ifBlank { "Student" },
+                        peerName.ifBlank { stringResource(R.string.mehfil_student) },
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 15.sp,
                         color = MehfilFlatColors.Text,
@@ -276,7 +279,7 @@ private fun DmWaitingScreen(
                     )
                 }
                 Text(
-                    text = if (error.isNullOrBlank()) title else "Connection Status",
+                    text = if (error.isNullOrBlank()) title else stringResource(R.string.mehfil_connection_status),
                     fontWeight = FontWeight.Bold,
                     fontSize = 17.sp,
                     color = MehfilFlatColors.Text,
@@ -296,7 +299,7 @@ private fun DmWaitingScreen(
                             colors = ButtonDefaults.buttonColors(containerColor = MehfilFlatColors.Primary),
                             contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
                         ) {
-                            Text("Try Again", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                            Text(stringResource(R.string.common_try_again), fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White)
                         }
                     }
                 } else {
@@ -346,7 +349,7 @@ private fun DmChatTopBar(
             ) {
                 Icon(
                     Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
+                    contentDescription = stringResource(R.string.common_back),
                     tint = Color.White,
                     modifier = Modifier.size(18.dp),
                 )
@@ -373,9 +376,9 @@ private fun DmChatTopBar(
                     )
                     Text(
                         when {
-                            !connected -> "Connecting again…"
-                            !peerOnline -> "Student is away"
-                            else -> "Private chat · Messages are not saved"
+                            !connected -> stringResource(R.string.mehfil_connecting_again)
+                            !peerOnline -> stringResource(R.string.mehfil_student_away)
+                            else -> stringResource(R.string.mehfil_private_not_saved)
                         },
                         fontSize = 11.sp,
                         color = MehfilFlatColors.Muted,
@@ -391,7 +394,7 @@ private fun DmChatTopBar(
                     .padding(horizontal = 12.dp, vertical = 6.dp),
                 contentAlignment = Alignment.Center,
             ) {
-                Text("Leave", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = MehfilFlatColors.Like)
+                Text(stringResource(R.string.mehfil_leave), fontSize = 12.sp, fontWeight = FontWeight.Medium, color = MehfilFlatColors.Like)
             }
         }
         PlanHairline()
@@ -411,7 +414,7 @@ private fun DmMessageInput(value: String, onValueChange: (String) -> Unit, onSen
             OutlinedTextField(
                 value = value,
                 onValueChange = onValueChange,
-                placeholder = { Text("Message...", fontSize = 14.sp, color = MehfilFlatColors.Muted) },
+                placeholder = { Text(stringResource(R.string.mehfil_message_placeholder), fontSize = 14.sp, color = MehfilFlatColors.Muted) },
                 modifier = Modifier.weight(1f),
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
@@ -446,11 +449,11 @@ private fun DmMessageInput(value: String, onValueChange: (String) -> Unit, onSen
             ) {
                 Icon(
                     Icons.AutoMirrored.Filled.Send,
-                    contentDescription = "Send message",
+                    contentDescription = stringResource(R.string.mehfil_send_message),
                     modifier = Modifier.size(18.dp),
                 )
                 Spacer(Modifier.size(7.dp))
-                Text("Send", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                Text(stringResource(R.string.common_send), fontWeight = FontWeight.Bold, fontSize = 13.sp)
             }
         }
     }
@@ -474,8 +477,8 @@ private fun EmptyDmState(peerName: String, modifier: Modifier = Modifier) {
                 modifier = Modifier.size(40.dp),
                 tint = MehfilFlatColors.Primary,
             )
-            Text("Start your private chat", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = MehfilFlatColors.Text)
-            Text("Say hello to $peerName below.", fontSize = 12.sp, color = MehfilFlatColors.Muted)
+            Text(stringResource(R.string.mehfil_start_private_chat), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = MehfilFlatColors.Text)
+            Text(stringResource(R.string.mehfil_say_hello, peerName), fontSize = 12.sp, color = MehfilFlatColors.Muted)
         }
     }
 }
@@ -533,7 +536,7 @@ private fun DmMessageBubble(
             }
             if (isMine && state != DmMessageState.SENT) {
                 Text(
-                    if (state == DmMessageState.SENDING) "Sending…" else "Not sent",
+                    if (state == DmMessageState.SENDING) stringResource(R.string.mehfil_sending) else stringResource(R.string.mehfil_not_sent),
                     fontSize = 10.sp,
                     color = if (state == DmMessageState.FAILED) MehfilFlatColors.Like else MehfilFlatColors.Muted,
                 )
@@ -558,7 +561,7 @@ private fun DmAvatar(name: String, avatarUrl: String?, size: Dp) {
         if (!avatarUrl.isNullOrBlank()) {
             AsyncImage(
                 model = avatarUrl,
-                contentDescription = "$name profile photo",
+                contentDescription = stringResource(R.string.mehfil_profile_photo, name),
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop,
             )

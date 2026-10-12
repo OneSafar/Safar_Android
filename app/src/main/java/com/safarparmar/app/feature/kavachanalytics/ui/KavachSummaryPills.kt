@@ -1,5 +1,7 @@
 package com.safarparmar.app.feature.kavachanalytics.ui
+import com.composables.ui.components.HorizontalSeparator as HorizontalDivider
 
+import com.safarparmar.app.performance.decorativeFloat
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.LinearEasing
@@ -63,7 +65,7 @@ fun TealLivePulseDot(
     size: Int = 18,
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "tealLiveDotPulse")
-    val pulseProgress by infiniteTransition.animateFloat(
+    val pulseProgress by infiniteTransition.decorativeFloat(
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
@@ -109,6 +111,7 @@ fun TealLivePulseDot(
 fun KavachSummaryPills(
     modifier: Modifier = Modifier,
     ink: com.safarparmar.app.ui.ekagra.EkagraInk? = null,
+    isDarkTheme: Boolean = !MaterialTheme.colorScheme.background.isLightBackground(),
     themeAccent: Color = MaterialTheme.colorScheme.primary,
     onOpenAnalytics: () -> Unit = {},
     myCircles: List<StudyCircleSummaryDto> = emptyList(),
@@ -119,7 +122,6 @@ fun KavachSummaryPills(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val lifecycleOwner = LocalLifecycleOwner.current
-    val isLight = MaterialTheme.colorScheme.background.isLightBackground()
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -151,7 +153,7 @@ fun KavachSummaryPills(
             accent = themeAccent,
             iconColor = Color(0xFFEF4444),
             ink = ink,
-            isLight = isLight,
+            isDark = isDarkTheme,
             modifier = Modifier.weight(1f),
             onClick = onOpenAnalytics,
         )
@@ -164,7 +166,7 @@ fun KavachSummaryPills(
             onNavigate = onNavigate,
             accent = themeAccent,
             ink = ink,
-            isLight = isLight,
+            isDark = isDarkTheme,
             modifier = Modifier.weight(1f),
         )
     }
@@ -178,28 +180,45 @@ private fun SummaryPill(
     accent: Color,
     iconColor: Color,
     ink: com.safarparmar.app.ui.ekagra.EkagraInk?,
-    isLight: Boolean,
+    isDark: Boolean,
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
-    val shape = RoundedCornerShape(20.dp)
+    val shape = RoundedCornerShape(14.dp)
+
+    val normalCardBg = if (isDark) {
+        Color(0xFF1E293B).copy(alpha = 0.55f)
+    } else {
+        Color.White.copy(alpha = 0.32f)
+    }
+    val pressedCardBg = if (isDark) {
+        Color(0xFF2B3A4F).copy(alpha = 0.70f)
+    } else {
+        Color.White.copy(alpha = 0.48f)
+    }
+
     val cardColor by animateColorAsState(
-        targetValue = when {
-            isPressed -> accent.copy(alpha = 0.90f)
-            else -> accent
-        },
+        targetValue = if (isPressed) pressedCardBg else normalCardBg,
         animationSpec = spring(dampingRatio = 0.82f, stiffness = 600f),
         label = "summaryChipColor",
     )
-    val borderColor = Color.White.copy(alpha = 0.35f)
-    val textColor = Color.White
-    val secondaryColor = Color.White.copy(alpha = 0.82f)
+
+    val normalBorder = if (isDark) {
+        Color.White.copy(alpha = 0.16f)
+    } else {
+        Color.White.copy(alpha = 0.45f)
+    }
+    val pressedBorder = accent.copy(alpha = if (isDark) 0.50f else 0.40f)
+    val borderColor = if (isPressed) pressedBorder else normalBorder
+
+    val textColor = if (isDark) Color.White else Color(0xFF0F172A)
+    val secondaryColor = if (isDark) Color.White.copy(alpha = 0.75f) else Color(0xFF334155)
 
     Box(
         modifier = modifier
-            .height(72.dp)
+            .height(62.dp)
             .clip(shape)
             .background(cardColor)
             .border(1.dp, borderColor, shape)
@@ -213,24 +232,24 @@ private fun SummaryPill(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 8.dp),
+                .padding(horizontal = 10.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            // 3x Larger Icon in Red
+            // Prominent Warning Icon
             Icon(
                 imageVector = icon,
                 contentDescription = null,
                 tint = iconColor,
-                modifier = Modifier.size(34.dp),
+                modifier = Modifier.size(28.dp),
             )
-            Spacer(Modifier.width(10.dp))
+            Spacer(Modifier.width(8.dp))
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.Center,
             ) {
                 Text(
                     text = label,
-                    fontSize = 11.sp,
+                    fontSize = 10.5.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = secondaryColor,
                     maxLines = 1,
@@ -246,7 +265,7 @@ private fun SummaryPill(
                 ) { animatedValue ->
                     Text(
                         text = animatedValue,
-                        fontSize = 18.sp,
+                        fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         color = textColor,
                         maxLines = 1,
@@ -266,25 +285,41 @@ private fun StudyGroupLivePill(
     onNavigate: (String) -> Unit,
     accent: Color,
     ink: com.safarparmar.app.ui.ekagra.EkagraInk?,
-    isLight: Boolean,
+    isDark: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     var showDropdown by remember { mutableStateOf(false) }
-    val shape = RoundedCornerShape(20.dp)
+    val shape = RoundedCornerShape(14.dp)
+
+    val normalCardBg = if (isDark) {
+        Color(0xFF1E293B).copy(alpha = 0.55f)
+    } else {
+        Color.White.copy(alpha = 0.32f)
+    }
+    val pressedCardBg = if (isDark) {
+        Color(0xFF2B3A4F).copy(alpha = 0.70f)
+    } else {
+        Color.White.copy(alpha = 0.48f)
+    }
 
     val cardColor by animateColorAsState(
-        targetValue = when {
-            isPressed -> accent.copy(alpha = 0.90f)
-            else -> accent
-        },
+        targetValue = if (isPressed) pressedCardBg else normalCardBg,
         animationSpec = spring(dampingRatio = 0.82f, stiffness = 600f),
         label = "groupLiveCardColor",
     )
-    val borderColor = Color.White.copy(alpha = 0.35f)
-    val textColor = Color.White
-    val secondaryColor = Color.White.copy(alpha = 0.85f)
+
+    val normalBorder = if (isDark) {
+        Color.White.copy(alpha = 0.16f)
+    } else {
+        Color.White.copy(alpha = 0.45f)
+    }
+    val pressedBorder = accent.copy(alpha = if (isDark) 0.50f else 0.40f)
+    val borderColor = if (isPressed) pressedBorder else normalBorder
+
+    val textColor = if (isDark) Color.White else Color(0xFF0F172A)
+    val secondaryColor = if (isDark) Color.White.copy(alpha = 0.75f) else Color(0xFF334155)
 
     val activeCircle = selectedCircle ?: myCircles.firstOrNull()
     val groupName = activeCircle?.name ?: "Study Group"
@@ -297,7 +332,7 @@ private fun StudyGroupLivePill(
 
     Box(
         modifier = modifier
-            .height(72.dp)
+            .height(62.dp)
             .clip(shape)
             .background(cardColor)
             .border(1.dp, borderColor, shape)
@@ -320,12 +355,12 @@ private fun StudyGroupLivePill(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 8.dp),
+                .padding(horizontal = 10.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            // 3x Larger Light Teal Pulsating Live Dot
-            TealLivePulseDot(size = 18, modifier = Modifier.size(34.dp))
-            Spacer(Modifier.width(10.dp))
+            // Light Teal Pulsating Live Dot
+            TealLivePulseDot(size = 14, modifier = Modifier.size(28.dp))
+            Spacer(Modifier.width(8.dp))
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.Center,
@@ -336,7 +371,7 @@ private fun StudyGroupLivePill(
                 ) {
                     Text(
                         text = groupName,
-                        fontSize = 11.sp,
+                        fontSize = 10.5.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = secondaryColor,
                         maxLines = 1,
@@ -347,9 +382,9 @@ private fun StudyGroupLivePill(
                         Spacer(Modifier.width(2.dp))
                         Icon(
                             imageVector = Icons.Default.ArrowDropDown,
-                            contentDescription = "Select Group",
+                            contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.kavach_select_group),
                             tint = secondaryColor,
-                            modifier = Modifier.size(16.dp),
+                            modifier = Modifier.size(15.dp),
                         )
                     }
                 }
@@ -364,7 +399,7 @@ private fun StudyGroupLivePill(
                 ) { animatedValue ->
                     Text(
                         text = animatedValue,
-                        fontSize = 18.sp,
+                        fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         color = textColor,
                         maxLines = 1,
@@ -380,7 +415,7 @@ private fun StudyGroupLivePill(
             modifier = Modifier.widthIn(min = 220.dp, max = 280.dp),
         ) {
             Text(
-                text = "YOUR STUDY GROUPS (${myCircles.size}/5)",
+                text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.kavach_your_study_groups, myCircles.size),
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Black,
                 letterSpacing = 0.8.sp,
@@ -445,7 +480,7 @@ private fun StudyGroupLivePill(
                             if (isSelected) {
                                 Icon(
                                     Icons.Default.Check,
-                                    contentDescription = "Selected",
+                                    contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.common_selected),
                                     tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(18.dp),
                                 )

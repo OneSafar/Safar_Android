@@ -2,6 +2,9 @@
 // Hallmark · genre: modern-minimal · reference: Kavach Analytics · designed-as-app
 package com.safarparmar.app.ui.studyplanner.create.steps
 
+import androidx.compose.ui.res.stringResource
+import com.safarparmar.app.R
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -112,7 +115,7 @@ fun ManualTopicTreeStep(
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        text = "Syllabus name",
+                        text = stringResource(R.string.planner_syllabus_name),
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.SemiBold,
                         color = colors.ink,
@@ -120,7 +123,7 @@ fun ManualTopicTreeStep(
                     OutlinedTextField(
                         value = title,
                         onValueChange = onTitleChange,
-                        placeholder = { Text("e.g. SSC CGL Tier 1 — 2026") },
+                        placeholder = { Text(stringResource(R.string.planner_syllabus_name_example)) },
                         singleLine = true,
                         shape = RoundedCornerShape(10.dp),
                         colors = OutlinedTextFieldDefaults.colors(
@@ -157,7 +160,7 @@ fun ManualTopicTreeStep(
                     TextButton(onClick = { showAddSubjectDialog = true }, modifier = Modifier.height(48.dp)) {
                         Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(8.dp))
-                        Text("Add subject", fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(R.string.planner_add_subject), fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
@@ -184,10 +187,10 @@ fun ManualTopicTreeStep(
 
     if (showAddSubjectDialog) {
         TextInputDialog(
-            title = "Add subject",
-            label = "Subject name (comma-separated for multiple)",
-            confirmLabel = "Add",
-            emptyHint = "Type a subject name",
+            title = stringResource(R.string.planner_add_subject),
+            label = stringResource(R.string.planner_subject_names_hint),
+            confirmLabel = stringResource(R.string.common_add),
+            emptyHint = stringResource(R.string.planner_type_subject_name),
             onDismiss = { showAddSubjectDialog = false },
             onConfirm = { rawInput ->
                 rawInput.split(',').map(String::trim).filter(String::isNotBlank).forEach(onAddSubject)
@@ -205,13 +208,13 @@ private fun BuilderHeader(isAutosaving: Boolean, onBack: (() -> Unit)?, colors: 
     ) {
         if (onBack != null) {
             IconButton(onClick = onBack, modifier = Modifier.size(48.dp)) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_back))
             }
         } else {
             Spacer(Modifier.width(12.dp))
         }
         Text(
-            text = "Build syllabus",
+            text = stringResource(R.string.planner_build_syllabus),
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
             color = colors.ink,
@@ -224,10 +227,10 @@ private fun BuilderHeader(isAutosaving: Boolean, onBack: (() -> Unit)?, colors: 
         ) {
             if (isAutosaving) {
                 CircularProgressIndicator(modifier = Modifier.size(12.dp), strokeWidth = 1.5.dp, color = colors.muted)
-                Text("Saving…", style = MaterialTheme.typography.labelMedium, color = colors.muted)
+                Text(stringResource(R.string.common_saving), style = MaterialTheme.typography.labelMedium, color = colors.muted)
             } else {
                 Box(Modifier.size(7.dp).background(colors.success, CircleShape))
-                Text("Draft saved", style = MaterialTheme.typography.labelMedium, color = colors.muted)
+                Text(stringResource(R.string.planner_draft_saved), style = MaterialTheme.typography.labelMedium, color = colors.muted)
             }
         }
     }
@@ -237,9 +240,9 @@ private fun BuilderHeader(isAutosaving: Boolean, onBack: (() -> Unit)?, colors: 
 @Composable
 private fun HierarchyKey(colors: BuilderPalette) {
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(18.dp)) {
-        LevelKey("Subject", colors.subject)
-        LevelKey("Chapter", colors.chapter)
-        LevelKey("Topic", colors.topic)
+        LevelKey(stringResource(R.string.planner_subject), colors.subject)
+        LevelKey(stringResource(R.string.planner_chapter), colors.chapter)
+        LevelKey(stringResource(R.string.planner_topic), colors.topic)
     }
 }
 
@@ -259,16 +262,16 @@ private fun EmptyBuilderState(colors: BuilderPalette, onAddSubject: () -> Unit) 
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Box(Modifier.size(10.dp).background(colors.subject, CircleShape))
-        Text("No subjects yet", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.planner_no_subjects_yet), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
         Text(
-            "Add a subject, then organise its chapters and topics.",
+            stringResource(R.string.planner_no_subjects_body),
             style = MaterialTheme.typography.bodyMedium,
             color = colors.muted,
         )
         TextButton(onClick = onAddSubject, modifier = Modifier.height(48.dp)) {
             Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(8.dp))
-            Text("Add first subject", fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.planner_add_first_subject), fontWeight = FontWeight.SemiBold)
         }
     }
 }
@@ -307,7 +310,7 @@ private fun SubjectSection(
                 IconButton(onClick = onRemoveSubject, modifier = Modifier.size(44.dp)) {
                     Icon(
                         Icons.Default.DeleteOutline,
-                        contentDescription = "Delete ${subject.name}",
+                        contentDescription = stringResource(R.string.planner_delete_named, subject.name),
                         tint = MaterialTheme.colorScheme.error,
                     )
                 }
@@ -315,7 +318,7 @@ private fun SubjectSection(
 
             if (subject.chapters.isEmpty()) {
                 Text(
-                    "No chapters yet",
+                    stringResource(R.string.planner_no_chapters_yet),
                     style = MaterialTheme.typography.bodyMedium,
                     color = colors.muted,
                     modifier = Modifier.padding(start = 19.dp, top = 4.dp, bottom = 4.dp),
@@ -337,17 +340,17 @@ private fun SubjectSection(
             TextButton(onClick = { showAddChapterDialog = true }, modifier = Modifier.height(44.dp)) {
                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(17.dp))
                 Spacer(Modifier.width(6.dp))
-                Text("Add chapter", fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.planner_add_chapter), fontWeight = FontWeight.SemiBold)
             }
         }
     }
 
     if (showAddChapterDialog) {
         TextInputDialog(
-            title = "Add chapter",
-            label = "Chapter name (comma-separated for multiple)",
-            confirmLabel = "Add",
-            emptyHint = "Type a chapter name",
+            title = stringResource(R.string.planner_add_chapter),
+            label = stringResource(R.string.planner_chapter_names_hint),
+            confirmLabel = stringResource(R.string.common_add),
+            emptyHint = stringResource(R.string.planner_type_chapter_name),
             onDismiss = { showAddChapterDialog = false },
             onConfirm = { rawInput ->
                 rawInput.split(',').map(String::trim).filter(String::isNotBlank).forEach(onAddChapter)
@@ -358,10 +361,10 @@ private fun SubjectSection(
 
     addTopicForChapterId?.let { chapterId ->
         TextInputDialog(
-            title = "Add topic",
-            label = "Topic name (comma-separated for multiple)",
-            confirmLabel = "Add",
-            emptyHint = "Type a topic name",
+            title = stringResource(R.string.planner_add_topic),
+            label = stringResource(R.string.planner_topic_names_hint),
+            confirmLabel = stringResource(R.string.common_add),
+            emptyHint = stringResource(R.string.planner_type_topic_name),
             onDismiss = { addTopicForChapterId = null },
             onConfirm = { rawInput ->
                 rawInput.split(',').map(String::trim).filter(String::isNotBlank).forEach { onAddTopic(chapterId, it) }
@@ -393,10 +396,10 @@ private fun ChapterSection(
                 modifier = Modifier.weight(1f),
             )
             TextButton(onClick = onAddTopic, modifier = Modifier.height(44.dp)) {
-                Text("Add topic", fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.planner_add_topic), fontWeight = FontWeight.SemiBold)
             }
             IconButton(onClick = onRemoveChapter, modifier = Modifier.size(44.dp)) {
-                Icon(Icons.Default.Close, contentDescription = "Delete ${chapter.name}", tint = colors.muted)
+                Icon(Icons.Default.Close, contentDescription = stringResource(R.string.planner_delete_named, chapter.name), tint = colors.muted)
             }
         }
 
@@ -417,7 +420,7 @@ private fun ChapterSection(
                 IconButton(onClick = { onRemoveTopic(topic.localId) }, modifier = Modifier.size(44.dp)) {
                     Icon(
                         Icons.Default.Close,
-                        contentDescription = "Delete ${topic.name}",
+                        contentDescription = stringResource(R.string.planner_delete_named, topic.name),
                         tint = colors.muted,
                         modifier = Modifier.size(18.dp),
                     )
@@ -442,7 +445,7 @@ private fun BuilderFooter(
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Text(
-                "$subjectCount subjects  ·  $chapterCount chapters  ·  $topicCount topics",
+                stringResource(R.string.planner_syllabus_counts, subjectCount, chapterCount, topicCount),
                 style = MaterialTheme.typography.labelMedium,
                 color = colors.muted,
             )
@@ -453,7 +456,7 @@ private fun BuilderFooter(
                 colors = ButtonDefaults.buttonColors(containerColor = PlannerFlatColors.PrimaryAccent),
                 modifier = Modifier.fillMaxWidth().height(50.dp),
             ) {
-                Text(if (isSaving) "Saving…" else "Plan settings", fontWeight = FontWeight.Bold)
+                Text(if (isSaving) stringResource(R.string.common_saving) else stringResource(R.string.planner_plan_settings), fontWeight = FontWeight.Bold)
                 Spacer(Modifier.width(8.dp))
                 Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, modifier = Modifier.size(18.dp))
             }

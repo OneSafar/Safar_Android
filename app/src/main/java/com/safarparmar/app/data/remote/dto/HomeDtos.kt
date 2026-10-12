@@ -319,12 +319,15 @@ data class EkagraAnalyticsRecentSessionDto(
 )
 
 data class EkagraAnalyticsFocusSessionDto(
+    val sourceSessionId: String? = null,
+    val endReason: String? = null,
     val id: String? = null,
     val startedAt: String? = null,
     val endedAt: String? = null,
     val durationMinutes: Int? = 0,
     val actualMinutes: Int? = 0,
     val actualSeconds: Int? = 0,
+    val rankedSeconds: Int? = null,
     val status: String? = null,
     val rawStatus: String? = null,
     val taskText: String? = null,
@@ -332,4 +335,12 @@ data class EkagraAnalyticsFocusSessionDto(
     val isGoalLinked: Boolean? = false,
     val pauseCount: Int? = 0,
     val timerMode: String? = null
+)
+
+/** Additive dashboard response; full report DTO remains available for analytics. */
+data class DashboardMonthlySummaryDto(
+    val month: String? = null,
+    val consistencyScore: Double? = null,
+    val completionRate: Double? = null,
+    val focusDepth: Double? = null,
 )

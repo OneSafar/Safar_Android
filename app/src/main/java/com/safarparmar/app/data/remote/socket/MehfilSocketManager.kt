@@ -1,9 +1,12 @@
 package com.safarparmar.app.data.remote.socket
 
+import android.content.Context
 import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
 import com.safarparmar.app.BuildConfig
+import com.safarparmar.app.R
 import com.safarparmar.app.domain.model.MehfilPost
+import dagger.hilt.android.qualifiers.ApplicationContext
 import io.socket.client.IO
 import io.socket.client.Socket
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -91,6 +94,7 @@ fun ThoughtDto.toDomain(): MehfilPost {
 @Singleton
 class MehfilSocketManager @Inject constructor(
     private val gson: Gson,
+    @ApplicationContext private val context: Context,
 ) {
     private var socket: Socket? = null
     private var pendingRoom: String = "ALL"
@@ -290,7 +294,7 @@ class MehfilSocketManager @Inject constructor(
                     val message = runCatching {
                         JSONObject(args.firstOrNull()?.toString().orEmpty()).optString("message")
                     }.getOrDefault("")
-                    _dmEvent.tryEmit(DmEvent("post_error", message = message.ifBlank { "Could not share post." }))
+                    _dmEvent.tryEmit(DmEvent("post_error", message = message.ifBlank { context.getString(R.string.mehfil_share_failed) }))
                 }
 
                 on("reactionUpdated") { args ->
@@ -401,7 +405,7 @@ class MehfilSocketManager @Inject constructor(
                     } catch (_: Exception) {}
                 }
                 on("dm:user_left") {
-                    _dmEvent.tryEmit(DmEvent("room_closed", message = "The other student ended this chat."))
+                    _dmEvent.tryEmit(DmEvent("room_closed", message = context.getString(R.string.mehfil_other_ended_chat)))
                 }
                 on("dm:user_offline") {
                     _dmEvent.tryEmit(DmEvent("peer_offline"))
@@ -412,7 +416,7 @@ class MehfilSocketManager @Inject constructor(
                     try {
                         val raw = args.firstOrNull()?.toString() ?: return@on
                         val obj = JSONObject(raw)
-                        val name = obj.optString("name").ifBlank { "Student" }
+                        val name = obj.optString("name").ifBlank { context.getString(R.string.common_student) }
                         val text = obj.optString("text")
                         val sentAt = obj.optString("sentAt")
                         android.util.Log.d("MehfilSocket", "live:message ← $name: $text")

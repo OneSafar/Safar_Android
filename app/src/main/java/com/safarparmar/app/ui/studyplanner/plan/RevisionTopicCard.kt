@@ -1,5 +1,8 @@
 package com.safarparmar.app.ui.studyplanner.plan
 
+import androidx.compose.ui.res.stringResource
+import com.safarparmar.app.R
+
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
@@ -141,7 +144,7 @@ internal fun RevisionTopicCard(
                 IconButton(onClick = onEdit, modifier = Modifier.size(32.dp)) {
                     Icon(
                         imageVector = Icons.Default.Edit,
-                        contentDescription = "Edit revision schedule",
+                        contentDescription = stringResource(R.string.planner_edit_revision_schedule),
                         tint = scheme.onSurfaceVariant,
                         modifier = Modifier.size(18.dp),
                     )
@@ -172,7 +175,7 @@ internal fun RevisionTopicCard(
                         contentColor = PlannerRevisionAccent.Spaced,
                     ) {
                         Text(
-                            text = "Spaced revision",
+                            text = stringResource(R.string.planner_spaced_revision),
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp),
@@ -185,7 +188,7 @@ internal fun RevisionTopicCard(
                         contentColor = PlannerRevisionAccent.Custom,
                     ) {
                         Text(
-                            text = "Custom date",
+                            text = stringResource(R.string.planner_custom_date),
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp),
@@ -282,7 +285,7 @@ private fun RevisionSessionRow(
             )
             if (session.overdue) {
                 Text(
-                    text = "Due — tap to mark revised",
+                    text = stringResource(R.string.planner_due_mark_revised),
                     style = MaterialTheme.typography.labelSmall,
                     color = RevisionRed,
                     fontWeight = FontWeight.SemiBold,

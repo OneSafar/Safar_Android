@@ -56,8 +56,18 @@ fun AppPickerScreen(
     onBack: () -> Unit,
     viewModel: FocusShieldViewModel = hiltViewModel(),
 ) {
-    androidx.activity.compose.BackHandler {
+    val context = androidx.compose.ui.platform.LocalContext.current
+
+    fun finishAndReturn() {
+        val activated = viewModel.saveAndEnableShieldIfReady()
+        if (activated) {
+            android.widget.Toast.makeText(context, context.getString(R.string.kavach_active_ready), android.widget.Toast.LENGTH_SHORT).show()
+        }
         onBack()
+    }
+
+    androidx.activity.compose.BackHandler {
+        finishAndReturn()
     }
 
     val state by viewModel.pickerState.collectAsStateWithLifecycle()
@@ -76,7 +86,7 @@ fun AppPickerScreen(
         containerColor = KavachDesign.Background,
         topBar = {
             KavachStitchBackHeader(
-                onBack = onBack,
+                onBack = ::finishAndReturn,
                 title = stringResource(R.string.kavach_shield_configuration_title),
             )
         },
@@ -90,7 +100,7 @@ fun AppPickerScreen(
             ) {
                 KavachStitchPrimaryButton(
                     text = stringResource(R.string.kavach_save_configuration),
-                    onClick = onBack,
+                    onClick = ::finishAndReturn,
                 )
             }
         },
@@ -155,7 +165,7 @@ fun AppPickerScreen(
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                         modifier = Modifier.height(36.dp)
                     ) {
-                        Text("Select Distracting", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.kavach_select_distracting), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
                 }
                 item {
@@ -169,7 +179,7 @@ fun AppPickerScreen(
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                         modifier = Modifier.height(36.dp)
                     ) {
-                        Text("Select All", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                        Text(stringResource(R.string.common_select_all), fontSize = 12.sp, fontWeight = FontWeight.Medium)
                     }
                 }
                 item {
@@ -183,7 +193,7 @@ fun AppPickerScreen(
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                         modifier = Modifier.height(36.dp)
                     ) {
-                        Text("Clear All", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                        Text(stringResource(R.string.common_clear_all), fontSize = 12.sp, fontWeight = FontWeight.Medium)
                     }
                 }
             }

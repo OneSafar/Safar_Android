@@ -1,5 +1,6 @@
 package com.safarparmar.app.ui.maintenance
 
+import com.safarparmar.app.performance.decorativeFloat
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -48,11 +49,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.safarparmar.app.data.remote.maintenance.MaintenanceInfo
+import com.safarparmar.app.R
 import com.safarparmar.app.ui.theme.isLightBackground
 
 @Composable
@@ -66,7 +69,7 @@ fun MaintenanceScreen(
     val scrollState = rememberScrollState()
 
     val infiniteTransition = rememberInfiniteTransition(label = "maintenance_pulse")
-    val pulseScale by infiniteTransition.animateFloat(
+    val pulseScale by infiniteTransition.decorativeFloat(
         initialValue = 0.95f,
         targetValue = 1.05f,
         animationSpec = infiniteRepeatable(
@@ -75,7 +78,7 @@ fun MaintenanceScreen(
         ),
         label = "pulse_scale",
     )
-    val glowAlpha by infiniteTransition.animateFloat(
+    val glowAlpha by infiniteTransition.decorativeFloat(
         initialValue = 0.35f,
         targetValue = 0.75f,
         animationSpec = infiniteRepeatable(
@@ -131,7 +134,7 @@ fun MaintenanceScreen(
                                 .alpha(glowAlpha),
                         )
                         Text(
-                            text = "SYSTEM & DATABASE UPGRADE",
+                            text = stringResource(R.string.maintenance_upgrade_badge),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 1.sp,
@@ -183,7 +186,7 @@ fun MaintenanceScreen(
 
                 // Main Title & Subtitle as requested
                 Text(
-                    text = info.title.ifBlank { "App Under Maintenance !" },
+                    text = info.title.ifBlank { stringResource(R.string.maintenance_title) },
                     fontSize = 25.sp,
                     lineHeight = 32.sp,
                     fontWeight = FontWeight.Black,
@@ -194,7 +197,7 @@ fun MaintenanceScreen(
                 Spacer(Modifier.height(8.dp))
 
                 Text(
-                    text = info.message.ifBlank { "Check Back Soon......" },
+                    text = info.message.ifBlank { stringResource(R.string.maintenance_check_back) },
                     fontSize = 16.sp,
                     lineHeight = 22.sp,
                     fontWeight = FontWeight.SemiBold,
@@ -212,8 +215,8 @@ fun MaintenanceScreen(
                     MaintenanceInfoCard(
                         icon = Icons.Default.Shield,
                         iconTint = Color(0xFF10B981),
-                        title = "Your Data is 100% Safe",
-                        description = "Your study streak, focus logs, syllabus progress, and journal notes are securely preserved.",
+                        title = stringResource(R.string.maintenance_data_safe_title),
+                        description = stringResource(R.string.maintenance_data_safe_body),
                         cardBg = cardBg,
                         cardBorder = cardBorder,
                     )
@@ -221,8 +224,8 @@ fun MaintenanceScreen(
                     MaintenanceInfoCard(
                         icon = Icons.Default.AutoAwesome,
                         iconTint = primaryAccent,
-                        title = "Database & Server Optimization",
-                        description = info.detail ?: "We are performing scheduled server and database enhancements to make Safar faster and more reliable.",
+                        title = stringResource(R.string.maintenance_optimization_title),
+                        description = info.detail ?: stringResource(R.string.maintenance_optimization_body),
                         cardBg = cardBg,
                         cardBorder = cardBorder,
                     )
@@ -230,8 +233,8 @@ fun MaintenanceScreen(
                     MaintenanceInfoCard(
                         icon = Icons.Default.CheckCircle,
                         iconTint = Color(0xFF3B82F6),
-                        title = "Automatic Reconnection",
-                        description = "This screen will automatically dismiss and take you back to your study space as soon as maintenance finishes.",
+                        title = stringResource(R.string.maintenance_reconnect_title),
+                        description = stringResource(R.string.maintenance_reconnect_body),
                         cardBg = cardBg,
                         cardBorder = cardBorder,
                     )
@@ -267,7 +270,7 @@ fun MaintenanceScreen(
                         )
                         Spacer(Modifier.width(10.dp))
                         Text(
-                            "Checking server status...",
+                            stringResource(R.string.maintenance_checking),
                             fontWeight = FontWeight.Bold,
                             fontSize = 15.sp,
                         )
@@ -279,7 +282,7 @@ fun MaintenanceScreen(
                         )
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            "Check Status Now",
+                            stringResource(R.string.maintenance_check_now),
                             fontWeight = FontWeight.Bold,
                             fontSize = 15.sp,
                         )
@@ -287,7 +290,7 @@ fun MaintenanceScreen(
                 }
 
                 Text(
-                    text = "Auto-checking in background every 15 seconds",
+                    text = stringResource(R.string.maintenance_auto_check),
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
                     textAlign = TextAlign.Center,

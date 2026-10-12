@@ -10,13 +10,16 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.ensureActive
 import javax.inject.Inject
 
 sealed class PremiumUiState {
     object Idle : PremiumUiState()
     object Loading : PremiumUiState()
     data class OrderCreated(val order: com.safarparmar.app.data.remote.dto.CreateOrderResponseDto, val planType: String, val keyId: String?) : PremiumUiState()
-    data class PaymentSuccess(val status: PremiumStatus) : PremiumUiState()
+    data class PaymentSuccess(val status: PremiumStatus, val isRestore: Boolean = false) : PremiumUiState()
+    object DhyanPaymentSuccess : PremiumUiState()
+    object NoActivePlan : PremiumUiState()
     data class Error(val message: String) : PremiumUiState()
 }
 
@@ -24,6 +27,7 @@ sealed class PremiumUiState {
 class PremiumViewModel @Inject constructor(
     private val paymentRepository: PaymentRepository,
     private val premiumRepository: PremiumRepository,
+    private val authRepository: com.safarparmar.app.domain.repository.AuthRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<PremiumUiState>(PremiumUiState.Idle)
@@ -32,13 +36,59 @@ class PremiumViewModel @Inject constructor(
     private val _premiumStatus = MutableStateFlow(PremiumStatus())
     val premiumStatus: StateFlow<PremiumStatus> = _premiumStatus.asStateFlow()
 
+    private val _dhyanPricing = MutableStateFlow(com.safarparmar.app.data.remote.dto.DhyanPricingDto())
+    val dhyanPricing: StateFlow<com.safarparmar.app.data.remote.dto.DhyanPricingDto> = _dhyanPricing.asStateFlow()
+    private val _dhyanLiveAccess = MutableStateFlow("LOADING")
+    val dhyanLiveAccess: StateFlow<String> = _dhyanLiveAccess.asStateFlow()
+    private var dhyanRefreshJob: kotlinx.coroutines.Job? = null
+
+    fun refreshDhyanAccess() = refreshDhyanAccess(force = true)
+
+    private fun refreshDhyanAccess(force: Boolean) {
+        if (force) dhyanRefreshJob?.cancel()
+        else if (dhyanRefreshJob?.isActive == true) return
+        dhyanRefreshJob = viewModelScope.launch {
+            if (_dhyanLiveAccess.value != "ALLOWED" && !_premiumStatus.value.features.liveSessions) {
+                _dhyanLiveAccess.value = "LOADING"
+            }
+            val profile = authRepository.getMe()
+            val user = (profile as? com.safarparmar.app.util.Resource.Success)?.data
+            val privileged = user?.isAdmin == true || user?.email?.trim()?.lowercase() in
+                setOf("steve123@example.com", "safarparmar0@gmail.com")
+            if (privileged) _dhyanLiveAccess.value = "ALLOWED"
+            paymentRepository.getDhyanPricing().fold(
+                onSuccess = { pricing ->
+                    kotlinx.coroutines.currentCoroutineContext().ensureActive()
+                    _dhyanPricing.value = pricing
+                    _dhyanLiveAccess.value = when {
+                        privileged || pricing.alreadyHasLive || pricing.accessState == "DHYAN_INCLUDED" || _premiumStatus.value.features.liveSessions -> "ALLOWED"
+                        pricing.accessState in setOf("STANDARD", "LEGACY_PREMIUM_DISCOUNT", "DHYAN_SCHEDULED") -> "DENIED"
+                        user == null -> "ERROR"
+                        else -> "ERROR"
+                    }
+                },
+                onFailure = {
+                    kotlinx.coroutines.currentCoroutineContext().ensureActive()
+                    _dhyanPricing.value = com.safarparmar.app.data.remote.dto.DhyanPricingDto(accessState = "ERROR")
+                    _dhyanLiveAccess.value = if (privileged || _premiumStatus.value.features.liveSessions) "ALLOWED" else "ERROR"
+                },
+            )
+        }
+    }
+
+    private var pendingCourseId: String? = null
+
     init {
         viewModelScope.launch {
             premiumRepository.cachedStatus.collect { status ->
                 _premiumStatus.value = status
+                if (status.features.liveSessions) {
+                    _dhyanLiveAccess.value = "ALLOWED"
+                }
             }
         }
         refreshPremiumStatus(showLoading = false)
+        refreshDhyanAccess()
         viewModelScope.launch {
             PaymentEventBus.paymentEvents.collect { event ->
                 when (event) {
@@ -70,6 +120,7 @@ class PremiumViewModel @Inject constructor(
     }
 
     fun createOrder(duration: Int) {
+        pendingCourseId = if (duration == 6) "study-planner-pro-6month" else "study-planner-pro-3month"
         _uiState.value = PremiumUiState.Loading
         viewModelScope.launch {
             paymentRepository.extendPlan(duration).collect { result ->
@@ -85,12 +136,32 @@ class PremiumViewModel @Inject constructor(
         }
     }
 
+    fun createDhyanOrder() {
+        pendingCourseId = "safar-30"
+        _uiState.value = PremiumUiState.Loading
+        viewModelScope.launch {
+            paymentRepository.createOrder(49, "safar-30").collect { result ->
+                result.fold(
+                    onSuccess = { response -> _uiState.value = PremiumUiState.OrderCreated(response.order, "dhyan", response.keyId) },
+                    onFailure = { error -> _uiState.value = PremiumUiState.Error(error.message ?: "Failed to create Dhyan order") },
+                )
+            }
+        }
+    }
+
     fun verifyPayment(orderId: String, paymentId: String, signature: String) {
         _uiState.value = PremiumUiState.Loading
         viewModelScope.launch {
             paymentRepository.verifyPayment(orderId, paymentId, signature).collect { result ->
                 result.fold(
                     onSuccess = { verification ->
+                        if (pendingCourseId == "safar-30") {
+                            pendingCourseId = null
+                            refreshDhyanAccess(force = true)
+                            _uiState.value = PremiumUiState.DhyanPaymentSuccess
+                            return@fold
+                        }
+                        refreshDhyanAccess(force = true)
                         val embeddedStatus = premiumRepository.cacheVerifiedStatus(verification.premium)
                         val statusResult = if (embeddedStatus?.hasAnyPaidAccess == true) {
                             Result.success(embeddedStatus)
@@ -122,14 +193,20 @@ class PremiumViewModel @Inject constructor(
     fun refreshPremiumStatus(
         showLoading: Boolean = true,
         fallbackError: String = "No active Safar Premium plan found.",
+        isRestore: Boolean = false,
     ) {
         if (showLoading) _uiState.value = PremiumUiState.Loading
         viewModelScope.launch {
             premiumRepository.refreshStatus().fold(
                 onSuccess = { status ->
                     _premiumStatus.value = status
+                    refreshDhyanAccess(force = true)
                     if (showLoading) {
-                        _uiState.value = if (status.hasAnyPaidAccess) PremiumUiState.PaymentSuccess(status) else PremiumUiState.Error(fallbackError)
+                        _uiState.value = if (status.hasAnyPaidAccess) {
+                            PremiumUiState.PaymentSuccess(status, isRestore = isRestore)
+                        } else {
+                            if (isRestore) PremiumUiState.NoActivePlan else PremiumUiState.Error(fallbackError)
+                        }
                     }
                 },
                 onFailure = { error ->

@@ -1,5 +1,6 @@
 package com.safarparmar.app.ui.leaderboard
 
+import com.safarparmar.app.performance.decorativeFloat
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
@@ -33,7 +34,7 @@ fun ImperialGoldCrownBadge(
     val transition = rememberInfiniteTransition(label = "imperialCrownAnim")
 
     val floatBob by if (animated) {
-        transition.animateFloat(
+        transition.decorativeFloat(
             initialValue = -2.2f,
             targetValue = 2.2f,
             animationSpec = infiniteRepeatable(
@@ -47,7 +48,7 @@ fun ImperialGoldCrownBadge(
     }
 
     val glowPulse by if (animated) {
-        transition.animateFloat(
+        transition.decorativeFloat(
             initialValue = 0.6f,
             targetValue = 1f,
             animationSpec = infiniteRepeatable(
@@ -61,7 +62,7 @@ fun ImperialGoldCrownBadge(
     }
 
     val sparkleRotation by if (animated) {
-        transition.animateFloat(
+        transition.decorativeFloat(
             initialValue = 0f,
             targetValue = 360f,
             animationSpec = infiniteRepeatable(
@@ -75,7 +76,7 @@ fun ImperialGoldCrownBadge(
     }
 
     val shimmerX by if (animated) {
-        transition.animateFloat(
+        transition.decorativeFloat(
             initialValue = -30f,
             targetValue = 70f,
             animationSpec = infiniteRepeatable(
@@ -238,7 +239,7 @@ fun HeraldicSilverLaurelShieldBadge(
     val transition = rememberInfiniteTransition(label = "silverShieldAnim")
 
     val shimmerX by if (animated) {
-        transition.animateFloat(
+        transition.decorativeFloat(
             initialValue = -35f,
             targetValue = 65f,
             animationSpec = infiniteRepeatable(
@@ -252,7 +253,7 @@ fun HeraldicSilverLaurelShieldBadge(
     }
 
     val glowPulse by if (animated) {
-        transition.animateFloat(
+        transition.decorativeFloat(
             initialValue = 0.5f,
             targetValue = 0.9f,
             animationSpec = infiniteRepeatable(
@@ -367,7 +368,7 @@ fun RadiantBronzeFlameMedallionBadge(
     val transition = rememberInfiniteTransition(label = "bronzeFlameAnim")
 
     val thermalPulse by if (animated) {
-        transition.animateFloat(
+        transition.decorativeFloat(
             initialValue = 0.94f,
             targetValue = 1.06f,
             animationSpec = infiniteRepeatable(
@@ -381,7 +382,7 @@ fun RadiantBronzeFlameMedallionBadge(
     }
 
     val heatGlow by if (animated) {
-        transition.animateFloat(
+        transition.decorativeFloat(
             initialValue = 0.5f,
             targetValue = 1f,
             animationSpec = infiniteRepeatable(
