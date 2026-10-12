@@ -1,66 +1,51 @@
 package com.safarparmar.app.feature.habits.data
 
 import com.google.gson.JsonObject
+import com.google.gson.annotations.SerializedName
 import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.Header
 import retrofit2.http.POST
-import retrofit2.http.Path
 import retrofit2.http.Query
 
-data class HabitBatchRequest(
-    val mutations: List<JsonObject>
-)
-
-data class HabitBatchResponse(
-    val version: Long,
-    val acceptedMutationIds: List<String>
-)
-
+data class HabitBatchRequest(val mutations: List<JsonObject>)
+data class HabitBatchResponse(val version: Long, val acknowledged: List<String>)
 data class HabitSnapshotResponse(
     val version: Long,
     val habits: List<HabitRemoteRecord>,
-    val cursor: String?,
-    val upToDate: Boolean
+    val nextCursor: String? = null,
+    val unchanged: Boolean = false
 )
-
 data class HabitRemoteRecord(
     val id: String,
-    val name: String,
-    val targetDays: List<Int>,
-    val isEveryDay: Boolean,
-    val isActive: Boolean,
-    val scheduledSince: String,
-    val order: Int,
-    val reminderTime: String?,
-    val archivedAt: String?,
-    val deleted: Boolean,
-    val revisions: List<HabitRemoteRevision>,
-    val completions: List<HabitRemoteCompletion>
+    val name: String = "",
+    @SerializedName("target_days") val targetDays: List<Int> = emptyList(),
+    @SerializedName("is_every_day") val isEveryDay: Boolean = false,
+    @SerializedName("is_active") val isActive: Boolean = true,
+    @SerializedName("scheduled_since") val scheduledSince: String = "2000-01-01",
+    val order: Int = 0,
+    @SerializedName("reminder_time") val reminderTime: String? = null,
+    @SerializedName("archived_at") val archivedAt: String? = null,
+    val deleted: Boolean = false,
+    val revisions: List<HabitRemoteRevision> = emptyList(),
+    val completions: List<HabitRemoteCompletion> = emptyList()
 )
-
 data class HabitRemoteRevision(
-    val effectiveFrom: String,
-    val targetDays: List<Int>,
-    val isEveryDay: Boolean
+    @SerializedName("effective_from") val effectiveFrom: String,
+    @SerializedName("target_days") val targetDays: List<Int>,
+    @SerializedName("is_every_day") val isEveryDay: Boolean
 )
-
-data class HabitRemoteCompletion(
-    val date: String,
-    val completed: Boolean
-)
+data class HabitRemoteCompletion(val date: String, val completed: Boolean)
 
 interface HabitApi {
-    @POST("habits/{owner}/mutations")
-    suspend fun mutate(
-        @Path("owner") owner: String,
-        @Body request: HabitBatchRequest
-    ): HabitBatchResponse
+    @POST("habits/sync/mutations")
+    suspend fun mutate(@Header("X-Habit-Owner") owner: String, @Body request: HabitBatchRequest): HabitBatchResponse
 
-    @GET("habits/{owner}/snapshot")
+    @GET("habits/sync")
     suspend fun snapshot(
-        @Path("owner") owner: String,
-        @Query("knownVersion") knownVersion: Long?,
-        @Query("cursor") cursor: String?,
-        @Query("limit") limit: Int
+        @Header("X-Habit-Owner") owner: String,
+        @Query("knownVersion") knownVersion: Long? = null,
+        @Query("cursor") cursor: String? = null,
+        @Query("limit") limit: Int = 500
     ): HabitSnapshotResponse
 }

@@ -1,5 +1,6 @@
 package com.safarparmar.app.feature.live.presentation
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import android.app.Activity
 import android.content.pm.ActivityInfo
@@ -22,6 +23,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -107,6 +109,9 @@ fun LiveSessionScreen(
     val chatState by viewModel.liveChatState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
+    // Drawer and fullscreen callbacks take precedence; otherwise use the safe route back.
+    BackHandler(onBack = onBack)
+
     val isCompletedSession = uiState.session?.let {
         it.status == "ended" || it.status == "cancelled"
     } ?: false
@@ -153,6 +158,10 @@ fun LiveSessionScreen(
         isDarkTheme = isDarkTheme,
         onNavigate = onNavigate,
         onToggleDarkTheme = onToggleDarkTheme,
+        // Let the embedded player handle seeking and settings-menu gestures.
+        drawerGesturesEnabled = false,
+        // Rotation changes Safar's density. Don't carry drawer offsets between viewports.
+        resetDrawerOnViewportChange = true,
         topBarActions = {
             IconButton(onClick = { viewModel.loadSession(sessionId) }) {
                 Icon(Icons.Default.Refresh, contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.live_refresh))
@@ -242,7 +251,6 @@ private fun LiveClassPlayerChat(
     onSend: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val context = LocalContext.current
     val embedUrl = remember(
         session.youtubeEmbedUrl,
         session.recordingVideoId,
@@ -253,6 +261,7 @@ private fun LiveClassPlayerChat(
         session.recordingVideoId,
         session.youtubeVideoId,
     ) { extractVideoId(session) }
+    var playerInitialized by remember(embedUrl) { mutableStateOf(false) }
     val thumbnailUrl = videoId?.let { "https://img.youtube.com/vi/$it/hqdefault.jpg" }
 
     Column(
@@ -264,29 +273,31 @@ private fun LiveClassPlayerChat(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
-                .clip(RoundedCornerShape(12.dp))
                 .background(Color.Black)
-                .border(
-                    width = 1.dp,
-                    color = MaterialTheme.colorScheme.outlineVariant,
-                    shape = RoundedCornerShape(12.dp)
-                )
         ) {
-            if (embedUrl != null) {
+            if (embedUrl != null && playerInitialized) {
+                BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                    YouTubePlayerWebView(
+                        embedUrl = embedUrl,
+                        fullscreenTitle = session.title,
+                        modifier = Modifier.fillMaxWidth().height(maxOf(maxWidth * 9f / 16f, 200.dp)),
+                        fullscreenChat = {
+                            LiveChatPanel(
+                                chatState = chatState,
+                                sessionStatus = session.status,
+                                onSend = onSend,
+                                compact = true,
+                                modifier = Modifier.fillMaxSize(),
+                            )
+                        },
+                    )
+                }
+            } else if (embedUrl != null) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .aspectRatio(16f / 9f)
-                        .clickable {
-                            VideoPlayerActivity.start(
-                                context = context,
-                                embedUrl = embedUrl,
-                                videoTitle = session.title,
-                                sessionId = session.id,
-                                sessionStatus = session.status,
-                            )
-                        },
+                        .clickable { playerInitialized = true },
                     contentAlignment = Alignment.Center,
                 ) {
                     Column(
@@ -444,6 +455,7 @@ private fun LiveChatPanel(
     sessionStatus: String,
     onSend: (String) -> Unit,
     modifier: Modifier = Modifier,
+    compact: Boolean = false,
 ) {
     val listState = rememberLazyListState()
     var draft by rememberSaveable { mutableStateOf("") }
@@ -464,7 +476,8 @@ private fun LiveChatPanel(
 
     Column(
         modifier = modifier
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)),
+            .background(if (compact) MaterialTheme.colorScheme.surfaceContainerLow
+                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)),
     ) {
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
 
@@ -571,11 +584,14 @@ private fun LiveChatPanel(
                         } else {
                             "Add a comment…"
                         },
+                        style = if (compact) MaterialTheme.typography.bodySmall else MaterialTheme.typography.bodyLarge,
                     )
                 },
                 enabled = !waiting,
-                maxLines = 3,
-                shape = RoundedCornerShape(24.dp),
+                singleLine = compact,
+                maxLines = if (compact) 1 else 3,
+                textStyle = if (compact) MaterialTheme.typography.bodySmall else MaterialTheme.typography.bodyLarge,
+                shape = RoundedCornerShape(if (compact) 16.dp else 24.dp),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
                 keyboardActions = KeyboardActions(
                     onSend = {
@@ -598,7 +614,7 @@ private fun LiveChatPanel(
                 },
                 enabled = draft.isNotBlank() && chatState.canSend,
                 modifier = Modifier
-                    .size(46.dp)
+                    .size(48.dp)
                     .clip(CircleShape)
                     .background(
                         if (draft.isNotBlank() && chatState.canSend) {
@@ -619,7 +635,7 @@ private fun LiveChatPanel(
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.Send,
                         contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.live_send_comment),
-                        tint = if (draft.isNotBlank()) {
+                        tint = if (draft.isNotBlank() && chatState.canSend) {
                             MaterialTheme.colorScheme.onPrimary
                         } else {
                             MaterialTheme.colorScheme.onSurfaceVariant

@@ -103,6 +103,7 @@ import com.safarparmar.app.ui.studyplanner.StudyPlannerOnboardingSteps
 import com.safarparmar.app.ui.studyplanner.TopicSchedulingResult
 import com.safarparmar.app.ui.studyplanner.importexport.StudyPlannerExportUtils
 import com.safarparmar.app.ui.studyplanner.logic.TopicRef
+import com.safarparmar.app.ui.studyplanner.logic.PlannerReferenceKey
 import com.safarparmar.app.ui.studyplanner.logic.flattenTopics
 import com.safarparmar.app.ui.studyplanner.logic.isUnscheduled
 import com.safarparmar.app.ui.studyplanner.logic.readableDate
@@ -139,22 +140,24 @@ fun PlanTabScreen(
     animatedVisibilityScope: AnimatedVisibilityScope? = null,
 ) {
     val today = remember { todayKey() }
-    val refs = remember(plan.subjects) { plan.flattenTopics() }
+    val subjectsKey = PlannerReferenceKey(plan.subjects)
+    val refs = remember(subjectsKey) { plan.flattenTopics() }
+    val refsKey = PlannerReferenceKey(refs)
     
-    val todayTopics = remember(refs, today) {
+    val todayTopics = remember(refsKey, today) {
         refs.filter { ref ->
             ref.topic.plannedDate?.take(10) == today ||
                 (ref.topic.status == TopicStatus.REVISION_NEEDED &&
                     today in ref.topic.revisionReminderDates.map { it.take(10) })
         }
     }
-    val todayDoneCount = remember(todayTopics) {
+    val todayDoneCount = remember(PlannerReferenceKey(todayTopics)) {
         todayTopics.count { it.topic.status.isStudied }
     }
-    val overdueTopics = remember(refs, today) {
+    val overdueTopics = remember(refsKey, today) {
         refs.filter { (it.topic.plannedDate?.take(10) ?: "9999") < today && !it.topic.status.isStudied }
     }
-    val upcomingTopics = remember(refs, today) {
+    val upcomingTopics = remember(refsKey, today) {
         refs
             .filter { (it.topic.plannedDate?.take(10) ?: "") > today && !it.topic.status.isStudied }
             .sortedWith(
@@ -162,12 +165,17 @@ fun PlanTabScreen(
                     .thenBy { it.topic.name.lowercase() },
             )
     }
-    val completedTopics = remember(refs) {
+    val completedTopics = remember(refsKey) {
         refs.filter { it.topic.status.isStudied }
     }
     val hasTopics = refs.isNotEmpty()
     
-    val progress = remember(plan.id, plan.subjects, plan.dailyTodos, plan.dailyTodoLogs) { plan.rollup() }
+    val progress = remember(
+        plan.id,
+        subjectsKey,
+        PlannerReferenceKey(plan.dailyTodos),
+        PlannerReferenceKey(plan.dailyTodoLogs),
+    ) { plan.rollup() }
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -224,7 +232,7 @@ fun PlanTabScreen(
             showManualOrderSheet = true
         }
     }
-    val unscheduledTopics = remember(refs) {
+    val unscheduledTopics = remember(refsKey) {
         refs.filter { it.topic.isUnscheduled() }
     }
     fun exportPlan() {

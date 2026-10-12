@@ -100,9 +100,13 @@ internal fun GoalsTab(
     val pending = standardGoals.filter { it.isTodayGoal(todayKey) }
         .sortedBy { it.startedAt ?: it.createdAt ?: it.scheduledDate ?: "" }
     val scheduled = standardGoals.filter { it.isUpcomingGoal(todayKey) }
-        .sortedBy { it.assignedDateKey() ?: "" }
+        .map { goal -> goal to (goal.assignedDateKey() ?: "") }
+        .sortedBy { it.second }
+        .map { it.first }
     val missed = standardGoals.filter { it.isMissedGoal(todayKey) }
-        .sortedByDescending { it.assignedDateKey() ?: "" }
+        .map { goal -> goal to (goal.assignedDateKey() ?: "") }
+        .sortedByDescending { it.second }
+        .map { it.first }
     val completed = standardGoals.filter { it.isGoalCompleted() }
         .sortedByDescending { it.completedAt ?: it.createdAt ?: "" }
     val manualCompletedGoals = standardGoals.filter { it.isCompletedForStats() && !it.completedViaFocus }

@@ -16,7 +16,7 @@ class HabitScheduleHistoryRepositoryTest {
         targetDays = setOf(DayOfWeek.MONDAY), isEveryDay = false)
 
     @Test fun `later weekday revision does not rewrite earlier scheduled days`() = runTest {
-        val dao = mockk<HabitDao>(relaxed = true)
+        val dao = mockk<HabitRemoteStore>(relaxed = true)
         val revision = HabitScheduleRevisionEntity(habitId = 1, effectiveFrom = monday.plusDays(1),
             targetDays = setOf(DayOfWeek.WEDNESDAY), isEveryDay = false)
         coEvery { dao.getHabitsForRange(any(), any()) } returns listOf(habit)
@@ -27,14 +27,14 @@ class HabitScheduleHistoryRepositoryTest {
     }
 
     @Test fun `days before the initial schedule have no completion slots`() = runTest {
-        val dao = mockk<HabitDao>(relaxed = true)
+        val dao = mockk<HabitRemoteStore>(relaxed = true)
         coEvery { dao.getHabitsForRange(any(), any()) } returns listOf(habit)
         val result = HabitRepository(dao).getHabitsWithCompletionsForRange(monday.minusWeeks(1), monday).single()
         assertEquals(mapOf(monday to false), result.completionByDate)
     }
 
     @Test fun `archival preserves earlier completion history and removes later slots`() = runTest {
-        val dao = mockk<HabitDao>(relaxed = true)
+        val dao = mockk<HabitRemoteStore>(relaxed = true)
         coEvery { dao.getHabitsForRange(any(), any()) } returns listOf(habit.copy(isArchived = true, archivedAt = monday))
         coEvery { dao.getCompletionsBetween(any(), any()) } returns listOf(HabitCompletionEntity(1, monday, true))
         val result = HabitRepository(dao).getHabitsWithCompletionsForRange(monday, monday.plusWeeks(2)).single()
@@ -42,7 +42,7 @@ class HabitScheduleHistoryRepositoryTest {
     }
 
     @Test fun `date view uses the schedule revision effective on that date`() = runTest {
-        val dao = mockk<HabitDao>()
+        val dao = mockk<HabitRemoteStore>()
         val wednesday = monday.plusDays(2)
         every { dao.observeActiveHabits() } returns MutableStateFlow(listOf(habit))
         every { dao.observeCompletionsForDate(wednesday) } returns MutableStateFlow(emptyList())

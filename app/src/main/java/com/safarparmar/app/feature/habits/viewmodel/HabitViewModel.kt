@@ -25,6 +25,7 @@ data class HabitUiState(
     val weekStart: LocalDate = weekOf(LocalDate.now()),
     val monthAnchor: LocalDate = LocalDate.now().withDayOfMonth(1),
     val selectedTab: HabitTab = HabitTab.TODAY,
+    val syncError: String? = null,
     val isLoading: Boolean = true
 )
 
@@ -57,7 +58,7 @@ class HabitViewModel @Inject constructor(private val repository: HabitRepository
     private val monthlyFlow = monthAnchor.flatMapLatest { start ->
         repository.observeForRange(start, start.withDayOfMonth(start.lengthOfMonth())).map { HabitPeriod(start, it) }
     }
-    val uiState: StateFlow<HabitUiState> = combine(todayFlow, weeklyFlow, monthlyFlow, selectedTab) { today, week, month, tab ->
+    val uiState: StateFlow<HabitUiState> = combine(todayFlow, weeklyFlow, monthlyFlow, selectedTab, repository.syncStatus) { today, week, month, tab, sync ->
         HabitUiState(
             todayHabits = today.second,
             weeklyHabits = week.habits,
@@ -66,9 +67,16 @@ class HabitViewModel @Inject constructor(private val repository: HabitRepository
             weekStart = week.anchor,
             monthAnchor = month.anchor,
             selectedTab = tab,
-            isLoading = false
+            syncError = sync.error,
+            isLoading = sync.loading
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), HabitUiState())
+
+    suspend fun refreshBackend() {
+        try { repository.refresh() }
+        catch (e: CancellationException) { throw e }
+        catch (_: Exception) { /* Persistent error and retry action are shown in the screen. */ }
+    }
 
     fun selectTab(tab: HabitTab) { selectedTab.value = tab }
 
@@ -140,8 +148,7 @@ class HabitViewModel @Inject constructor(private val repository: HabitRepository
     }
 
     suspend fun editHabit(habit: HabitEntity) {
-        // BUG-03: If targetDays changed, mark scheduledSince = today so historical
-        // views can distinguish old vs new schedules in future when we add full history.
+        // The backend records a dated revision while retaining the original start date.
         repository.editHabit(habit)
     }
 

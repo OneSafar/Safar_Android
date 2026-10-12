@@ -80,9 +80,10 @@ fun HabitScreen(
         lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
             while (true) {
                 viewModel.refreshToday()
+                viewModel.refreshBackend()
                 val now = ZonedDateTime.now()
                 val midnight = now.toLocalDate().plusDays(1).atStartOfDay(now.zone)
-                delay((Duration.between(now, midnight).toMillis() + 50).coerceIn(50, 60_000))
+                delay((Duration.between(now, midnight).toMillis() + 50).coerceIn(50, 15_000))
             }
         }
     }
@@ -130,6 +131,12 @@ fun HabitScreen(
                             .padding(horizontal = 16.dp, vertical = 6.dp)
                     )
 
+                    state.syncError?.let { message ->
+                        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Text(message, modifier = Modifier.weight(1f), color = HabitColors.TextSecondary)
+                            TextButton(onClick = { scope.launch { viewModel.refreshBackend() } }) { Text("Retry") }
+                        }
+                    }
                     if (state.isLoading) {
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             CircularProgressIndicator(color = HabitColors.RoyalPurple)

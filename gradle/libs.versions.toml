@@ -18,7 +18,10 @@ datastore = "1.1.1"
 securityCrypto = "1.1.0-alpha06"
 coil = "2.7.0"
 accompanist = "0.34.0"
-work = "2.11.2"
+# WorkManager 2.10+ calls JobScheduler.forNamespace() on API 34+. Some devices
+# report API 34+ but lack that framework method, crashing during startup
+# initialization. Keep 2.9.1 until AndroidX guards the call (b/556304570).
+work = "2.9.1"
 firebaseMessaging = "24.0.3"
 firebaseBom = "33.7.0"
 firebaseCrashlyticsGradle = "3.0.7"

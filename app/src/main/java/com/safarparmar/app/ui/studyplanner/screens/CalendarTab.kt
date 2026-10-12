@@ -422,8 +422,8 @@ internal fun CalendarTab(plan: StudyPlan, state: StudyPlannerUiState, actions: P
         }
 
         if (showUnscheduledTopicsScreen) {
-            val refs = remember(plan.subjects) { plan.flattenTopics() }
-            val missedTopics = remember(refs, todayK) {
+            val refs = remember(PlannerReferenceKey(plan.subjects)) { plan.flattenTopics() }
+            val missedTopics = remember(PlannerReferenceKey(refs), todayK) {
                 refs.filter { ref -> ref.topic.isMissed(todayK) }
             }
             MissedTopicsScreen(
@@ -712,7 +712,7 @@ internal fun SelectedDayLogSheet(
                     // "Light day" under budget, "Full day" at/over. Big topics
                     // count as more, so 2 big topics can already fill a 3-topic day.
                     run {
-                        val pointsByTopicId = remember(plan.subjects) {
+                        val pointsByTopicId = remember(PlannerReferenceKey(plan.subjects)) {
                             plan.flattenTopics().associate { it.topic.id to it.topic.effortPoints(it.chapter).toFloat() }
                         }
                         val pendingPoints = items

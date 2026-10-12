@@ -16,7 +16,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -194,10 +196,12 @@ class SafarDataStore @Inject constructor(
     val authToken: Flow<String?> = context.dataStore.data
         .catch { emit(emptyPreferences()) }
         .map { prefs -> securePrefs.getString(SecureKeys.AUTH_TOKEN, null) ?: prefs[Keys.AUTH_TOKEN] }
+        .flowOn(Dispatchers.IO)
 
     val refreshToken: Flow<String?> = context.dataStore.data
         .catch { emit(emptyPreferences()) }
         .map { prefs -> securePrefs.getString(SecureKeys.REFRESH_TOKEN, null) ?: prefs[Keys.REFRESH_TOKEN] }
+        .flowOn(Dispatchers.IO)
 
     val userId: Flow<String?> = context.dataStore.data
         .catch { emit(emptyPreferences()) }
@@ -561,12 +565,16 @@ class SafarDataStore @Inject constructor(
 
     suspend fun setLoggedIn(value: Boolean) = context.dataStore.edit { it[Keys.IS_LOGGED_IN] = value }
     suspend fun setAuthToken(token: String) {
-        securePrefs.edit().putString(SecureKeys.AUTH_TOKEN, token).apply()
+        withContext(Dispatchers.IO) {
+            securePrefs.edit().putString(SecureKeys.AUTH_TOKEN, token).apply()
+        }
         context.dataStore.edit { it.remove(Keys.AUTH_TOKEN) }
     }
 
     suspend fun setRefreshToken(token: String) {
-        securePrefs.edit().putString(SecureKeys.REFRESH_TOKEN, token).apply()
+        withContext(Dispatchers.IO) {
+            securePrefs.edit().putString(SecureKeys.REFRESH_TOKEN, token).apply()
+        }
         context.dataStore.edit { it.remove(Keys.REFRESH_TOKEN) }
     }
     suspend fun setOnboardingDone(done: Boolean) = context.dataStore.edit { it[Keys.IS_ONBOARDING_DONE] = done }
@@ -899,10 +907,12 @@ class SafarDataStore @Inject constructor(
     }
 
     suspend fun clearSession() {
-        securePrefs.edit()
-            .remove(SecureKeys.AUTH_TOKEN)
-            .remove(SecureKeys.REFRESH_TOKEN)
-            .apply()
+        withContext(Dispatchers.IO) {
+            securePrefs.edit()
+                .remove(SecureKeys.AUTH_TOKEN)
+                .remove(SecureKeys.REFRESH_TOKEN)
+                .apply()
+        }
         context.dataStore.edit {
             it.remove(Keys.IS_LOGGED_IN)
             it.remove(Keys.AUTH_TOKEN)

@@ -53,6 +53,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.safarparmar.app.R
 import com.safarparmar.app.ui.navigation.Routes
+import androidx.appcompat.app.AppCompatDelegate
+import com.safarparmar.app.ui.components.LanguageSelectionDialog
+import com.safarparmar.app.ui.theme.SafarSemanticColors
 import java.util.Locale
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -199,6 +202,10 @@ fun SafarDrawer(
     onToggleDarkTheme: () -> Unit,
     onCloseDrawer: () -> Unit,
 ) {
+    var showLanguageDialog by remember { mutableStateOf(false) }
+    if (showLanguageDialog) {
+        LanguageSelectionDialog(onDismiss = { showLanguageDialog = false })
+    }
     val isLight = !isDarkTheme
     val dk = DarkFlat
     val lt = LightFlat
@@ -412,6 +419,70 @@ fun SafarDrawer(
                     thickness = 1.dp,
                     color     = containerBorderColor,
                 )
+
+                val currentLanguageLabel = when {
+                    AppCompatDelegate.getApplicationLocales().toLanguageTags().startsWith("hi-Latn") ->
+                        stringResource(R.string.profile_language_hinglish)
+                    AppCompatDelegate.getApplicationLocales().toLanguageTags().startsWith("hi") ->
+                        stringResource(R.string.profile_language_hindi)
+                    else -> stringResource(R.string.profile_language_english)
+                }
+
+                // App language selection above the theme toggle.
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .clickable { showLanguageDialog = true }
+                        .padding(vertical = 10.dp, horizontal = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(14.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Language,
+                            contentDescription = null,
+                            tint = if (isLight) lt.textPrimary else dk.textPrimary,
+                        )
+                        Text(
+                            text = stringResource(R.string.profile_language_title),
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isLight) lt.textPrimary else dk.textPrimary
+                        )
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(SafarSemanticColors.brandPurple())
+                            .clickable { showLanguageDialog = true }
+                            .padding(horizontal = 14.dp, vertical = 7.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            Text(
+                                text = currentLanguageLabel,
+                                fontSize = 13.5.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color.White,
+                            )
+                            Icon(
+                                imageVector = Icons.Default.KeyboardArrowDown,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
+                    }
+                }
 
                 // 3. DARK MODE SWITCH AT FOOTER
                 StaggeredEntranceBox(index = 5, isVisible = entranceVisible) {

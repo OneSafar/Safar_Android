@@ -92,8 +92,8 @@ android {
         applicationId = "com.safarparmar.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 74
-        versionName = "1.6.74"
+        versionCode = 76
+        versionName = "1.6.76"
         val compactSummary = providers.gradleProperty("dashboardMonthlySummary").getOrElse("false")
         require(compactSummary in setOf("true", "false")) { "dashboardMonthlySummary must be true or false" }
         buildConfigField("boolean", "DASHBOARD_MONTHLY_SUMMARY_ENABLED", compactSummary)

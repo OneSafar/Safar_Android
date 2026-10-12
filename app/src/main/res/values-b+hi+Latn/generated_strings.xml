@@ -982,7 +982,7 @@
     <string name="kavach_always_on_title">KAVACH Always On</string>
     <string name="kavach_active_title">KAVACH active hai</string>
     <string name="kavach_always_on_notification_body">Always On protection chalu hai.</string>
-    <string name="kavach_active_notification_body">KAVACH protection chalu hai.</string>
+    <string name="kavach_active_notification_body">KAVACH protection active hai.</string>
     <string name="common_beta">Beta</string>
     <string name="common_agree_continue">Agree karke aage badhein</string>
     <string name="common_allowed">Allowed</string>

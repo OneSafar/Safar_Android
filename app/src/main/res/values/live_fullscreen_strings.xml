@@ -1,0 +1,4 @@
+<resources>
+    <string name="live_show_comments">Show comments</string>
+    <string name="live_hide_comments">Hide comments</string>
+</resources>

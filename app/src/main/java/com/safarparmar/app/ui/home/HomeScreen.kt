@@ -555,10 +555,18 @@ fun HomeScreen(
                     .padding(
                         bottom = padding.calculateBottomPadding() + bottomPanelOffset,
                         top = 16.dp
-                    ),
+                    )
+                    .heightIn(max = (screenHeight - topOffset - 200.dp -
+                        padding.calculateBottomPadding() - bottomPanelOffset).coerceAtLeast(140.dp))
+                    .verticalScroll(rememberScrollState()),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(if (isCompactHeight) 10.dp else 14.dp),
             ) {
+                HomeFeatureBanners(
+                    onNavigate = onNavigate,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = toolHorizontalPadding),
+                )
+
                 // ── Frosted glass tools card ──────────────────────
                 val glassShape = RoundedCornerShape(20.dp)
                 val glassBaseColor = if (isDarkTheme) {

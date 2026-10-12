@@ -1,6 +1,5 @@
 package com.safarparmar.app.feature.habits.data
 
-import androidx.room.withTransaction
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.flowOn
@@ -13,17 +12,19 @@ import javax.inject.Singleton
 
 @Singleton
 class HabitRepository @Inject constructor(
-    private val dao: HabitDao,
-    private val database: HabitDatabase? = null
+    private val remoteStore: HabitRemoteStore
 ) {
-    fun observeHabits(): Flow<List<HabitEntity>> = dao.observeActiveHabits()
+    val syncStatus get() = remoteStore.syncStatus
+    suspend fun refresh() = remoteStore.refresh()
+
+    fun observeHabits(): Flow<List<HabitEntity>> = remoteStore.observeActiveHabits()
 
     // Keep schedule/history transformations off the collector's UI thread.
     fun observeForDate(date: LocalDate): Flow<List<HabitWithCompletion>> =
         combine(
-            dao.observeActiveHabits(),
-            dao.observeCompletionsForDate(date),
-            dao.observeActiveScheduleRevisionsThrough(date)
+            remoteStore.observeActiveHabits(),
+            remoteStore.observeCompletionsForDate(date),
+            remoteStore.observeActiveScheduleRevisionsThrough(date)
         ) { habits, completions, revisions ->
             val doneIds = completions.asSequence().filter { it.completed }.map { it.habitId }.toSet()
             val revisionsByHabit = revisions.groupBy { it.habitId }
@@ -37,9 +38,9 @@ class HabitRepository @Inject constructor(
 
     fun observeForRange(start: LocalDate, end: LocalDate): Flow<List<HabitWithCompletions>> =
         combine(
-            dao.observeActiveHabits(),
-            dao.observeCompletionsBetween(start, end),
-            dao.observeActiveScheduleRevisionsThrough(end)
+            remoteStore.observeActiveHabits(),
+            remoteStore.observeCompletionsBetween(start, end),
+            remoteStore.observeActiveScheduleRevisionsThrough(end)
         ) { habits, completions, revisions ->
             val doneByHabit = completions
                 .asSequence()
@@ -61,9 +62,9 @@ class HabitRepository @Inject constructor(
         endDate: LocalDate
     ): Flow<List<HabitWithCompletions>> =
         combine(
-            dao.observeHabitsForRange(startDate, endDate),
-            dao.observeCompletionsBetween(startDate, endDate),
-            dao.observeScheduleRevisionsForRange(startDate, endDate)
+            remoteStore.observeHabitsForRange(startDate, endDate),
+            remoteStore.observeCompletionsBetween(startDate, endDate),
+            remoteStore.observeScheduleRevisionsForRange(startDate, endDate)
         ) { habits, completions, revisions ->
             val doneByHabit = completions
                 .asSequence()
@@ -84,9 +85,9 @@ class HabitRepository @Inject constructor(
         startDate: LocalDate,
         endDate: LocalDate
     ): List<HabitWithCompletions> = withContext(Dispatchers.Default) {
-        val habits = dao.getHabitsForRange(startDate, endDate)
-        val completions = dao.getCompletionsBetween(startDate, endDate)
-        val revisions = dao.getScheduleRevisionsForRange(startDate, endDate)
+        val habits = remoteStore.getHabitsForRange(startDate, endDate)
+        val completions = remoteStore.getCompletionsBetween(startDate, endDate)
+        val revisions = remoteStore.getScheduleRevisionsForRange(startDate, endDate)
 
         val doneByHabit = completions
             .asSequence()
@@ -108,16 +109,16 @@ class HabitRepository @Inject constructor(
         date: LocalDate,
         currentlyDone: Boolean
     ): ToggleResult {
-        val habit = dao.getHabitById(habitId) ?: return ToggleResult.HABIT_NOT_FOUND
+        val habit = remoteStore.getHabitById(habitId) ?: return ToggleResult.HABIT_NOT_FOUND
         if (!currentlyDone) {
             if (date.isAfter(LocalDate.now())) return ToggleResult.FUTURE_BLOCKED
-            val revisions = dao.getScheduleRevisionsForHabit(habitId)
+            val revisions = remoteStore.getScheduleRevisionsForHabit(habitId)
             val schedule = scheduleAt(habit, revisions, date)
             if (schedule == null || date.dayOfWeek !in schedule) return ToggleResult.NOT_SCHEDULED
         }
 
-        if (currentlyDone) dao.clearCompletion(habitId, date)
-        else dao.upsertCompletion(HabitCompletionEntity(habitId, date, completed = true))
+        if (currentlyDone) remoteStore.clearCompletion(habitId, date)
+        else remoteStore.upsertCompletion(HabitCompletionEntity(habitId, date, completed = true))
 
         return if (!currentlyDone && date.isBefore(LocalDate.now())) {
             ToggleResult.RETROACTIVE_DONE
@@ -125,32 +126,15 @@ class HabitRepository @Inject constructor(
     }
 
     suspend fun archiveHabit(habitId: Long) {
-        dao.archiveHabit(habitId, LocalDate.now())
+        remoteStore.archiveHabit(habitId, LocalDate.now())
     }
 
-    suspend fun deleteHabit(habit: HabitEntity) = dao.deleteHabit(habit)
+    suspend fun deleteHabit(habit: HabitEntity) = remoteStore.deleteHabit(habit)
 
     suspend fun createHabit(name: String, targetDays: Set<DayOfWeek>, isEveryDay: Boolean, order: Int) {
         val today = LocalDate.now()
-        inTransaction {
-            val id = dao.insertHabit(
-                HabitEntity(
-                    name = name,
-                    targetDays = targetDays,
-                    isEveryDay = isEveryDay,
-                    scheduledSince = today,
-                    order = order
-                )
-            )
-            dao.upsertScheduleRevision(
-                HabitScheduleRevisionEntity(
-                    habitId = id,
-                    effectiveFrom = today,
-                    targetDays = targetDays,
-                    isEveryDay = isEveryDay
-                )
-            )
-        }
+        remoteStore.insertHabit(HabitEntity(name = name, targetDays = targetDays,
+            isEveryDay = isEveryDay, scheduledSince = today, order = order))
     }
 
     /**
@@ -159,28 +143,12 @@ class HabitRepository @Inject constructor(
      * revision, which is what users expect before the day has finished.
      */
     suspend fun editHabit(habit: HabitEntity) {
-        val previous = dao.getHabitById(habit.id) ?: return
-        val scheduleChanged = previous.targetDays != habit.targetDays || previous.isEveryDay != habit.isEveryDay
-        val today = LocalDate.now()
-        val updated = if (scheduleChanged) habit.copy(scheduledSince = today) else habit
-        inTransaction {
-            dao.updateHabit(updated)
-            if (scheduleChanged) {
-                dao.upsertScheduleRevision(
-                    HabitScheduleRevisionEntity(
-                        habitId = habit.id,
-                        effectiveFrom = today,
-                        targetDays = habit.targetDays,
-                        isEveryDay = habit.isEveryDay
-                    )
-                )
-            }
-        }
+        remoteStore.updateHabit(habit)
     }
 
     suspend fun streaks(habit: HabitEntity): StreakInfo = withContext(Dispatchers.Default) {
-        val doneDates = dao.getCompletionsForHabit(habit.id).map { it.date }.toSet()
-        val revisions = dao.getScheduleRevisionsForHabit(habit.id)
+        val doneDates = remoteStore.getCompletionsForHabit(habit.id).map { it.date }.toSet()
+        val revisions = remoteStore.getScheduleRevisionsForHabit(habit.id)
         val today = LocalDate.now()
         val earliestDate = listOfNotNull(
             habit.scheduledSince,
@@ -244,14 +212,6 @@ class HabitRepository @Inject constructor(
                 }
             }
             cursor = cursor.plusDays(1)
-        }
-    }
-
-    private suspend fun <R> inTransaction(block: suspend () -> R): R {
-        return if (database != null) {
-            database.withTransaction(block)
-        } else {
-            block()
         }
     }
 

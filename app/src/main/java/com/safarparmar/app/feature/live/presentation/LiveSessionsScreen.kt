@@ -139,21 +139,8 @@ fun LiveSessionsScreen(
         else completedSessions.filter { it.title.lowercase().contains(q) }
     }
 
-    val onSessionClick: (LiveSession) -> Unit = { session ->
-        val embedUrl = session.youtubeEmbedUrl?.takeIf { it.isNotBlank() }
-            ?: session.recordingVideoId?.takeIf { it.isNotBlank() }?.let { "https://www.youtube.com/embed/$it" }
-            ?: session.youtubeVideoId?.takeIf { it.isNotBlank() }?.let { "https://www.youtube.com/embed/$it" }
-
-        if (embedUrl != null) {
-            VideoPlayerActivity.start(
-                context = context,
-                embedUrl = embedUrl,
-                videoTitle = session.title,
-            )
-        } else {
-            onOpenSession(session.id)
-        }
-    }
+    // Enter the classroom so live video and comments share the same screen.
+    val onSessionClick: (LiveSession) -> Unit = { session -> onOpenSession(session.id) }
 
     Scaffold(
         topBar = {

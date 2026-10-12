@@ -144,6 +144,9 @@ interface HabitDao {
     )
     fun observeActiveScheduleRevisionsThroughForOwner(owner: String, end: LocalDate): Flow<List<HabitScheduleRevisionEntity>>
 
+    @Query("SELECT * FROM habits WHERE owner_user_id IS NULL OR owner_user_id = :owner ORDER BY `order` ASC")
+    suspend fun getLegacyHabits(owner: String): List<HabitEntity>
+
     @Query("SELECT * FROM habits WHERE owner_user_id = :owner ORDER BY `order` ASC")
     suspend fun getOwnedHabits(owner: String): List<HabitEntity>
 

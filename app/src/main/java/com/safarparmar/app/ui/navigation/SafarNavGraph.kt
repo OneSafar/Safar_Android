@@ -166,8 +166,10 @@ fun SafarNavGraph(
     // feature directly from the drawer with nothing behind it), go Home instead
     // of letting the system close the app.
     fun safeBack() {
-        val popped = navController.popBackStack()
-        if (!popped) navigate(Routes.HOME)
+        // Don't pop the only destination: a direct entry has no screen behind it.
+        if (navController.previousBackStackEntry == null || !navController.popBackStack()) {
+            navigateAndClear(Routes.HOME)
+        }
     }
 
     fun navigateTowardHomeAfterLogin() {

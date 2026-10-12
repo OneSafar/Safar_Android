@@ -22,7 +22,6 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Gavel
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Nightlight
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PrivacyTip
@@ -38,7 +37,6 @@ import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material.icons.filled.WorkspacePremium
-import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -64,7 +62,6 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import com.safarparmar.app.data.local.SafarDataStore
-import com.safarparmar.app.ui.components.LanguageSelectionDialog
 import com.safarparmar.app.ui.components.DeleteAccountDialog
 import com.safarparmar.app.ui.drawer.SafarDrawerScaffold
 import com.safarparmar.app.ui.navigation.Routes
@@ -136,7 +133,6 @@ fun SettingsScreen(
     var hasNotificationShieldPermission by remember { mutableStateOf(false) }
     var showTimePickerDialog by remember { mutableStateOf(false) }
     var showPermissionInfoDialog by remember { mutableStateOf(false) }
-    var showLanguageDialog by remember { mutableStateOf(false) }
 
     fun refreshPermissions() {
         hasUsagePermission = checkUsageStatsPermission(context)
@@ -216,15 +212,6 @@ fun SettingsScreen(
 
                     StaggeredSettingsEntranceBox(index = 2, isVisible = settingsVisible) {
                         val haptic = LocalHapticFeedback.current
-                        val isDark = LocalPlannerIsDarkTheme.current == true
-                        val currentLanguageLabel = when {
-                            AppCompatDelegate.getApplicationLocales().toLanguageTags().startsWith("hi-Latn") ->
-                                stringResource(R.string.profile_language_hinglish)
-                            AppCompatDelegate.getApplicationLocales().toLanguageTags().startsWith("hi") ->
-                                stringResource(R.string.profile_language_hindi)
-                            else -> stringResource(R.string.profile_language_english)
-                        }
-
                         SettingsSheetSection(title = stringResource(R.string.settings_preferences_appearance)) {
                             SettingsSwitchRow(
                                 title = stringResource(R.string.settings_dark_theme),
@@ -237,63 +224,7 @@ fun SettingsScreen(
                                 icon = if (isDarkTheme) Icons.Default.Nightlight else Icons.Default.WbSunny,
                             )
 
-                            GroupDivider()
 
-                            // App Language row with Globe icon, title "App Language", NO subtext, and purple pill
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(14.dp))
-                                    .clickable { showLanguageDialog = true }
-                                    .padding(vertical = 10.dp, horizontal = 14.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(14.dp),
-                                    modifier = Modifier.weight(1f)
-                                ) {
-                                    SettingsSquircleIcon(
-                                        icon = Icons.Default.Language,
-                                        iconTint = if (isDark) Color(0xFFE5E7EB) else Color(0xFF4B5563),
-                                        backgroundColor = if (isDark) Color(0xFF2D2D2D) else Color(0xFFF3F4F6)
-                                    )
-                                    Text(
-                                        text = stringResource(R.string.profile_language_title),
-                                        fontSize = 15.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = PlannerFlatColors.TextDark
-                                    )
-                                }
-
-                                Box(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(20.dp))
-                                        .background(SafarSemanticColors.brandPurple())
-                                        .clickable { showLanguageDialog = true }
-                                        .padding(horizontal = 14.dp, vertical = 7.dp),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                    ) {
-                                        Text(
-                                            text = currentLanguageLabel,
-                                            fontSize = 13.5.sp,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = Color.White,
-                                        )
-                                        Icon(
-                                            imageVector = Icons.Default.KeyboardArrowDown,
-                                            contentDescription = null,
-                                            tint = Color.White,
-                                            modifier = Modifier.size(18.dp),
-                                        )
-                                    }
-                                }
-                            }
                         }
                     }
 
@@ -384,9 +315,6 @@ fun SettingsScreen(
                 PermissionExplanationDialog(onDismiss = { showPermissionInfoDialog = false })
             }
 
-            if (showLanguageDialog) {
-                LanguageSelectionDialog(onDismiss = { showLanguageDialog = false })
-            }
         }
     }
 }

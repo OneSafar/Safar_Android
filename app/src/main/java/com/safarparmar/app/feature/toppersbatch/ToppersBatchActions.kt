@@ -496,7 +496,7 @@ private fun LinkDialog(subject: BatchSubject, vm: ToppersBatchViewModel, onDismi
     if (message != null) Text(message, color = MaterialTheme.colorScheme.error)
 }
 
-/** Keep the Activity theme when overriding font scale for a framework picker. */
+/** Give the framework picker a full platform theme while clamping extreme font scale. */
 internal fun batchPickerContext(context: android.content.Context): ContextThemeWrapper =
     ContextThemeWrapper(context, R.style.ThemeOverlay_Safar_ToppersPicker).apply {
         applyOverrideConfiguration(android.content.res.Configuration().apply {

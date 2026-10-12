@@ -67,6 +67,10 @@ fun SafarDrawerScaffold(
     wrapTopBarTitle: Boolean = false,
     useGlassTopBar: Boolean = false,
     useDetachedMenuGlass: Boolean = false,
+    /** Disable swipe-to-open on screens whose content handles horizontal gestures. */
+    drawerGesturesEnabled: Boolean = true,
+    /** Reset to closed when rotation or density changes the drawer's pixel anchors. */
+    resetDrawerOnViewportChange: Boolean = false,
     /**
      * Hands the caller a function that opens this scaffold's drawer. Screens
      * that draw their own top bar (Ekagra) still need the hamburger to work,
@@ -76,7 +80,7 @@ fun SafarDrawerScaffold(
     onDrawerControllerReady: (() -> Unit) -> Unit = {},
     content: @Composable (PaddingValues) -> Unit,
 ) {
-    val drawerState = rememberDrawerState(DrawerValue.Closed)
+    val drawerState = rememberViewportDrawerState(resetDrawerOnViewportChange)
     val scope = rememberCoroutineScope()
     val appName = stringResource(R.string.app_name)
 
@@ -166,6 +170,8 @@ fun SafarDrawerScaffold(
 
     ModalNavigationDrawer(
         drawerState = drawerState,
+        // Once opened with the menu button, swiping the drawer closed still works.
+        gesturesEnabled = drawerGesturesEnabled || drawerState.isOpen,
         drawerContent = {
             SafarDrawer(
                 currentRoute      = currentRoute,
