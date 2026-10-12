@@ -117,6 +117,9 @@ import com.safarparmar.app.feature.kavachanalytics.ui.primaryText
 import com.safarparmar.app.feature.kavachanalytics.ui.secondaryText
 import com.safarparmar.app.ui.ekagra.focusshield.KavachDesign
 import com.safarparmar.app.ui.theme.SafarTheme
+import com.safarparmar.app.ui.components.PermissionWalkthrough
+import com.safarparmar.app.ui.components.PermissionWalkthroughKind
+import com.safarparmar.app.ui.components.PermissionWalkthroughSheet
 
 // ── YTCM Design Tokens ───────────────────────────────────────────────────────
 
@@ -239,6 +242,20 @@ fun YoutubeStudyV2Content(
     onStart: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var showPermissionGuide by rememberSaveable { mutableStateOf(false) }
+    androidx.compose.runtime.LaunchedEffect(state.accessibilityEnabled) {
+        if (state.accessibilityEnabled) showPermissionGuide = false
+    }
+    if (showPermissionGuide && !state.accessibilityEnabled) {
+        PermissionWalkthroughSheet(
+            kind = PermissionWalkthroughKind.ACCESSIBILITY,
+            onDismiss = { showPermissionGuide = false },
+            onOpenSettings = {
+                showPermissionGuide = false
+                onOpenAccessibility()
+            },
+        )
+    }
     Box(
         modifier = modifier.fillMaxSize(),
         contentAlignment = Alignment.TopCenter,
@@ -248,7 +265,7 @@ fun YoutubeStudyV2Content(
                 state = state,
                 isLight = isLight,
                 onSetEnabled = onSetEnabled,
-                onOpenAccessibility = onOpenAccessibility,
+                onOpenAccessibility = { showPermissionGuide = true },
                 onReferenceChanged = onReferenceChanged,
                 onAddChannel = onAddChannel,
                 onSetClassification = onSetClassification,
@@ -428,6 +445,15 @@ private fun PermissionStep(
             )
         }
 
+        if (!permissionConnected) {
+            PermissionWalkthrough(PermissionWalkthroughKind.ACCESSIBILITY)
+            Text(
+                "Android grants this service access to screen content and actions. YouTube Focus uses it to identify the channel of an opened video. Enable it only if you agree.",
+                style = MaterialTheme.typography.bodySmall,
+                color = secondaryText(isLight),
+            )
+        }
+
         // Permission status pill
         if (permissionConnected) {
             StatusPill(
@@ -452,7 +478,7 @@ private fun PermissionStep(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             CtaButton(
-                text = if (permissionConnected) "Select Productive Channels →" else "Turn On Permission & Continue →",
+                text = if (permissionConnected) "Select Productive Channels →" else "Agree & Open Settings →",
                 isLight = isLight,
                 onClick = onAgree,
             )

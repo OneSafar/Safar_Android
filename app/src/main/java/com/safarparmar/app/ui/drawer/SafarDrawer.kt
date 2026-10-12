@@ -64,65 +64,14 @@ data class DrawerItem(
     val requiresPremium: Boolean = false,
 )
 
-enum class DrawerSectionId {
-    STUDY_PRODUCTIVITY,
-    WELL_BEING_COMMUNITY,
-}
 
-data class DrawerSection(
-    val id: DrawerSectionId,
-    val labelRes: Int,
-    val icon: ImageVector,
-    val items: List<DrawerItem>,
-    val defaultExpanded: Boolean = false,
-)
 
-val drawerPinnedTop = listOf(
+val drawerItems = listOf(
     DrawerItem(R.string.nav_home, Icons.Default.Home, Routes.HOME),
     DrawerItem(R.string.nav_dashboard, Icons.Default.Dashboard, Routes.DASHBOARD),
-)
-
-val drawerSections = listOf(
-    DrawerSection(
-        id = DrawerSectionId.STUDY_PRODUCTIVITY,
-        labelRes = R.string.drawer_section_study_productivity,
-        icon = Icons.Default.School,
-        defaultExpanded = true,
-        items = listOf(
-            DrawerItem(
-                R.string.nav_study_planner,
-                Icons.AutoMirrored.Filled.EventNote,
-                Routes.STUDY_PLANNER,
-                requiresPremium = true,
-            ),
-            DrawerItem(R.string.module_ekagra, Icons.Default.Timer, Routes.EKAGRA),
-            DrawerItem(
-                R.string.nav_focus_shield,
-                Icons.Default.Shield,
-                Routes.FOCUS_SHIELD,
-            ),
-            DrawerItem(
-                R.string.nav_leaderboard,
-                Icons.Default.Leaderboard,
-                Routes.LEADERBOARD,
-            ),
-            DrawerItem(R.string.module_courses, Icons.AutoMirrored.Filled.MenuBook, Routes.COURSES),
-        ),
-    ),
-    DrawerSection(
-        id = DrawerSectionId.WELL_BEING_COMMUNITY,
-        labelRes = R.string.drawer_section_well_being_community,
-        icon = Icons.Default.VolunteerActivism,
-        items = listOf(
-            DrawerItem(R.string.module_nishtha, Icons.Default.SelfImprovement, Routes.NISHTHA),
-            DrawerItem(R.string.module_dhyan, Icons.Default.Spa, Routes.DHYAN),
-            DrawerItem(R.string.module_mehfil, Icons.Default.Groups, Routes.MEHFIL),
-            DrawerItem(R.string.nav_study_circle, Icons.Default.GroupWork, Routes.STUDY_CIRCLES),
-        ),
-    ),
-)
-
-val drawerPinnedBottom = listOf(
+    DrawerItem(R.string.nav_leaderboard, Icons.Default.Leaderboard, Routes.LEADERBOARD),
+    DrawerItem(R.string.nishtha_tab_analytics, Icons.Default.BarChart, Routes.nishthaAnalytics("overview")),
+    DrawerItem(R.string.nav_premium, Icons.Default.WorkspacePremium, Routes.PREMIUM, rainbowShimmer = true),
     DrawerItem(R.string.nav_profile, Icons.Default.Person, Routes.PROFILE),
     DrawerItem(R.string.profile_section_settings, Icons.Default.Settings, Routes.SETTINGS),
     DrawerItem(
@@ -132,9 +81,6 @@ val drawerPinnedBottom = listOf(
         requiresAdmin = true,
     ),
 )
-
-val drawerItems: List<DrawerItem> =
-    drawerPinnedTop + drawerSections.flatMap { it.items } + drawerPinnedBottom
 
 // ─────────────────────────────────────────────────────────────────────────────
 // COLOR TOKENS (CHARCOAL MATTE BLACK + UNIFIED DEEP PURPLE ACCENT)
@@ -197,34 +143,6 @@ fun SafarDrawer(
     // Rounded 24.dp corners on top-right and bottom-right as per design
     val drawerShape = RoundedCornerShape(topEnd = 24.dp, bottomEnd = 24.dp, topStart = 0.dp, bottomStart = 0.dp)
 
-    val expandedSections = rememberSaveable(
-        saver = listSaver(
-            save = { map -> map.map { "${it.key.name}=${it.value}" } },
-            restore = { saved ->
-                val parsed = saved.mapNotNull { entry ->
-                    val parts = entry.split('=', limit = 2)
-                    if (parts.size != 2) return@mapNotNull null
-                    val id = runCatching { DrawerSectionId.valueOf(parts[0]) }.getOrNull()
-                        ?: return@mapNotNull null
-                    id to (parts[1].toBooleanStrictOrNull() ?: false)
-                }.toMap()
-                mutableStateMapOf<DrawerSectionId, Boolean>().apply {
-                    DrawerSectionId.entries.forEach { id ->
-                        put(
-                            id,
-                            parsed[id]
-                                ?: (drawerSections.firstOrNull { it.id == id }?.defaultExpanded == true),
-                        )
-                    }
-                }
-            },
-        ),
-    ) {
-        mutableStateMapOf<DrawerSectionId, Boolean>().apply {
-            drawerSections.forEach { put(it.id, it.defaultExpanded) }
-        }
-    }
-
     var entranceVisible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         entranceVisible = true
@@ -254,162 +172,63 @@ fun SafarDrawer(
                 DrawerUserProfileHeader(
                     userName        = userName,
                     userEmail       = userEmail,
-                        userAvatar      = userAvatar,
-                        isLight         = isLight,
-                        isPremiumActive = isPremiumActive,
-                        dk              = dk,
-                        lt              = lt,
-                    )
-                }
-
-                HorizontalDivider(
-                    thickness = 1.dp,
-                    color     = containerBorderColor,
+                    userAvatar      = userAvatar,
+                    isLight         = isLight,
+                    isPremiumActive = isPremiumActive,
+                    dk              = dk,
+                    lt              = lt,
                 )
+            }
 
-                // 2. NAV LIST IN EDGE-TO-EDGE STYLE WITH HAIRLINE DIVIDERS
-                LazyColumn(
-                    modifier       = Modifier.weight(1f),
-                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
-                    verticalArrangement = Arrangement.spacedBy(2.dp),
-                ) {
-                    // Pinned Top Items (Home, Dashboard)
-                    item(key = "pinned-top") {
-                        StaggeredEntranceBox(index = 1, isVisible = entranceVisible) {
-                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                drawerPinnedTop.forEach { item ->
-                                    DrawerNavRow(
-                                        item            = item,
-                                        currentRoute    = currentRoute,
-                                        isPremiumActive = isPremiumActive,
-                                        isLight         = isLight,
-                                        dk              = dk,
-                                        lt              = lt,
-                                        onNavigate      = onNavigate,
-                                        onCloseDrawer   = onCloseDrawer,
-                                    )
-                                }
-                            }
-                        }
-                    }
+            HorizontalDivider(
+                thickness = 1.dp,
+                color     = containerBorderColor,
+            )
 
-                    // Section Lists (Study & Productivity, Well-being & Community)
-                    drawerSections.forEachIndexed { sIdx, section ->
-                        val expanded = expandedSections[section.id] == true
-                        val sectionHasSelection = section.items.any { item ->
-                            isDrawerItemSelected(item = item, currentBase = currentBase)
-                        }
-
-                        item(key = "divider-section-${section.id}") {
-                            HorizontalDivider(
-                                thickness = 1.dp,
-                                color     = containerBorderColor.copy(alpha = 0.5f),
-                                modifier  = Modifier.padding(vertical = 4.dp, horizontal = 4.dp),
-                            )
-                        }
-
-                        item(key = "section-${section.id}") {
-                            StaggeredEntranceBox(index = 2 + sIdx, isVisible = entranceVisible) {
-                                Column {
-                                    DrawerSectionHeader(
-                                        label = stringResource(section.labelRes),
-                                        icon = section.icon,
-                                        expanded = expanded,
-                                        hasSelectedChild = sectionHasSelection && !expanded,
-                                        isLight = isLight,
-                                        dk = dk,
-                                        lt = lt,
-                                        onToggle = {
-                                            expandedSections[section.id] = !expanded
-                                        },
-                                    )
-
-                                    AnimatedVisibility(
-                                        visible = expanded,
-                                        enter = expandVertically(
-                                            animationSpec = spring(
-                                                dampingRatio = Spring.DampingRatioLowBouncy,
-                                                stiffness = Spring.StiffnessMediumLow
-                                            )
-                                        ) + fadeIn(animationSpec = tween(200)),
-                                        exit = shrinkVertically(
-                                            animationSpec = spring(
-                                                dampingRatio = Spring.DampingRatioNoBouncy,
-                                                stiffness = Spring.StiffnessMedium
-                                            )
-                                        ) + fadeOut(animationSpec = tween(180)),
-                                    ) {
-                                        Column(
-                                            modifier = Modifier.padding(top = 2.dp),
-                                            verticalArrangement = Arrangement.spacedBy(2.dp),
-                                        ) {
-                                            section.items.forEach { item ->
-                                                DrawerNavRow(
-                                                    item            = item,
-                                                    currentRoute    = currentRoute,
-                                                    isPremiumActive = isPremiumActive,
-                                                    isLight         = isLight,
-                                                    dk              = dk,
-                                                    lt              = lt,
-                                                    onNavigate      = onNavigate,
-                                                    onCloseDrawer   = onCloseDrawer,
-                                                    indented        = true,
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // Pinned Bottom Items (Profile, Settings, Admin)
-                    item(key = "divider-bottom") {
-                        HorizontalDivider(
-                            thickness = 1.dp,
-                            color     = containerBorderColor.copy(alpha = 0.5f),
-                            modifier  = Modifier.padding(vertical = 4.dp, horizontal = 4.dp),
-                        )
-                    }
-
-                    item(key = "pinned-bottom") {
-                        StaggeredEntranceBox(index = 4, isVisible = entranceVisible) {
-                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                drawerPinnedBottom.filter { !it.requiresAdmin || isAdmin }.forEach { item ->
-                                    DrawerNavRow(
-                                        item            = item,
-                                        currentRoute    = currentRoute,
-                                        isPremiumActive = isPremiumActive,
-                                        isLight         = isLight,
-                                        dk              = dk,
-                                        lt              = lt,
-                                        onNavigate      = onNavigate,
-                                        onCloseDrawer   = onCloseDrawer,
-                                    )
-                                }
+            // 2. NAV LIST IN EDGE-TO-EDGE STYLE
+            LazyColumn(
+                modifier       = Modifier.weight(1f),
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                item(key = "main-items") {
+                    StaggeredEntranceBox(index = 1, isVisible = entranceVisible) {
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            drawerItems.filter { !it.requiresAdmin || isAdmin }.forEach { item ->
+                                DrawerNavRow(
+                                    item            = item,
+                                    currentRoute    = currentRoute,
+                                    isPremiumActive = isPremiumActive,
+                                    isLight         = isLight,
+                                    dk              = dk,
+                                    lt              = lt,
+                                    onNavigate      = onNavigate,
+                                    onCloseDrawer   = onCloseDrawer,
+                                )
                             }
                         }
                     }
                 }
+            }
 
-                HorizontalDivider(
-                    thickness = 1.dp,
-                    color     = containerBorderColor,
+            HorizontalDivider(
+                thickness = 1.dp,
+                color     = containerBorderColor,
+            )
+
+            // 3. DARK MODE SWITCH AT FOOTER
+            StaggeredEntranceBox(index = 2, isVisible = entranceVisible) {
+                DrawerDarkModeCard(
+                    isLight           = isLight,
+                    isDarkTheme       = isDarkTheme,
+                    onToggleDarkTheme = onToggleDarkTheme,
+                    dk                = dk,
+                    lt                = lt,
                 )
-
-                // 3. DARK MODE SWITCH AT FOOTER
-                StaggeredEntranceBox(index = 5, isVisible = entranceVisible) {
-                    DrawerDarkModeCard(
-                        isLight           = isLight,
-                        isDarkTheme       = isDarkTheme,
-                        onToggleDarkTheme = onToggleDarkTheme,
-                        dk                = dk,
-                        lt                = lt,
-                    )
-                }
             }
         }
     }
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // STAGGERED ENTRANCE CONTAINER
@@ -609,100 +428,7 @@ private fun DrawerUserProfileHeader(
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ACCORDION FEATURE CATEGORY HEADER
-// ─────────────────────────────────────────────────────────────────────────────
 
-@Composable
-private fun DrawerSectionHeader(
-    label: String,
-    icon: ImageVector,
-    expanded: Boolean,
-    hasSelectedChild: Boolean,
-    isLight: Boolean,
-    dk: DarkFlat,
-    lt: LightFlat,
-    onToggle: () -> Unit,
-) {
-    val textColor = if (isLight) Color(0xFF4B5563) else Color(0xFF9CA3AF)
-    val iconColor = if (isLight) lt.iconIndigo else dk.iconIndigo
-
-    val rotationDegrees by animateFloatAsState(
-        targetValue = if (expanded) 180f else 0f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessLow,
-        ),
-        label = "arrowSpringRotation",
-    )
-
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val scaleAnim by animateFloatAsState(
-        targetValue = if (isPressed) 0.97f else 1f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessHigh),
-        label = "headerScale",
-    )
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(48.dp)
-            .graphicsLayer {
-                scaleX = scaleAnim
-                scaleY = scaleAnim
-            }
-            .clip(RoundedCornerShape(10.dp))
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onToggle,
-            )
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.weight(1f),
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = iconColor,
-                modifier = Modifier.size(20.dp),
-            )
-            Text(
-                text = label.uppercase(Locale.US),
-                style = MaterialTheme.typography.labelMedium.copy(
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 12.sp,
-                    letterSpacing = 0.8.sp,
-                ),
-                color = textColor,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            if (hasSelectedChild) {
-                Box(
-                    modifier = Modifier
-                        .size(6.dp)
-                        .clip(CircleShape)
-                        .background(if (isLight) lt.selText else dk.selText),
-                )
-            }
-        }
-        Icon(
-            imageVector = Icons.Default.KeyboardArrowDown,
-            contentDescription = if (expanded) "Collapse" else "Expand",
-            tint = textColor,
-            modifier = Modifier
-                .size(20.dp)
-                .graphicsLayer { rotationZ = rotationDegrees },
-        )
-    }
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SUBFEATURE NAVIGATION ROW
@@ -722,7 +448,7 @@ private fun DrawerNavRow(
 ) {
     val label       = stringResource(item.labelRes)
     val currentBase = currentRoute.substringBefore("?")
-    val selected    = isDrawerItemSelected(item = item, currentBase = currentBase)
+    val selected    = isDrawerItemSelected(item = item, currentBase = currentBase, currentRoute = currentRoute)
     val showLock    = item.requiresPremium && !isPremiumActive
 
     val rowBg = when {
@@ -829,9 +555,13 @@ private fun DrawerNavRow(
     }
 }
 
-private fun isDrawerItemSelected(item: DrawerItem, currentBase: String): Boolean {
+private fun isDrawerItemSelected(item: DrawerItem, currentBase: String, currentRoute: String): Boolean {
     val itemBase = item.route.substringBefore("?")
     return when {
+        item.route.contains("tab=4") ->
+            currentBase == Routes.NISHTHA && (currentRoute.contains("tab=4") || currentRoute.contains("section="))
+        itemBase == Routes.NISHTHA ->
+            currentBase == Routes.NISHTHA && !currentRoute.contains("tab=4") && !currentRoute.contains("section=")
         itemBase == Routes.COURSES ->
             currentBase == Routes.COURSES || currentBase.startsWith("live/")
         else -> currentBase == itemBase || currentBase.startsWith("$itemBase/")

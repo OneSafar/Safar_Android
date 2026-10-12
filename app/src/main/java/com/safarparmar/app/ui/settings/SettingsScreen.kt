@@ -33,6 +33,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import com.safarparmar.app.ui.ekagra.focusshield.FocusShieldPermissionHelper
+import com.safarparmar.app.ui.ekagra.focusshield.PermissionTarget
+import com.safarparmar.app.ui.ekagra.focusshield.PermissionGuideSheet
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -463,30 +465,30 @@ private fun PermissionsSection(
     hasNotificationShieldPermission: Boolean,
     context: Context,
 ) {
+    var guideTarget by remember { mutableStateOf<PermissionTarget?>(null) }
+    guideTarget?.let { target ->
+        PermissionGuideSheet(
+            permission = target,
+            onDismiss = { guideTarget = null },
+            onOpenSettings = {
+                guideTarget = null
+                FocusShieldPermissionHelper.openSettingsFor(context, target)
+            },
+        )
+    }
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         PermissionRow(
             title = "Usage Access",
             subtitle = "Required for focus app tracking",
             isGranted = hasUsagePermission,
-            onGrantClick = {
-                val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS).apply {
-                    data = Uri.fromParts("package", context.packageName, null)
-                }
-                context.startActivity(intent)
-            },
+            onGrantClick = { guideTarget = PermissionTarget.USAGE_STATS },
         )
 
         PermissionRow(
             title = "Display Over Apps",
             subtitle = "Required to show focus shield overlay",
             isGranted = hasOverlayPermission,
-            onGrantClick = {
-                val intent = Intent(
-                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                    Uri.parse("package:${context.packageName}")
-                )
-                context.startActivity(intent)
-            },
+            onGrantClick = { guideTarget = PermissionTarget.OVERLAY },
         )
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -507,9 +509,7 @@ private fun PermissionsSection(
             title = "Notification Shield",
             subtitle = "Suppresses distracting notifications during focus",
             isGranted = hasNotificationShieldPermission,
-            onGrantClick = {
-                FocusShieldPermissionHelper.openNotificationListenerSettings(context)
-            },
+            onGrantClick = { guideTarget = PermissionTarget.NOTIFICATION_ACCESS },
         )
     }
 }

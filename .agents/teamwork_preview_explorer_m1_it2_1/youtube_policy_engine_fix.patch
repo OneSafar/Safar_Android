@@ -1,0 +1,45 @@
+diff --git a/app/src/main/java/com/safarparmar/app/feature/youtube/policy/YouTubePolicyEngine.kt b/app/src/main/java/com/safarparmar/app/feature/youtube/policy/YouTubePolicyEngine.kt
+--- a/app/src/main/java/com/safarparmar/app/feature/youtube/policy/YouTubePolicyEngine.kt
++++ b/app/src/main/java/com/safarparmar/app/feature/youtube/policy/YouTubePolicyEngine.kt
+@@ -151,16 +151,16 @@ class YouTubePolicyEngine(
+-        if (current == null || matchesCurrent) {
+-            val activeIdentity = current ?: VideoIdentity(channelHandle = channelHandle)
+-            activeJob?.cancel()
+-
+-            lastVerifiedPolicy = policy
+-            lastVerifiedChannel = channelHandle
+-
+-            when (policy) {
+-                ChannelPolicy.PRODUCTIVE -> {
+-                    _state.value = PolicyState.Allowed(activeIdentity, channelHandle)
+-                }
+-                ChannelPolicy.DISTRACTING -> {
+-                    _state.value = PolicyState.Blocked(activeIdentity, channelHandle, BlockReason.DISTRACTING_CHANNEL)
+-                }
+-            }
+-        }
++        if (current != null && matchesCurrent && !current.isShorts) {
++            activeJob?.cancel()
++
++            lastVerifiedPolicy = policy
++            lastVerifiedChannel = channelHandle
++
++            when (policy) {
++                ChannelPolicy.PRODUCTIVE -> {
++                    _state.value = PolicyState.Allowed(current, channelHandle)
++                }
++                ChannelPolicy.DISTRACTING -> {
++                    _state.value = PolicyState.Blocked(current, channelHandle, BlockReason.DISTRACTING_CHANNEL)
++                }
++            }
++        }
+     }
+diff --git a/app/src/test/java/com/safarparmar/app/feature/youtube/policy/YouTubePolicyEngineTest.kt b/app/src/test/java/com/safarparmar/app/feature/youtube/policy/YouTubePolicyEngineTest.kt
+--- a/app/src/test/java/com/safarparmar/app/feature/youtube/policy/YouTubePolicyEngineTest.kt
++++ b/app/src/test/java/com/safarparmar/app/feature/youtube/policy/YouTubePolicyEngineTest.kt
+@@ -892,3 +892,4 @@ class YouTubePolicyEngineTest {
+             // Invariant 2: Shorts can NEVER be allowed under any permutation of channel policies or user classification
+-            val postClassifyState = awaitItem()
++            expectNoEvents()
++            val postClassifyState = engine.state.value
+             assertFalse("Shorts must NEVER transition to Allowed! Got: $postClassifyState", postClassifyState is PolicyState.Allowed)

@@ -35,6 +35,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.safarparmar.app.R
+import com.safarparmar.app.ui.components.PermissionWalkthroughKind
+import com.safarparmar.app.ui.components.PermissionWalkthroughSheet
 
 enum class PermissionTarget {
     USAGE_STATS,
@@ -210,199 +212,20 @@ private fun PermissionCard(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+internal fun PermissionTarget.walkthroughKind() = when (this) {
+    PermissionTarget.USAGE_STATS -> PermissionWalkthroughKind.USAGE
+    PermissionTarget.OVERLAY -> PermissionWalkthroughKind.OVERLAY
+    PermissionTarget.NOTIFICATIONS -> PermissionWalkthroughKind.NOTIFICATIONS
+    PermissionTarget.NOTIFICATION_ACCESS -> PermissionWalkthroughKind.NOTIFICATION_ACCESS
+}
+
 @Composable
 fun PermissionGuideSheet(
     permission: PermissionTarget,
     onDismiss: () -> Unit,
     onOpenSettings: () -> Unit,
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val scheme = MaterialTheme.colorScheme
-
-    val titleText = when (permission) {
-        PermissionTarget.USAGE_STATS -> "Allow app check"
-        PermissionTarget.OVERLAY -> "Allow show on top"
-        PermissionTarget.NOTIFICATIONS -> "Allow notifications"
-        PermissionTarget.NOTIFICATION_ACCESS -> "Allow notification shield"
-    }
-
-    val primaryButtonText = when (permission) {
-        PermissionTarget.USAGE_STATS -> "Allow"
-        PermissionTarget.OVERLAY -> "Allow"
-        PermissionTarget.NOTIFICATIONS -> "Allow Notifications"
-        PermissionTarget.NOTIFICATION_ACCESS -> "Agree & enable Notification Shield"
-    }
-
-    val bulletPoints = when (permission) {
-        PermissionTarget.USAGE_STATS -> listOf(
-            "We do not read your messages, passwords, or photos.",
-            "This only tells SAFAR which app is open right now.",
-            "SAFAR uses it only to block the apps you chose.",
-            "Nothing is shared for ads, and app names are not uploaded."
-        )
-        PermissionTarget.OVERLAY -> listOf(
-            "This lets SAFAR show a block screen over a distracting app.",
-            "It is used only while you are studying with the timer on.",
-            "SAFAR does not read or capture other apps.",
-            "You can turn this off anytime in phone Settings."
-        )
-        PermissionTarget.NOTIFICATIONS -> listOf(
-            "Shows Ekagra study timer progress and break alerts.",
-            "Works only on your phone and is never shared for ads.",
-            "This permission is optional — KAVACH works without it.",
-            "You can turn this off anytime in phone Settings."
-        )
-        PermissionTarget.NOTIFICATION_ACCESS -> listOf(
-            "KAVACH can hide notifications only from apps you chose to block.",
-            "This works only while your study timer is on.",
-            "SAFAR does not save notification text.",
-            "You can turn this off anytime in phone Settings."
-        )
-    }
-
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = scheme.surface,
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .wrapContentWidth(Alignment.CenterHorizontally)
-                .widthIn(max = 560.dp)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(18.dp),
-        ) {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(
-                    text = "K A V A C H",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = KavachDesign.Primary,
-                    letterSpacing = 2.sp,
-                )
-                Text(
-                    text = titleText,
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = scheme.onSurface,
-                )
-            }
-
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
-                colors = CardDefaults.cardColors(containerColor = scheme.surfaceVariant.copy(alpha = 0.35f)),
-                border = CardDefaults.outlinedCardBorder().copy(
-                    brush = SolidColor(KavachDesign.Primary.copy(alpha = 0.25f))
-                ),
-                elevation = CardDefaults.cardElevation(0.dp),
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 14.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(20.dp)
-                                .clip(CircleShape)
-                                .background(KavachDesign.Primary.copy(alpha = 0.12f)),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Text("?", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = KavachDesign.Primary)
-                        }
-                        Text(
-                            "Is it safe to give this permission?",
-                            fontSize = 13.5.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = scheme.onSurface,
-                        )
-                    }
-                }
-            }
-
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
-            ) {
-                bulletPoints.forEachIndexed { index, bullet ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.Top,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    ) {
-                        Text(
-                            "—",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = scheme.onSurfaceVariant.copy(alpha = 0.7f),
-                        )
-                        Text(
-                            bullet,
-                            fontSize = 13.5.sp,
-                            lineHeight = 19.sp,
-                            color = scheme.onSurfaceVariant,
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
-                    if (index < bulletPoints.size - 1) {
-                        Spacer(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(0.5.dp)
-                                .background(scheme.outlineVariant.copy(alpha = 0.4f))
-                        )
-                    }
-                }
-            }
-
-            Spacer(Modifier.height(4.dp))
-
-            Button(
-                onClick = onOpenSettings,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 52.dp),
-                shape = CircleShape,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = KavachDesign.Primary,
-                    contentColor = Color.White,
-                ),
-            ) {
-                Text(
-                    primaryButtonText,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 15.sp,
-                )
-            }
-
-            TextButton(
-                onClick = onDismiss,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 44.dp),
-                shape = CircleShape,
-            ) {
-                Text(
-                    "Not now",
-                    color = scheme.onSurfaceVariant,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium,
-                )
-            }
-
-            Spacer(Modifier.height(8.dp))
-        }
-    }
+    PermissionWalkthroughSheet(permission.walkthroughKind(), onDismiss, onOpenSettings)
 }
 
 @Composable
