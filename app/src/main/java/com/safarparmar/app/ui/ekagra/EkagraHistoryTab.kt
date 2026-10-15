@@ -1,5 +1,6 @@
 package com.safarparmar.app.ui.ekagra
 
+import com.safarparmar.app.ui.tutorial.tutorialTarget
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.*
@@ -89,16 +90,10 @@ internal fun FocusHistoryTab(
     analytics: EkagraAnalyticsStats,
     selectedTheme: VisualTheme? = null,
 ) {
-    val scheme = MaterialTheme.colorScheme
-    val allSessions = remember(analytics.focusSessions) {
-        analytics.focusSessions.sortedByDescending { it.endedAt ?: it.startedAt }
-    }
-
     // ViewModel for goal-linking from history
     val ekagraViewModel = hiltViewModel<EkagraViewModel>()
     val ekagraTags by ekagraViewModel.ekagraTags.collectAsStateWithLifecycle(initialValue = DEFAULT_EKAGRA_TAGS)
     val ekagraTagColors by ekagraViewModel.ekagraTagColors.collectAsStateWithLifecycle(initialValue = DEFAULT_TAG_COLORS)
-    var activeTagFilter by remember { mutableStateOf<String?>(null) }
     val allGoals by ekagraViewModel.allGoals.collectAsStateWithLifecycle()
     val completedGoalIds = remember(allGoals) {
         allGoals.filter { it.isGoalCompleted() && it.completedViaFocus }.mapTo(mutableSetOf()) { it.id }
@@ -128,6 +123,79 @@ internal fun FocusHistoryTab(
     // State for session title renaming from history
     var editingSession by remember { mutableStateOf<com.safarparmar.app.domain.model.EkagraAnalyticsFocusSession?>(null) }
 
+    val saveError by ekagraViewModel.saveError.collectAsStateWithLifecycle()
+    FocusHistoryContent(
+        modifier = modifier, analytics = analytics, ekagraTags = ekagraTags,
+        ekagraTagColors = ekagraTagColors, completedGoalIds = completedGoalIds,
+        saveError = saveError, onRetry = ekagraViewModel::retryPendingSaves,
+        onLongPress = { if (!it.isGoalLinked) goalLinkingSession = it },
+        onEditSession = { editingSession = it },
+    )
+
+    // Session title edit dialog
+    val sessionToEdit = editingSession
+    if (sessionToEdit != null) {
+        RenameSessionDialog(
+            initialTitle = sessionToEdit.taskText ?: "",
+            availableTags = ekagraTags,
+            tagColors = ekagraTagColors,
+            onAddTag = { tag, colorHex -> ekagraViewModel.addTag(tag, colorHex) },
+            onDeleteTag = { tag -> ekagraViewModel.removeTag(tag) },
+            onSetTagColor = { tag, colorHex -> ekagraViewModel.setTagColor(tag, colorHex) },
+            onDismiss = { editingSession = null },
+            onConfirm = { newTitle ->
+                ekagraViewModel.updateExistingSession(
+                    sessionId = sessionToEdit.id,
+                    taskTitle = newTitle,
+                )
+                editingSession = null
+            },
+        )
+    }
+
+    // Long-press androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.ekagra_link_goal) sheet
+    val sessionForLinking = goalLinkingSession
+    if (sessionForLinking != null) {
+        val actualSecs = exactElapsedSeconds(sessionForLinking).toInt().coerceAtLeast(0)
+        PostSaveGoalLinkingSheet(
+            savedSessionId       = sessionForLinking.id,
+            savedDurationSeconds = actualSecs,
+            todayGoals           = todayGoals,
+            selectedTheme        = selectedTheme,
+            isDarkTheme          = com.safarparmar.app.ui.studyplanner.components.LocalPlannerIsDarkTheme.current == true,
+            onDismiss = {
+                goalLinkingSession = null
+                ekagraViewModel.loadEkagraAnalytics()
+            },
+            onLinkGoal = { goal, markComplete ->
+                ekagraViewModel.linkSavedSessionToGoal(sessionForLinking.id, goal, markComplete)
+                goalLinkingSession = null
+                ekagraViewModel.loadEkagraAnalytics()
+            },
+        )
+    }
+}
+
+
+/** Read-only history presentation, also used with sample sessions in practice. */
+@OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
+@Composable
+internal fun FocusHistoryContent(
+    modifier: Modifier,
+    analytics: EkagraAnalyticsStats,
+    ekagraTags: List<String> = DEFAULT_EKAGRA_TAGS,
+    ekagraTagColors: Map<String, String> = DEFAULT_TAG_COLORS,
+    completedGoalIds: Set<String> = emptySet(),
+    saveError: String? = null,
+    onRetry: () -> Unit = {},
+    onLongPress: ((com.safarparmar.app.domain.model.EkagraAnalyticsFocusSession) -> Unit)? = null,
+    onEditSession: ((com.safarparmar.app.domain.model.EkagraAnalyticsFocusSession) -> Unit)? = null,
+) {
+    val scheme = MaterialTheme.colorScheme
+    val allSessions = remember(analytics.focusSessions) {
+        analytics.focusSessions.sortedByDescending { it.endedAt ?: it.startedAt }
+    }
+    var activeTagFilter by remember { mutableStateOf<String?>(null) }
     var selectedSubTab by remember { mutableStateOf(0) } // 0 = Ekagra History, 1 = Stopwatch History
 
     val currentTabSessions = if (selectedSubTab == 0) {
@@ -221,10 +289,9 @@ internal fun FocusHistoryTab(
             .padding(horizontal = 20.dp)
             .padding(top = 12.dp),
     ) {
-        val saveError by ekagraViewModel.saveError.collectAsStateWithLifecycle()
         saveError?.let { message ->
             Text(message, color = MaterialTheme.colorScheme.error)
-            TextButton(onClick = ekagraViewModel::retryPendingSaves) { Text(stringResource(R.string.ekagra_retry_save)) }
+            TextButton(onClick = onRetry) { Text(stringResource(R.string.ekagra_retry_save)) }
         }
 
         EkagraEyebrow(stringResource(R.string.ekagra_history_title), ink.secondaryText)
@@ -243,6 +310,7 @@ internal fun FocusHistoryTab(
         Spacer(Modifier.height(14.dp))
 
         // Underlined text tabs instead of an M3 TabRow
+        Box(Modifier.tutorialTarget("ekagra.historyCategories")) {
         EkagraTextTabs(
             items = listOf(0, 1),
             selected = selectedSubTab,
@@ -251,11 +319,12 @@ internal fun FocusHistoryTab(
             label = { if (it == 0) "Ekagra" else "Stopwatch" },
             onSelect = { selectedSubTab = it },
         )
+        }
         Spacer(Modifier.height(14.dp))
 
         // Keep the overview together as one visual unit.
         Surface(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().tutorialTarget("ekagra.historySummary"),
             shape = RoundedCornerShape(18.dp),
             color = scheme.surfaceVariant.copy(alpha = 0.52f),
         ) {
@@ -304,7 +373,7 @@ internal fun FocusHistoryTab(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
+                .horizontalScroll(rememberScrollState()).tutorialTarget("ekagra.historyFilters"),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -509,12 +578,9 @@ internal fun FocusHistoryTab(
             accentColor   = tabAccentColor,
             ink           = ink,
             tagColors     = ekagraTagColors,
-            onLongPress   = { session ->
-                if (!session.isGoalLinked) goalLinkingSession = session
-            },
-            onEditSession = { session ->
-                editingSession = session
-            },
+            onRetry = onRetry,
+            onLongPress = onLongPress,
+            onEditSession = onEditSession,
         )
         if (!showAllSessions && displayedSessions.size > visibleSessions.size) {
             Spacer(Modifier.height(8.dp))
@@ -542,48 +608,6 @@ internal fun FocusHistoryTab(
         Spacer(Modifier.height(24.dp))
     }
 
-    // Session title edit dialog
-    val sessionToEdit = editingSession
-    if (sessionToEdit != null) {
-        RenameSessionDialog(
-            initialTitle = sessionToEdit.taskText ?: "",
-            availableTags = ekagraTags,
-            tagColors = ekagraTagColors,
-            onAddTag = { tag, colorHex -> ekagraViewModel.addTag(tag, colorHex) },
-            onDeleteTag = { tag -> ekagraViewModel.removeTag(tag) },
-            onSetTagColor = { tag, colorHex -> ekagraViewModel.setTagColor(tag, colorHex) },
-            onDismiss = { editingSession = null },
-            onConfirm = { newTitle ->
-                ekagraViewModel.updateExistingSession(
-                    sessionId = sessionToEdit.id,
-                    taskTitle = newTitle,
-                )
-                editingSession = null
-            },
-        )
-    }
-
-    // Long-press androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.ekagra_link_goal) sheet
-    val sessionForLinking = goalLinkingSession
-    if (sessionForLinking != null) {
-        val actualSecs = exactElapsedSeconds(sessionForLinking).toInt().coerceAtLeast(0)
-        PostSaveGoalLinkingSheet(
-            savedSessionId       = sessionForLinking.id,
-            savedDurationSeconds = actualSecs,
-            todayGoals           = todayGoals,
-            selectedTheme        = selectedTheme,
-            isDarkTheme          = com.safarparmar.app.ui.studyplanner.components.LocalPlannerIsDarkTheme.current == true,
-            onDismiss = {
-                goalLinkingSession = null
-                ekagraViewModel.loadEkagraAnalytics()
-            },
-            onLinkGoal = { goal, markComplete ->
-                ekagraViewModel.linkSavedSessionToGoal(sessionForLinking.id, goal, markComplete)
-                goalLinkingSession = null
-                ekagraViewModel.loadEkagraAnalytics()
-            },
-        )
-    }
 }
 
 /** Empty state as a line of quiet text — no card, no oversized icon. */
@@ -607,6 +631,7 @@ internal fun HistorySection(
     accentColor: Color,
     ink: EkagraInk,
     tagColors: Map<String, String> = emptyMap(),
+    onRetry: () -> Unit = {},
     /** Called when the user long-presses a session row. Null = not interactive. */
     onLongPress: ((com.safarparmar.app.domain.model.EkagraAnalyticsFocusSession) -> Unit)? = null,
     /** Called when the user taps the edit/rename button on a session row. */
@@ -650,6 +675,7 @@ internal fun HistorySection(
                     completedViaEkagra = session.associatedGoalId in completedGoalIds,
                     accentColor   = accentColor,
                     ink           = ink,
+                    onRetry = onRetry,
                     tagColors     = tagColors,
                     onLongPress   = if (onLongPress != null && !session.isGoalLinked)
                         { -> onLongPress(session) } else null,
@@ -670,6 +696,7 @@ internal fun FocusSessionRow(
     ink: EkagraInk,
     completedViaEkagra: Boolean = false,
     tagColors: Map<String, String> = emptyMap(),
+    onRetry: () -> Unit = {},
     /** Null = not interactive. Saved history is read-only, so a row with no
      *  handler must not show a ripple that implies it can be opened. */
     onClick: (() -> Unit)? = null,
@@ -786,8 +813,7 @@ internal fun FocusSessionRow(
             }
             if (session.pendingSync) {
                 Text(stringResource(R.string.ekagra_saved_waiting_sync), fontSize = 11.sp, color = ink.mutedText)
-                val retryModel = hiltViewModel<EkagraViewModel>()
-                TextButton(onClick = retryModel::retryPendingSaves) { Text(stringResource(R.string.ekagra_retry_sync)) }
+                TextButton(onClick = onRetry) { Text(stringResource(R.string.ekagra_retry_sync)) }
             }
             if (session.isGoalLinked) {
                 Text(

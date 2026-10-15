@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="titli_name">तितली</string>
+    <string name="titli_description">तितली, आपकी ट्यूटोरियल गाइड</string>
+    <string name="titli_hello">नमस्ते, मैं तितली हूँ</string>
+    <string name="titli_introduction">मैं आपकी ट्यूटोरियल गाइड हूँ। कोई फ़ीचर सीखने के लिए उसकी स्क्रीन पर जाकर मुझे दबाएँ। मैं आपको उसका इस्तेमाल सिखाऊँगी।</string>
+    <string name="titli_begin">शुरू करें</string>
+    <string name="titli_available_guides">मैं अभी इस स्क्रीन के बारे में सीख रही हूँ। अभी इन फ़ीचर्स का अभ्यास कर सकते हैं:</string>
+</resources>

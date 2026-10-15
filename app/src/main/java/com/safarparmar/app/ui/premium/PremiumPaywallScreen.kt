@@ -313,6 +313,7 @@ fun PremiumPaywallScreen(
             contentWindowInsets = WindowInsets.safeDrawing,
             topBar = {
                 TopAppBar(
+                actions = { com.safarparmar.app.ui.tutorial.TitliGuideButton() },
                     title = {
                         Text(
                             text = stringResource(R.string.premium_safar_premium),

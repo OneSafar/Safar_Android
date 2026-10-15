@@ -100,7 +100,7 @@ private fun rememberAudioLibraryColors(
                 text = if (dark) Color(0xFFF8FAFC) else Color(0xFF1E1B4B),
                 muted = if (dark) Color(0xFFCBD5E1) else Color(0xFF475569),
                 hairline = if (dark) Color(0xFF3F3F46) else Color(0xFFE2DDF0),
-                accent = MaterialTheme.colorScheme.primary,
+                accent = if (dark) Color(0xFFB9C9FF) else MaterialTheme.colorScheme.primary,
             )
         }
     }
@@ -117,7 +117,6 @@ fun AudioLibraryPanel(
     val context = LocalContext.current
     val colors = rememberAudioLibraryColors(theme = theme, isDarkTheme = isDarkTheme)
 
-    var selectedCategory by remember { mutableStateOf<AudioCategory?>(null) }
     var previewingTrackId by remember { mutableStateOf<String?>(null) }
     var isMuted by remember { mutableStateOf(false) }
 
@@ -169,6 +168,34 @@ fun AudioLibraryPanel(
         }
     }
 
+    BottomSheet(
+        state = rememberBottomSheetState(initialDetent = BottomSheetDetent.FullyExpanded),
+        onDismissRequest = onDismiss, backgroundColor = colors.bg,
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+    ) {
+        AudioLibraryContent(
+            selectedTrackId = selectedTrackId, onTrackSelect = onTrackSelect,
+            onDismiss = { releasePreview(); onDismiss() }, theme = theme,
+            isDarkTheme = isDarkTheme, previewingTrackId = previewingTrackId,
+            onPreview = ::playPreview, modifier = Modifier.fillMaxHeight(0.85f),
+        )
+    }
+}
+
+/** Shared presentation: audio playback belongs exclusively to AudioLibraryPanel. */
+@Composable
+fun AudioLibraryContent(
+    selectedTrackId: String,
+    onTrackSelect: (AudioTrack) -> Unit,
+    onDismiss: () -> Unit,
+    theme: AudioLibraryPanelTheme = AudioLibraryPanelTheme.Default,
+    isDarkTheme: Boolean = false,
+    previewingTrackId: String? = null,
+    onPreview: (AudioTrack) -> Unit = {},
+    modifier: Modifier = Modifier.fillMaxHeight(),
+) {
+    val colors = rememberAudioLibraryColors(theme = theme, isDarkTheme = isDarkTheme)
+    var selectedCategory by remember { mutableStateOf<AudioCategory?>(null) }
     val categories = remember { listOf<AudioCategory?>(null) + AudioCategory.entries }
 
     val filteredTracks = remember(selectedCategory) {
@@ -186,153 +213,145 @@ fun AudioLibraryPanel(
         )
     }
 
-    BottomSheet(
-        state = rememberBottomSheetState(initialDetent = BottomSheetDetent.FullyExpanded),
-        onDismissRequest = onDismiss,
-        backgroundColor = colors.bg,
-        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .wrapContentWidth(Alignment.CenterHorizontally)
+            .widthIn(max = 560.dp)
+            .background(colors.bg)
+            .padding(horizontal = 20.dp),
     ) {
-        Column(
+        Spacer(Modifier.height(4.dp))
+        EkagraEyebrow("Music", ink.secondaryText)
+        Spacer(Modifier.height(4.dp))
+        EkagraDisplayTitle("Audio library", ink.primaryText)
+        Spacer(Modifier.height(14.dp))
+
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .wrapContentWidth(Alignment.CenterHorizontally)
-                .widthIn(max = 560.dp)
-                .fillMaxHeight(0.85f)
-                .padding(horizontal = 20.dp),
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Spacer(Modifier.height(4.dp))
-            EkagraEyebrow("Music", ink.secondaryText)
-            Spacer(Modifier.height(4.dp))
-            EkagraDisplayTitle("Audio library", ink.primaryText)
-            Spacer(Modifier.height(14.dp))
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                categories.forEach { category ->
-                    val selected = selectedCategory == category
-                    val label = category?.let { androidx.compose.ui.res.stringResource(it.displayNameRes) }
-                        ?: androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.audio_category_all)
-                    if (category == AudioCategory.ORIGINALS) {
-                        Box(
-                            modifier = Modifier
-                                .clip(CircleShape)
-                                .background(
-                                    brush = androidx.compose.ui.graphics.Brush.linearGradient(
-                                        colors = listOf(Color(0xFFF9D423), Color(0xFFFF4E50))
-                                    )
+            categories.forEach { category ->
+                val selected = selectedCategory == category
+                val label = category?.let { androidx.compose.ui.res.stringResource(it.displayNameRes) }
+                    ?: androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.audio_category_all)
+                if (category == AudioCategory.ORIGINALS) {
+                    Box(
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .background(
+                                brush = androidx.compose.ui.graphics.Brush.linearGradient(
+                                    colors = listOf(Color(0xFFF9D423), Color(0xFFFF4E50))
                                 )
-                                .let { if (selected) it.border(2.dp, colors.accent, CircleShape) else it }
-                                .shimmer()
-                                .clickable { selectedCategory = category }
-                                .padding(horizontal = 14.dp, vertical = 7.dp),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Text(
-                                text = label,
-                                fontSize = 12.sp,
-                                fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
-                                color = Color.White,
                             )
-                        }
-                    } else {
-                        EkagraPill(
-                            label = label,
-                            selected = selected,
-                            accent = colors.accent,
-                            ink = ink,
-                            onClick = { selectedCategory = category },
+                            .let { if (selected) it.border(2.dp, colors.accent, CircleShape) else it }
+                            .shimmer()
+                            .clickable { selectedCategory = category }
+                            .padding(horizontal = 14.dp, vertical = 7.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = label,
+                            fontSize = 12.sp,
+                            fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
+                            color = Color.White,
                         )
                     }
+                } else {
+                    EkagraPill(
+                        label = label,
+                        selected = selected,
+                        accent = colors.accent,
+                        ink = ink,
+                        onClick = { selectedCategory = category },
+                    )
                 }
             }
+        }
 
-            Spacer(Modifier.height(12.dp))
-            EkagraHairline(ink.hairline)
+        Spacer(Modifier.height(12.dp))
+        EkagraHairline(ink.hairline)
 
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                contentPadding = PaddingValues(bottom = 40.dp),
-            ) {
-                items(filteredTracks, key = { it.id }) { track ->
-                    val isSelected = track.id == selectedTrackId
-                    val isPreviewing = track.id == previewingTrackId
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+            contentPadding = PaddingValues(bottom = 40.dp),
+        ) {
+            items(filteredTracks, key = { it.id }) { track ->
+                val isSelected = track.id == selectedTrackId
+                val isPreviewing = track.id == previewingTrackId
 
-                    Column(Modifier.fillMaxWidth()) {
-                        Row(
+                Column(Modifier.fillMaxWidth()) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                onTrackSelect(track)
+                                onDismiss()
+                            }
+                            .padding(vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Box(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    onTrackSelect(track)
-                                    releasePreview()
-                                    onDismiss()
-                                }
-                                .padding(vertical = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(30.dp)
-                                    .clip(CircleShape)
-                                    .background(
-                                        if (isSelected) {
-                                            colors.accent.copy(alpha = 0.15f)
-                                        } else {
-                                            colors.hairline.copy(alpha = 0.45f)
-                                        },
-                                    )
-                                    .clickable { playPreview(track) },
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                if (isPreviewing) {
-                                    EqualizerAnimation(color = colors.accent)
-                                } else {
-                                    Icon(
-                                        imageVector = if (isSelected) Icons.Default.MusicNote else Icons.Default.PlayArrow,
-                                        contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.audio_preview),
-                                        tint = if (isSelected) colors.accent else colors.muted,
-                                        modifier = Modifier.size(15.dp),
-                                    )
-                                }
-                            }
-
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = track.nameRes?.let { androidx.compose.ui.res.stringResource(it) } ?: track.name,
-                                    fontSize = 14.sp,
-                                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
-                                    color = ink.primaryText,
+                                .size(30.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    if (isSelected) {
+                                        colors.accent.copy(alpha = 0.15f)
+                                    } else {
+                                        colors.hairline.copy(alpha = 0.45f)
+                                    },
                                 )
-                                val desc = track.descriptionRes?.let { androidx.compose.ui.res.stringResource(it) } ?: track.description
-                                if (desc != null) {
-                                    Text(
-                                        text = desc,
-                                        fontSize = 11.5.sp,
-                                        color = ink.mutedText,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                        modifier = Modifier.padding(top = 2.dp),
-                                    )
-                                }
-                            }
-
-                            if (isSelected) {
+                                .clickable { onPreview(track) },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            if (isPreviewing) {
+                                EqualizerAnimation(color = colors.accent)
+                            } else {
                                 Icon(
-                                    imageVector = Icons.Default.Check,
-                                    contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.common_selected),
-                                    tint = colors.accent,
-                                    modifier = Modifier.size(16.dp),
+                                    imageVector = if (isSelected) Icons.Default.MusicNote else Icons.Default.PlayArrow,
+                                    contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.audio_preview),
+                                    tint = if (isSelected) colors.accent else colors.muted,
+                                    modifier = Modifier.size(15.dp),
                                 )
                             }
                         }
-                        EkagraHairline(ink.hairline.copy(alpha = 0.5f))
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = track.nameRes?.let { androidx.compose.ui.res.stringResource(it) } ?: track.name,
+                                fontSize = 14.sp,
+                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                                color = ink.primaryText,
+                            )
+                            val desc = track.descriptionRes?.let { androidx.compose.ui.res.stringResource(it) } ?: track.description
+                            if (desc != null) {
+                                Text(
+                                    text = desc,
+                                    fontSize = 11.5.sp,
+                                    color = ink.mutedText,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.padding(top = 2.dp),
+                                )
+                            }
+                        }
+
+                        if (isSelected) {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.common_selected),
+                                tint = colors.accent,
+                                modifier = Modifier.size(16.dp),
+                            )
+                        }
                     }
+                    EkagraHairline(ink.hairline.copy(alpha = 0.5f))
                 }
             }
         }

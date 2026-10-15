@@ -48,6 +48,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.graphics.drawable.toBitmap
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.safarparmar.app.ui.tutorial.tutorialTarget
 import com.safarparmar.app.R
 import com.safarparmar.app.ui.components.SyllabusRowSkeleton
 
@@ -74,19 +75,37 @@ fun AppPickerScreen(
 
     LaunchedEffect(Unit) { viewModel.loadApps() }
 
-    val filteredApps = remember(state.allApps, state.searchQuery) {
-        if (state.searchQuery.isBlank()) state.allApps
-        else state.allApps.filter {
-            it.appName.contains(state.searchQuery, ignoreCase = true) ||
-                it.packageName.contains(state.searchQuery, ignoreCase = true)
+    AppPickerContent(
+        apps = state.allApps, searchQuery = state.searchQuery, isLoading = state.isLoading,
+        onSearchChange = viewModel::setSearchQuery, onToggleApp = viewModel::toggleApp,
+        onSelectDistracting = viewModel::selectDistractingApps, onSelectAll = viewModel::selectAllApps,
+        onClearAll = viewModel::deselectAllApps, onBack = ::finishAndReturn, onSave = ::finishAndReturn,
+    )
+}
+
+/** Presentation only: installed-app loading, persistence and activation stay in AppPickerScreen. */
+@Composable
+internal fun AppPickerContent(
+    apps: List<BlockedAppInfo>, searchQuery: String, isLoading: Boolean,
+    onSearchChange: (String) -> Unit, onToggleApp: (String) -> Unit,
+    onSelectDistracting: () -> Unit, onSelectAll: () -> Unit, onClearAll: () -> Unit,
+    onBack: () -> Unit, onSave: () -> Unit,
+    modifier: Modifier = Modifier, animateRows: Boolean = true,
+) {
+    val filteredApps = remember(apps, searchQuery) {
+        if (searchQuery.isBlank()) apps
+        else apps.filter {
+            it.appName.contains(searchQuery, ignoreCase = true) ||
+                it.packageName.contains(searchQuery, ignoreCase = true)
         }
     }
 
     Scaffold(
+        modifier = modifier,
         containerColor = KavachDesign.Background,
         topBar = {
             KavachStitchBackHeader(
-                onBack = ::finishAndReturn,
+                onBack = onBack,
                 title = stringResource(R.string.kavach_shield_configuration_title),
             )
         },
@@ -100,7 +119,7 @@ fun AppPickerScreen(
             ) {
                 KavachStitchPrimaryButton(
                     text = stringResource(R.string.kavach_save_configuration),
-                    onClick = ::finishAndReturn,
+                    onClick = onSave,
                 )
             }
         },
@@ -112,8 +131,8 @@ fun AppPickerScreen(
                 .imePadding(),
         ) {
             TextField(
-                value = state.searchQuery,
-                onValueChange = { viewModel.setSearchQuery(it) },
+                value = searchQuery,
+                onValueChange = onSearchChange,
                 placeholder = {
                     Text(
                         stringResource(R.string.kavach_search_apps),
@@ -124,8 +143,8 @@ fun AppPickerScreen(
                     Icon(Icons.Default.Search, contentDescription = null, tint = KavachDesign.SearchHint)
                 },
                 trailingIcon = {
-                    if (state.searchQuery.isNotBlank()) {
-                        IconButton(onClick = { viewModel.setSearchQuery("") }) {
+                    if (searchQuery.isNotBlank()) {
+                        IconButton(onClick = { onSearchChange("") }) {
                             Icon(Icons.Default.Close, contentDescription = null, tint = KavachDesign.SearchHint)
                         }
                     }
@@ -156,7 +175,7 @@ fun AppPickerScreen(
             ) {
                 item {
                     androidx.compose.material3.Button(
-                        onClick = { viewModel.selectDistractingApps() },
+                        onClick = onSelectDistracting,
                         colors = androidx.compose.material3.ButtonDefaults.buttonColors(
                             containerColor = KavachDesign.Primary,
                             contentColor = Color.White
@@ -170,7 +189,7 @@ fun AppPickerScreen(
                 }
                 item {
                     androidx.compose.material3.OutlinedButton(
-                        onClick = { viewModel.selectAllApps() },
+                        onClick = onSelectAll,
                         colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
                             contentColor = KavachDesign.TextMain
                         ),
@@ -184,7 +203,7 @@ fun AppPickerScreen(
                 }
                 item {
                     androidx.compose.material3.OutlinedButton(
-                        onClick = { viewModel.deselectAllApps() },
+                        onClick = onClearAll,
                         colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
                             contentColor = KavachDesign.TextMain
                         ),
@@ -199,7 +218,7 @@ fun AppPickerScreen(
             }
             androidx.compose.foundation.layout.Spacer(Modifier.height(8.dp))
 
-            if (state.isLoading && filteredApps.isEmpty()) {
+            if (isLoading && filteredApps.isEmpty()) {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(16.dp),
@@ -209,19 +228,16 @@ fun AppPickerScreen(
                 }
             } else {
                 LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.fillMaxSize().tutorialTarget("ekagra.blockedApps"),
                     contentPadding = PaddingValues(bottom = 8.dp),
                 ) {
                     itemsIndexed(
                         items = filteredApps,
                         key = { index, item -> item.packageName },
                     ) { index, app ->
-                        StaggeredAppPickerEntranceBox(index = index) {
-                            ShieldConfigAppRow(
-                                app = app,
-                                onToggle = { viewModel.toggleApp(app.packageName) },
-                            )
-                        }
+                        if (animateRows) StaggeredAppPickerEntranceBox(index = index) {
+                            ShieldConfigAppRow(app, onToggle = { onToggleApp(app.packageName) })
+                        } else ShieldConfigAppRow(app, onToggle = { onToggleApp(app.packageName) })
                     }
                 }
             }

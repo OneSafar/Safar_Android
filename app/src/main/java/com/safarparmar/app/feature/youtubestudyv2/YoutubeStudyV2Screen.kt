@@ -186,6 +186,7 @@ fun YoutubeStudyV2Screen(
         containerColor = screenBg,
         topBar = {
             TopAppBar(
+                actions = { com.safarparmar.app.ui.tutorial.TitliGuideButton() },
                 title = {
                     Text(
                         "YouTube Focus",

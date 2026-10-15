@@ -116,6 +116,7 @@ fun KavachStitchBackHeader(
                 .height(56.dp),
             contentAlignment = Alignment.CenterStart,
         ) {
+            com.safarparmar.app.ui.tutorial.TitliGuideButton(modifier = Modifier.align(Alignment.CenterEnd).padding(end = 8.dp))
             KavachCircularBackButton(
                 onClick = onBack,
                 modifier = Modifier.padding(start = 12.dp),
@@ -123,6 +124,7 @@ fun KavachStitchBackHeader(
         }
     } else {
         TopAppBar(
+                actions = { com.safarparmar.app.ui.tutorial.TitliGuideButton() },
             modifier = modifier.statusBarsPadding(),
             title = {
                 Text(

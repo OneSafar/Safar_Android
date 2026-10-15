@@ -1,5 +1,7 @@
 package com.safarparmar.app.ui.studycircle
 
+import com.safarparmar.app.ui.tutorial.tutorialTarget
+
 import androidx.lifecycle.repeatOnLifecycle
 import com.safarparmar.app.performance.decorativeFloat
 import android.widget.Toast
@@ -531,7 +533,7 @@ private enum class CircleListTab { All, Yours }
 // ── Action Buttons & Header Controls ────────────────────────────────────────
 
 @Composable
-private fun StudyCircleTopButtons(
+internal fun StudyCircleTopButtons(
     atLimit: Boolean,
     creationAllowed: Boolean,
     onJoin: () -> Unit,
@@ -1028,7 +1030,7 @@ private fun MyCircleRow(circle: StudyCircleSummaryDto, onClick: () -> Unit) {
 }
 
 @Composable
-private fun PublicCircleRow(
+internal fun PublicCircleRow(
     circle: PublicStudyCircleDto,
     rank: Int,
     enabled: Boolean,
@@ -1290,167 +1292,164 @@ private fun DashedStyleEmptyCard(text: String) = Surface(
 
 @Composable
 private fun StudyCircleInputDialog(
-    mode: CircleDialog,
-    busy: Boolean,
-    onDismiss: () -> Unit,
-    onSubmit: (String, String) -> Unit,
+    mode: CircleDialog, busy: Boolean, onDismiss: () -> Unit, onSubmit: (String, String) -> Unit,
 ) {
     var value by remember(mode) { mutableStateOf("") }
     var visibility by remember(mode) { mutableStateOf("private") }
-    val isCreate = mode == CircleDialog.Create
+    Dialog(onDismissRequest = { if (!busy) onDismiss() }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.6f)).padding(24.dp), contentAlignment = Alignment.Center) {
+            StudyCircleInputContent(mode == CircleDialog.Create, value, visibility, busy,
+                onValueChange = { value = it }, onVisibilityChange = { visibility = it }, onDismiss = onDismiss, onSubmit = onSubmit)
+        }
+    }
+}
+
+/** Create/join presentation without account, navigation, or repository access. */
+@Composable
+internal fun StudyCircleInputContent(
+    isCreate: Boolean, value: String, visibility: String, busy: Boolean,
+    onValueChange: (String) -> Unit, onVisibilityChange: (String) -> Unit,
+    onDismiss: () -> Unit, onSubmit: (String, String) -> Unit,
+) {
     val primary = CirclePrimary
     val primaryBtn = CirclePrimaryButton
-
-    Dialog(
-        onDismissRequest = { if (!busy) onDismiss() },
-        properties = DialogProperties(usePlatformDefaultWidth = false),
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .widthIn(max = 380.dp)
+            .clip(RoundedCornerShape(18.dp))
+            .background(PlannerFlatColors.CardWhite)
+            .border(1.dp, PlannerFlatColors.BorderSoft, RoundedCornerShape(18.dp))
+            .padding(22.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.6f))
-                .padding(horizontal = 24.dp, vertical = 24.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .widthIn(max = 380.dp)
-                    .clip(RoundedCornerShape(18.dp))
-                    .background(PlannerFlatColors.CardWhite)
-                    .border(1.dp, PlannerFlatColors.BorderSoft, RoundedCornerShape(18.dp))
-                    .padding(22.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                // Title
+        // Title
+        Text(
+            text = stringResource(if (isCreate) R.string.study_circle_create_title else R.string.study_circle_join_code_title),
+            fontSize = 19.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = PlannerFlatColors.TextDark,
+        )
+
+        // Subtitle
+        Text(
+            text = stringResource(if (isCreate) R.string.study_circle_create_subtitle else R.string.study_circle_join_code_subtitle),
+            fontSize = 13.sp,
+            lineHeight = 18.sp,
+            color = PlannerFlatColors.TextMuted,
+        )
+
+        // Input Field
+        OutlinedTextField(
+            value = value,
+            onValueChange = {
+                onValueChange(if (isCreate) it.take(MAX_CIRCLE_NAME_LENGTH)
+                else it.uppercase().filter(Char::isLetterOrDigit).take(6))
+            },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            enabled = !busy,
+            placeholder = {
                 Text(
-                    text = stringResource(if (isCreate) R.string.study_circle_create_title else R.string.study_circle_join_code_title),
-                    fontSize = 19.sp,
-                    fontWeight = FontWeight.SemiBold,
+                    stringResource(if (isCreate) R.string.study_circle_name_example else R.string.study_circle_code_example),
+                    fontSize = 13.5.sp,
+                    color = PlannerFlatColors.TextMuted.copy(alpha = 0.7f),
+                )
+            },
+            supportingText = if (isCreate) {
+                {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                        Text("${value.trim().length}/$MAX_CIRCLE_NAME_LENGTH", fontSize = 11.sp, color = PlannerFlatColors.TextMuted)
+                    }
+                }
+            } else null,
+            keyboardOptions = KeyboardOptions(
+                capitalization = if (isCreate) KeyboardCapitalization.Sentences else KeyboardCapitalization.Characters,
+            ),
+            shape = RoundedCornerShape(10.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = primary,
+                unfocusedBorderColor = PlannerFlatColors.BorderSoft,
+                cursorColor = primary,
+            ),
+        )
+
+        // Visibility Choice (when creating)
+        if (isCreate) {
+            Row(
+                modifier = Modifier.fillMaxWidth().tutorialTarget("ekagra.circleCreate"),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                VisibilityChoice("private", visibility, Modifier.weight(1f)) { onVisibilityChange(it) }
+                VisibilityChoice("public", visibility, Modifier.weight(1f)) { onVisibilityChange(it) }
+            }
+            Text(
+                stringResource(
+                    if (visibility == "public") R.string.study_circle_public_explanation
+                    else R.string.study_circle_private_explanation
+                ),
+                fontSize = 12.sp,
+                color = PlannerFlatColors.TextMuted,
+            )
+        }
+
+        // Action Buttons
+        val canSubmit = !busy && value.trim().length >= (if (isCreate) 3 else 6)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            // Cancel
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(10.dp))
+                    .border(1.dp, PlannerFlatColors.BorderSoft, RoundedCornerShape(10.dp))
+                    .clickable(enabled = !busy) { onDismiss() }
+                    .padding(vertical = 11.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = stringResource(R.string.common_cancel),
+                    fontSize = 13.5.sp,
+                    fontWeight = FontWeight.Medium,
                     color = PlannerFlatColors.TextDark,
                 )
+            }
 
-                // Subtitle
-                Text(
-                    text = stringResource(if (isCreate) R.string.study_circle_create_subtitle else R.string.study_circle_join_code_subtitle),
-                    fontSize = 13.sp,
-                    lineHeight = 18.sp,
-                    color = PlannerFlatColors.TextMuted,
-                )
-
-                // Input Field
-                OutlinedTextField(
-                    value = value,
-                    onValueChange = {
-                        value = if (isCreate) it.take(MAX_CIRCLE_NAME_LENGTH)
-                        else it.uppercase().filter(Char::isLetterOrDigit).take(6)
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    enabled = !busy,
-                    placeholder = {
-                        Text(
-                            stringResource(if (isCreate) R.string.study_circle_name_example else R.string.study_circle_code_example),
-                            fontSize = 13.5.sp,
-                            color = PlannerFlatColors.TextMuted.copy(alpha = 0.7f),
-                        )
-                    },
-                    supportingText = if (isCreate) {
-                        {
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                                Text("${value.trim().length}/$MAX_CIRCLE_NAME_LENGTH", fontSize = 11.sp, color = PlannerFlatColors.TextMuted)
-                            }
-                        }
-                    } else null,
-                    keyboardOptions = KeyboardOptions(
-                        capitalization = if (isCreate) KeyboardCapitalization.Sentences else KeyboardCapitalization.Characters,
-                    ),
-                    shape = RoundedCornerShape(10.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = primary,
-                        unfocusedBorderColor = PlannerFlatColors.BorderSoft,
-                        cursorColor = primary,
-                    ),
-                )
-
-                // Visibility Choice (when creating)
-                if (isCreate) {
+            // Confirm CTA
+            Box(
+                modifier = Modifier
+                    .weight(1.2f)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(if (canSubmit) primaryBtn else primaryBtn.copy(alpha = 0.4f))
+                    .clickable(enabled = canSubmit) { onSubmit(value.trim(), visibility) }
+                    .padding(vertical = 11.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (busy) {
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        VisibilityChoice("private", visibility, Modifier.weight(1f)) { visibility = it }
-                        VisibilityChoice("public", visibility, Modifier.weight(1f)) { visibility = it }
-                    }
-                    Text(
-                        stringResource(
-                            if (visibility == "public") R.string.study_circle_public_explanation
-                            else R.string.study_circle_private_explanation
-                        ),
-                        fontSize = 12.sp,
-                        color = PlannerFlatColors.TextMuted,
-                    )
-                }
-
-                // Action Buttons
-                val canSubmit = !busy && value.trim().length >= (if (isCreate) 3 else 6)
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    // Cancel
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clip(RoundedCornerShape(10.dp))
-                            .border(1.dp, PlannerFlatColors.BorderSoft, RoundedCornerShape(10.dp))
-                            .clickable(enabled = !busy) { onDismiss() }
-                            .padding(vertical = 11.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
+                        CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp, modifier = Modifier.size(14.dp))
                         Text(
-                            text = stringResource(R.string.common_cancel),
+                            text = stringResource(if (isCreate) R.string.study_circle_creating else R.string.study_circle_joining),
                             fontSize = 13.5.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = PlannerFlatColors.TextDark,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color.White,
                         )
                     }
-
-                    // Confirm CTA
-                    Box(
-                        modifier = Modifier
-                            .weight(1.2f)
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(if (canSubmit) primaryBtn else primaryBtn.copy(alpha = 0.4f))
-                            .clickable(enabled = canSubmit) { onSubmit(value.trim(), visibility) }
-                            .padding(vertical = 11.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        if (busy) {
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp, modifier = Modifier.size(14.dp))
-                                Text(
-                                    text = stringResource(if (isCreate) R.string.study_circle_creating else R.string.study_circle_joining),
-                                    fontSize = 13.5.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = Color.White,
-                                )
-                            }
-                        } else {
-                            Text(
-                                text = stringResource(if (isCreate) R.string.study_circle_create else R.string.study_circle_join),
-                                fontSize = 13.5.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = Color.White,
-                            )
-                        }
-                    }
+                } else {
+                    Text(
+                        text = stringResource(if (isCreate) R.string.study_circle_create else R.string.study_circle_join),
+                        fontSize = 13.5.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.White,
+                    )
                 }
             }
         }
@@ -1565,6 +1564,7 @@ fun StudyCircleDetailScreen(
                     }
                 },
                 actions = {
+                com.safarparmar.app.ui.tutorial.TitliGuideButton()
                     val pendingCount = pendingDmRequests.size
                     IconButton(onClick = { showConnectRequestsSheet = true }) {
                         BadgedBox(

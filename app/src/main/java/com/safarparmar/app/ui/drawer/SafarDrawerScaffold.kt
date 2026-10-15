@@ -250,6 +250,7 @@ fun SafarDrawerScaffold(
                                     verticalAlignment = Alignment.CenterVertically,
                                     modifier = Modifier.padding(end = 4.dp),
                                 ) {
+                                    com.safarparmar.app.ui.tutorial.TitliGuideButton()
                                     topBarActions()
                                 }
                             },

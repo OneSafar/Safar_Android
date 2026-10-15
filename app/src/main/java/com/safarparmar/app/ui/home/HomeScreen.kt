@@ -358,7 +358,7 @@ fun HomeScreen(
 
                 androidx.compose.material3.Text(
                     text = stringResource(R.string.nav_home),
-                    modifier = Modifier.align(Alignment.Center),
+                    modifier = Modifier.align(Alignment.CenterStart).fillMaxWidth().padding(start = 64.dp, end = 168.dp),
                     style = MaterialTheme.typography.titleMedium,
                     fontSize = 17.6.sp,
                     fontWeight = FontWeight.Bold,
@@ -371,6 +371,7 @@ fun HomeScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
+                    com.safarparmar.app.ui.tutorial.TitliGuideButton()
                     VideoPlaylistEntryPoint(
                         dataStore = dataStore,
                         tint = topBarTint,

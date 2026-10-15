@@ -43,6 +43,7 @@ fun HabitInsightsScreen(
         Scaffold(
             topBar = {
                 TopAppBar(
+                actions = { com.safarparmar.app.ui.tutorial.TitliGuideButton() },
                     title = {
                         Text(
                             text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_insights),

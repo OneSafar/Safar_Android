@@ -304,6 +304,7 @@ fun LiveClassroomTopBar(
             }
         },
         actions = {
+                com.safarparmar.app.ui.tutorial.TitliGuideButton()
             if (onReload != null) {
                 IconButton(onClick = onReload) {
                     if (isReloading) {

@@ -410,22 +410,7 @@ fun FocusShieldSettingsContent(
                         letterSpacing = 1.sp,
                         color = ink.secondaryText,
                     )
-                    KavachSegmentedSelector(
-                        options = listOf(
-                            SegmentOption(
-                                key = AppUsageMode.FOCUSED,
-                                label = stringResource(R.string.kavach_with_ekagra),
-                                icon = Icons.Default.Timer,
-                            ),
-                            SegmentOption(
-                                key = AppUsageMode.ALWAYS_ON,
-                                label = stringResource(R.string.kavach_always_on),
-                                icon = Icons.Default.Timer,
-                            ),
-                        ),
-                        selectedKey = if (state.isAlwaysOnMode) AppUsageMode.ALWAYS_ON else AppUsageMode.FOCUSED,
-                        onSelect = { handleProfileSelect(it) },
-                    )
+                    KavachProfileChoices(state.isAlwaysOnMode) { handleProfileSelect(it) }
                     Text(
                         text = if (state.isAlwaysOnMode) {
                             stringResource(R.string.kavach_always_on_help)
@@ -1001,4 +986,17 @@ private fun AppIconsPreviewRow(
             }
         }
     }
+}
+
+/** Pure profile controls shared with the safe timer guide. */
+@Composable
+internal fun KavachProfileChoices(alwaysOn: Boolean, onSelect: (String) -> Unit) {
+    KavachSegmentedSelector(
+        options = listOf(
+            SegmentOption(AppUsageMode.FOCUSED, stringResource(R.string.kavach_with_ekagra), Icons.Default.Timer),
+            SegmentOption(AppUsageMode.ALWAYS_ON, stringResource(R.string.kavach_always_on), Icons.Default.Timer),
+        ),
+        selectedKey = if (alwaysOn) AppUsageMode.ALWAYS_ON else AppUsageMode.FOCUSED,
+        onSelect = onSelect,
+    )
 }

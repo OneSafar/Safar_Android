@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="titli_name">Titli</string>
+    <string name="titli_description">Titli, aapki tutorial guide</string>
+    <string name="titli_hello">Hi, main Titli hoon</string>
+    <string name="titli_introduction">Main aapki tutorial guide hoon. Koi feature seekhne ke liye uski screen par jaakar mujhe tap karein. Main aapko uska istemaal sikhaungi.</string>
+    <string name="titli_begin">Shuru karein</string>
+    <string name="titli_available_guides">Main abhi is screen ke baare mein seekh rahi hoon. Abhi in features ki practice kar sakte hain:</string>
+</resources>

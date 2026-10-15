@@ -1,4 +1,5 @@
 package com.safarparmar.app.ui.ekagra
+import com.safarparmar.app.ui.tutorial.tutorialTarget
 import com.composables.ui.components.HorizontalSeparator as HorizontalDivider
 
 import androidx.compose.animation.core.*
@@ -101,104 +102,112 @@ internal fun VisualThemeDialog(current: VisualTheme, onSelect: (VisualTheme) -> 
             }
         },
         text = {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(14.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    "Select a backdrop and music theme to personalize your focus session.",
-                    fontSize = 12.sp,
-                    color = ink.mutedText
-                )
-                EkagraHairline(ink.hairline)
-
-                val chunks = selectableVisualThemes.chunked(2)
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    chunks.forEach { pair ->
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            pair.forEach { theme ->
-                                val isSelected = theme.name == current.name
-                                val cardBorder = if (isSelected) {
-                                    BorderStroke(1.5.dp, theme.accent)
-                                } else {
-                                    BorderStroke(1.dp, ink.hairline)
-                                }
-                                val cardBg = if (isSelected) theme.accent.copy(alpha = 0.12f) else scheme.surfaceContainerLow
-
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(84.dp)
-                                        .clip(RoundedCornerShape(16.dp))
-                                        .background(cardBg)
-                                        .border(cardBorder, RoundedCornerShape(16.dp))
-                                        .clickable { onSelect(theme) }
-                                        .padding(12.dp)
-                                ) {
-                                    Column(
-                                        modifier = Modifier.fillMaxSize(),
-                                        verticalArrangement = Arrangement.SpaceBetween
-                                    ) {
-                                        Row(
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            modifier = Modifier.fillMaxWidth()
-                                        ) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .size(30.dp)
-                                                    .clip(CircleShape)
-                                                    .background(theme.accent.copy(alpha = 0.18f)),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                Text(theme.emoji, fontSize = 15.sp)
-                                            }
-                                            if (isSelected) {
-                                                Row(
-                                                    verticalAlignment = Alignment.CenterVertically,
-                                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                                ) {
-                                                    Box(
-                                                        Modifier
-                                                            .size(6.dp)
-                                                            .clip(CircleShape)
-                                                            .background(theme.accent)
-                                                    )
-                                                    Icon(
-                                                        Icons.Default.CheckCircle,
-                                                        contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.common_selected),
-                                                        tint = theme.accent,
-                                                        modifier = Modifier.size(18.dp)
-                                                    )
-                                                }
-                                            }
-                                        }
-                                        Text(
-                                            theme.name,
-                                            fontFamily = EkagraSerif,
-                                            fontSize = 15.sp,
-                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
-                                            color = ink.primaryText
-                                        )
-                                    }
-                                }
-                            }
-                            if (pair.size == 1) {
-                                Spacer(Modifier.weight(1f))
-                            }
-                        }
-                    }
-                }
-            }
+            VisualThemeChoices(current = current, onSelect = onSelect)
         },
         positiveButton= {},
     )
+}
+
+@Composable
+internal fun VisualThemeChoices(current: VisualTheme, onSelect: (VisualTheme) -> Unit) {
+    val scheme = MaterialTheme.colorScheme
+    val ink = rememberEkagraInk(onCanvas = false)
+    Column(
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text(
+            "Select a backdrop and music theme to personalize your focus session.",
+            fontSize = 12.sp,
+            color = ink.mutedText
+        )
+        EkagraHairline(ink.hairline)
+
+        val chunks = selectableVisualThemes.chunked(2)
+        Column(
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            chunks.forEach { pair ->
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    pair.forEach { theme ->
+                        val isSelected = theme.name == current.name
+                        val cardBorder = if (isSelected) {
+                            BorderStroke(1.5.dp, scheme.primary)
+                        } else {
+                            BorderStroke(1.dp, ink.hairline)
+                        }
+                        val cardBg = if (isSelected) scheme.primaryContainer else scheme.surfaceContainerLow
+                        val cardInk = if (isSelected) scheme.onPrimaryContainer else ink.primaryText
+
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(84.dp)
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(cardBg)
+                                .border(cardBorder, RoundedCornerShape(16.dp))
+                                .clickable { onSelect(theme) }
+                                .padding(12.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier.fillMaxSize(),
+                                verticalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(30.dp)
+                                            .clip(CircleShape)
+                                            .background(theme.accent.copy(alpha = 0.18f)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(theme.emoji, fontSize = 15.sp)
+                                    }
+                                    if (isSelected) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                        ) {
+                                            Box(
+                                                Modifier
+                                                    .size(6.dp)
+                                                    .clip(CircleShape)
+                                                    .background(cardInk)
+                                            )
+                                            Icon(
+                                                Icons.Default.CheckCircle,
+                                                contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.common_selected),
+                                                tint = cardInk,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                                Text(
+                                    theme.name,
+                                    fontFamily = EkagraSerif,
+                                    fontSize = 15.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
+                                    color = cardInk
+                                )
+                            }
+                        }
+                    }
+                    if (pair.size == 1) {
+                        Spacer(Modifier.weight(1f))
+                    }
+                }
+            }
+        }
+    }
 }
 
 // ─── Organize free focus sheet ─────────────────────────────────────────────────
@@ -226,6 +235,56 @@ internal fun OrganizeFreeFocusSheet(
     onDeleteTag: ((String) -> Unit)? = null,
     onSetTagColor: ((String, String) -> Unit)? = null,
 ) {
+    com.composables.ui.components.BottomSheet(
+        onDismissRequest = onDismiss, state = sheetState,
+        backgroundColor = if (isDarkTheme) MaterialTheme.colorScheme.surface else Color.White,
+    ) {
+        OrganizeFreeFocusContent(
+            pending = pending,
+            todayGoals = todayGoals,
+            titleInput = titleInput,
+            onTitleChange = onTitleChange,
+            onSaveFree = onSaveFree,
+            onSaveTopic = onSaveTopic,
+            onLinkGoal = onLinkGoal,
+            onDiscard = onDiscard,
+            selectedTheme = selectedTheme,
+            isDarkTheme = isDarkTheme,
+            availableTags = availableTags,
+            selectedTag = selectedTag,
+            onSelectTag = onSelectTag,
+            tagColors = tagColors,
+            onAddTag = onAddTag,
+            onDeleteTag = onDeleteTag,
+            onSetTagColor = onSetTagColor,
+        )
+    }
+}
+
+@Composable
+internal fun OrganizeFreeFocusContent(
+    pending: PendingEndedEkagraSession?,
+    todayGoals: List<com.safarparmar.app.domain.model.Goal>,
+    titleInput: String,
+    onTitleChange: (String) -> Unit,
+    onSaveFree: () -> Unit,
+    onSaveTopic: (Boolean) -> Unit = {},
+    onLinkGoal: (com.safarparmar.app.domain.model.Goal, Boolean) -> Unit,
+    onDiscard: () -> Unit,
+    selectedTheme: VisualTheme? = null,
+    isDarkTheme: Boolean = true,
+    availableTags: List<String> = emptyList(),
+    selectedTag: String? = null,
+    onSelectTag: (String?) -> Unit = {},
+    tagColors: Map<String, String> = emptyMap(),
+    onAddTag: ((String, String?) -> Unit)? = null,
+    onDeleteTag: ((String) -> Unit)? = null,
+    onSetTagColor: ((String, String) -> Unit)? = null,
+    initialGoalId: String? = null,
+    initialShowGoals: Boolean = false,
+    initialMarkComplete: Boolean = false,
+    scrollWholeContent: Boolean = false,
+) {
     val scrollState = rememberScrollState()
     val maxSheetHeight = LocalConfiguration.current.screenHeightDp.dp * 0.85f
     val focusedTimeLabel = formatTopicStudyTime(
@@ -234,68 +293,62 @@ internal fun OrganizeFreeFocusSheet(
     
     // Sheets follow the app mode, independently of the timer's visual backdrop.
     val isThemeDark = isDarkTheme
-    val containerColor = if (isDarkTheme) MaterialTheme.colorScheme.surface else Color.White
-
     val primaryTextColor = if (isThemeDark) Color.White else MaterialTheme.colorScheme.onSurface
     val secondaryTextColor = if (isThemeDark) Color.White.copy(alpha = 0.72f) else MaterialTheme.colorScheme.onSurfaceVariant
     val dividerColor = (if (isThemeDark) Color.White else MaterialTheme.colorScheme.outlineVariant).copy(alpha = 0.2f)
 
     val accent = if (isThemeDark) Color(0xFFB9C9FF) else Color(0xFF354F9B)
     val onAccent = if (isThemeDark) Color(0xFF172449) else Color.White
-    var selectedGoalId by remember(pending?.sessionId) { mutableStateOf<String?>(null) }
+    var selectedGoalId by remember(pending?.sessionId) { mutableStateOf<String?>(initialGoalId) }
     val selectedGoal = todayGoals.firstOrNull { it.id == selectedGoalId }
-    var showGoals by remember(pending?.sessionId) { mutableStateOf(false) }
-    var markGoalDone by remember(selectedGoal?.id) { mutableStateOf(false) }
-    var markTopicDone by remember(pending?.sessionId) { mutableStateOf(false) }
+    var showGoals by remember(pending?.sessionId) { mutableStateOf(initialShowGoals) }
+    var markGoalDone by remember(selectedGoal?.id) { mutableStateOf(initialMarkComplete) }
+    var markTopicDone by remember(pending?.sessionId) { mutableStateOf(initialMarkComplete) }
     val isTopicSession = pending?.topicId != null
 
-    com.composables.ui.components.BottomSheet(
-        onDismissRequest = onDismiss,
-        state = sheetState,
-        backgroundColor = containerColor,
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .wrapContentWidth(Alignment.CenterHorizontally)
+            .widthIn(max = 560.dp)
+            .heightIn(max = maxSheetHeight)
+            .then(if (scrollWholeContent) Modifier.verticalScroll(scrollState) else Modifier)
+            .imePadding(),
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .wrapContentWidth(Alignment.CenterHorizontally)
-                .widthIn(max = 560.dp)
-                .heightIn(max = maxSheetHeight)
-                .imePadding(),
-        ) {
-            // One dominant headline, followed by a short explanation of the save destination.
-            Column(Modifier.padding(start = 24.dp, end = 24.dp, top = 4.dp, bottom = 24.dp)) {
-                Text(
-                    "SESSION COMPLETE",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    letterSpacing = 1.2.sp,
-                    color = secondaryTextColor,
-                )
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    "$focusedTimeLabel focused",
-                    fontSize = 30.sp,
-                    lineHeight = 36.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = primaryTextColor,
-                )
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    stringResource(R.string.ekagra_save_to_history),
-                    fontSize = 14.sp,
-                    lineHeight = 20.sp,
-                    color = secondaryTextColor,
-                )
-            }
+        // One dominant headline, followed by a short explanation of the save destination.
+        Column(Modifier.padding(start = 24.dp, end = 24.dp, top = 4.dp, bottom = 24.dp)) {
+            Text(
+                "SESSION COMPLETE",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = 1.2.sp,
+                color = secondaryTextColor,
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "$focusedTimeLabel focused",
+                fontSize = 30.sp,
+                lineHeight = 36.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = primaryTextColor,
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                stringResource(R.string.ekagra_save_to_history),
+                fontSize = 14.sp,
+                lineHeight = 20.sp,
+                color = secondaryTextColor,
+            )
+        }
 
-            Column(
-                modifier = Modifier
-                    .weight(1f, fill = false)
-                    .verticalScroll(scrollState)
-                    .padding(horizontal = 24.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                if (isTopicSession) {
+        Column(
+            modifier = (if (scrollWholeContent) Modifier else Modifier.weight(1f, fill = false).verticalScroll(scrollState))
+                .tutorialTarget("ekagra.saveDetails")
+                .padding(horizontal = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            if (isTopicSession) {
+                Column(Modifier.tutorialTarget("ekagra.topicChoice")) {
                     Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.ekagra_exam_planner_topic), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = primaryTextColor)
                     Text(pending?.topicTitle ?: stringResource(R.string.ekagra_untitled_topic), fontSize = 16.sp, color = primaryTextColor)
                     SessionCompletionOption(
@@ -305,190 +358,190 @@ internal fun OrganizeFreeFocusSheet(
                         accent = accent,
                         textColor = primaryTextColor,
                     )
-                } else {
-                    com.safarparmar.app.ui.components.SafarRichTextField(
-                        value = titleInput,
-                        onValueChange = onTitleChange,
-                        label = { Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.ekagra_session_name_sentence), fontSize = 14.sp) },
-                        placeholder = { Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.ekagra_worked_on_hint), fontSize = 14.sp) },
-                        supportingText = { Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.common_optional), fontSize = 12.sp) },
-                        singleLine = true,
-                        textStyle = androidx.compose.ui.text.TextStyle(fontSize = 16.sp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = primaryTextColor,
-                            unfocusedTextColor = primaryTextColor,
-                            focusedBorderColor = accent,
-                            unfocusedBorderColor = dividerColor,
-                            focusedLabelColor = accent,
-                            unfocusedLabelColor = secondaryTextColor,
-                            focusedPlaceholderColor = secondaryTextColor,
-                            unfocusedPlaceholderColor = secondaryTextColor,
-                            focusedSupportingTextColor = secondaryTextColor,
-                            unfocusedSupportingTextColor = secondaryTextColor,
-                            cursorColor = accent,
-                        ),
-                        modifier = Modifier.fillMaxWidth(),
-                    )
+                }
+            } else {
+                com.safarparmar.app.ui.components.SafarRichTextField(
+                    value = titleInput,
+                    onValueChange = onTitleChange,
+                    label = { Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.ekagra_session_name_sentence), fontSize = 14.sp) },
+                    placeholder = { Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.ekagra_worked_on_hint), fontSize = 14.sp) },
+                    supportingText = { Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.common_optional), fontSize = 12.sp) },
+                    singleLine = true,
+                    textStyle = androidx.compose.ui.text.TextStyle(fontSize = 16.sp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = primaryTextColor,
+                        unfocusedTextColor = primaryTextColor,
+                        focusedBorderColor = accent,
+                        unfocusedBorderColor = dividerColor,
+                        focusedLabelColor = accent,
+                        unfocusedLabelColor = secondaryTextColor,
+                        focusedPlaceholderColor = secondaryTextColor,
+                        unfocusedPlaceholderColor = secondaryTextColor,
+                        focusedSupportingTextColor = secondaryTextColor,
+                        unfocusedSupportingTextColor = secondaryTextColor,
+                        cursorColor = accent,
+                    ),
+                    modifier = Modifier.fillMaxWidth().tutorialTarget("ekagra.saveName"),
+                )
 
-                    if (selectedGoalId == null && (availableTags.isNotEmpty() || onAddTag != null)) {
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text(
-                                "Subject / Tag (Optional)",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = secondaryTextColor,
-                            )
-                            EkagraTagSelector(
-                                availableTags = availableTags,
-                                selectedTag = selectedTag,
-                                onSelectTag = onSelectTag,
-                                tagColors = tagColors,
-                                onAddTag = onAddTag,
-                                onDeleteTag = onDeleteTag,
-                                onSetTagColor = onSetTagColor,
-                                accentColor = accent,
-                                isDark = isThemeDark,
-                            )
-                        }
+                if (selectedGoalId == null && (availableTags.isNotEmpty() || onAddTag != null)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(
+                            "Subject / Tag (Optional)",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = secondaryTextColor,
+                        )
+                        EkagraTagSelector(
+                            availableTags = availableTags,
+                            selectedTag = selectedTag,
+                            onSelectTag = onSelectTag,
+                            tagColors = tagColors,
+                            onAddTag = onAddTag,
+                            onDeleteTag = onDeleteTag,
+                            onSetTagColor = onSetTagColor,
+                            accentColor = accent,
+                            isDark = isThemeDark,
+                        )
                     }
+                }
 
-                    HorizontalDivider(color = dividerColor)
-                    if (todayGoals.isEmpty()) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Icon(Icons.Default.Link, contentDescription = null, tint = secondaryTextColor, modifier = Modifier.size(18.dp))
+                HorizontalDivider(color = dividerColor)
+                if (todayGoals.isEmpty()) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(Icons.Default.Link, contentDescription = null, tint = secondaryTextColor, modifier = Modifier.size(18.dp))
+                        Text(
+                            "No open goals today. You can save this session on its own.",
+                            fontSize = 12.sp,
+                            lineHeight = 18.sp,
+                            color = secondaryTextColor,
+                        )
+                    }
+                } else {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { showGoals = !showGoals }
+                            .heightIn(min = 48.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Icon(Icons.Default.Link, contentDescription = null, tint = accent, modifier = Modifier.size(20.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.ekagra_link_goal), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = primaryTextColor)
                             Text(
-                                "No open goals today. You can save this session on its own.",
+                                selectedGoal?.title ?: "Optional · add this time to today's goal",
                                 fontSize = 12.sp,
                                 lineHeight = 18.sp,
                                 color = secondaryTextColor,
                             )
                         }
-                    } else {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { showGoals = !showGoals }
-                                .heightIn(min = 48.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        ) {
-                            Icon(Icons.Default.Link, contentDescription = null, tint = accent, modifier = Modifier.size(20.dp))
-                            Column(Modifier.weight(1f)) {
-                                Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.ekagra_link_goal), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = primaryTextColor)
-                                Text(
-                                    selectedGoal?.title ?: "Optional · add this time to today's goal",
-                                    fontSize = 12.sp,
-                                    lineHeight = 18.sp,
-                                    color = secondaryTextColor,
+                        Icon(
+                            if (showGoals) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                            contentDescription = if (showGoals) "Hide goals" else "Show goals",
+                            tint = secondaryTextColor,
+                        )
+                    }
+                    if (showGoals) {
+                        todayGoals.forEach { goal ->
+                            val selected = selectedGoal?.id == goal.id
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(if (selected) accent.copy(alpha = 0.10f) else Color.Transparent)
+                                    .selectable(
+                                        selected = selected,
+                                        role = androidx.compose.ui.semantics.Role.RadioButton,
+                                        onClick = { selectedGoalId = if (selected) null else goal.id },
+                                    )
+                                    .padding(horizontal = 8.dp, vertical = 8.dp)
+                                    .heightIn(min = 48.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                com.safarparmar.app.ui.components.SafarRadioIndicator(
+                                    selected = selected,
+                                    onClick = null,
+                                    colors = RadioButtonDefaults.colors(selectedColor = accent, unselectedColor = secondaryTextColor),
                                 )
+                                Column(Modifier.weight(1f).padding(start = 12.dp)) {
+                                    Text(goal.title, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = primaryTextColor)
+                                    goalRowSubtitle(goal)?.let {
+                                        Text(it, fontSize = 12.sp, lineHeight = 18.sp, color = secondaryTextColor)
+                                    }
+                                }
                             }
-                            Icon(
-                                if (showGoals) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                                contentDescription = if (showGoals) "Hide goals" else "Show goals",
-                                tint = secondaryTextColor,
-                            )
                         }
-                        if (showGoals) {
-                            todayGoals.forEach { goal ->
-                                val selected = selectedGoal?.id == goal.id
+                    }
+                    if (selectedGoal != null) {
+                        Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.ekagra_after_saving), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = secondaryTextColor)
+                        Column(Modifier.selectableGroup().tutorialTarget("ekagra.goalChoice")) {
+                            GoalSessionSaveChoice.entries.forEach { choice ->
+                                val selected = markGoalDone == choice.marksGoalDone
                                 Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(if (selected) accent.copy(alpha = 0.10f) else Color.Transparent)
+                                    modifier = Modifier.fillMaxWidth()
                                         .selectable(
                                             selected = selected,
                                             role = androidx.compose.ui.semantics.Role.RadioButton,
-                                            onClick = { selectedGoalId = if (selected) null else goal.id },
+                                            onClick = { markGoalDone = choice.marksGoalDone },
                                         )
-                                        .padding(horizontal = 8.dp, vertical = 8.dp)
                                         .heightIn(min = 48.dp),
                                     verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                                 ) {
                                     com.safarparmar.app.ui.components.SafarRadioIndicator(
                                         selected = selected,
                                         onClick = null,
                                         colors = RadioButtonDefaults.colors(selectedColor = accent, unselectedColor = secondaryTextColor),
                                     )
-                                    Column(Modifier.weight(1f).padding(start = 12.dp)) {
-                                        Text(goal.title, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = primaryTextColor)
-                                        goalRowSubtitle(goal)?.let {
-                                            Text(it, fontSize = 12.sp, lineHeight = 18.sp, color = secondaryTextColor)
-                                        }
-                                    }
+                                    Text(
+                                        if (choice.marksGoalDone) "Mark Goal as Done" else "Keep Goal Open",
+                                        fontSize = 14.sp,
+                                        color = primaryTextColor,
+                                    )
                                 }
                             }
                         }
-                        if (selectedGoal != null) {
-                            Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.ekagra_after_saving), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = secondaryTextColor)
-                            Column(Modifier.selectableGroup()) {
-                                GoalSessionSaveChoice.entries.forEach { choice ->
-                                    val selected = markGoalDone == choice.marksGoalDone
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth()
-                                            .selectable(
-                                                selected = selected,
-                                                role = androidx.compose.ui.semantics.Role.RadioButton,
-                                                onClick = { markGoalDone = choice.marksGoalDone },
-                                            )
-                                            .heightIn(min = 48.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                    ) {
-                                        com.safarparmar.app.ui.components.SafarRadioIndicator(
-                                            selected = selected,
-                                            onClick = null,
-                                            colors = RadioButtonDefaults.colors(selectedColor = accent, unselectedColor = secondaryTextColor),
-                                        )
-                                        Text(
-                                            if (choice.marksGoalDone) "Mark Goal as Done" else "Keep Goal Open",
-                                            fontSize = 14.sp,
-                                            color = primaryTextColor,
-                                        )
-                                    }
-                                }
-                            }
-                            Text(
-                                if (markGoalDone) "The goal will appear in Goals → Completed."
-                                else "The goal stays open for your next session.",
-                                fontSize = 12.sp,
-                                lineHeight = 18.sp,
-                                color = secondaryTextColor,
-                            )
-                        }
+                        Text(
+                            if (markGoalDone) "The goal will appear in Goals → Completed."
+                            else "The goal stays open for your next session.",
+                            fontSize = 12.sp,
+                            lineHeight = 18.sp,
+                            color = secondaryTextColor,
+                        )
                     }
                 }
-                Spacer(Modifier.height(8.dp))
             }
+            Spacer(Modifier.height(8.dp))
+        }
 
-            // Keep the save action visible while the optional goal list scrolls.
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                verticalAlignment = Alignment.CenterVertically,
+        // Keep the save action visible while the optional goal list scrolls.
+        Row(
+            modifier = Modifier.fillMaxWidth().tutorialTarget("ekagra.saveAction").padding(horizontal = 24.dp, vertical = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            com.composables.ui.components.Button(style = com.composables.ui.components.ButtonStyle.Ghost, onClick = onDiscard, modifier = Modifier.heightIn(min = 48.dp)) {
+                Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.common_discard), fontSize = 14.sp, color = secondaryTextColor)
+            }
+            com.safarparmar.app.ui.components.SafarButton(
+                onClick = {
+                    val goal = selectedGoal
+                    when {
+                        isTopicSession -> onSaveTopic(markTopicDone)
+                        goal != null -> onLinkGoal(goal, markGoalDone)
+                        else -> onSaveFree()
+                    }
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = accent, contentColor = onAccent),
+                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier.weight(1f).heightIn(min = 52.dp),
             ) {
-                com.composables.ui.components.Button(style = com.composables.ui.components.ButtonStyle.Ghost, onClick = onDiscard, modifier = Modifier.heightIn(min = 48.dp)) {
-                    Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.common_discard), fontSize = 14.sp, color = secondaryTextColor)
-                }
-                com.safarparmar.app.ui.components.SafarButton(
-                    onClick = {
-                        val goal = selectedGoal
-                        when {
-                            isTopicSession -> onSaveTopic(markTopicDone)
-                            goal != null -> onLinkGoal(goal, markGoalDone)
-                            else -> onSaveFree()
-                        }
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = accent, contentColor = onAccent),
-                    shape = RoundedCornerShape(14.dp),
-                    modifier = Modifier.weight(1f).heightIn(min = 52.dp),
-                ) {
-                    Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.ekagra_save_session), fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-                }
+                Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.ekagra_save_session), fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
             }
         }
     }
@@ -680,76 +733,87 @@ internal fun EkagraConfirmSaveDialog(
     linksTopic: Boolean = false,
     accentColor: Color = PlannerAccent.Teal,
 ) {
+    androidx.compose.ui.window.Dialog(
+        onDismissRequest = onCancel,
+        properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        EkagraConfirmSaveContent(label = label, onConfirm = onConfirm, onCancel = onCancel, completesTarget = completesTarget, keepsGoalOpen = keepsGoalOpen, linksTopic = linksTopic, accentColor = accentColor)
+    }
+}
+
+@Composable
+internal fun EkagraConfirmSaveContent(
+    label: String,
+    onConfirm: () -> Unit,
+    onCancel: () -> Unit,
+    completesTarget: Boolean = false,
+    keepsGoalOpen: Boolean = false,
+    linksTopic: Boolean = false,
+    accentColor: Color = PlannerAccent.Teal,
+) {
     val accent = accentColor
     val ink = rememberEkagraInk(onCanvas = false)
     val isQuickSave = label.equals(stringResource(R.string.ekagra_quick_save), ignoreCase = true) || label.isBlank()
     val eyebrowText = if (isQuickSave) stringResource(R.string.ekagra_confirm_save) else stringResource(R.string.ekagra_confirm_link)
     val titleText = if (isQuickSave) stringResource(R.string.ekagra_save_session_question) else stringResource(R.string.ekagra_save_to_named_question, label)
 
-    androidx.compose.ui.window.Dialog(
-        onDismissRequest = onCancel,
-        properties = androidx.compose.ui.window.DialogProperties(
-            usePlatformDefaultWidth = false,
-        ),
+    Surface(
+        shape = RoundedCornerShape(24.dp),
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 6.dp,
+        shadowElevation = 12.dp,
+        border = BorderStroke(1.dp, ink.hairline),
+        modifier = Modifier
+            .fillMaxWidth(0.92f).tutorialTarget("ekagra.confirmSave")
+            .wrapContentHeight()
+            .padding(vertical = 16.dp),
     ) {
-        Surface(
-            shape = RoundedCornerShape(24.dp),
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 6.dp,
-            shadowElevation = 12.dp,
-            border = BorderStroke(1.dp, ink.hairline),
+        Column(
             modifier = Modifier
-                .fillMaxWidth(0.92f)
-                .wrapContentHeight()
-                .padding(vertical = 16.dp),
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 24.dp),
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 24.dp),
+            EkagraEyebrow(eyebrowText, accent)
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = titleText,
+                fontFamily = EkagraSerif,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.SemiBold,
+                lineHeight = 28.sp,
+                color = ink.primaryText,
+            )
+            Spacer(Modifier.height(10.dp))
+            Text(
+                text = when {
+                    linksTopic && completesTarget -> stringResource(R.string.ekagra_save_topic_completed)
+                    linksTopic -> stringResource(R.string.ekagra_save_topic_open)
+                    completesTarget -> stringResource(R.string.ekagra_save_goal_completed)
+                    keepsGoalOpen -> stringResource(R.string.ekagra_save_goal_open)
+                    isQuickSave -> stringResource(R.string.ekagra_save_history_body)
+                    else -> stringResource(R.string.ekagra_save_body)
+                },
+                fontSize = 14.sp,
+                lineHeight = 20.sp,
+                color = ink.secondaryText,
+            )
+            Spacer(Modifier.height(24.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                EkagraEyebrow(eyebrowText, accent)
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    text = titleText,
-                    fontFamily = EkagraSerif,
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    lineHeight = 28.sp,
-                    color = ink.primaryText,
+                EkagraGhostAction(
+                    label = stringResource(R.string.common_cancel),
+                    ink = ink,
+                    onClick = onCancel,
+                    modifier = Modifier.weight(1f),
                 )
-                Spacer(Modifier.height(10.dp))
-                Text(
-                    text = when {
-                        linksTopic && completesTarget -> stringResource(R.string.ekagra_save_topic_completed)
-                        linksTopic -> stringResource(R.string.ekagra_save_topic_open)
-                        completesTarget -> stringResource(R.string.ekagra_save_goal_completed)
-                        keepsGoalOpen -> stringResource(R.string.ekagra_save_goal_open)
-                        isQuickSave -> stringResource(R.string.ekagra_save_history_body)
-                        else -> stringResource(R.string.ekagra_save_body)
-                    },
-                    fontSize = 14.sp,
-                    lineHeight = 20.sp,
-                    color = ink.secondaryText,
+                EkagraPrimaryAction(
+                    label = stringResource(R.string.ekagra_save_action),
+                    accent = accent,
+                    onClick = onConfirm,
+                    modifier = Modifier.weight(1f),
                 )
-                Spacer(Modifier.height(24.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    EkagraGhostAction(
-                        label = stringResource(R.string.common_cancel),
-                        ink = ink,
-                        onClick = onCancel,
-                        modifier = Modifier.weight(1f),
-                    )
-                    EkagraPrimaryAction(
-                        label = stringResource(R.string.ekagra_save_action),
-                        accent = accent,
-                        onClick = onConfirm,
-                        modifier = Modifier.weight(1f),
-                    )
-                }
             }
         }
     }

@@ -304,6 +304,32 @@ class SafarDataStore @Inject constructor(
         .catch { emit(emptyPreferences()) }
         .map { it[tourDoneKey(section)] ?: false }
 
+    fun titliIntroductionSeen(key: String = "titli_introduction_v1"): Flow<Boolean> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[booleanPreferencesKey(key)] ?: false }
+
+    suspend fun setTitliIntroductionSeen(key: String = "titli_introduction_v1") {
+        context.dataStore.edit { it[booleanPreferencesKey(key)] = true }
+    }
+
+    /** Feature guides are versioned independently of the retired butterfly tours. */
+    fun featureTutorialInvitationSeen(feature: String, version: Int): Flow<Boolean> =
+        context.dataStore.data.catch { emit(emptyPreferences()) }
+            .map { it[booleanPreferencesKey("feature_tutorial_${feature}_v${version}_invitation")] ?: false }
+
+    fun featureTutorialCompletedLessons(feature: String, version: Int): Flow<Set<String>> =
+        context.dataStore.data.catch { emit(emptyPreferences()) }
+            .map { it[stringSetPreferencesKey("feature_tutorial_${feature}_v${version}_lessons")] ?: emptySet() }
+
+    suspend fun setFeatureTutorialInvitationSeen(feature: String, version: Int) {
+        context.dataStore.edit { it[booleanPreferencesKey("feature_tutorial_${feature}_v${version}_invitation")] = true }
+    }
+
+    suspend fun completeFeatureTutorialLesson(feature: String, version: Int, lesson: String) {
+        val key = stringSetPreferencesKey("feature_tutorial_${feature}_v${version}_lessons")
+        context.dataStore.edit { it[key] = (it[key] ?: emptySet()) + lesson }
+    }
+
     val isWelcomeSeen: Flow<Boolean> = context.dataStore.data
         .catch { emit(emptyPreferences()) }
         .map { it[Keys.WELCOME_SEEN] ?: false }

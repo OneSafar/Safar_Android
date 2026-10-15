@@ -66,8 +66,6 @@ import com.safarparmar.app.notifications.rememberNotificationPermissionRequester
 import com.safarparmar.app.ui.components.rememberFeatureTabBackStack
 import com.safarparmar.app.ui.drawer.SafarDrawerScaffold
 import com.safarparmar.app.ui.navigation.Routes
-import com.safarparmar.app.ui.tour.TourManager
-import com.safarparmar.app.ui.tour.ekagraTourSteps
 import com.safarparmar.app.ui.nishtha.checkin.SlimSlider
 import com.safarparmar.app.util.IstDateUtils
 import com.safarparmar.app.ui.launch.AppUsageMode
@@ -195,7 +193,7 @@ fun EkagraScreen(
     // Prevents the dialog from re-appearing every time Start is tapped after
     // the user has already visited the Duration tab via the prompt.
     var durationPromptActedOn       by remember { mutableStateOf(false) }
-    var tourState                by remember { mutableStateOf<com.safarparmar.app.ui.butterfly.ButterflyTourState?>(null) }
+    val tutorialModel: EkagraTutorialViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
     val timerImmersiveActive = false
     val appUsageMode by viewModel.dataStore.appUsageMode.collectAsStateWithLifecycle(initialValue = null)
     // Overlay bubble permission
@@ -204,19 +202,6 @@ fun EkagraScreen(
 
     BackHandler(enabled = tabBackStack.hasHistory) {
         tabBackStack.goBack()
-    }
-
-    LaunchedEffect(tourState?.isVisible, tourState?.currentStepIndex) {
-        val state = tourState ?: return@LaunchedEffect
-        if (!state.isVisible) return@LaunchedEffect
-        when (state.currentStepIndex) {
-            // Step 3 and 4 are Settings Tab (DURATION)
-            3, 4 -> tabBackStack.select(EkagraNavTab.DURATION)
-            // Step 6 is History Tab
-            6 -> tabBackStack.select(EkagraNavTab.HISTORY)
-            // All other steps (0, 1, 2, 5) are on the main Timer Tab
-            else -> tabBackStack.select(EkagraNavTab.TIMER)
-        }
     }
 
     var selectedTheme by remember {
@@ -1416,11 +1401,17 @@ fun EkagraScreen(
                     // out of the old glass bar and into EkagraTopBar's trailing slot.
                     val ekagraTopBarActions: @Composable RowScope.() -> Unit = {
                         val tintColor = topBarTint
+                        com.safarparmar.app.ui.tutorial.TitliGuideButton()
                         var showOverflowMenu by remember { mutableStateOf(false) }
                         com.safarparmar.app.ui.components.SafarOverflowMenu(
                             expanded = showOverflowMenu,
                             onExpandedChange = { showOverflowMenu = it },
                             actions = buildList {
+                                add(com.safarparmar.app.ui.components.SafarMenuAction(
+                                    label = stringResource(R.string.ekagra_tutorial_learn),
+                                    onClick = { tutorialModel.open() },
+                                    icon = androidx.compose.material.icons.Icons.Default.HelpOutline,
+                                ))
                                 add(com.safarparmar.app.ui.components.SafarMenuAction(
                                     label = stringResource(if (isMuted) R.string.ekagra_volume_on else R.string.ekagra_volume_off),
                                     onClick = { timerService?.setMute(!isMuted) },
@@ -1474,76 +1465,7 @@ fun EkagraScreen(
 
                             // Background + scrim only on timer tab
                             if (selectedTab == EkagraNavTab.TIMER) {
-                                val colors = selectedTheme.gradientColors
-                                if (colors != null) {
-                                    val targetTopColor = if (isBreakActive) {
-                                        if (isDarkTheme) Color(0xFF1E2024) else Color(0xFFD4D8DF)
-                                    } else colors[0]
-                                    val targetBottomColor = if (isBreakActive) {
-                                        if (isDarkTheme) Color(0xFF0D0E11) else Color(0xFFECEFF3)
-                                    } else colors[1]
-
-                                    // Cross-fade palette swaps when the user picks a new
-                                    // visual theme instead of snapping to the new colours.
-                                    val topColor by animateColorAsState(
-                                        targetValue = targetTopColor,
-                                        animationSpec = tween(1200),
-                                        label = "bgTopColor",
-                                    )
-                                    val bottomColor by animateColorAsState(
-                                        targetValue = targetBottomColor,
-                                        animationSpec = tween(1200),
-                                        label = "bgBottomColor",
-                                    )
-
-                                    val infiniteTransition = rememberInfiniteTransition(label = "gradientAnimation")
-                                    val angle by infiniteTransition.decorativeFloat(
-                                        initialValue = 0f,
-                                        targetValue = 360f,
-                                        animationSpec = infiniteRepeatable(
-                                            animation = tween(durationMillis = 30000, easing = LinearEasing),
-                                            repeatMode = RepeatMode.Restart
-                                        ),
-                                        label = "gradientAngle"
-                                    )
-
-                                    // Read animation state while drawing, not while composing
-                                    // the whole timer screen on every background frame.
-                                    Box(modifier = Modifier.fillMaxSize().drawBehind {
-                                        val radians = (angle * Math.PI / 180f).toFloat()
-                                        val centerX = size.width * (0.5f + 0.25f * kotlin.math.cos(radians))
-                                        val centerY = size.height * (0.5f + 0.25f * kotlin.math.sin(radians))
-                                        drawRect(androidx.compose.ui.graphics.Brush.radialGradient(
-                                            colors = listOf(topColor, bottomColor),
-                                            radius = maxOf(size.width, size.height).coerceAtLeast(1f) * 1.5f,
-                                            center = androidx.compose.ui.geometry.Offset(centerX, centerY),
-                                        ))
-                                    })
-                                } else {
-                                    // Unreachable while the video themes are hidden — every
-                                    // selectable theme now has a gradient. Kept so restoring
-                                    // them is just a matter of clearing their gradientColors.
-                                    // Blur only the moving backdrop so the timer stays
-                                    // readable; gradient themes remain sharp.
-                                    EkagraVideoBackground(
-                                        videoUrl = selectedTheme.videoUrl,
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .scale(1.06f)
-                                            .adaptiveBlur(10.dp),
-                                    )
-                                }
-                                val scrimAlpha by animateFloatAsState(
-                                    targetValue = when {
-                                        timerImmersiveActive -> 0.12f
-                                        isDarkTheme -> 0.55f
-                                        selectedTheme.gradientColors != null -> 0.08f
-                                        else -> 0.38f
-                                    },
-                                    animationSpec = tween(600),
-                                    label = "scrimAlpha",
-                                )
-                                Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = scrimAlpha)))
+                                EkagraTimerBackground(selectedTheme, isDarkTheme, isBreakActive, timerImmersiveActive)
                             }
 
                             Scaffold(
@@ -1820,16 +1742,24 @@ fun EkagraScreen(
                     }
                 }
             }
+            EkagraTutorialEntry(
+                dataStore = viewModel.dataStore,
+                eligible = ekagraTutorialEligible(
+                    serviceReady = timerService != null,
+                    sessionActive = timerRunning || timerService?.isActive() == true || activeSession != null,
+                    flowPending = showKavachActiveSession || showThemeDialog || showEndSessionConfirmDialog ||
+                        showAudioLibraryPanel || showOrganizeSheet || showTopicStudySheet || showPostSaveGoalLinking ||
+                        showDurationPromptDialog || showOverlayPermPrompt || showMusicPromptDialog ||
+                        pendingModeSwitchConfirm != null || pendingStartTimerArgs != null ||
+                        pendingEndedSession != null || completedSession != null,
+                ),
+                isDarkTheme = isDarkTheme,
+                model = tutorialModel,
+                selectedTheme = selectedTheme,
+            )
         }
     }
 
-    TourManager(
-        dataStore = viewModel.dataStore,
-        steps = ekagraTourSteps(),
-        section = "ekagra",
-        askOnFirstVisit = false,
-        onTourStateReady = { tourState = it },
-    )
 }
 
 @Composable

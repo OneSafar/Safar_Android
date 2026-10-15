@@ -664,7 +664,7 @@ Every small step forward counts — today is a new opportunity to grow, reflect,
     <string name="goals_complete_for_date">Complete for %1$s</string>
     <string name="goals_edit_goal">Edit Goal</string>
     <string name="goals_new_goal">New Goal</string>
-    <string name="goals_title_prompt">Schedule for a future date</string>
+    <string name="goals_title_prompt">What do you want to finish?</string>
     <string name="goals_schedule_future">Schedule for a future date</string>
     <string name="goals_set_for_date">Schedule for a future date %1$s</string>
     <string name="goals_set_today_pick_future">Set for today. Tap to pick a future date.</string>

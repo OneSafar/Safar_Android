@@ -73,6 +73,7 @@ import java.time.Instant
 import java.time.ZoneId
 import java.util.*
 import kotlin.math.roundToInt
+import com.safarparmar.app.ui.tutorial.tutorialTarget
 import androidx.compose.runtime.staticCompositionLocalOf
 
 @Composable
@@ -106,7 +107,7 @@ internal fun EkagraBottomNav(
             horizontalArrangement = Arrangement.SpaceAround,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            EkagraNavTab.entries.forEach { tab ->
+            val navItem: @Composable RowScope.(EkagraNavTab) -> Unit = { tab ->
                 val isSelected = tab == selectedTab
                 val tabLabel = stringResource(tab.labelRes)
 
@@ -124,6 +125,7 @@ internal fun EkagraBottomNav(
                 Column(
                     modifier = Modifier
                         .weight(1f)
+                        .then(if (tab == EkagraNavTab.DURATION) Modifier.tutorialTarget("ekagra.settingsEntry") else Modifier)
                         .clickable(
                             interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
                             indication = null,
@@ -155,6 +157,10 @@ internal fun EkagraBottomNav(
                         color = textColor,
                     )
                 }
+            }
+            EkagraNavTab.entries.take(3).forEach { navItem(it) }
+            Row(Modifier.weight(2f).tutorialTarget("ekagra.personalizeEntry"), verticalAlignment = Alignment.CenterVertically) {
+                EkagraNavTab.entries.drop(3).forEach { navItem(it) }
             }
         }
     }

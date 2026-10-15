@@ -27,6 +27,7 @@ import com.composables.ui.components.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import com.safarparmar.app.ui.tutorial.tutorialTarget
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -68,12 +69,21 @@ internal fun HistoryTab(
     onReopen: (Goal) -> Unit,
     onDelete: (Goal) -> Unit,
 ) {
-    val today = LocalDate.now(IstDateUtils.zone)
-    var selectedDate by remember { mutableStateOf(today) }
-    var showHistoryDatePicker by remember { mutableStateOf(false) }
     val ekagraViewModel = hiltViewModel<EkagraViewModel>()
     val linkedSessions by ekagraViewModel.linkedSessions.collectAsStateWithLifecycle()
     LaunchedEffect(goals) { ekagraViewModel.loadLinkedSessions() }
+    GoalHistoryContent(goals, isSaving, onReopen, onDelete, linkedSessions)
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun GoalHistoryContent(
+    goals: List<Goal>, isSaving: Boolean, onReopen: (Goal) -> Unit, onDelete: (Goal) -> Unit,
+    linkedSessions: List<GoalLinkedSession> = emptyList(),
+) {
+    val today = LocalDate.now(IstDateUtils.zone)
+    var selectedDate by remember { mutableStateOf(today) }
+    var showHistoryDatePicker by remember { mutableStateOf(false) }
     val sessionsByGoal = remember(linkedSessions) {
         linkedSessions.distinctBy { it.id }.groupBy { it.goalId }
     }
@@ -216,6 +226,7 @@ internal fun HistoryTab(
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(16.dp))
                         .border(1.dp, GoalsFlatColors.Hairline, RoundedCornerShape(16.dp))
+                        .tutorialTarget("goals.historyGoal")
                         .background(GoalsFlatColors.Primary.copy(alpha = 0.03f))
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                 ) {

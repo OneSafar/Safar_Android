@@ -379,6 +379,7 @@ fun SyllabusSubjectsScreen(
                     topBar = {
                         @OptIn(ExperimentalMaterial3Api::class)
                         androidx.compose.material3.TopAppBar(
+                actions = { com.safarparmar.app.ui.tutorial.TitliGuideButton() },
                             title = { Text(subject.name, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
                             navigationIcon = {
                                 Box(modifier = Modifier.padding(start = 12.dp)) {

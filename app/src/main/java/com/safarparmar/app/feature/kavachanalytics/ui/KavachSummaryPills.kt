@@ -49,6 +49,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.safarparmar.app.ui.tutorial.tutorialTarget
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -137,6 +138,28 @@ fun KavachSummaryPills(
     val report = state.report
     val distractingSeconds = report?.allDay?.distractingSeconds ?: 0
 
+    KavachSummaryPillsContent(
+        distractingSeconds = distractingSeconds, modifier = modifier, ink = ink,
+        isDarkTheme = isDarkTheme, themeAccent = themeAccent, onOpenAnalytics = onOpenAnalytics,
+        myCircles = myCircles, selectedCircle = selectedCircle, onSelectCircle = onSelectCircle,
+        onNavigate = onNavigate,
+    )
+}
+
+/** Presentation shared with isolated feature tutorials; no ViewModel or lifecycle work. */
+@Composable
+fun KavachSummaryPillsContent(
+    distractingSeconds: Int,
+    modifier: Modifier = Modifier,
+    ink: com.safarparmar.app.ui.ekagra.EkagraInk? = null,
+    isDarkTheme: Boolean = !MaterialTheme.colorScheme.background.isLightBackground(),
+    themeAccent: Color = MaterialTheme.colorScheme.primary,
+    onOpenAnalytics: () -> Unit = {},
+    myCircles: List<StudyCircleSummaryDto> = emptyList(),
+    selectedCircle: StudyCircleSummaryDto? = null,
+    onSelectCircle: (StudyCircleSummaryDto) -> Unit = {},
+    onNavigate: (String) -> Unit = {},
+) {
     Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -167,11 +190,10 @@ fun KavachSummaryPills(
             accent = themeAccent,
             ink = ink,
             isDark = isDarkTheme,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.weight(1f).tutorialTarget("ekagra.circles"),
         )
     }
 }
-
 @Composable
 private fun SummaryPill(
     label: String,

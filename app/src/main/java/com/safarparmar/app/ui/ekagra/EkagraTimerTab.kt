@@ -1,5 +1,6 @@
 package com.safarparmar.app.ui.ekagra
 
+import com.safarparmar.app.ui.tutorial.tutorialTarget
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
@@ -26,6 +27,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -141,6 +143,7 @@ internal fun ModeTabs(
     ink: EkagraInk,
     isDarkTheme: Boolean = false,
     onSelect: (TimerMode) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val modes = remember { TimerMode.entries.filter { it.showInPill } }
 
@@ -148,7 +151,7 @@ internal fun ModeTabs(
     val trackBorder = if (isDarkTheme) Color.White.copy(alpha = 0.14f) else Color.White.copy(alpha = 0.38f)
 
     Row(
-        modifier = Modifier
+        modifier = modifier
             .clip(CircleShape)
             .background(trackBg)
             .border(1.dp, trackBorder, CircleShape)
@@ -240,6 +243,7 @@ internal fun TimerFocusTab(
     onOpenAppPicker: () -> Unit,
     onNavigate: (String) -> Unit,
     selectedTheme: VisualTheme? = null,
+    timerDiameter: Dp = EkagraChrome.size(252f),
     onOpenAnalytics: () -> Unit = {},
     studyCircleLiveCount: Int = 0,
     myCircles: List<com.safarparmar.app.data.remote.dto.StudyCircleSummaryDto> = emptyList(),
@@ -248,6 +252,7 @@ internal fun TimerFocusTab(
     showYoutubeBanner: Boolean = false,
     onDismissYoutubeFocus: () -> Unit = {},
     onEnableYoutubeFocus: () -> Unit = {},
+    summaryContent: (@Composable () -> Unit)? = null,
 ) {
     val scheme  = MaterialTheme.colorScheme
     val configuration   = LocalConfiguration.current
@@ -270,7 +275,7 @@ internal fun TimerFocusTab(
             enter = fadeIn(animationSpec = tween(500, easing = FastOutSlowInEasing)),
             exit = fadeOut(animationSpec = tween(500, easing = FastOutSlowInEasing)),
         ) {
-            com.safarparmar.app.feature.kavachanalytics.ui.KavachSummaryPills(
+            if (summaryContent != null) summaryContent() else com.safarparmar.app.feature.kavachanalytics.ui.KavachSummaryPills(
                 ink = ink,
                 isDarkTheme = isDarkTheme,
                 themeAccent = themeAccent,
@@ -307,6 +312,7 @@ internal fun TimerFocusTab(
                         ink = ink,
                         isDarkTheme = isDarkTheme,
                         onSelect = onModeChange,
+                        modifier = Modifier.tutorialTarget("ekagra.mode"),
                     )
                     Spacer(Modifier.height(if (isCompactHeight) 20.dp else 36.dp))
 
@@ -330,6 +336,7 @@ internal fun TimerFocusTab(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             modifier = Modifier
+                                .tutorialTarget("ekagra.kavach")
                                 .clip(CircleShape)
                                 .border(EkagraChrome.stroke(1f), ink.hairline, CircleShape)
                                 .then(
@@ -371,7 +378,7 @@ internal fun TimerFocusTab(
             val ringColor  = if (isDarkTheme) Color.White else Color.White
             val trackColor = if (isDarkTheme) Color.White.copy(alpha = 0.20f) else Color.White.copy(alpha = 0.40f)
 
-            Box(contentAlignment = Alignment.Center, modifier = Modifier.size(EkagraChrome.size(252f))) {
+            Box(contentAlignment = Alignment.Center, modifier = Modifier.size(timerDiameter)) {
                 // Ambient glow and soft radial background
                 androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize().padding(4.dp)) {
                     // Soft outer bloom
@@ -485,6 +492,7 @@ internal fun TimerFocusTab(
 
             // ── Controls — symmetrical horizontal control group ──
             Row(
+                modifier = Modifier.tutorialTarget("ekagra.controls"),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -493,6 +501,7 @@ internal fun TimerFocusTab(
                         label = if (timerMode == TimerMode.BREAK) stringResource(R.string.ekagra_end_break) else stringResource(R.string.common_end),
                         ink = ink,
                         onClick = onReset,
+                        modifier = Modifier.tutorialTarget("ekagra.end"),
                     )
                 }
                 EkagraPrimaryAction(
@@ -503,12 +512,14 @@ internal fun TimerFocusTab(
                     },
                     accent  = themeAccent,
                     onClick = onPlayPause,
+                    modifier = Modifier.tutorialTarget("ekagra.play"),
                 )
                 if (canStartBreak) {
                     EkagraGhostAction(
                         label = stringResource(R.string.ekagra_break),
                         ink   = ink,
                         onClick = onStartBreak,
+                        modifier = Modifier.tutorialTarget("ekagra.break"),
                     )
                 }
             }
@@ -581,7 +592,7 @@ internal fun EkagraYouTubeStudyBanner(
         Row(verticalAlignment = Alignment.CenterVertically) {
             com.composables.ui.components.Button(style = com.composables.ui.components.ButtonStyle.Ghost,
                 onClick = onEnableClick,
-                modifier = Modifier.weight(1f).heightIn(min = 48.dp),
+                modifier = Modifier.weight(1f).heightIn(min = 48.dp).tutorialTarget("ekagra.youtube"),
             ) {
                 Icon(Icons.Default.PlayArrow, contentDescription = null)
                 Spacer(Modifier.width(8.dp))

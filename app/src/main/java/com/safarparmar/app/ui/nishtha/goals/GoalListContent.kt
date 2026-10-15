@@ -1,5 +1,7 @@
 package com.safarparmar.app.ui.nishtha.goals
 
+import com.safarparmar.app.ui.tutorial.tutorialTarget
+
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.LaunchedEffect
@@ -406,6 +408,7 @@ internal fun GoalItem(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     completedViaEkagra: Boolean = goal.completedViaFocus,
+    modifier: Modifier = Modifier,
 ) {
     var showMenu by remember { mutableStateOf(false) }
     val progress = goal.progressPercent()
@@ -419,7 +422,7 @@ internal fun GoalItem(
     }
 
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -428,7 +431,7 @@ internal fun GoalItem(
         com.composables.ui.components.Checkbox(checked = goal.completed,
             enabled = !goal.completed || onReopen != null,
             onCheckedChange = { checked -> if (checked) onComplete() else onReopen?.invoke() },
-            modifier = Modifier.size(48.dp))
+            modifier = Modifier.size(48.dp).tutorialTarget("goals.complete"))
         Column(Modifier.weight(1f)) {
             Text(
                 text = goal.title,
@@ -579,7 +582,7 @@ internal fun GoalItem(
                     onClick = { showMenu = showMenu.not() },
                     style = ButtonStyle.Ghost,
                     buttonSize = ButtonSize.Small,
-                    modifier = Modifier.size(28.dp),
+                    modifier = Modifier.size(28.dp).tutorialTarget("goals.menu"),
                 ) {
                     ComposablesIcon(
                         imageVector = Icons.Default.MoreVert,

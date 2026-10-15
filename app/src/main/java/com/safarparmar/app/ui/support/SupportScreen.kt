@@ -47,6 +47,7 @@ fun SupportScreen(onBack: () -> Unit, viewModel: SupportViewModel = hiltViewMode
         snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
             TopAppBar(
+                actions = { com.safarparmar.app.ui.tutorial.TitliGuideButton() },
                 title = { Text(stringResource(R.string.support_talk_to_someone), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {

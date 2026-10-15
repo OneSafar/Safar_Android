@@ -132,6 +132,7 @@ private fun GoalsScreenContent(
     viewModel: NishthaViewModel,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val tutorialModel: GoalsTutorialViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 
     // Automatically refresh goals when this screen comes into focus
     LaunchedEffect(Unit) {
@@ -239,237 +240,21 @@ private fun GoalsScreenContent(
 
     // Study time completion dialog
     if (showRepeatPicker) {
-        var repeatSource by remember { mutableIntStateOf(0) }
-        var repeatDaily by remember { mutableStateOf(false) }
-        val todayKeyForRepeat = IstDateUtils.todayKey()
-        val yesterdayKey = remember {
-            runCatching {
-                LocalDate.parse(IstDateUtils.todayKey()).minusDays(1).toString()
-            }.getOrDefault(IstDateUtils.todayKey())
-        }
-        val sourceDateKey = if (repeatSource == 0) todayKeyForRepeat else yesterdayKey
-        val candidates = remember(uiState.goals, sourceDateKey) {
-            uiState.goals.filter {
-                it.source != "ekagra" &&
-                    it.lifecycleStatus !in listOf("abandoned", "rolled_over") &&
-                    IstDateUtils.getDateKey(it.scheduledDate ?: it.createdAt) == sourceDateKey
-            }
-        }
-        val selectedIds = remember(candidates, repeatSource) {
-            mutableStateListOf<String>().apply { addAll(candidates.map { it.id }) }
-        }
-
         com.composables.ui.components.AlertDialog(visible = true, onDismissRequest = { showRepeatPicker = false },
             paneTitle = "Goals", modifier = Modifier.heightIn(max = (androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp * 0.8f).dp)) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .wrapContentWidth(Alignment.CenterHorizontally)
-                    .widthIn(max = 600.dp)
-                    .padding(horizontal = 20.dp)
-                    .padding(bottom = 32.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                PlanEyebrow(stringResource(R.string.goals_eyebrow))
-                Text(
-                    stringResource(R.string.goals_repeat_goals),
-                    fontFamily = LoraFontFamily,
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Normal,
-                    color = GoalsFlatColors.Text,
-                )
-                Text(
-                    if (candidates.isEmpty()) {
-                        if (repeatSource == 0) stringResource(R.string.goals_no_goals_today) else stringResource(R.string.goals_no_goals_yesterday)
-                    } else {
-                        if (repeatSource == 0) stringResource(R.string.goals_select_today_repeat_tomorrow)
-                        else stringResource(R.string.goals_select_yesterday_bring_today)
-                    },
-                    fontSize = 13.sp,
-                    color = GoalsFlatColors.Muted,
-                )
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf(stringResource(R.string.common_today) to 0, stringResource(R.string.common_yesterday) to 1).forEach { (label, index) ->
-                        TextButton(onClick = { repeatSource = index }) {
-                            Text(
-                                label,
-                                fontWeight = FontWeight.Bold,
-                                color = if (repeatSource == index) GoalsFlatColors.Primary else GoalsFlatColors.Muted,
-                            )
-                        }
-                    }
-                    Spacer(Modifier.weight(1f))
-                    if (candidates.isNotEmpty()) {
-                        TextButton(onClick = {
-                            if (selectedIds.size == candidates.size) selectedIds.clear()
-                            else {
-                                selectedIds.clear()
-                                selectedIds.addAll(candidates.map { it.id })
-                            }
-                        }) {
-                            Text(
-                                if (selectedIds.size == candidates.size) stringResource(R.string.common_clear_all) else stringResource(R.string.common_select_all),
-                                color = GoalsFlatColors.Primary,
-                            )
-                        }
-                    }
-                }
-                Column(
-                    modifier = Modifier
-                        .heightIn(max = 360.dp)
-                        .verticalScroll(rememberScrollState()),
-                ) {
-                    candidates.forEach { goal ->
-                        val checked = goal.id in selectedIds
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    if (checked) selectedIds.remove(goal.id) else selectedIds.add(goal.id)
-                                }
-                                .padding(vertical = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        ) {
-                            Icon(
-                                if (checked) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
-                                contentDescription = null,
-                                tint = if (checked) GoalsFlatColors.Primary else GoalsFlatColors.Muted,
-                                modifier = Modifier.size(20.dp),
-                            )
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    goal.title,
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = GoalsFlatColors.Text,
-                                    maxLines = 1,
-                                )
-                                Text(
-                                    if (goal.completed) stringResource(R.string.goals_completed) else goal.goalKindLabel(),
-                                    fontSize = 11.5.sp,
-                                    color = GoalsFlatColors.Muted,
-                                )
-                            }
-                        }
-                        PlanHairline(alpha = 0.5f)
-                    }
-                }
-
-                if (repeatSource == 0 && candidates.isNotEmpty()) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Column(Modifier.weight(1f)) {
-                            Text(stringResource(R.string.goals_auto_repeat_selected), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = GoalsFlatColors.Text)
-                            Text(stringResource(R.string.goals_auto_repeat_help), fontSize = 11.5.sp, color = GoalsFlatColors.Muted)
-                        }
-                        Switch(checked = repeatDaily, onCheckedChange = { repeatDaily = it })
-                    }
-                }
-
-                TextButton(
-                    onClick = {
-                        val selectedGoals = candidates.filter { it.id in selectedIds }
-                        if (repeatSource == 0) {
-                            val tomorrow = LocalDate.parse(todayKeyForRepeat).plusDays(1).toString()
-                            viewModel.repeatGoalsOnDate(selectedGoals, tomorrow, repeatDaily)
-                        } else {
-                            viewModel.repeatGoals(selectedIds.toList())
-                        }
-                        showRepeatPicker = false
-                    },
-                    enabled = selectedIds.isNotEmpty() && !uiState.isSavingGoal,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(
-                        if (selectedIds.isEmpty()) stringResource(R.string.goals_choose_at_least_one)
-                        else if (repeatSource == 0) stringResource(R.string.goals_repeat_selected_tomorrow, selectedIds.size)
-                        else stringResource(R.string.goals_repeat_selected_today, selectedIds.size),
-                        fontWeight = FontWeight.Bold,
-                        color = if (selectedIds.isEmpty()) GoalsFlatColors.Muted else GoalsFlatColors.Primary,
-                    )
-                }
-            }
+            GoalRepeatContent(uiState.goals, uiState.isSavingGoal, onRepeat = { selectedGoals, source, daily ->
+                if (source == 0) viewModel.repeatGoalsOnDate(selectedGoals, LocalDate.parse(IstDateUtils.todayKey()).plusDays(1).toString(), daily)
+                else viewModel.repeatGoals(selectedGoals.map { it.id })
+                showRepeatPicker = false
+            })
         }
     }
 
     if (showDeletedSheet) {
         com.composables.ui.components.AlertDialog(visible = true, onDismissRequest = { showDeletedSheet = false },
             paneTitle = "Goals", modifier = Modifier.heightIn(max = (androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp * 0.8f).dp)) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .wrapContentWidth(Alignment.CenterHorizontally)
-                    .widthIn(max = 600.dp)
-                    .padding(horizontal = 20.dp)
-                    .padding(bottom = 32.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                PlanEyebrow(stringResource(R.string.goals_eyebrow))
-                Text(
-                    stringResource(R.string.goals_recently_deleted),
-                    fontFamily = LoraFontFamily,
-                    fontSize = 22.sp,
-                    color = GoalsFlatColors.Text,
-                )
-                Text(
-                    stringResource(R.string.goals_recently_deleted_help),
-                    fontSize = 13.sp,
-                    color = GoalsFlatColors.Muted,
-                )
-                when {
-                    uiState.isLoadingDeletedGoals -> Box(
-                        Modifier.fillMaxWidth().padding(32.dp),
-                        contentAlignment = Alignment.Center,
-                    ) { CircularProgressIndicator(color = GoalsFlatColors.Primary) }
-                    uiState.recentlyDeletedGoals.isEmpty() -> Text(
-                        stringResource(R.string.goals_recently_deleted_empty),
-                        color = GoalsFlatColors.Muted,
-                        modifier = Modifier.padding(vertical = 28.dp),
-                    )
-                    else -> Column(
-                        modifier = Modifier
-                            .heightIn(max = 460.dp)
-                            .verticalScroll(rememberScrollState()),
-                    ) {
-                        uiState.recentlyDeletedGoals.forEach { goal ->
-                            Row(
-                                modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            ) {
-                                Column(Modifier.weight(1f)) {
-                                    Text(
-                                        goal.title,
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = GoalsFlatColors.Text,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                    )
-                                    Text(
-                                        goal.assignedDateKey()?.let { stringResource(R.string.goals_assigned_date_value, IstDateUtils.labelFor(it)) }
-                                            ?: stringResource(R.string.goals_original_date_unavailable),
-                                        fontSize = 11.sp,
-                                        color = GoalsFlatColors.Muted,
-                                    )
-                                }
-                                TextButton(
-                                    enabled = !uiState.isSavingGoal,
-                                    onClick = { viewModel.restoreGoal(goal.id) },
-                                ) {
-                                    Icon(Icons.Default.Restore, null, modifier = Modifier.size(16.dp))
-                                    Spacer(Modifier.width(4.dp))
-                                    Text(stringResource(R.string.common_restore))
-                                }
-                            }
-                            PlanHairline(alpha = 0.5f)
-                        }
-                    }
-                }
-            }
+            GoalDeletedContent(uiState.recentlyDeletedGoals, uiState.isLoadingDeletedGoals, uiState.isSavingGoal,
+                onRestore = { viewModel.restoreGoal(it.id) })
         }
     }
 
@@ -516,121 +301,12 @@ private fun GoalsScreenContent(
                 )
             },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                stringResource(R.string.common_hours_upper),
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = GoalsFlatColors.Primary,
-                                letterSpacing = 1.sp,
-                            )
-                            Spacer(Modifier.height(6.dp))
-                            TimeDigitField(
-                                value = studyHours,
-                                onValueChange = { studyHours = it },
-                                maxValue = 99,
-                            )
-                        }
-                        Text(
-                            ":",
-                            fontSize = 28.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = GoalsFlatColors.Primary,
-                            modifier = Modifier.padding(top = 20.dp),
-                        )
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                stringResource(R.string.common_minutes_upper),
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = GoalsFlatColors.Primary,
-                                letterSpacing = 1.sp,
-                            )
-                            Spacer(Modifier.height(6.dp))
-                            TimeDigitField(
-                                value = studyMinutes,
-                                onValueChange = { studyMinutes = it },
-                                maxValue = 59,
-                            )
-                        }
-                    }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        listOf("+15m" to 15, "+30m" to 30, "+1h" to 60, "+2h" to 120).forEach { (label, mins) ->
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .clip(RoundedCornerShape(20.dp))
-                                    .border(1.dp, GoalsFlatColors.Hairline, RoundedCornerShape(20.dp))
-                                    .clickable(
-                                        interactionSource = remember { MutableInteractionSource() },
-                                        indication = null,
-                                        onClick = {
-                                            val (hours, minutes) = addStudyTime(studyHours, studyMinutes, mins)
-                                            studyHours = hours
-                                            studyMinutes = minutes
-                                        },
-                                    )
-                                    .padding(horizontal = 4.dp, vertical = 8.dp),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Text(label, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = GoalsFlatColors.Text)
-                            }
-                        }
-                    }
-                }
+                GoalStudyTimeContent(studyHours, studyMinutes, { studyHours = it }, { studyMinutes = it })
             },
             confirmButton = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(GoalsFlatColors.Primary)
-                            .clickable(enabled = !uiState.isSavingGoal) {
-                                val totalMins = studyHours * 60 + studyMinutes
-                                requestCompletion(goal, totalMins)
-                            }
-                            .padding(vertical = 14.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(if (uiState.isSavingGoal) stringResource(R.string.common_saving) else stringResource(R.string.common_done), fontWeight = FontWeight.Bold, color = Color.White, fontSize = 14.sp)
-                    }
-                    Text(
-                        stringResource(R.string.goals_complete_without_time),
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = GoalsFlatColors.Primary,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable(enabled = !uiState.isSavingGoal) {
-                                requestCompletion(goal, 0)
-                            }
-                            .padding(vertical = 10.dp),
-                    )
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(14.dp))
-                            .border(1.dp, GoalsFlatColors.Hairline, RoundedCornerShape(14.dp))
-                            .clickable {
-                                completeGoal = null; studyHours = 0; studyMinutes = 0
-                            }
-                            .padding(vertical = 12.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(stringResource(R.string.common_cancel), fontWeight = FontWeight.Bold, color = GoalsFlatColors.Muted, fontSize = 13.sp)
-                    }
-                }
+                GoalCompletionActions(studyHours, studyMinutes, uiState.isSavingGoal,
+                    onComplete = { requestCompletion(goal, it) },
+                    onCancel = { completeGoal = null; studyHours = 0; studyMinutes = 0 })
             },
             dismissButton = null,
             shape = RoundedCornerShape(24.dp),
@@ -671,76 +347,20 @@ private fun GoalsScreenContent(
                 )
             },
             confirmButton = {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    // Primary: Move to today and complete
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(GoalsFlatColors.Primary)
-                            .clickable(enabled = !uiState.isSavingGoal) {
-                                viewModel.completeGoal(
-                                    id = goal.id,
-                                    studiedMinutes = totalMins,
-                                    scheduledDate = IstDateUtils.todayKey(),
-                                )
-                            }
-                            .padding(vertical = 14.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            if (uiState.isSavingGoal) stringResource(R.string.common_saving) else stringResource(R.string.goals_move_today_complete),
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White,
-                            fontSize = 14.sp,
-                        )
-                    }
-
-                    // Secondary: Complete for original date
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(14.dp))
-                            .border(1.dp, GoalsFlatColors.Hairline, RoundedCornerShape(14.dp))
-                            .clickable(enabled = !uiState.isSavingGoal) {
-                                viewModel.completeGoal(goal.id, totalMins)
-                            }
-                            .padding(vertical = 12.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            stringResource(R.string.goals_complete_for_date, originalDate),
-                            fontWeight = FontWeight.SemiBold,
-                            color = GoalsFlatColors.Primary,
-                            fontSize = 13.sp,
-                        )
-                    }
-
-                    // Cancel
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(14.dp))
-                            .border(1.dp, GoalsFlatColors.Hairline, RoundedCornerShape(14.dp))
-                            .clickable(enabled = !uiState.isSavingGoal) {
-                                overdueCompletion = null
-                                studyHours = 0
-                                studyMinutes = 0
-                            }
-                            .padding(vertical = 12.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            stringResource(R.string.common_cancel),
-                            fontWeight = FontWeight.Bold,
-                            color = GoalsFlatColors.Muted,
-                            fontSize = 13.sp,
-                        )
-                    }
-                }
+                GoalOverdueActions(originalDate, uiState.isSavingGoal,
+                    onMoveToToday = {
+                viewModel.completeGoal(
+                    id = goal.id,
+                    studiedMinutes = totalMins,
+                    scheduledDate = IstDateUtils.todayKey(),
+                )
+            }, onKeepDate = {
+                viewModel.completeGoal(goal.id, totalMins)
+            }, onCancel = {
+                overdueCompletion = null
+                studyHours = 0
+                studyMinutes = 0
+            })
             },
             dismissButton = null,
             shape = RoundedCornerShape(24.dp),
@@ -751,111 +371,50 @@ private fun GoalsScreenContent(
     editGoal?.let { goal ->
         com.composables.ui.components.AlertDialog(visible = true, onDismissRequest = { editGoal = null },
             paneTitle = "Goals", modifier = Modifier.heightIn(max = (androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp * 0.8f).dp)) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .wrapContentWidth(Alignment.CenterHorizontally)
-                    .widthIn(max = 600.dp)
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 20.dp)
-                    .padding(bottom = 40.dp)
-                    .imePadding(),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
-            ) {
-                PlanEyebrow(stringResource(R.string.goals_eyebrow))
-                Text(
-                    stringResource(R.string.goals_edit_goal),
-                    fontFamily = LoraFontFamily,
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Normal,
-                    color = GoalsFlatColors.Text,
-                )
-                PlanHairline()
-                OutlinedTextField(
-                    value = editTitle,
-                    onValueChange = { editTitle = it },
-                    label = { Text(stringResource(R.string.goals_title_prompt)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
-                    colors = fieldColors,
-                )
-                PlanHairline(alpha = 0.6f)
-                val editIsScheduled = editGoalKind == "scheduled"
-                AssistOptionRow(
-                    selected = editIsScheduled,
-                    title = stringResource(R.string.goals_schedule_future),
-                    subtitle = if (editIsScheduled) stringResource(R.string.goals_set_for_date, selectedDate.format(DateTimeFormatter.ofPattern("EEE, MMM d", Locale.getDefault()))) else stringResource(R.string.goals_set_today_pick_future),
-                    onClick = {
-                        if (editIsScheduled) {
-                            editGoalKind = "today"
-                            selectedDate = LocalDate.now(IstDateUtils.zone)
-                            editScheduleChanged = true
-                        } else {
-                            editGoalKind = "scheduled"
-                            selectedDate = LocalDate.now(IstDateUtils.zone).plusDays(1)
-                            editScheduleChanged = true
-                            showDatePicker = true
-                        }
+            GoalCreationContent(
+                title = editTitle, description = editDesc, scheduled = editGoalKind == "scheduled",
+                repeatDaily = editRepeatDaily, selectedDate = selectedDate,
+                onTitleChange = { editTitle = it }, onDescriptionChange = { editDesc = it },
+                onToggleSchedule = {
+                    if (editGoalKind == "scheduled") {
+                        editGoalKind = "today"
+                        selectedDate = LocalDate.now(IstDateUtils.zone)
+                        editScheduleChanged = true
+                    } else {
+                        editGoalKind = "scheduled"
+                        selectedDate = LocalDate.now(IstDateUtils.zone).plusDays(1)
+                        editScheduleChanged = true
+                        showDatePicker = true
                     }
-                )
-                if (editIsScheduled) {
-                    ScheduledDatePickerRow(
-                        selectedDate = selectedDate,
-                        onClick = { editScheduleChanged = true; showDatePicker = true },
+                },
+                onPickDate = { editScheduleChanged = true; showDatePicker = true },
+                onRepeatChange = { editRepeatDaily = it }, isSaving = uiState.isSavingGoal,
+                onCreate = {
+                    val scheduledDate = if (!editScheduleChanged) null else when (editGoalKind) {
+                        "today" -> IstDateUtils.todayKey()
+                        "scheduled" -> selectedDate.toString()
+                        "one_time" -> goal.scheduledDate
+                        else -> IstDateUtils.todayKey()
+                    }
+                    viewModel.updateGoalDetails(
+                        id = goal.id,
+                        title = editTitle.trim(),
+                        description = editDesc.ifBlank { null },
+                        priority = editPriority,
+                        scheduledDate = scheduledDate,
+                        startedAt = goal.startedAt,
+                        subtasks = if (editUnitType == "checklist") goal.subtasks else emptyList(),
+                        goalKind = if (editRepeatDaily) "repeat" else editGoalKind,
+                        unitType = editUnitType,
+                        linkedFocusEnabled = goal.linkedFocusEnabled,
+                        plannedFocusMinutes = goal.plannedFocusMinutes,
+                        targetValue = goal.targetValue,
+                        achievedValue = goal.achievedValue,
+                        status = if (editScheduleChanged && editStatus in listOf("missed", "expired")) "not_started" else editStatus,
+                        carryForwardMode = if (editGoalKind == "scheduled" || editGoalKind == "one_time") "none" else editCarryForward
                     )
-                }
-                PlanHairline(alpha = 0.6f)
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Column(Modifier.weight(1f)) {
-                        Text(stringResource(R.string.goals_repeat_every_day), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = GoalsFlatColors.Text)
-                        Text(stringResource(R.string.goals_repeat_every_day_help), fontSize = 12.sp, color = GoalsFlatColors.Muted)
-                    }
-                    Switch(checked = editRepeatDaily, onCheckedChange = { editRepeatDaily = it })
-                }
-                PlanHairline(alpha = 0.6f)
-                OutlinedTextField(
-                    value = editDesc,
-                    onValueChange = { editDesc = it },
-                    label = { Text(stringResource(R.string.goals_add_details_optional)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = fieldColors,
-                )
-                val saveEnabled = editTitle.isNotBlank() && !uiState.isSavingGoal
-                Button(onClick = {
-                            val scheduledDate = if (!editScheduleChanged) null else when (editGoalKind) {
-                                "today" -> IstDateUtils.todayKey()
-                                "scheduled" -> selectedDate.toString()
-                                "one_time" -> goal.scheduledDate
-                                else -> IstDateUtils.todayKey()
-                            }
-                            viewModel.updateGoalDetails(
-                                id = goal.id,
-                                title = editTitle.trim(),
-                                description = editDesc.ifBlank { null },
-                                priority = editPriority,
-                                scheduledDate = scheduledDate,
-                                startedAt = goal.startedAt,
-                                subtasks = if (editUnitType == "checklist") goal.subtasks else emptyList(),
-                                goalKind = if (editRepeatDaily) "repeat" else editGoalKind,
-                                unitType = editUnitType,
-                                linkedFocusEnabled = goal.linkedFocusEnabled,
-                                plannedFocusMinutes = goal.plannedFocusMinutes,
-                                targetValue = goal.targetValue,
-                                achievedValue = goal.achievedValue,
-                                status = if (editScheduleChanged && editStatus in listOf("missed", "expired")) "not_started" else editStatus,
-                                carryForwardMode = if (editGoalKind == "scheduled" || editGoalKind == "one_time") "none" else editCarryForward
-                            )
-                        
-                }, enabled = saveEnabled, modifier = Modifier.fillMaxWidth()) {
-                    Text(stringResource(R.string.goals_save_changes), fontWeight = FontWeight.Bold, color = Color.White, fontSize = 14.sp)
-                }
-            }
+                }, editing = true,
+            )
         }
     }
 
@@ -866,115 +425,41 @@ private fun GoalsScreenContent(
     if (showAddSheet) {
         com.composables.ui.components.AlertDialog(visible = true, onDismissRequest = { showAddSheet = false },
             paneTitle = "Goals", modifier = Modifier.heightIn(max = (androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp * 0.8f).dp)) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .wrapContentWidth(Alignment.CenterHorizontally)
-                    .widthIn(max = 600.dp)
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 20.dp)
-                    .padding(bottom = 40.dp)
-                    .imePadding(),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
-            ) {
-                PlanEyebrow(stringResource(R.string.goals_eyebrow))
-                Text(
-                    stringResource(R.string.goals_new_goal),
-                    fontFamily = LoraFontFamily,
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Normal,
-                    color = GoalsFlatColors.Text,
-                )
-                PlanHairline()
-                OutlinedTextField(
-                    value = newTitle,
-                    onValueChange = { newTitle = it },
-                    label = { Text(stringResource(R.string.goals_title_prompt)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
-                    colors = fieldColors,
-                )
-                PlanHairline(alpha = 0.6f)
-                val isScheduled = newGoalKind == "scheduled"
-                AssistOptionRow(
-                    selected = isScheduled,
-                    title = stringResource(R.string.goals_schedule_future),
-                    subtitle = if (isScheduled) stringResource(R.string.goals_set_for_date, selectedDate.format(DateTimeFormatter.ofPattern("EEE, MMM d", Locale.getDefault()))) else stringResource(R.string.goals_default_today_pick_future),
-                    onClick = {
-                        if (isScheduled) {
-                            newGoalKind = "today"
-                            selectedDate = LocalDate.now(IstDateUtils.zone)
-                        } else {
-                            newGoalKind = "scheduled"
-                            selectedDate = LocalDate.now(IstDateUtils.zone).plusDays(1)
-                            showDatePicker = true
-                        }
-                    }
-                )
-                if (isScheduled) {
-                    ScheduledDatePickerRow(selectedDate = selectedDate, onClick = { showDatePicker = true })
-                }
-                PlanHairline(alpha = 0.6f)
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Column(Modifier.weight(1f)) {
-                        Text(stringResource(R.string.goals_repeat_every_day), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = GoalsFlatColors.Text)
-                        Text(stringResource(R.string.goals_repeat_every_day_help), fontSize = 12.sp, color = GoalsFlatColors.Muted)
-                    }
-                    Switch(checked = newRepeatDaily, onCheckedChange = { newRepeatDaily = it })
-                }
-                PlanHairline(alpha = 0.6f)
-                OutlinedTextField(
-                    value = newDesc,
-                    onValueChange = { newDesc = it },
-                    label = { Text(stringResource(R.string.goals_add_details_optional)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = fieldColors,
-                )
-                if (uiState.goalError != null) {
-                    Text(uiState.goalError!!, color = GoalsFlatColors.Danger, fontSize = 13.sp)
-                }
-                val createEnabled = newTitle.isNotBlank() && !uiState.isSavingGoal
-                Button(onClick = {
-                            val scheduledDate = if (newGoalKind == "scheduled") selectedDate.toString() else IstDateUtils.todayKey()
-                            viewModel.addGoal(
-                                title = newTitle.trim(),
-                                description = newDesc.ifBlank { null },
-                                priority = newPriority,
-                                scheduledDate = scheduledDate,
-                                startedAt = null,
-                                subtasks = emptyList(),
-                                goalKind = if (newRepeatDaily) "repeat" else newGoalKind,
-                                unitType = "binary",
-                                linkedFocusEnabled = false,
-                                plannedFocusMinutes = null,
-                                targetValue = null,
-                                achievedValue = 0,
-                                status = "not_started",
-                                carryForwardMode = newCarryForward
-                            )
-                        
-                }, enabled = createEnabled, modifier = Modifier.fillMaxWidth()) {
-                    if (uiState.isSavingGoal) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(16.dp),
-                            color = Color.White,
-                            strokeWidth = 2.dp,
-                        )
+            GoalCreationContent(
+                title = newTitle, description = newDesc, scheduled = newGoalKind == "scheduled",
+                repeatDaily = newRepeatDaily, selectedDate = selectedDate,
+                onTitleChange = { newTitle = it }, onDescriptionChange = { newDesc = it },
+                onToggleSchedule = {
+                    if (newGoalKind == "scheduled") {
+                        newGoalKind = "today"
+                        selectedDate = LocalDate.now(IstDateUtils.zone)
                     } else {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Add, null, modifier = Modifier.size(18.dp), tint = Color.White)
-                            Spacer(Modifier.width(6.dp))
-                            Text(stringResource(R.string.goals_create_goal), fontWeight = FontWeight.Bold, color = Color.White, fontSize = 14.sp)
-                        }
+                        newGoalKind = "scheduled"
+                        selectedDate = LocalDate.now(IstDateUtils.zone).plusDays(1)
+                        showDatePicker = true
                     }
-                }
-            }
+                },
+                onPickDate = { showDatePicker = true }, onRepeatChange = { newRepeatDaily = it },
+                isSaving = uiState.isSavingGoal, error = uiState.goalError, onCreate = {
+                    val scheduledDate = if (newGoalKind == "scheduled") selectedDate.toString() else IstDateUtils.todayKey()
+                    viewModel.addGoal(
+                        title = newTitle.trim(),
+                        description = newDesc.ifBlank { null },
+                        priority = newPriority,
+                        scheduledDate = scheduledDate,
+                        startedAt = null,
+                        subtasks = emptyList(),
+                        goalKind = if (newRepeatDaily) "repeat" else newGoalKind,
+                        unitType = "binary",
+                        linkedFocusEnabled = false,
+                        plannedFocusMinutes = null,
+                        targetValue = null,
+                        achievedValue = 0,
+                        status = "not_started",
+                        carryForwardMode = newCarryForward
+                    )
+                },
+            )
         }
     }
 
@@ -1062,169 +547,14 @@ private fun GoalsScreenContent(
             .background(GoalsFlatColors.Bg)
             .verticalScroll(rememberScrollState()),
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 0.dp),
-        ) {
-            Text(
-                stringResource(R.string.goals_my_goals),
-                fontFamily = LoraFontFamily,
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Normal,
-                color = GoalsFlatColors.Text,
-            )
-            Spacer(Modifier.height(4.dp))
-            Text(
-                if (totalToday == 0) {
-                    stringResource(R.string.goals_nothing_planned_today)
-                } else {
-                    stringResource(R.string.goals_done_today_count, doneToday, totalToday)
-                },
-                fontSize = 13.sp,
-                color = GoalsFlatColors.Muted,
-            )
-            Spacer(Modifier.height(16.dp))
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Button(
-                    onClick = { showAddSheet = true },
-                    style = ButtonStyle.Ghost,
-                    buttonSize = ButtonSize.Small,
-                    modifier = Modifier.background(GoalsFlatColors.Primary, RoundedCornerShape(20.dp)),
-                    contentColor = Color.White,
-                ) {
-                    ComposablesIcon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                    )
-                    Spacer(Modifier.width(4.dp))
-                    Text(
-                        stringResource(R.string.goals_add_goal),
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color.White,
-                    )
-                }
-                Button(
-                    onClick = { showStatusSheet = true },
-                    style = ButtonStyle.Ghost,
-                    buttonSize = ButtonSize.Small,
-                    modifier = Modifier.border(1.dp, GoalsFlatColors.Hairline, RoundedCornerShape(20.dp)),
-                    contentColor = GoalsFlatColors.Text,
-                ) {
-                    ComposablesIcon(
-                        imageVector = Icons.Default.BarChart,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                    )
-                    Spacer(Modifier.width(6.dp))
-                    Text(
-                        stringResource(R.string.goals_status),
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                }
-                Button(
-                    onClick = { showRepeatPicker = true },
-                    style = ButtonStyle.Ghost,
-                    buttonSize = ButtonSize.Small,
-                    modifier = Modifier.border(1.dp, GoalsFlatColors.Hairline, RoundedCornerShape(20.dp)),
-                    contentColor = GoalsFlatColors.Text,
-                ) {
-                    ComposablesIcon(
-                        imageVector = Icons.Default.Repeat,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                    )
-                    Spacer(Modifier.width(6.dp))
-                    Text(
-                        stringResource(R.string.goals_repeat_goals),
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                }
-                Button(
-                    onClick = { onNavigate(Routes.nishthaAnalytics("goals")) },
-                    style = ButtonStyle.Ghost,
-                    buttonSize = ButtonSize.Small,
-                    modifier = Modifier.border(1.dp, GoalsFlatColors.Hairline, RoundedCornerShape(20.dp)),
-                    contentColor = GoalsFlatColors.Text,
-                ) {
-                    ComposablesIcon(
-                        imageVector = Icons.AutoMirrored.Filled.TrendingUp,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                    )
-                    Spacer(Modifier.width(6.dp))
-                    Text(
-                        stringResource(R.string.goals_insights),
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                }
-                Button(
-                    onClick = {
-                        showDeletedSheet = true
-                        viewModel.loadRecentlyDeletedGoals()
-                    },
-                    style = ButtonStyle.Ghost,
-                    buttonSize = ButtonSize.Small,
-                    modifier = Modifier.border(1.dp, GoalsFlatColors.Hairline, RoundedCornerShape(20.dp)),
-                    contentColor = GoalsFlatColors.Text,
-                ) {
-                    ComposablesIcon(
-                        imageVector = Icons.Default.DeleteSweep,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                    )
-                    Spacer(Modifier.width(6.dp))
-                    Text(
-                        stringResource(R.string.goals_recently_deleted),
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                }
-            }
-
-            Spacer(Modifier.height(18.dp))
-            HorizontalSeparator(color = GoalsFlatColors.Hairline)
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                Text(
-                    if (totalToday == 0) stringResource(R.string.goals_nothing_today) else stringResource(R.string.goals_count_of_total, doneToday, totalToday),
-                    fontFamily = LoraFontFamily,
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Normal,
-                    color = GoalsFlatColors.Done,
-                )
-                Text(
-                    if (totalToday == 0) stringResource(R.string.goals_add_to_get_started) else stringResource(R.string.goals_done_today_label),
-                    fontSize = 13.sp,
-                    color = GoalsFlatColors.Muted,
-                )
-            }
-            HorizontalSeparator(color = GoalsFlatColors.Hairline)
-
-            Spacer(Modifier.height(14.dp))
-            GoalsUnderlineTabs(
-                tabs = tabs,
-                selectedTab = selectedTab,
-                onTabSelected = { selectedTab = it },
-            )
-            Spacer(Modifier.height(4.dp))
-        }
+        GoalsOverviewHeader(
+            tabs = tabs, selectedTab = selectedTab, totalToday = totalToday, doneToday = doneToday,
+            onSelectTab = { selectedTab = it }, onAdd = { showAddSheet = true },
+            onStatus = { showStatusSheet = true }, onRepeat = { showRepeatPicker = true },
+            onInsights = { onNavigate(Routes.nishthaAnalytics("goals")) },
+            onDeleted = { showDeletedSheet = true; viewModel.loadRecentlyDeletedGoals() },
+            onLearn = { tutorialModel.open() },
+        )
 
         when (selectedTab) {
             0, 1, 2 -> GoalsTab(
@@ -1271,10 +601,17 @@ private fun GoalsScreenContent(
         modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 88.dp),
     )
     }
+    GoalsTutorialEntry(
+        dataStore = viewModel.dataStore,
+        eligible = goalsTutorialEligible(uiState.isLoadingGoals, uiState.isSavingGoal,
+            showAddSheet || showStatusSheet || showDeletedSheet || showDatePicker || showRepeatPicker ||
+                editGoal != null || completeGoal != null || overdueCompletion != null || deleteGoal != null),
+        model = tutorialModel,
+    )
 }
 
 @Composable
-private fun GoalsUnderlineTabs(
+internal fun GoalsUnderlineTabs(
     tabs: List<String>,
     selectedTab: Int,
     onTabSelected: (Int) -> Unit,
@@ -1309,7 +646,7 @@ private fun GoalsUnderlineTabs(
  *  dialog — previously a plain [Text] with no input handling at all, so the quick-add
  *  chips were the only way to set a value. */
 @Composable
-private fun TimeDigitField(
+internal fun TimeDigitField(
     value: Int,
     onValueChange: (Int) -> Unit,
     maxValue: Int,

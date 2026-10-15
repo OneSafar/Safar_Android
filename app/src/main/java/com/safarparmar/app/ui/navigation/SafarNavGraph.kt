@@ -211,6 +211,8 @@ fun SafarNavGraph(
         activity.resetNotificationRoute()
     }
 
+    com.safarparmar.app.ui.tutorial.TitliHost(dataStore,
+        onOpenEkagra = { navigate(Routes.EKAGRA) }, onOpenGoals = { navigate(Routes.nishthaTab(2)) }) {
     NavHost(
         navController = navController,
         startDestination = Routes.SPLASH,
@@ -822,6 +824,7 @@ fun SafarNavGraph(
                 onBack = ::safeBack,
             )
         }
+    }
     }
 }
 

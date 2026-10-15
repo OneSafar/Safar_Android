@@ -169,6 +169,7 @@ fun CreatePlanScreen(
         topBar = {
             if (!showCelebration && state.step != CreatePlanStep.ManualTopicTree) {
                 CenterAlignedTopAppBar(
+                actions = { com.safarparmar.app.ui.tutorial.TitliGuideButton() },
                     title = {
                         Text(
                             text = stepTitle(state.step).uppercase(),

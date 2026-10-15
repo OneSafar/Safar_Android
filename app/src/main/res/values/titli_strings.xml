@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="titli_name">Titli</string>
+    <string name="titli_description">Titli, your tutorial guide</string>
+    <string name="titli_hello">Hi, I’m Titli</string>
+    <string name="titli_introduction">I’m your tutorial guide. To learn a feature, go to its screen and tap me. I’ll guide you through it.</string>
+    <string name="titli_begin">Let’s begin</string>
+    <string name="titli_available_guides">I’m still learning this screen. You can practice these features now:</string>
+</resources>
