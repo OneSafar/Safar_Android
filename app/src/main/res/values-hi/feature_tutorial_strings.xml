@@ -5,7 +5,7 @@
     <string name="feature_tutorial_skip">छोड़ें</string>
     <string name="feature_tutorial_back">पीछे</string>
     <string name="feature_tutorial_next">आगे</string>
-    <string name="feature_tutorial_finish">पाठ पूरा करें</string>
+    <string name="feature_tutorial_finish">OK</string>
     <string name="feature_tutorial_retry">फिर कोशिश करें</string>
     <string name="ekagra_tutorial_learn">Ekagra सीखें</string>
     <string name="ekagra_tutorial_invite">कुछ चरणों में एकाग्र सीखें</string>

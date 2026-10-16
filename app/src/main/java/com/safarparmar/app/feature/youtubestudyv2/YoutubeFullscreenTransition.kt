@@ -5,11 +5,20 @@ internal class YoutubeFullscreenTransition {
     private var owner: YoutubeV2Observation? = null
     private var observedAt = 0L
     private var verified = false
+    private var layoutTransitionUntil = 0L
 
     fun clear() {
         owner = null
         verified = false
+        layoutTransitionUntil = 0L
     }
+
+    /** A fullscreen button can briefly leave no watch-page nodes during rotation. */
+    fun beginLayoutTransition(now: Long) {
+        if (owner != null) layoutTransitionUntil = now + 2_500L
+    }
+
+    fun isLayoutTransitionPending(now: Long): Boolean = layoutTransitionUntil > now
 
     /** Only an applied allow-list decision can outlive the short layout grace. */
     fun markVerified(observation: YoutubeV2Observation) {
@@ -17,6 +26,10 @@ internal class YoutubeFullscreenTransition {
     }
 
     fun observe(current: YoutubeV2Observation, now: Long): YoutubeV2Observation {
+        if (current.kind == YoutubeV2ContentKind.NON_PLAYBACK && isLayoutTransitionPending(now)) {
+            // Keep the cached identity without turning an empty tree into an allowed video.
+            return current
+        }
         if (current.kind != YoutubeV2ContentKind.VIDEO || !current.watchScreenConfirmed || current.adPlaying) {
             clear()
             return current

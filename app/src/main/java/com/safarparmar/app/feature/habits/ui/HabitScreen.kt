@@ -54,6 +54,10 @@ fun HabitScreen(
     onToggleDarkTheme: () -> Unit = {},
     viewModel: HabitViewModel = hiltViewModel()
 ) {
+    var showTitliHelp by rememberSaveable { mutableStateOf(false) }
+    com.safarparmar.app.ui.tutorial.RegisterTitliGuide(start = { showTitliHelp = true }, lessons = { showTitliHelp = true },
+        feature = com.safarparmar.app.ui.tutorial.TitliFeature.HABITS)
+    if (showTitliHelp) com.safarparmar.app.ui.tutorial.TitliFeatureHelp(com.safarparmar.app.ui.tutorial.TitliFeature.HABITS, onDone = { showTitliHelp = false })
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     var showAddHabit by rememberSaveable { mutableStateOf(false) }

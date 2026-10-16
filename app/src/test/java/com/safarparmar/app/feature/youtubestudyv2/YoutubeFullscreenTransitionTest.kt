@@ -8,6 +8,36 @@ class YoutubeFullscreenTransitionTest {
         title = "Lesson", exactHandle = "@teacher")
     private val full = portrait.copy(fullscreen = true, exactHandle = null)
 
+    @Test fun `fullscreen rotation can rebuild an empty tree without losing verified owner`() {
+        val state = YoutubeFullscreenTransition()
+        state.observe(portrait, 100)
+        state.markVerified(portrait)
+        state.beginLayoutTransition(200)
+        val empty = YoutubeV2Observation(YoutubeV2ContentKind.NON_PLAYBACK)
+        assertEquals(empty, state.observe(empty, 300))
+        assertTrue(state.isLayoutTransitionPending(300))
+        assertEquals(portrait.stableKey, state.observe(full.copy(title = null), 800).stableKey)
+        assertEquals(portrait.stableKey, state.observe(full.copy(title = null), 60_000).stableKey)
+    }
+
+    @Test fun `rotation grace expires and never authorizes shorts or a newly selected video`() {
+        val state = YoutubeFullscreenTransition()
+        state.observe(portrait, 100)
+        state.markVerified(portrait)
+        state.beginLayoutTransition(200)
+        state.observe(YoutubeV2Observation(YoutubeV2ContentKind.NON_PLAYBACK), 3_000)
+        assertFalse(state.isLayoutTransitionPending(3_000))
+        assertFalse(state.observe(full.copy(title = null), 3_100).hasOwnerEvidence)
+        state.observe(portrait, 4_000)
+        state.beginLayoutTransition(4_100)
+        state.observe(YoutubeV2Observation(YoutubeV2ContentKind.SHORTS), 4_200)
+        assertFalse(state.observe(full.copy(title = null), 4_300).hasOwnerEvidence)
+        state.observe(portrait, 5_000)
+        state.beginLayoutTransition(5_100)
+        state.clear() // New video tap.
+        assertFalse(state.observe(full.copy(title = null), 5_200).hasOwnerEvidence)
+    }
+
     @Test fun `instant fullscreen preserves pending owner and decision key`() {
         val state = YoutubeFullscreenTransition()
         state.observe(portrait, 100)

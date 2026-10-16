@@ -73,6 +73,7 @@ class FocusShieldNotificationListenerService : NotificationListenerService() {
     ): Boolean {
         val normalizedPackage = packageName?.takeIf { it.isNotBlank() } ?: return false
         if (normalizedPackage == this.packageName) return false
+        if (KavachYoutubePolicy.isManagedByYoutubeFocus(this, normalizedPackage)) return false
         val alwaysOn = KavachAlwaysOnPrefs.isActive(this)
         val timerActive = NotificationShieldPrefs.isActive(this) &&
             TimerService.isKavachNotificationSuppressionActive(this)

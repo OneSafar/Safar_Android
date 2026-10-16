@@ -568,6 +568,7 @@ private fun KavachModePage(
 private fun QuestionnaireTitli(
     modifier: Modifier = Modifier,
 ) {
+    if (!com.safarparmar.app.BuildConfig.TITLI_TUTORIALS_ENABLED) return
     com.safarparmar.app.ui.tutorial.TitliIcon(modifier.size(56.dp))
 }
 

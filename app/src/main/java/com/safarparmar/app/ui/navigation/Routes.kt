@@ -1,6 +1,7 @@
 package com.safarparmar.app.ui.navigation
 
 object Routes {
+    const val TITLI_QUERIES = "titli/queries"
     const val SPLASH  = "splash"
     const val AUTH    = "auth"
     const val HOME      = "home"

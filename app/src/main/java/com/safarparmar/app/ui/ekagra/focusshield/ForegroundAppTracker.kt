@@ -10,14 +10,20 @@ package com.safarparmar.app.ui.ekagra.focusshield
 internal class ForegroundAppTracker {
     var currentPackage: String? = null
         private set
+    private var currentActivity: String? = null
 
-    fun onForeground(packageName: String?) {
-        if (!packageName.isNullOrBlank()) currentPackage = packageName
+    fun onForeground(packageName: String?, activityKey: String? = null) {
+        if (!packageName.isNullOrBlank()) {
+            currentPackage = packageName
+            currentActivity = activityKey
+        }
     }
 
-    fun onBackground(packageName: String?) {
-        if (!packageName.isNullOrBlank() && packageName == currentPackage) {
+    fun onBackground(packageName: String?, activityKey: String? = null) {
+        if (!packageName.isNullOrBlank() && packageName == currentPackage &&
+            (activityKey == null || currentActivity == null || activityKey == currentActivity)) {
             currentPackage = null
+            currentActivity = null
         }
     }
 }

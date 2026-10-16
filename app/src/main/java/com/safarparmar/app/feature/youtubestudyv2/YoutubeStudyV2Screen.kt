@@ -168,6 +168,10 @@ fun YoutubeStudyV2Screen(
     isDarkTheme: Boolean = false,
     viewModel: YoutubeStudyV2ViewModel = hiltViewModel(),
 ) {
+    var showTitliHelp by rememberSaveable { mutableStateOf(false) }
+    com.safarparmar.app.ui.tutorial.RegisterTitliGuide(start = { showTitliHelp = true }, lessons = { showTitliHelp = true },
+        feature = com.safarparmar.app.ui.tutorial.TitliFeature.YOUTUBE)
+    if (showTitliHelp) com.safarparmar.app.ui.tutorial.TitliFeatureHelp(com.safarparmar.app.ui.tutorial.TitliFeature.YOUTUBE, onDone = { showTitliHelp = false })
     val isLight = !isDarkTheme
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -770,6 +774,14 @@ private fun StudyModeDashboard(
                 isLight = isLight,
                 onSetEnabled = onSetEnabled,
                 onOpenAccessibility = onOpenAccessibility,
+            )
+        }
+
+        item {
+            Text(
+                text = stringResource(R.string.youtube_focus_kavach_priority),
+                style = MaterialTheme.typography.bodySmall,
+                color = secondaryText(isLight),
             )
         }
 

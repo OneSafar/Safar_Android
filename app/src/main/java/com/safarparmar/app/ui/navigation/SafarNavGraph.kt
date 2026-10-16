@@ -212,7 +212,9 @@ fun SafarNavGraph(
     }
 
     com.safarparmar.app.ui.tutorial.TitliHost(dataStore,
-        onOpenEkagra = { navigate(Routes.EKAGRA) }, onOpenGoals = { navigate(Routes.nishthaTab(2)) }) {
+        onOpenEkagra = { navigate(Routes.EKAGRA) }, onOpenGoals = { navigate(Routes.nishthaTab(2)) },
+        onOpenYoutube = { navigate(Routes.YOUTUBE_STUDY_MODE_V2) }, onOpenHabits = { navigate(Routes.HABIT_TRACKER) },
+        onOpenQueries = { navigate(Routes.TITLI_QUERIES) }) {
     NavHost(
         navController = navController,
         startDestination = Routes.SPLASH,
@@ -811,6 +813,13 @@ fun SafarNavGraph(
             }
         }
 
+        composable(Routes.TITLI_QUERIES, deepLinks = listOf(navDeepLink { uriPattern = "$DEEP_LINK_BASE/titli/queries" })) {
+            if (com.safarparmar.app.BuildConfig.TITLI_TUTORIALS_ENABLED) {
+                com.safarparmar.app.ui.tutorial.TitliQueriesScreen(onBack = ::safeBack)
+            } else {
+                LaunchedEffect(Unit) { navigate(Routes.HOME) }
+            }
+        }
         composable(Routes.SUPPORT) {
             SupportScreen(onBack = ::safeBack)
         }

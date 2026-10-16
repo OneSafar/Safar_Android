@@ -252,8 +252,8 @@ class KavachAlwaysOnService : Service() {
         val strict = dataStore.focusShieldStrictMode.first()
         val enabled = dataStore.focusShieldEnabled.first()
         val configuredPackages = dataStore.focusShieldBlockedPackages.first()
-        // Kavach is the first gate. Study Mode cannot bypass a YouTube app block;
-        // a Normal-mode Kavach Quick Unlock is the only temporary exception.
+        // Preserve the configured list. The live policy delegates YouTube only
+        // while Focus is enabled and connected, so disabling it restores this block.
         val packages = configuredPackages
         // Peak Focus scheduling is intentionally outside the first activation/protection release.
         scheduleEnabled = false
@@ -353,7 +353,8 @@ class KavachAlwaysOnService : Service() {
         }
 
         // Normal mode honors quick unlock grace periods
-        if (hasAppQuickUnlock(foregroundPackage)) {
+        if (hasAppQuickUnlock(foregroundPackage) &&
+            !KavachYoutubePolicy.isManagedByYoutubeFocus(this, foregroundPackage)) {
             if (foregroundPackage == YoutubeStudyV2Parser.YOUTUBE_PACKAGE &&
                 FocusShieldRepository.ShieldPrefs.quickUnlockOrigin(this) ==
                 FocusShieldRepository.ShieldPrefs.QUICK_UNLOCK_ORIGIN_KAVACH
@@ -390,12 +391,14 @@ class KavachAlwaysOnService : Service() {
             return poller.onSample(foregroundPackage, isBlockedApp = false)
         }
 
-        val isBlocked = foregroundPackage in blockedPackages
+        val isBlocked = foregroundPackage in blockedPackages &&
+            !KavachYoutubePolicy.isManagedByYoutubeFocus(this, foregroundPackage)
         if (isBlocked) {
             launchBlockScreen(foregroundPackage)
         } else {
             blockOverlay.dismiss()
             countedAttemptPackage = null
+            lastBlockedPackage = null
         }
         return poller.onSample(foregroundPackage, isBlockedApp = isBlocked)
     }
@@ -431,6 +434,7 @@ class KavachAlwaysOnService : Service() {
         for (proc in runningProcesses) {
             val pkgs = proc.pkgList ?: continue
             for (pkg in pkgs) {
+                if (KavachYoutubePolicy.isManagedByYoutubeFocus(this, pkg)) continue
                 if (hasAppQuickUnlock(pkg)) continue
                 if (pkg in blockedPackages && pkg != packageName) {
                     if (proc.importance <= android.app.ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND_SERVICE ||
@@ -496,9 +500,11 @@ class KavachAlwaysOnService : Service() {
                 (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q &&
                     event.eventType == UsageEvents.Event.ACTIVITY_PAUSED)
             val eventPackage = event.packageName
+            // A second activity can resume before the previous activity pauses.
+            val activityKey = event.className
             when {
-                foreground -> foregroundAppTracker.onForeground(eventPackage)
-                background -> foregroundAppTracker.onBackground(eventPackage)
+                foreground -> foregroundAppTracker.onForeground(eventPackage, activityKey)
+                background -> foregroundAppTracker.onBackground(eventPackage, activityKey)
             }
         }
         lastUsageEventQueryMs = now

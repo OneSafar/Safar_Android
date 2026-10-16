@@ -502,9 +502,12 @@ private fun Modifier.fullContentWidth(): Modifier = this.fillMaxWidth()
 @Composable private fun EmptyAction(title: String, detail: String, icon: ImageVector, onClick: () -> Unit) {
     val strings = rememberBatchStrings()
     Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFFDF2F8))) {
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+        )) {
         Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Icon(icon, contentDescription = null, tint = Color(0xFFBE185D), modifier = Modifier.size(28.dp))
+            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp))
             Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Text(detail, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Button(onClick = batchFeatureAction(onClick)) { Text(strings.text(R.string.toppers_batch_see_lectures)) }

@@ -64,6 +64,7 @@ object NotificationDeepLinkHandler {
                 else -> Routes.EKAGRA
             }
             "toppers_batch" -> Routes.TOPPERS_BATCH
+            "titli" -> if (firstSegment == "queries") Routes.TITLI_QUERIES else Routes.HOME
             "home" -> Routes.HOME
             "dashboard" -> Routes.DASHBOARD
             "nishtha" -> when (firstSegment) {

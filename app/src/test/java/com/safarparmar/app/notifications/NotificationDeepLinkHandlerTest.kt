@@ -12,6 +12,11 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class NotificationDeepLinkHandlerTest {
+    @Test fun titliReplyOpensTheQueryInbox() {
+        assertEquals(Routes.TITLI_QUERIES, NotificationDeepLinkHandler.routeFor("safar://titli/queries?id=q"))
+        assertEquals(Routes.HOME, NotificationDeepLinkHandler.routeFor("safar://titli/unknown"))
+    }
+
     @Test
     fun `live session deep link maps to player route`() {
         val route = NotificationDeepLinkHandler.routeFor("safar://live/session/abc-123")

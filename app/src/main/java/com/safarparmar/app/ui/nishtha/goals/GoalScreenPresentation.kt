@@ -206,7 +206,7 @@ internal fun GoalsOverviewHeader(
                     color = Color.White,
                 )
             }
-            TextButton(onClick = onLearn, modifier = Modifier.heightIn(min = 48.dp)) {
+            if (com.safarparmar.app.BuildConfig.TITLI_TUTORIALS_ENABLED) TextButton(onClick = onLearn, modifier = Modifier.heightIn(min = 48.dp)) {
                 Icon(Icons.AutoMirrored.Filled.HelpOutline, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(4.dp))
                 Text(stringResource(R.string.goals_tutorial_learn), fontSize = 13.sp, color = GoalsFlatColors.Primary)

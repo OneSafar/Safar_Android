@@ -31,7 +31,8 @@ import java.time.LocalDate
 
 @Composable
 internal fun GoalsTutorialEntry(dataStore: SafarDataStore, eligible: Boolean, model: GoalsTutorialViewModel, version: Int = 1) {
-    com.safarparmar.app.ui.tutorial.RegisterTitliGuide(start = { model.start(GoalsTutorialLesson.CORE) }, lessons = model::open)
+    if (!com.safarparmar.app.BuildConfig.TITLI_TUTORIALS_ENABLED) return
+    com.safarparmar.app.ui.tutorial.RegisterTitliGuide(start = { model.start(GoalsTutorialLesson.CORE) }, lessons = model::open, feature = com.safarparmar.app.ui.tutorial.TitliFeature.GOALS)
     val seen by remember(dataStore, version) { dataStore.featureTutorialInvitationSeen("goals", version) }
         .collectAsStateWithLifecycle(initialValue = null)
     val completed by remember(dataStore, version) { dataStore.featureTutorialCompletedLessons("goals", version) }

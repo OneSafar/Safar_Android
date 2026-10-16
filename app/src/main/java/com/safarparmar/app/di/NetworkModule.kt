@@ -194,6 +194,7 @@ object NetworkModule {
     @Provides @Singleton fun provideStudyCircleApi(r: Retrofit): StudyCircleApi = r.create(StudyCircleApi::class.java)
     @Provides @Singleton fun provideLeaderboardApi(r: Retrofit): com.safarparmar.app.data.remote.api.LeaderboardApi = r.create(com.safarparmar.app.data.remote.api.LeaderboardApi::class.java)
     @Provides @Singleton fun provideReferralApi(r: Retrofit): com.safarparmar.app.data.remote.api.ReferralApi = r.create(com.safarparmar.app.data.remote.api.ReferralApi::class.java)
+    @Provides @Singleton fun provideTitliApi(r: Retrofit): com.safarparmar.app.data.remote.api.TitliApi = r.create(com.safarparmar.app.data.remote.api.TitliApi::class.java)
     @Provides @Singleton fun provideSupportApi(r: Retrofit): SupportApi = r.create(SupportApi::class.java)
     @Provides @Singleton fun provideGson(): Gson = Gson()
     @Provides @Singleton fun provideMehfilSocketManager(

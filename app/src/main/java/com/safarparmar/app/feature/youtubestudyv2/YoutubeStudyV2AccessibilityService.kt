@@ -183,6 +183,7 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
         handler.post(heartbeat)
         handler.removeCallbacks(analyticsHeartbeat)
         handler.post(analyticsHeartbeat)
+        isConnected = true
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
@@ -230,7 +231,10 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
             if (sourceId.contains("fullscreen") || sourceId.contains("full_screen") ||
                 sourceLabel in setOf("full screen", "fullscreen", "enter full screen", "exit full screen")) {
                 // Capture the owner before YouTube replaces the portrait metadata.
+                // The click event may arrive after rotation has already emptied the tree.
+                fullscreenTransition.beginLayoutTransition(clickAtMs)
                 readObservation()
+                fullscreenTransition.beginLayoutTransition(clickAtMs)
                 scheduleRead(CLICK_TRANSITION_MS)
                 return
             }
@@ -275,12 +279,20 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
     override fun onInterrupt() = stopRuntime()
 
     override fun onDestroy() {
+        isConnected = false
         stopRuntime()
         scope.cancel()
         super.onDestroy()
     }
 
+    override fun onUnbind(intent: android.content.Intent?): Boolean {
+        isConnected = false
+        stopRuntime()
+        return super.onUnbind(intent)
+    }
+
     private fun stopRuntime() {
+        isConnected = false
         homeNavigationGeneration++
         evaluationJob?.cancel()
         confirmation?.let(handler::removeCallbacks)
@@ -333,6 +345,11 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
         // Android PiP is discoverable without walking YouTube's node tree.
         if (enforceYoutubePip()) return
         val observation = readObservation()
+        if (observation.kind == YoutubeV2ContentKind.NON_PLAYBACK &&
+            fullscreenTransition.isLayoutTransitionPending(SystemClock.elapsedRealtime())) {
+            scheduleRead(CLICK_TRANSITION_MS)
+            return
+        }
         if (observation.kind == YoutubeV2ContentKind.SHORTS) {
             blockShorts()
             return
@@ -1468,6 +1485,11 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
     }
 
     companion object {
+        // In-process connection state, never restored from a stale preference after a crash.
+        @Volatile
+        var isConnected: Boolean = false
+            private set
+
         // Retain diagnostics for future investigations, with no visible share action.
         private const val SHOW_DETECTION_REPORT_BUTTON = false
         private const val PIP_CHECK_MS = 250L

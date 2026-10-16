@@ -50,6 +50,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.safarparmar.app.ui.tutorial.tutorialTarget
 import com.safarparmar.app.R
+import com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2Parser
 import com.safarparmar.app.ui.components.SyllabusRowSkeleton
 
 @Composable
@@ -165,6 +166,15 @@ internal fun AppPickerContent(
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp),
             )
+
+            if (apps.any { it.packageName == YoutubeStudyV2Parser.YOUTUBE_PACKAGE && it.isBlocked }) {
+                Text(
+                    text = stringResource(R.string.youtube_focus_kavach_priority),
+                    color = KavachDesign.TextMain,
+                    fontSize = 12.sp,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                )
+            }
 
             // Bulk selection buttons
             androidx.compose.foundation.lazy.LazyRow(

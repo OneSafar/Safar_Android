@@ -1407,7 +1407,7 @@ fun EkagraScreen(
                             expanded = showOverflowMenu,
                             onExpandedChange = { showOverflowMenu = it },
                             actions = buildList {
-                                add(com.safarparmar.app.ui.components.SafarMenuAction(
+                                if (com.safarparmar.app.BuildConfig.TITLI_TUTORIALS_ENABLED) add(com.safarparmar.app.ui.components.SafarMenuAction(
                                     label = stringResource(R.string.ekagra_tutorial_learn),
                                     onClick = { tutorialModel.open() },
                                     icon = androidx.compose.material.icons.Icons.Default.HelpOutline,

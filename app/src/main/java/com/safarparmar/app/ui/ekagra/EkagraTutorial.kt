@@ -53,7 +53,8 @@ internal fun EkagraTutorialEntry(
     progressFeature: String = "ekagra",
     selectedTheme: VisualTheme = selectableVisualThemes.first(),
 ) {
-    com.safarparmar.app.ui.tutorial.RegisterTitliGuide(start = { model.start(EkagraTutorialLesson.CORE) }, lessons = model::open)
+    if (!com.safarparmar.app.BuildConfig.TITLI_TUTORIALS_ENABLED) return
+    com.safarparmar.app.ui.tutorial.RegisterTitliGuide(start = { model.start(EkagraTutorialLesson.CORE) }, lessons = model::open, feature = com.safarparmar.app.ui.tutorial.TitliFeature.EKAGRA)
     val invitationSeen by remember(dataStore, progressFeature) { dataStore.featureTutorialInvitationSeen(progressFeature, 1) }
         .collectAsStateWithLifecycle(initialValue = null)
     val completed by remember(dataStore, progressFeature) { dataStore.featureTutorialCompletedLessons(progressFeature, 1) }

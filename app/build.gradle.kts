@@ -97,6 +97,8 @@ android {
         val compactSummary = providers.gradleProperty("dashboardMonthlySummary").getOrElse("false")
         require(compactSummary in setOf("true", "false")) { "dashboardMonthlySummary must be true or false" }
         buildConfigField("boolean", "DASHBOARD_MONTHLY_SUMMARY_ENABLED", compactSummary)
+        // Keep unfinished Titli guidance hidden in every build until it is ready to ship.
+        buildConfigField("boolean", "TITLI_TUTORIALS_ENABLED", "false")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         // Compile-time override for manual comparison; normal builds select by device capabilities.
         val effects = providers.gradleProperty("safarEffects").getOrElse("auto")

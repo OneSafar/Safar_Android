@@ -31,6 +31,8 @@ import com.safarparmar.app.R
 import com.safarparmar.app.data.local.SafarDataStore
 import com.safarparmar.app.performance.LocalMotionPolicy
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeoutOrNull
 
 /** All geometry is Kotlin vector drawing; the toolbar icon never animates. */
 @Composable
@@ -158,9 +160,12 @@ internal fun titliCompanionPosition(target: Rect, stage: Size, companion: Size, 
         ?: Offset(maxX, maxY)
 }
 
+internal enum class TitliFeature { EKAGRA, GOALS, YOUTUBE, HABITS }
+internal data class TitliRegistration(val feature: TitliFeature?, val start: () -> Unit, val lessons: () -> Unit)
+
 @Stable
 internal class TitliController {
-    internal val guides = mutableStateMapOf<Any, Pair<() -> Unit, () -> Unit>>()
+    internal val guides = mutableStateMapOf<Any, TitliRegistration>()
     var requested by mutableStateOf(false)
         private set
     fun tap() { requested = true }
@@ -170,19 +175,20 @@ internal val LocalTitliController = staticCompositionLocalOf<TitliController?> {
 
 /** Register only while a feature is actually composed; callbacks retain its eligibility checks. */
 @Composable
-internal fun RegisterTitliGuide(start: () -> Unit, lessons: () -> Unit) {
+internal fun RegisterTitliGuide(start: () -> Unit, lessons: () -> Unit, feature: TitliFeature? = null) {
     val controller = LocalTitliController.current ?: return
     val currentStart by rememberUpdatedState(start)
     val currentLessons by rememberUpdatedState(lessons)
     val key = remember { Any() }
-    DisposableEffect(controller, key) {
-        controller.guides[key] = Pair({ currentStart() }, { currentLessons() })
+    DisposableEffect(controller, key, feature) {
+        controller.guides[key] = TitliRegistration(feature, { currentStart() }, { currentLessons() })
         onDispose { controller.guides.remove(key) }
     }
 }
 
 @Composable
 internal fun TitliGuideButton(onClick: (() -> Unit)? = null, modifier: Modifier = Modifier) {
+    if (!com.safarparmar.app.BuildConfig.TITLI_TUTORIALS_ENABLED) return
     val controller = LocalTitliController.current
     val action = onClick ?: controller?.let { it::tap } ?: return
     val description = stringResource(R.string.titli_description)
@@ -215,14 +221,30 @@ internal fun TitliIntroduction(onContinue: () -> Unit, onDismiss: () -> Unit) {
 
 /** Supplies actions/dialogs only. It adds no toolbar, space, insets, or screen overlay. */
 @Composable
-internal fun TitliHost(dataStore: SafarDataStore, onOpenEkagra: () -> Unit, onOpenGoals: () -> Unit, introductionKey: String = "titli_introduction_v1", content: @Composable () -> Unit) {
+internal fun TitliHost(dataStore: SafarDataStore, onOpenEkagra: () -> Unit, onOpenGoals: () -> Unit,
+    onOpenYoutube: () -> Unit = {}, onOpenHabits: () -> Unit = {}, onOpenQueries: () -> Unit = {},
+    introductionKey: String = "titli_introduction_v1", content: @Composable () -> Unit) {
+    if (!com.safarparmar.app.BuildConfig.TITLI_TUTORIALS_ENABLED) {
+        content()
+        return
+    }
     val controller = remember { TitliController() }
     val seen by remember(dataStore, introductionKey) { dataStore.titliIntroductionSeen(introductionKey) }.collectAsStateWithLifecycle(initialValue = null)
+    val name by dataStore.userName.collectAsStateWithLifecycle(initialValue = null)
     val scope = rememberCoroutineScope()
+    var pendingFeature by remember { mutableStateOf<TitliFeature?>(null) }
+    LaunchedEffect(pendingFeature) {
+        val feature = pendingFeature ?: return@LaunchedEffect
+        val guide = withTimeoutOrNull(6000) {
+            snapshotFlow { controller.guides.values.firstOrNull { it.feature == feature } }.first { it != null }
+        }
+        pendingFeature = null
+        guide?.start?.invoke()
+    }
     var showAvailable by remember { mutableStateOf(false) }
     fun showFeature(start: Boolean) {
         val guide = controller.guides.values.lastOrNull()
-        if (guide != null) { if (start) guide.first() else guide.second() }
+        if (guide != null) { if (start) guide.start() else guide.lessons() }
         else showAvailable = true
     }
     LaunchedEffect(controller.requested, seen) {
@@ -233,17 +255,49 @@ internal fun TitliHost(dataStore: SafarDataStore, onOpenEkagra: () -> Unit, onOp
         onContinue = { controller.dismiss(); scope.launch { dataStore.setTitliIntroductionSeen(introductionKey) }; showFeature(true) },
         onDismiss = { controller.dismiss(); scope.launch { dataStore.setTitliIntroductionSeen(introductionKey) } },
     )
-    if (showAvailable) AlertDialog(
-        onDismissRequest = { showAvailable = false },
-        icon = { TitliIcon(Modifier.size(64.dp)) },
-        title = { Text(stringResource(R.string.titli_name)) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(stringResource(R.string.titli_available_guides))
-                TextButton(onClick = { showAvailable = false; onOpenEkagra() }) { Text(stringResource(R.string.ekagra_tutorial_learn)) }
-                TextButton(onClick = { showAvailable = false; onOpenGoals() }) { Text(stringResource(R.string.goals_tutorial_learn)) }
+    if (showAvailable) TitliHelpMenu(name,
+        onFeature = { feature ->
+            showAvailable = false
+            pendingFeature = feature
+            when (feature) {
+                TitliFeature.EKAGRA -> onOpenEkagra()
+                TitliFeature.GOALS -> onOpenGoals()
+                TitliFeature.YOUTUBE -> onOpenYoutube()
+                TitliFeature.HABITS -> onOpenHabits()
             }
-        },
-        confirmButton = { TextButton(onClick = { showAvailable = false }) { Text(stringResource(R.string.common_close)) } },
-    )
+        }, onQueries = { showAvailable = false; onOpenQueries() }, onDismiss = { showAvailable = false })
+}
+
+@Composable
+internal fun TitliHelpMenu(name: String?, onFeature: (TitliFeature) -> Unit, onQueries: () -> Unit, onDismiss: () -> Unit) {
+    val displayName = name?.trim()?.takeIf { it.isNotBlank() }
+    AlertDialog(onDismissRequest = onDismiss, icon = { TitliIcon(Modifier.size(64.dp)) },
+        title = { Text(if (displayName == null) stringResource(R.string.titli_greeting) else stringResource(R.string.titli_greeting_name, displayName)) },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                listOf(TitliFeature.EKAGRA to R.string.titli_help_ekagra, TitliFeature.GOALS to R.string.titli_help_goals,
+                    TitliFeature.YOUTUBE to R.string.titli_help_youtube, TitliFeature.HABITS to R.string.titli_help_habits).forEach { (feature, label) ->
+                    TextButton(onClick = { onFeature(feature) }, modifier = Modifier.fillMaxWidth().testTag("titli.menu.${feature.name}")) { Text(stringResource(label), modifier = Modifier.fillMaxWidth()) }
+                }
+                HorizontalDivider()
+                TextButton(onClick = onQueries, modifier = Modifier.fillMaxWidth().testTag("titli.menu.other")) { Text(stringResource(R.string.titli_other), modifier = Modifier.fillMaxWidth()) }
+                TextButton(onClick = onQueries, modifier = Modifier.fillMaxWidth().testTag("titli.menu.queries")) { Text(stringResource(R.string.titli_your_queries), modifier = Modifier.fillMaxWidth()) }
+            }
+        }, confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_close)) } })
+}
+
+/** Brief feature-specific help; permission setup keeps its existing separate walkthrough. */
+@Composable
+internal fun TitliFeatureHelp(feature: TitliFeature, onDone: () -> Unit) {
+    if (!com.safarparmar.app.BuildConfig.TITLI_TUTORIALS_ENABLED) return
+    val youtube = feature == TitliFeature.YOUTUBE
+    AlertDialog(onDismissRequest = onDone, icon = { TitliIcon(Modifier.size(64.dp)) },
+        title = { Text(stringResource(if (youtube) R.string.titli_help_youtube else R.string.titli_help_habits)) },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                val steps = if (youtube) listOf(R.string.titli_youtube_step_1, R.string.titli_youtube_step_2, R.string.titli_youtube_step_3)
+                    else listOf(R.string.titli_habits_step_1, R.string.titli_habits_step_2, R.string.titli_habits_step_3)
+                steps.forEachIndexed { index, text -> Text("${index + 1}. ${stringResource(text)}") }
+            }
+        }, confirmButton = { TextButton(onClick = onDone, modifier = Modifier.testTag("titli.feature.ok")) { Text(stringResource(R.string.feature_tutorial_finish)) } })
 }

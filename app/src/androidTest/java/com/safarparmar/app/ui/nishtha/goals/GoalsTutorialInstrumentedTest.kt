@@ -68,6 +68,7 @@ class GoalsTutorialInstrumentedTest {
     }
 
     @Test fun invitationAndCompletionBookkeepingAreIndependentOfEkagra() {
+        org.junit.Assume.assumeTrue(com.safarparmar.app.BuildConfig.TITLI_TUTORIALS_ENABLED)
         val store = SafarDataStore(InstrumentationRegistry.getInstrumentation().context)
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val version = kotlin.random.Random.nextInt(2, Int.MAX_VALUE)

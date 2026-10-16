@@ -26,6 +26,7 @@ class TitliInstrumentedTest {
     @get:Rule val compose = createComposeRule()
 
     @Test fun firstTapIntroducesAndStartsGuideLaterTapsOpenLessonsWithoutAddingChrome() {
+        org.junit.Assume.assumeTrue(com.safarparmar.app.BuildConfig.TITLI_TUTORIALS_ENABLED)
         val store = SafarDataStore(InstrumentationRegistry.getInstrumentation().context)
         val key = "test-titli-${UUID.randomUUID()}"
         var starts = 0

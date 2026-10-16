@@ -90,6 +90,7 @@ class EkagraTutorialInstrumentedTest {
     }
 
     @Test fun invitationIsOfferedOnceAndActiveFlowsBlockManualReplay() {
+        org.junit.Assume.assumeTrue(com.safarparmar.app.BuildConfig.TITLI_TUTORIALS_ENABLED)
         val store = SafarDataStore(InstrumentationRegistry.getInstrumentation().context)
         val feature = "test-invitation-${UUID.randomUUID()}"
         val model = EkagraTutorialViewModel()

@@ -91,7 +91,6 @@ private val genderOptions = listOf("Male", "Female", "Other", "Prefer not to say
 
 // Exact Option 1 Mockup Colors & Shapes
 private val ProfileBg = Color(0xFFF5F4FF)
-private val CardBg = Color.White
 private val CardShape = RoundedCornerShape(18.dp)
 
 // ─── Main Screen ───────────────────────────────────────────────────────────────
@@ -218,7 +217,7 @@ fun ProfileScreen(
                 // Thin hairline horizontal separator below avatar (as in Option 1 Mockup)
                 HorizontalSeparator(
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                    color = Color.Black.copy(alpha = 0.08f),
+                    color = PlannerFlatColors.BorderSoft,
                 )
 
                 // ── Personal Information Section ───────────────────────────────
@@ -264,7 +263,7 @@ fun ProfileScreen(
 
                 HorizontalSeparator(
                     modifier = Modifier.padding(vertical = 4.dp),
-                    color = Color.Black.copy(alpha = 0.08f),
+                    color = PlannerFlatColors.BorderSoft,
                 )
 
                 // ── Danger Zone / Logout Actions ───────────────────────────────
@@ -389,7 +388,8 @@ private fun ProfileCard(
             .fillMaxWidth()
             .shadow(elevation = 2.dp, shape = CardShape, ambientColor = Color.Black.copy(alpha = 0.05f)),
         shape = CardShape,
-        color = CardBg,
+        color = PlannerFlatColors.CardWhite,
+        contentColor = PlannerFlatColors.TextDark,
         tonalElevation = 0.dp,
     ) {
         Column(modifier = Modifier.fillMaxWidth(), content = content)
@@ -476,7 +476,7 @@ private fun ProfileAvatarSection(
             }
         }
 
-        // Camera badge — White circle with black camera icon (as in Option 1 Mockup)
+        // Keep the badge and icon on the same light/dark palette as the cards.
         Tooltip(
             side = TooltipSide.Bottom,
             panel = {
@@ -490,8 +490,8 @@ private fun ProfileAvatarSection(
                         .offset(x = 2.dp, y = 2.dp)
                         .size(32.dp)
                         .clip(CircleShape)
-                        .background(Color.White)
-                        .border(1.dp, Color.Black.copy(alpha = 0.10f), CircleShape)
+                        .background(PlannerFlatColors.CardWhite)
+                        .border(1.dp, PlannerFlatColors.BorderSoft, CircleShape)
                         .clickable(enabled = !uiState.isAvatarUploading) { onEditAvatarClick() },
                     contentAlignment = Alignment.Center,
                 ) {
@@ -611,7 +611,7 @@ private fun PersonalInfoFields(uiState: ProfileUiState, viewModel: ProfileViewMo
         }
     }
 
-    HorizontalSeparator(color = Color.Black.copy(alpha = 0.08f))
+    HorizontalSeparator(color = PlannerFlatColors.BorderSoft)
 
     // Row 2: Email Address — Inline row with Mail icon + email text + Copy icon
     Row(
@@ -651,7 +651,7 @@ private fun PersonalInfoFields(uiState: ProfileUiState, viewModel: ProfileViewMo
         }
     }
 
-    HorizontalSeparator(color = Color.Black.copy(alpha = 0.08f))
+    HorizontalSeparator(color = PlannerFlatColors.BorderSoft)
 
     // Row 3: Gender Dropdown — Inline row with Person icon + selection + down chevron
     ProfileDropdownInlineRow(
@@ -683,7 +683,7 @@ private fun ExamFocusFields(uiState: ProfileUiState, viewModel: ProfileViewModel
         optionLabel = { value -> if (value == "Other") stringResource(R.string.profile_option_other_exam) else value },
     )
 
-    HorizontalSeparator(color = Color.Black.copy(alpha = 0.08f))
+    HorizontalSeparator(color = PlannerFlatColors.BorderSoft)
 
     // Row 2: Preparation Stage
     ProfileDropdownInlineRow(
