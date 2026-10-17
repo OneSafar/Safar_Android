@@ -35,7 +35,7 @@ class EkagraSessionSaveWorker(
     }
 
     override suspend fun doWork(): Result {
-        val allSucceeded = runCatching { drainPendingSaves(applicationContext) }.getOrDefault(false)
+        val allSucceeded = drainPendingSaves(applicationContext)
         return if (allSucceeded) Result.success() else Result.retry()
     }
 
@@ -61,43 +61,58 @@ class EkagraSessionSaveWorker(
          * queue + WorkManager remain the retry path for offline/failure cases.
          */
         suspend fun drainPendingSaves(context: Context): Boolean = drainLock.withLock {
-            val pending = EkagraPendingSessionSaveStore.getAll(context)
-            if (pending.isEmpty()) return@withLock true
+            attemptEkagraSessionSync(onFailure = { error ->
+                EkagraDiagnostics.record(context, "sync_storage_failed", error.javaClass.simpleName)
+                false
+            }) {
+                val pending = EkagraPendingSessionSaveStore.getAll(context)
+                if (pending.isEmpty()) return@attemptEkagraSessionSync true
 
-            var failed = false
-            pending.forEach { session ->
-                if (session.ownerId != SafarDataStore(context).userId.first()) return@withLock false
-                when (val result = uploadPending(context, session)) {
-                    is Resource.Success -> {
-                        debugLog("Saved pending Ekagra session ${session.clientSessionId}")
-                    }
-                    is Resource.Error,
-                    is Resource.Loading -> {
-                        failed = true
-                        EkagraDiagnostics.record(context, "upload_failed", if (result is Resource.Error) result.message?.substringBefore(":").orEmpty() else "pending")
-                        debugLog("Pending Ekagra session save failed: ${session.clientSessionId}")
+                var failed = false
+                pending.forEach { session ->
+                    if (session.ownerId != SafarDataStore(context).userId.first()) return@attemptEkagraSessionSync false
+                    when (val result = uploadPending(context, session)) {
+                        is Resource.Success -> {
+                            debugLog("Saved pending Ekagra session ${session.clientSessionId}")
+                        }
+                        is Resource.Error,
+                        is Resource.Loading -> {
+                            failed = true
+                            EkagraDiagnostics.record(context, "upload_failed", if (result is Resource.Error) result.message?.substringBefore(":").orEmpty() else "pending")
+                            debugLog("Pending Ekagra session save failed: ${session.clientSessionId}")
+                        }
                     }
                 }
-            }
 
-            !failed
+                !failed
+            }
         }
 
         suspend fun uploadOne(context: Context, session: PendingEkagraSessionSave): Resource<com.safarparmar.app.data.remote.dto.EkagraSession> =
-            drainLock.withLock { uploadPending(context, session) }
+            drainLock.withLock {
+                attemptEkagraSessionSync(onFailure = { error ->
+                    EkagraDiagnostics.record(context, "sync_storage_failed", error.javaClass.simpleName)
+                    Resource.Error("Study time could not be synced. Free up storage and retry from History.")
+                }) { uploadPending(context, session) }
+            }
 
         suspend fun linkLocalSession(context: Context, id: String, goalId: String, goalTitle: String?, markComplete: Boolean): Resource<Unit> = drainLock.withLock {
-            val account = SafarDataStore(context).userId.first().orEmpty()
-            val journal = EkagraSessionJournal.get(context)
-            val session = journal.find(id, account) ?: return@withLock Resource.Error("Session not found")
-            if (journal.setPendingGoal(id, account, goalId, goalTitle, markComplete)) {
-                // The choice is durable even when offline; the worker retries the save.
-                uploadPending(context, session)
-                Resource.Success(Unit)
-            } else {
-                val serverId = session.serverId ?: return@withLock Resource.Error("Session has not uploaded")
-                EntryPointAccessors.fromApplication(context, EkagraSessionSaveEntryPoint::class.java)
-                    .getEkagraRepository().linkSessionToGoal(serverId, goalId, markComplete)
+            attemptEkagraSessionSync(onFailure = { error ->
+                EkagraDiagnostics.record(context, "sync_storage_failed", error.javaClass.simpleName)
+                Resource.Error("Session could not be linked. Free up storage and retry from History.")
+            }) {
+                val account = SafarDataStore(context).userId.first().orEmpty()
+                val journal = EkagraSessionJournal.get(context)
+                val session = journal.find(id, account) ?: return@attemptEkagraSessionSync Resource.Error("Session not found")
+                if (journal.setPendingGoal(id, account, goalId, goalTitle, markComplete)) {
+                    // The choice is durable even when offline; the worker retries the save.
+                    uploadPending(context, session)
+                    Resource.Success(Unit)
+                } else {
+                    val serverId = session.serverId ?: return@attemptEkagraSessionSync Resource.Error("Session has not uploaded")
+                    EntryPointAccessors.fromApplication(context, EkagraSessionSaveEntryPoint::class.java)
+                        .getEkagraRepository().linkSessionToGoal(serverId, goalId, markComplete)
+                }
             }
         }
 

@@ -1,5 +1,7 @@
 # Ekagra reliability validation
 
+**17 October follow-up:** the [process-death recovery implementation](audits/ekagra-process-death-recovery-2026-10-17.md) supersedes the checkpoint-only recovery behavior and historical validation record below. Running timers now retain an atomic monotonic recovery clock and resume the same session after same-boot process death. Refer to that report for current validation and release status.
+
 ## Behavior
 
 - Four active focus hours trigger the check-in; its hidden 30-minute response window remains unchanged. Personal timers keep running after expiry; ranked credit remains backend-controlled.

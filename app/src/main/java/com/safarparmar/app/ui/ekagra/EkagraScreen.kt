@@ -367,7 +367,7 @@ fun EkagraScreen(
             return
         }
         val session = activeSession
-        if (session != null && endingFocus) {
+        if (session != null && endingFocus && endingTopicId == null) {
             val progress = service?.focusProgressSnapshot()
             val loggedTotalSeconds: Int
             val loggedSecondsLeft: Int
@@ -468,6 +468,21 @@ fun EkagraScreen(
     }
 
     // ── Side-effects ────────────────────────────────────────────────────────────
+
+    val draftOwner by viewModel.draftOwner.collectAsStateWithLifecycle()
+    LaunchedEffect(timerService, timerRunning, timerMode, totalSeconds, secondsLeft, draftOwner, activeSession?.id) {
+        val service = timerService ?: return@LaunchedEffect
+        if (activeSession == null && service.plannerTopicMetadata() == null) {
+            val draft = service.activeSessionDraft() ?: return@LaunchedEffect
+            if (draft.userId != draftOwner) return@LaunchedEffect
+            viewModel.restoreActiveSessionDraft(draft)
+            if (associatedGoalId == null) {
+                associatedGoalId = draft.goalId
+                associatedGoalTitle = draft.goalTitle
+            }
+            if (taskText.isBlank()) taskText = draft.sessionTitle.orEmpty()
+        }
+    }
 
     LaunchedEffect(shieldState.activationMessage) {
         val message = shieldState.activationMessage ?: return@LaunchedEffect

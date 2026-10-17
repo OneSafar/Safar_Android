@@ -7,9 +7,9 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
-    <!-- Required by KAVACH Beast Mode (see the service declaration below). No other
-         foregroundServiceType describes user-initiated app blocking: the service
-         plays no media, syncs no data and tracks no location. This permission needs
+    <!-- Required by the user-started Ekagra timer and KAVACH app blocking. No other
+         foregroundServiceType describes a silent study timer or app blocking.
+         This permission needs
          a matching declaration in the Play Console before a release using it can
          be published. -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
@@ -114,8 +114,13 @@
         </receiver>
         <service
             android:name=".ui.ekagra.TimerService"
-            android:foregroundServiceType="mediaPlayback"
-            android:exported="false" />
+            android:foregroundServiceType="specialUse"
+            android:stopWithTask="false"
+            android:exported="false">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="User-initiated study timer and stopwatch: maintains the visible ongoing timer, its pause and end controls, completion alerts, and optional distraction blocking while the student studies with the screen off. The timer must continue without audio playback and cannot be deferred to a job." />
+        </service>
 
         <!-- KAVACH App Blocker Service. Started when the student turns on KAVACH,
              and stopped immediately when turned off. -->

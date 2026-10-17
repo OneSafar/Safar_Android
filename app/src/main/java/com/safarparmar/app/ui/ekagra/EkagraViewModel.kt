@@ -83,6 +83,8 @@ class EkagraViewModel @Inject constructor(
 
     private val _ekagraAnalytics = MutableStateFlow(EkagraAnalyticsStats())
     private var accountId: String? = null
+    private val _draftOwner = MutableStateFlow<String?>(null)
+    internal val draftOwner = _draftOwner.asStateFlow()
     private val journal = EkagraSessionJournal.get(appContext)
     val saveError = journal.errors.asStateFlow()
     val ekagraAnalytics = combine(_ekagraAnalytics, journal.observe()) { server, local ->
@@ -213,6 +215,7 @@ class EkagraViewModel @Inject constructor(
                     accountId = id
                     _ekagraAnalytics.value = EkagraAnalyticsStats()
                     clearLocalDraft()
+                    _draftOwner.value = id
                     pendingSessionIds.clear()
                     pendingTitleOverrides.clear()
                     if (id != null) loadEkagraAnalytics()
@@ -338,6 +341,14 @@ class EkagraViewModel @Inject constructor(
         }
     }
 
+    /** A recreated screen attaches to the existing service; it must not create a new ID. */
+    internal fun restoreActiveSessionDraft(draft: EkagraSession) {
+        if (_activeSession.value != null || accountId.isNullOrBlank() || draft.userId != accountId) return
+        activeSessionId = draft.id
+        sessionStartedAt = draft.sessionStartedAt
+        _activeSession.value = draft
+    }
+
     fun onSessionStarted(
         taskText: String,
         totalSeconds: Int,
@@ -347,8 +358,12 @@ class EkagraViewModel @Inject constructor(
         remainingSeconds: Int = totalSeconds,
         clientSessionId: String? = null,
     ) {
-        val now = Instant.now().toString()
-        val id = clientSessionId ?: "local-${java.util.UUID.randomUUID()}"
+        val service = TimerService.live ?: return
+        val id = clientSessionId ?: return
+        // A Start tap can arrive while storage recovery or foreground promotion
+        // is still pending. It must not create a second, unsaved screen identity.
+        if (id != service.currentSessionId() || !service.isRunning.value) return
+        val now = service.currentSessionStartedAt() ?: Instant.now().toString()
         activeSessionId = id
         sessionStartedAt = now
         _activeSession.value = EkagraSession(
@@ -675,7 +690,7 @@ class EkagraViewModel @Inject constructor(
 
 
         val saveOwner = accountId ?: return
-        val queuedSave = EkagraPendingSessionSaveStore.enqueue(appContext, PendingEkagraSessionSave(
+        val pendingSave = PendingEkagraSessionSave(
                 ownerId = saveOwner,
                 clientSessionId = sessionId,
                 mode = mode,
@@ -694,13 +709,13 @@ class EkagraViewModel @Inject constructor(
                 markGoalComplete = markGoalComplete,
                 shieldEnabled = shieldWasActive,
                     endReason = if (actualSeconds >= totalSeconds && !mode.equals("stopwatch", true)) "completed" else "user-ended",
-        ))
+        )
+        val queuedSave = EkagraPendingSessionSaveStore.enqueue(appContext, pendingSave)
         viewModelScope.launch {
             // Save the new record before touching the old one — if the save fails (no
             // network, process death), we must not have already deleted the original.
             try { queuedSave.await() } catch (_: Exception) { return@launch }
-            val durable = journal.find(sessionId, saveOwner)
-            val saveResult = if (durable == null) Resource.Error("Session is already syncing; refresh History") else EkagraSessionSaveWorker.uploadOne(appContext, durable)
+            val saveResult = EkagraSessionSaveWorker.uploadOne(appContext, pendingSave)
             focusShieldRepo.deactivateSession()
             when (saveResult) {
                 is Resource.Success -> {
@@ -884,7 +899,7 @@ class EkagraViewModel @Inject constructor(
 
 
         val saveOwner = accountId ?: return
-        val queuedSave = EkagraPendingSessionSaveStore.enqueue(appContext, PendingEkagraSessionSave(
+        val pendingSave = PendingEkagraSessionSave(
                 ownerId = saveOwner,
                 clientSessionId = sessionId,
                 mode = mode,
@@ -903,11 +918,11 @@ class EkagraViewModel @Inject constructor(
                 markGoalComplete = false,
                 shieldEnabled = shieldWasActive,
                     endReason = if (actualSeconds >= totalSeconds && !mode.equals("stopwatch", true)) "completed" else "user-ended",
-        ))
+        )
+        val queuedSave = EkagraPendingSessionSaveStore.enqueue(appContext, pendingSave)
         viewModelScope.launch {
             try { queuedSave.await() } catch (_: Exception) { return@launch }
-            val durable = journal.find(sessionId, saveOwner)
-            val saveResult = if (durable == null) Resource.Error("Session is already syncing; refresh History") else EkagraSessionSaveWorker.uploadOne(appContext, durable)
+            val saveResult = EkagraSessionSaveWorker.uploadOne(appContext, pendingSave)
             focusShieldRepo.deactivateSession()
             when (saveResult) {
                 is Resource.Success -> {

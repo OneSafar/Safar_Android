@@ -6,6 +6,7 @@ import androidx.room.Room
 import androidx.test.core.app.ActivityScenario
 import androidx.test.platform.app.InstrumentationRegistry
 import com.safarparmar.app.MainActivity
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.*
 import org.junit.Test
@@ -140,6 +141,128 @@ class EkagraServiceInstrumentedTest {
             val saved = rows(account)
             assertEquals(2, saved.size)
             assertEquals(listOf(1500, 3600), saved.map { it.actualDurationSeconds }.sortedBy { it })
+        }
+    }
+
+    @Test fun repeatedStartAfterSleepKeepsTheOriginalTwoHourPeriod() {
+        withTimer { timer, account ->
+            onMain {
+                timer.setDuration(TimerMode.FOCUS, 2 * 3600)
+                timer.start()
+                val id = requireNotNull(timer.currentSessionId())
+                setField(timer, "periodStartElapsed", SystemClock.elapsedRealtime() - 12 * 60_000L)
+                timer.pause()
+                assertEquals(108 * 60, timer.secondsLeft.value)
+                timer.start()
+                // No display tick ran during the rest of the two-hour period.
+                setField(timer, "periodStartElapsed", SystemClock.elapsedRealtime() - 108 * 60_000L)
+                timer.start()
+                assertEquals(id, timer.currentSessionId())
+                timer.endAndSave()
+            }
+            assertEquals(2 * 3600, rows(account).single().actualDurationSeconds)
+        }
+    }
+
+    @Test fun progressSnapshotReconcilesSleepBeforeTheScreenPausesTheTimer() {
+        withTimer { timer, _ ->
+            onMain {
+                timer.setDuration(TimerMode.FOCUS, 2 * 3600)
+                timer.start()
+                setField(timer, "periodStartElapsed", SystemClock.elapsedRealtime() - 12 * 60_000L)
+                timer.pause()
+                assertEquals(108 * 60, timer.secondsLeft.value)
+                timer.start()
+                setField(timer, "periodStartElapsed", SystemClock.elapsedRealtime() - 78 * 60_000L)
+                val progress = timer.focusProgressSnapshot()
+                assertEquals(2 * 3600, progress.plannedSeconds)
+                assertEquals(90 * 60, progress.actualSeconds)
+                assertEquals(30 * 60, timer.secondsLeft.value)
+                assertTrue(timer.isRunning.value)
+                timer.endAndSave()
+            }
+        }
+    }
+
+    @Test fun manualBreakAfterSleepPreservesFocusAndPomodoroTimeWithoutCreditingTheBreak() {
+        withTimer { timer, account ->
+            for (mode in listOf(TimerMode.FOCUS, TimerMode.POMODORO)) {
+                onMain {
+                    val elapsedMinutes = if (mode == TimerMode.FOCUS) 90 else 45
+                    if (mode == TimerMode.FOCUS) {
+                        timer.setDuration(mode, 2 * 3600)
+                        timer.start()
+                    } else {
+                        assertNotNull(timer.startPomodoroSession(PomodoroStyle.CUSTOM, 2, 60, 5, null, null, null))
+                    }
+                    setField(timer, "periodStartElapsed", SystemClock.elapsedRealtime() - elapsedMinutes * 60_000L)
+                    assertTrue(timer.startBreak(TimerMode.BREAK, 5 * 60))
+                    assertEquals(2 * 3600, timer.focusProgressSnapshot().plannedSeconds)
+                    assertEquals(elapsedMinutes * 60, timer.focusProgressSnapshot().actualSeconds)
+                    setField(timer, "periodStartElapsed", SystemClock.elapsedRealtime() - 2 * 60_000L)
+                    assertEquals(elapsedMinutes * 60, timer.focusProgressSnapshot().actualSeconds)
+                    timer.endAndSave()
+                }
+            }
+            assertEquals(listOf(45 * 60, 90 * 60), rows(account).map { it.actualDurationSeconds }.sortedBy { it })
+        }
+    }
+
+    @Test fun serviceDestructionAfterSleepKeepsTwoHoursResumableInsteadOfFinalizingTwelveMinutes() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val account = "instrumentation-${UUID.randomUUID()}"
+        val scenario = ActivityScenario.launch(MainActivity::class.java)
+        var timer: TimerService? = null
+        try {
+            repeat(100) {
+                if (TimerService.live != null && field(TimerService.live!!, "recoveryReady") == true) {
+                    timer = TimerService.live
+                }
+                if (timer == null) Thread.sleep(50)
+            }
+            val service = requireNotNull(timer)
+            onMain {
+                setField(service, "signedInUserId", account)
+                service.setDuration(TimerMode.FOCUS, 2 * 3600)
+                service.start()
+                setField(service, "periodStartElapsed", SystemClock.elapsedRealtime() - 12 * 60_000L)
+                service.pause()
+                assertEquals(108 * 60, service.secondsLeft.value)
+                service.start()
+                // Freeze the display ticker at twelve minutes, then let the live
+                // monotonic period reach its deadline before Android destroys it.
+                (field(service, "tickJob") as? Job)?.cancel()
+                service.onTaskRemoved(Intent())
+                setField(service, "periodStartElapsed", SystemClock.elapsedRealtime() - 108 * 60_000L)
+            }
+            // Unbind the activity before stopping the started service so Android
+            // invokes the actual lifecycle callback exactly once.
+            scenario.close()
+            context.stopService(Intent(context, TimerService::class.java))
+            repeat(100) {
+                if (TimerService.live != null) Thread.sleep(50)
+            }
+            assertNull(TimerService.live)
+            val saved = rows(account).single()
+            assertEquals(2 * 3600, saved.actualDurationSeconds)
+            assertEquals(120, saved.plannedDurationMinutes)
+            assertNull(saved.endReason)
+            assertNotNull("Service destruction must retain the same live timer clock", saved.recovery)
+            assertTrue(saved.recovery!!.isRunning)
+            assertEquals(0, saved.recovery!!.remainingSeconds)
+        } finally {
+            scenario.close()
+            context.stopService(Intent(context, TimerService::class.java))
+            repeat(100) {
+                if (TimerService.live != null) Thread.sleep(50)
+            }
+            val db = Room.databaseBuilder(context, EkagraJournalDatabase::class.java, "ekagra-journal.db").build()
+            try {
+                runBlocking { EkagraSessionJournal.get(context).recover().await() }
+                db.openHelper.writableDatabase.delete("sessions", "owner = ?", arrayOf(account))
+            } finally {
+                db.close()
+            }
         }
     }
 

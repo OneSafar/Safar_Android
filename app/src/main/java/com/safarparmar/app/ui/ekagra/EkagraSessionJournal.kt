@@ -1,12 +1,8 @@
 package com.safarparmar.app.ui.ekagra
 
-import android.app.ActivityManager
 import android.content.Context
-import android.os.Build
-import android.util.Log
 import androidx.room.*
 import com.google.gson.Gson
-import com.safarparmar.app.BuildConfig
 import com.safarparmar.app.data.local.SafarDataStore
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
@@ -97,7 +93,13 @@ internal class EkagraSessionJournal internal constructor(
             // Originals remain as migration backups; the marker prevents re-import.
         }
         val interrupted = database.withTransaction {
-            val rows = dao.rows(account).filter { it.state == "active" && it.runtime != runtime }
+            // Resumable state and focus progress share one atomic row. A worker or
+            // History read must never finalize that row before the service resumes it.
+            // Older versions have no monotonic/boot anchor and retain checkpoint-only
+            // recovery rather than crediting an unverified wall-clock gap.
+            val rows = dao.rows(account).filter {
+                it.state == "active" && it.runtime != runtime && decode(it).recovery == null
+            }
             rows.forEach { row ->
                 val session = decode(row).copy(endReason = "interrupted")
                 dao.put(row.copy(payload = gson.toJson(session), state = "pending"))
@@ -109,15 +111,88 @@ internal class EkagraSessionJournal internal constructor(
         if ((interrupted || recoveredLegacy) && platformEffects) EkagraTimerAlarms.showRecovered(context)
     }
 
-    fun checkpoint(session: PendingEkagraSessionSave, account: String): Deferred<Unit> = ordered {
+    fun checkpoint(
+        session: PendingEkagraSessionSave,
+        account: String,
+        recovery: EkagraTimerRecoveryState? = null,
+    ): Deferred<Unit> = ordered(retryable = true) {
         if (account.isBlank()) return@ordered
         initialize(account)
         database.withTransaction {
             val old = dao.row(account, session.clientSessionId)
             if (old == null || old.state == "active") {
-                dao.put(JournalSession(account, session.clientSessionId, gson.toJson(session), "active", System.currentTimeMillis(), runtime))
+                val payload = session.copy(recovery = recovery ?: session.recovery)
+                val previous = old?.let(::decode)?.recovery
+                val next = payload.recovery
+                // Storage retries may run after a newer checkpoint has succeeded.
+                // They must not erase recovery or move the same-boot clock backwards.
+                if (previous != null && (next == null ||
+                        (previous.checkpointBootCount == next.checkpointBootCount &&
+                            (previous.checkpointElapsedMs > next.checkpointElapsedMs ||
+                                (previous.checkpointElapsedMs == next.checkpointElapsedMs &&
+                                    previous.checkpointSequence > next.checkpointSequence))))) return@withTransaction
+                dao.put(JournalSession(account, session.clientSessionId, gson.toJson(payload), "active", System.currentTimeMillis(), runtime))
             }
         }
+    }
+
+    /** Claim the existing identity only for its signed-in owner, including service recreation. */
+    suspend fun claimRecovery(account: String): PendingEkagraSessionSave? = ordered {
+        if (account.isBlank() || account != owner()) return@ordered null
+        initialize(account)
+        database.withTransaction {
+            val active = dao.rows(account).filter { it.state == "active" && decode(it).recovery != null }
+                .sortedByDescending { it.checkpointMs }
+            val row = active.firstOrNull() ?: return@withTransaction null
+            // Only one timer can own continuation. Retain older orphan checkpoints as
+            // ordinary history instead of silently hiding them or resuming two timers.
+            active.drop(1).forEach { orphan ->
+                val saved = decode(orphan).copy(recovery = null, endReason = "interrupted")
+                dao.put(orphan.copy(payload = gson.toJson(saved), state = "pending"))
+            }
+            dao.put(row.copy(runtime = runtime))
+            decode(row).copy(ownerId = account, serverId = row.serverId)
+        }
+    }.await()
+
+    /** Read-only hint for wake-up alarms; the service must still claim and recheck the owner. */
+    suspend fun peekRecovery(): PendingEkagraSessionSave? = ordered {
+        val account = owner()
+        if (account.isBlank()) return@ordered null
+        dao.rows(account).filter { it.state == "active" && decode(it).recovery != null }
+            .maxByOrNull { it.checkpointMs }?.let { decode(it).copy(ownerId = account, serverId = it.serverId) }
+    }.await()
+
+    suspend fun recoverySessionId(): String? = peekRecovery()?.clientSessionId
+
+    /**
+     * Ending immediately after Start still needs a durable terminal identity.
+     * A tombstone blocks both process recovery and a delayed/retried first checkpoint.
+     */
+    fun closeEmptySession(id: String, account: String): Deferred<Unit> = ordered(retryable = true) {
+        if (account.isBlank() || id.isBlank()) return@ordered
+        initialize(account)
+        val uploadRetainedProgress = database.withTransaction {
+            val old = dao.row(account, id)
+            if (old != null && old.state != "active") return@withTransaction false
+            val checkpoint = old?.let(::decode)
+            val seconds = checkpoint?.let { it.actualDurationSeconds ?: it.actualDurationMinutes * 60 } ?: 0
+            val now = Instant.now().toString()
+            val terminal = checkpoint?.copy(recovery = null, endReason = "user-ended")
+                ?: PendingEkagraSessionSave(
+                    clientSessionId = id, mode = TimerMode.FOCUS.toApiMode(),
+                    startedAt = now, endedAt = now,
+                    plannedDurationMinutes = 0, actualDurationMinutes = 0, actualDurationSeconds = 0,
+                    goalId = null, goalTitle = null, taskTitle = "Untitled", shieldEnabled = false,
+                    ownerId = account, endReason = "user-ended",
+                )
+            // A stale zero in the service must never erase nonzero durable progress.
+            val state = if (seconds > 0) "pending" else "synced"
+            dao.put(JournalSession(account, id, gson.toJson(terminal), state,
+                System.currentTimeMillis(), runtime, old?.serverId))
+            seconds > 0
+        }
+        if (platformEffects && uploadRetainedProgress) EkagraSessionSaveWorker.enqueue(context)
     }
 
     fun enqueue(session: PendingEkagraSessionSave, account: String? = null): Deferred<Unit> {
@@ -130,7 +205,7 @@ internal class EkagraSessionJournal internal constructor(
             val old = dao.row(user, session.clientSessionId)
             // Finalization is idempotent, including callbacks arriving after an upload.
             if (old == null || old.state == "active") {
-                dao.put(JournalSession(user, session.clientSessionId, gson.toJson(session), "pending", System.currentTimeMillis(), runtime))
+                dao.put(JournalSession(user, session.clientSessionId, gson.toJson(session.copy(recovery = null)), "pending", System.currentTimeMillis(), runtime))
             }
         }
         if (platformEffects) EkagraSessionSaveWorker.enqueue(context)
@@ -204,17 +279,6 @@ internal class EkagraSessionJournal internal constructor(
         fun get(context: Context): EkagraSessionJournal = instance ?: synchronized(this) {
             instance ?: EkagraSessionJournal(context.applicationContext).also { instance = it }
         }
-    }
-}
-
-internal object EkagraDiagnostics {
-    fun record(context: Context, event: String, detail: String = "") {
-        val exit = if (Build.VERSION.SDK_INT >= 30) runCatching {
-            context.getSystemService(ActivityManager::class.java).getHistoricalProcessExitReasons(null, 0, 1).firstOrNull()?.reason
-        }.getOrNull() else null
-        val line = "event=$event detail=$detail build=${BuildConfig.VERSION_CODE} device=${Build.MANUFACTURER}/${Build.MODEL} sdk=${Build.VERSION.SDK_INT} exit=$exit"
-        Log.i("EkagraReliability", line)
-        runCatching { com.google.firebase.crashlytics.FirebaseCrashlytics.getInstance().log(line) }
     }
 }
 

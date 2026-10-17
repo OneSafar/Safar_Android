@@ -28,6 +28,8 @@ data class PendingEkagraSessionSave(
     val completedFocusRounds: Int = 0,
     val targetFocusRounds: Int = 0,
     val periodMode: String? = null,
+    /** Local recovery only; API uploads use an explicit SaveEkagraSessionRequest. */
+    val recovery: EkagraTimerRecoveryState? = null,
 )
 
 object EkagraPendingSessionSaveStore {
