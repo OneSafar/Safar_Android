@@ -8,7 +8,7 @@ import com.safarparmar.app.R
 
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import com.composables.ui.components.DropdownMenu as UiDropdownMenu
+import com.safarparmar.app.ui.components.popups.SafarComposablesDropdownMenu as UiDropdownMenu
 import com.composables.ui.components.DropdownMenuItem as UiDropdownMenuItem
 import com.composables.ui.components.DropdownMenuPanel
 import androidx.compose.foundation.BorderStroke
@@ -40,6 +40,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.safarparmar.app.ui.components.popups.ProvideSafarPopupScale
 import java.time.Instant
 import java.time.LocalDate
 import java.time.YearMonth
@@ -59,7 +60,7 @@ internal fun BatchStudentCalendar(state: BatchUiState, vm: ToppersBatchViewModel
     // Keep the calendar compact even when the device uses a large text setting.
     val density = LocalDensity.current
     val fontScale = LocalConfiguration.current.fontScale.coerceIn(1f, 1.15f)
-    CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale)) {
+    ProvideSafarPopupScale(Density(density.density, fontScale)) {
         BatchStudentCalendarContent(state, vm::selectDay, vm::changeMonth, vm::currentMonth,
             vm::goToCalendarDay, { detailId = it.id })
     }
@@ -74,7 +75,7 @@ internal fun BatchStudentCalendarContent(state: BatchUiState, onDay: (String) ->
     onMonth: (Long) -> Unit, onToday: () -> Unit, onJump: (String) -> Unit,
     onLecture: (BatchLecture) -> Unit, today: String = ToppersBatchViewModel.indiaDay()) {
     val density = LocalDensity.current
-    CompositionLocalProvider(LocalDensity provides Density(density.density, density.fontScale.coerceIn(1f, 1.15f))) {
+    ProvideSafarPopupScale(Density(density.density, density.fontScale.coerceIn(1f, 1.15f))) {
         CalendarLayout(state, onDay, onMonth, onToday, onJump, onLecture, today)
     }
 }

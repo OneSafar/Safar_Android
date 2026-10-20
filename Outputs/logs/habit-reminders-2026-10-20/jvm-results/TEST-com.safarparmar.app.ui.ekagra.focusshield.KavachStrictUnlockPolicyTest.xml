@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.ui.ekagra.focusshield.KavachStrictUnlockPolicyTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-20T02:13:05.153Z" hostname="Shashanks-MacBook-Air.local" time="0.0">
+  <properties/>
+  <testcase name="normal Kavach preserves breaks for both features and older installations" classname="com.safarparmar.app.ui.ekagra.focusshield.KavachStrictUnlockPolicyTest" time="0.0"/>
+  <testcase name="strict Kavach still cancels its own app unlock" classname="com.safarparmar.app.ui.ekagra.focusshield.KavachStrictUnlockPolicyTest" time="0.0"/>
+  <testcase name="strict Kavach does not let legacy or unknown unlocks bypass protection" classname="com.safarparmar.app.ui.ekagra.focusshield.KavachStrictUnlockPolicyTest" time="0.0"/>
+  <testcase name="strict Kavach preserves a YouTube Focus break" classname="com.safarparmar.app.ui.ekagra.focusshield.KavachStrictUnlockPolicyTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -26,6 +26,9 @@ import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -49,6 +52,8 @@ class SafarApplication : Application(), coil.ImageLoaderFactory {
 
 
     @Inject lateinit var readSnapshots: com.safarparmar.app.data.repository.ReadSnapshotStore
+    @Inject lateinit var habitRepository: com.safarparmar.app.feature.habits.data.HabitRepository
+    @Inject lateinit var habitReminders: com.safarparmar.app.feature.habits.reminders.HabitReminderScheduler
     @Inject lateinit var dataStore: SafarDataStore
     @Inject lateinit var notificationTokenRegistrar: NotificationTokenRegistrar
     @Inject lateinit var kavachAnalyticsRepository: KavachAnalyticsRepository
@@ -71,6 +76,19 @@ class SafarApplication : Application(), coil.ImageLoaderFactory {
         com.safarparmar.app.util.AppForegroundTracker.init(this)
         configureDebugStrictMode()
         configureCrashReporting()
+        appScope.launch { habitReminders.observeAccountAndSettings() }
+        appScope.launch {
+            // Existing reminder settings also take effect after an upgrade/login,
+            // without requiring the student to open Habit Tracker first.
+            combine(dataStore.userId, dataStore.isLoggedIn) { id, loggedIn -> id?.takeIf { loggedIn && it.isNotBlank() } }
+                .distinctUntilChanged().collectLatest { owner ->
+                    if (owner != null) {
+                        try { habitRepository.refresh() }
+                        catch (e: kotlinx.coroutines.CancellationException) { throw e }
+                        catch (e: Exception) { Log.w("HabitReminder", "Using cached habit reminders while refresh is unavailable", e) }
+                    }
+                }
+        }
         // A cold start may be for KavachAlwaysOnService. Keep notification-manager
         // Binder calls and Firebase token initialization off the main thread so
         // the service can reach startForeground() within Android's deadline.

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.notifications.QuietHoursTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-20T02:12:56.770Z" hostname="Shashanks-MacBook-Air.local" time="0.0">
+  <properties/>
+  <testcase name="quietHours_suppressesStudyReminderInsideQuietHours" classname="com.safarparmar.app.notifications.QuietHoursTest" time="0.0"/>
+  <testcase name="quietHours_doesNotSuppressFocusShieldStatus" classname="com.safarparmar.app.notifications.QuietHoursTest" time="0.0"/>
+  <testcase name="quietHours_doesNotSuppressFocusShieldBlocked" classname="com.safarparmar.app.notifications.QuietHoursTest" time="0.0"/>
+  <testcase name="quietHours_allowsStudyReminderOutsideQuietHours" classname="com.safarparmar.app.notifications.QuietHoursTest" time="0.0"/>
+  <testcase name="quietHours_doesNotSuppressFocusTimer" classname="com.safarparmar.app.notifications.QuietHoursTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

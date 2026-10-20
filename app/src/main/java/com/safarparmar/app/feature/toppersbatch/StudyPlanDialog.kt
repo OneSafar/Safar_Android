@@ -1,6 +1,7 @@
 package com.safarparmar.app.feature.toppersbatch
 
 import com.safarparmar.app.R
+import com.safarparmar.app.ui.components.popups.rememberSafarPopupContext
 
 import android.Manifest
 import android.app.TimePickerDialog
@@ -48,6 +49,7 @@ internal fun StudyPlanDialog(lecture: BatchLecture, state: BatchUiState, vm: Top
     var dates by remember(lecture.id) { mutableStateOf(if (pending.size > 1) pending.map { it.date } else listOf(1L, 3L, 7L, 14L, 30L).map { LocalDate.parse(today).plusDays(it).toString() }) }
     var bookmark by remember(lecture.id) { mutableStateOf(revision && lecture.revisionTagged && pending.isEmpty() && (lecture.revisionDate == null || lecture.revisionCompletedAt != null)) }
     val context = LocalContext.current
+    val popupContext = rememberSafarPopupContext()
     fun permitted() = Build.VERSION.SDK_INT < 33 || ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
     var reminder by remember(lecture.id) { mutableStateOf(permitted() && (if (revision) lecture.revisionReminderTime else lecture.studyReminderTime) != null) }
     var showReminder by remember(lecture.id) { mutableStateOf(reminder) }
@@ -102,7 +104,7 @@ internal fun StudyPlanDialog(lecture: BatchLecture, state: BatchUiState, vm: Top
                     Text(strings.text(R.string.toppers_batch_remind_me))
                 }
                 if (reminder) Button(onClick = batchFeatureAction({
-                    TimePickerDialog(context, { _, hour, minute -> time = "%02d:%02d".format(Locale.ROOT, hour, minute) }, time.take(2).toInt(), time.takeLast(2).toInt(), true).show()
+                    TimePickerDialog(popupContext, { _, hour, minute -> time = "%02d:%02d".format(Locale.ROOT, hour, minute) }, time.take(2).toInt(), time.takeLast(2).toInt(), true).show()
                 }), style = ButtonStyle.Outlined) { Text(strings.text(R.string.toppers_batch_count_ist, strings.time(time))) }
             }
             if (revision) Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

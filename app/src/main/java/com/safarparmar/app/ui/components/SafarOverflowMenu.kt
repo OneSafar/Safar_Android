@@ -5,7 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
-import com.composables.ui.components.DropdownMenu
+import com.safarparmar.app.ui.components.popups.SafarComposablesDropdownMenu as DropdownMenu
 import com.composables.ui.components.DropdownMenuAlignment
 import com.composables.ui.components.DropdownMenuItem
 import com.composables.ui.components.DropdownMenuItemStyle

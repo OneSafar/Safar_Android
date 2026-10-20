@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="habit_reminder_label">Habit reminder</string>
+    <string name="habit_reminder_time">Reminder time: %1$s</string>
+    <string name="habit_reminder_help">Reminds you on scheduled, unfinished days. Enable notifications in Android and SAFAR Settings. Delivery may be delayed by battery saving.</string>
+    <string name="habit_reminder_settings">Android notification settings</string>
+    <string name="habit_reminder_body">Time for your habit. Open Habit Tracker to mark it done.</string>
+</resources>

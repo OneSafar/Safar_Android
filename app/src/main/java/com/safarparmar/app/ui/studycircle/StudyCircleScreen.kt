@@ -1,5 +1,9 @@
 package com.safarparmar.app.ui.studycircle
 
+import com.safarparmar.app.ui.theme.isLightBackground
+
+import androidx.compose.ui.platform.LocalResources
+
 import com.safarparmar.app.ui.tutorial.tutorialTarget
 
 import androidx.lifecycle.repeatOnLifecycle
@@ -31,6 +35,9 @@ import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material3.*
+import com.safarparmar.app.ui.components.popups.SafarMaterialAlertDialog as AlertDialog
+import com.safarparmar.app.ui.components.popups.SafarModalBottomSheet as ModalBottomSheet
+import com.safarparmar.app.ui.components.popups.SafarDropdownMenu as DropdownMenu
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -38,6 +45,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -54,7 +62,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
+import com.safarparmar.app.ui.components.popups.SafarDialog as Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -239,6 +247,9 @@ fun StudyCircleScreen(
 
     val pendingDmRequests by viewModel.pendingDmRequests.collectAsStateWithLifecycle()
     var showConnectRequestsSheet by rememberSaveable { mutableStateOf(false) }
+    com.safarparmar.app.ui.tutorial.ScreenPracticeEntry(com.safarparmar.app.ui.tutorial.TitliFeature.STUDY_CIRCLE,
+        isDarkTheme, eligible = !state.loading && state.busyId == null && dialog == null && !showConnectRequestsSheet)
+
 
     LaunchedEffect(message) {
         message?.let {
@@ -550,7 +561,7 @@ internal fun StudyCircleTopButtons(
             onClick = onJoin,
             enabled = !atLimit,
             modifier = Modifier
-                .weight(1f)
+                .weight(1f).tutorialTarget("circle.joinCode")
                 .height(48.dp),
             shape = RoundedCornerShape(12.dp),
             border = BorderStroke(1.2.dp, primary),
@@ -567,7 +578,7 @@ internal fun StudyCircleTopButtons(
             onClick = onCreate,
             enabled = !atLimit && creationAllowed,
             modifier = Modifier
-                .weight(1f)
+                .weight(1f).tutorialTarget("circle.create")
                 .height(48.dp),
             shape = RoundedCornerShape(12.dp),
             colors = ButtonDefaults.buttonColors(
@@ -917,7 +928,7 @@ private fun OfficialCircleRow(
 // ── Circle List Cards ───────────────────────────────────────────────────────
 
 @Composable
-private fun MyCircleRow(circle: StudyCircleSummaryDto, onClick: () -> Unit) {
+internal fun MyCircleRow(circle: StudyCircleSummaryDto, onClick: () -> Unit) {
     val primary = CirclePrimary
     val official = OfficialGreen
     val isPublic = circle.visibility == "public"
@@ -1315,8 +1326,8 @@ internal fun StudyCircleInputContent(
     val primaryBtn = CirclePrimaryButton
     Column(
         modifier = Modifier
-            .fillMaxWidth()
             .widthIn(max = 380.dp)
+            .fillMaxWidth()
             .clip(RoundedCornerShape(18.dp))
             .background(PlannerFlatColors.CardWhite)
             .border(1.dp, PlannerFlatColors.BorderSoft, RoundedCornerShape(18.dp))
@@ -1346,7 +1357,7 @@ internal fun StudyCircleInputContent(
                 onValueChange(if (isCreate) it.take(MAX_CIRCLE_NAME_LENGTH)
                 else it.uppercase().filter(Char::isLetterOrDigit).take(6))
             },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().tutorialTarget(if (isCreate) "circle.name" else "circle.code"),
             singleLine = true,
             enabled = !busy,
             placeholder = {
@@ -1377,7 +1388,7 @@ internal fun StudyCircleInputContent(
         // Visibility Choice (when creating)
         if (isCreate) {
             Row(
-                modifier = Modifier.fillMaxWidth().tutorialTarget("ekagra.circleCreate"),
+                modifier = Modifier.fillMaxWidth().tutorialTarget("ekagra.circleCreate").tutorialTarget("circle.privacy"),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 VisibilityChoice("private", visibility, Modifier.weight(1f)) { onVisibilityChange(it) }
@@ -1506,6 +1517,7 @@ fun StudyCircleDetailScreen(
     val mehfilDm by viewModel.mehfilDm.collectAsStateWithLifecycle()
     val isPremium by viewModel.isPremium.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val localizedResources by rememberUpdatedState(LocalResources.current)
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     var confirm by remember { mutableStateOf<ConfirmAction?>(null) }
@@ -1513,6 +1525,10 @@ fun StudyCircleDetailScreen(
     var renameDialogOpen by remember { mutableStateOf(false) }
     val pendingDmRequests by viewModel.pendingDmRequests.collectAsStateWithLifecycle()
     var showConnectRequestsSheet by rememberSaveable { mutableStateOf(false) }
+    com.safarparmar.app.ui.tutorial.ScreenPracticeEntry(com.safarparmar.app.ui.tutorial.TitliFeature.STUDY_CIRCLE,
+        MaterialTheme.colorScheme.background.luminance() < 0.5f,
+        eligible = !state.loading && !state.actionInProgress && confirm == null && !renameDialogOpen && !showConnectRequestsSheet)
+
 
     LaunchedEffect(circleId) { viewModel.loadDetail(circleId) }
     val detailLifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
@@ -1778,8 +1794,8 @@ fun StudyCircleDetailScreen(
                         viewModel.renameCircle(savedName) { previousName ->
                             coroutineScope.launch {
                                 val result = snackbarHostState.showSnackbar(
-                                    message = context.getString(R.string.study_circle_renamed_to, savedName),
-                                    actionLabel = context.getString(R.string.common_undo).uppercase(),
+                                    message = localizedResources.getString(R.string.study_circle_renamed_to, savedName),
+                                    actionLabel = localizedResources.getString(R.string.common_undo).uppercase(),
                                     duration = SnackbarDuration.Short,
                                     withDismissAction = true,
                                 )
@@ -2356,7 +2372,7 @@ fun LeaderboardRankBadge(
 // ── Member Row (Variation 3 - Modern Minimalist Typography List) ─────────────
 
 @Composable
-private fun LeaderboardMemberRow(
+internal fun LeaderboardMemberRow(
     member: StudyCircleMemberDto,
     entry: StudyCircleLeaderboardEntryDto?,
     currentUserId: String,

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ScreenLogicTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-19T19:59:40.306Z" hostname="Shashanks-MacBook-Air.local" time="0.005">
+  <properties/>
+  <testcase name="starter suggestions contain only Parmar SSC and SAFAR PARMAR in that order" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ScreenLogicTest" time="0.004"/>
+  <testcase name="productive filter includes productive starter channels" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ScreenLogicTest" time="0.001"/>
+  <testcase name="available filters separate productive and distracting channels" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ScreenLogicTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

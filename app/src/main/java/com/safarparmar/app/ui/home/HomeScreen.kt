@@ -39,7 +39,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
+import com.safarparmar.app.ui.components.popups.SafarDialog as Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -878,7 +878,7 @@ fun VideoPlaylistEntryPoint(
         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(YoutubeUrls.VISUAL_GUIDANCE_PLAYLIST_URL))
         runCatching { context.startActivity(intent) }
     }
-    com.composables.ui.components.Tooltip(
+    com.safarparmar.app.ui.components.popups.SafarComposablesTooltip(
         enabled = showTooltip,
         side = com.composables.ui.components.TooltipSide.Bottom,
         alignment = com.composables.ui.components.TooltipAlignment.End,

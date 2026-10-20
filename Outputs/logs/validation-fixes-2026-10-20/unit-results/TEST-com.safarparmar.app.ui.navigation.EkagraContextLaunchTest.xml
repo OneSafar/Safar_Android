@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.ui.navigation.EkagraContextLaunchTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-19T19:59:48.390Z" hostname="Shashanks-MacBook-Air.local" time="0.001">
+  <properties/>
+  <testcase name="different planner topics create different Ekagra routes" classname="com.safarparmar.app.ui.navigation.EkagraContextLaunchTest" time="0.0"/>
+  <testcase name="plain Ekagra launch may restore its own screen state" classname="com.safarparmar.app.ui.navigation.EkagraContextLaunchTest" time="0.0"/>
+  <testcase name="manage goals route contains tab 2 and overview section" classname="com.safarparmar.app.ui.navigation.EkagraContextLaunchTest" time="0.001"/>
+  <testcase name="plain Study Planner route normalizes to registered destination" classname="com.safarparmar.app.ui.navigation.EkagraContextLaunchTest" time="0.0"/>
+  <testcase name="plain Nishtha route normalizes to tabbed destination" classname="com.safarparmar.app.ui.navigation.EkagraContextLaunchTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

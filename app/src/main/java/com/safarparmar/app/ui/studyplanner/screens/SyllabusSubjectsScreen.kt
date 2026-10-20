@@ -1,5 +1,7 @@
 package com.safarparmar.app.ui.studyplanner.screens
 
+import androidx.compose.ui.platform.LocalResources
+
 import androidx.compose.ui.res.stringResource
 import com.safarparmar.app.R
 
@@ -27,6 +29,8 @@ import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.FolderOpen
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.*
+import com.safarparmar.app.ui.components.popups.SafarModalBottomSheet as ModalBottomSheet
+import com.safarparmar.app.ui.components.popups.SafarDatePickerDialog as DatePickerDialog
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -104,6 +108,7 @@ fun SyllabusSubjectsScreen(
     val subjects by viewModel.subjects.collectAsStateWithLifecycle()
     val actions: PlannerActions = viewModel
     val context = androidx.compose.ui.platform.LocalContext.current
+    val localizedResources by rememberUpdatedState(LocalResources.current)
 
     var dialogState by remember { mutableStateOf<SyllabusDialogState>(SyllabusDialogState.Closed) }
     var activeSubjectId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -155,7 +160,7 @@ fun SyllabusSubjectsScreen(
                 val name = names[0]
                 if (findDuplicateSiblingName(name, rawSubjects.map { it.name })) {
                     dialogState = SyllabusDialogState.DuplicateNameConfirm(
-                        message = context.getString(R.string.planner_duplicate_subject, name),
+                        message = localizedResources.getString(R.string.planner_duplicate_subject, name),
                         onConfirm = { actions.addSubject(name) },
                     )
                 } else {
@@ -170,7 +175,7 @@ fun SyllabusSubjectsScreen(
         val siblings = rawSubjects.filter { it.id != subjectId }.map { it.name }
         if (findDuplicateSiblingName(name, siblings)) {
             dialogState = SyllabusDialogState.DuplicateNameConfirm(
-                message = context.getString(R.string.planner_duplicate_subject, name),
+                message = localizedResources.getString(R.string.planner_duplicate_subject, name),
                 onConfirm = { actions.renameSubject(subjectId, name) },
             )
         } else {
@@ -192,7 +197,7 @@ fun SyllabusSubjectsScreen(
                 val siblings = subject?.chapters.orEmpty().map { it.name }
                 if (findDuplicateSiblingName(name, siblings)) {
                     dialogState = SyllabusDialogState.DuplicateNameConfirm(
-                        message = context.getString(R.string.planner_duplicate_chapter, name),
+                        message = localizedResources.getString(R.string.planner_duplicate_chapter, name),
                         onConfirm = { actions.addChapter(subjectId, name) },
                     )
                 } else {
@@ -208,7 +213,7 @@ fun SyllabusSubjectsScreen(
         val siblings = subject?.chapters.orEmpty().filter { it.id != chapterId }.map { it.name }
         if (findDuplicateSiblingName(name, siblings)) {
             dialogState = SyllabusDialogState.DuplicateNameConfirm(
-                message = context.getString(R.string.planner_duplicate_chapter, name),
+                message = localizedResources.getString(R.string.planner_duplicate_chapter, name),
                 onConfirm = { actions.renameChapter(subjectId, chapterId, name) },
             )
         } else {
@@ -231,7 +236,7 @@ fun SyllabusSubjectsScreen(
                 val siblings = chapter?.topics.orEmpty().map { it.name }
                 if (findDuplicateSiblingName(name, siblings)) {
                     dialogState = SyllabusDialogState.DuplicateNameConfirm(
-                        message = context.getString(R.string.planner_duplicate_topic, name),
+                        message = localizedResources.getString(R.string.planner_duplicate_topic, name),
                         onConfirm = { actions.addTopic(subjectId, chapterId, name) },
                     )
                 } else {

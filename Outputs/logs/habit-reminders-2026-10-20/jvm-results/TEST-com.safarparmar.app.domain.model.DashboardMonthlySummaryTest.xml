@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.domain.model.DashboardMonthlySummaryTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-20T02:12:51.680Z" hostname="Shashanks-MacBook-Air.local" time="0.01">
+  <properties/>
+  <testcase name="summary retains exact card values" classname="com.safarparmar.app.domain.model.DashboardMonthlySummaryTest" time="0.001"/>
+  <testcase name="only unavailable routes fall back" classname="com.safarparmar.app.domain.model.DashboardMonthlySummaryTest" time="0.008"/>
+  <testcase name="default disabled never calls compact provider" classname="com.safarparmar.app.domain.model.DashboardMonthlySummaryTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

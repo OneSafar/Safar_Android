@@ -336,7 +336,7 @@ fun YoutubeStudyV2Content(
         }
 
         if (showDisclosure) {
-            com.composables.ui.components.AlertDialog(
+            com.safarparmar.app.ui.components.popups.SafarComposablesAlertDialog(
                 visible = true,
                 onDismissRequest = { showDisclosure = false; enableAfterDisclosure = false },
                 backgroundColor = if (isLight) YTCMColors.ContainerLight else YTCMColors.ContainerDark,

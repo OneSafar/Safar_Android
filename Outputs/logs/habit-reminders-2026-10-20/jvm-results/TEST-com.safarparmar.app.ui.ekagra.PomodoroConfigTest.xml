@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.ui.ekagra.PomodoroConfigTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-20T02:12:56.958Z" hostname="Shashanks-MacBook-Air.local" time="0.0">
+  <properties/>
+  <testcase name="traditional configuration is fixed and ends with a long break" classname="com.safarparmar.app.ui.ekagra.PomodoroConfigTest" time="0.0"/>
+  <testcase name="custom uses the same break after every round including final" classname="com.safarparmar.app.ui.ekagra.PomodoroConfigTest" time="0.0"/>
+  <testcase name="traditional uses fifteen minute final break" classname="com.safarparmar.app.ui.ekagra.PomodoroConfigTest" time="0.0"/>
+  <testcase name="configuration is bounded before timer arithmetic" classname="com.safarparmar.app.ui.ekagra.PomodoroConfigTest" time="0.0"/>
+  <testcase name="three loop configuration keeps selected rhythm" classname="com.safarparmar.app.ui.ekagra.PomodoroConfigTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

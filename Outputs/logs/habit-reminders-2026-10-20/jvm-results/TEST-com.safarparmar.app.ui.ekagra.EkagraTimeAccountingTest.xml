@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.ui.ekagra.EkagraTimeAccountingTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-10-20T02:12:56.945Z" hostname="Shashanks-MacBook-Air.local" time="0.002">
+  <properties/>
+  <testcase name="two completed one-minute pomodoro loops aggregate to two minutes" classname="com.safarparmar.app.ui.ekagra.EkagraTimeAccountingTest" time="0.0"/>
+  <testcase name="elapsed duration omits zero units while preserving seconds" classname="com.safarparmar.app.ui.ekagra.EkagraTimeAccountingTest" time="0.001"/>
+  <testcase name="three loop series interrupted during break saves only completed focus" classname="com.safarparmar.app.ui.ekagra.EkagraTimeAccountingTest" time="0.0"/>
+  <testcase name="history aggregation can use timestamp seconds for older sessions" classname="com.safarparmar.app.ui.ekagra.EkagraTimeAccountingTest" time="0.0"/>
+  <testcase name="history detail uses exact seconds instead of rounded zero minutes" classname="com.safarparmar.app.ui.ekagra.EkagraTimeAccountingTest" time="0.0"/>
+  <testcase name="ending during a pomodoro break preserves completed focus loops" classname="com.safarparmar.app.ui.ekagra.EkagraTimeAccountingTest" time="0.0"/>
+  <testcase name="save request serializes client id using backend deduplication field" classname="com.safarparmar.app.ui.ekagra.EkagraTimeAccountingTest" time="0.001"/>
+  <testcase name="completed first loop plus six seconds of second loop equals sixty-six seconds" classname="com.safarparmar.app.ui.ekagra.EkagraTimeAccountingTest" time="0.0"/>
+  <testcase name="history detail preserves cumulative exact seconds" classname="com.safarparmar.app.ui.ekagra.EkagraTimeAccountingTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

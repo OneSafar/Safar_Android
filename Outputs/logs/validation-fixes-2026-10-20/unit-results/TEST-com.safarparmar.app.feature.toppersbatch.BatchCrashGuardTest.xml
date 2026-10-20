@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.feature.toppersbatch.BatchCrashGuardTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-19T19:59:39.115Z" hostname="Shashanks-MacBook-Air.local" time="0.003">
+  <properties/>
+  <testcase name="malformedMissedPlanDatesCannotReachTheReschedulingPreviewParser" classname="com.safarparmar.app.feature.toppersbatch.BatchCrashGuardTest" time="0.003"/>
+  <testcase name="revisionBookmarkWithoutDateDoesNotCrashProgressOrBecomeDue" classname="com.safarparmar.app.feature.toppersbatch.BatchCrashGuardTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

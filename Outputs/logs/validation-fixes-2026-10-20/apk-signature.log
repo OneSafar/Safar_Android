@@ -1,0 +1,17 @@
+Verifies
+Verified using v1 scheme (JAR signing): false
+Verified using v2 scheme (APK Signature Scheme v2): true
+Verified using v3 scheme (APK Signature Scheme v3): true
+Verified using v3.1 scheme (APK Signature Scheme v3.1): false
+Verified using v4 scheme (APK Signature Scheme v4): false
+Verified for SourceStamp: false
+Number of signers: 1
+Signer #1 certificate DN: CN=Safar App, OU=Development, O=Safar, L=Delhi, ST=Delhi, C=IN
+Signer #1 certificate SHA-256 digest: 7fc5e60e5855ce8dd7a2754cf062011bacd47cf148deae2df8db1145c71bb62b
+Signer #1 certificate SHA-1 digest: feadda8e7f7ccbf970e9c266933b7acc0792d1ab
+Signer #1 certificate MD5 digest: 8347a8b2dd4163cd5f36c252c9099e4a
+Signer #1 key algorithm: RSA
+Signer #1 key size (bits): 2048
+Signer #1 public key SHA-256 digest: c671aaf33ffb7f85cd8dbacf95df83084f8f786b2d393aa74353deaec4a03406
+Signer #1 public key SHA-1 digest: 60fb331ceeb1175007a7182ab95df01bbca49d10
+Signer #1 public key MD5 digest: 61e09ccc7689c900c5e7dc1f5eed5d12

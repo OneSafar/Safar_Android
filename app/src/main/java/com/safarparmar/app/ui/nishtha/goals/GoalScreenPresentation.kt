@@ -1,5 +1,7 @@
 package com.safarparmar.app.ui.nishtha.goals
 
+import androidx.compose.ui.platform.LocalLocale
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -95,7 +97,7 @@ internal fun GoalCreationContent(
             AssistOptionRow(
                 selected = isScheduled,
                 title = stringResource(R.string.goals_schedule_future),
-                subtitle = if (isScheduled) stringResource(R.string.goals_set_for_date, selectedDate.format(DateTimeFormatter.ofPattern("EEE, MMM d", Locale.getDefault()))) else stringResource(if (editing) R.string.goals_set_today_pick_future else R.string.goals_default_today_pick_future),
+                subtitle = if (isScheduled) stringResource(R.string.goals_set_for_date, selectedDate.format(DateTimeFormatter.ofPattern("EEE, MMM d", LocalLocale.current.platformLocale))) else stringResource(if (editing) R.string.goals_set_today_pick_future else R.string.goals_default_today_pick_future),
                 onClick = onToggleSchedule
             )
         }

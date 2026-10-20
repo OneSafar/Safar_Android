@@ -274,7 +274,7 @@ fun NishthaScreen(
  * bouncy spring micro-interactions, and authentic circular ripple effect.
  */
 @Composable
-private fun NishthaBottomBar(
+internal fun NishthaBottomBar(
     selected: NishthaTab,
     onSelect: (NishthaTab) -> Unit,
 ) {

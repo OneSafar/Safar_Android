@@ -89,7 +89,7 @@ internal fun VisualThemeDialog(current: VisualTheme, onSelect: (VisualTheme) -> 
     val ink = rememberEkagraInk(onCanvas = false)
     val dialogBg = scheme.background
 
-    com.composables.ui.components.AlertDialog(
+    com.safarparmar.app.ui.components.popups.SafarComposablesAlertDialog(
         visible = true,
         onDismissRequest = onDismiss,
         backgroundColor= dialogBg,
@@ -235,7 +235,7 @@ internal fun OrganizeFreeFocusSheet(
     onDeleteTag: ((String) -> Unit)? = null,
     onSetTagColor: ((String, String) -> Unit)? = null,
 ) {
-    com.composables.ui.components.BottomSheet(
+    com.safarparmar.app.ui.components.popups.SafarComposablesBottomSheet(
         onDismissRequest = onDismiss, state = sheetState,
         backgroundColor = if (isDarkTheme) MaterialTheme.colorScheme.surface else Color.White,
     ) {
@@ -733,7 +733,7 @@ internal fun EkagraConfirmSaveDialog(
     linksTopic: Boolean = false,
     accentColor: Color = PlannerAccent.Teal,
 ) {
-    androidx.compose.ui.window.Dialog(
+    com.safarparmar.app.ui.components.popups.SafarDialog(
         onDismissRequest = onCancel,
         properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false),
     ) {
@@ -764,6 +764,7 @@ internal fun EkagraConfirmSaveContent(
         shadowElevation = 12.dp,
         border = BorderStroke(1.dp, ink.hairline),
         modifier = Modifier
+            .widthIn(max = 420.dp)
             .fillMaxWidth(0.92f).tutorialTarget("ekagra.confirmSave")
             .wrapContentHeight()
             .padding(vertical = 16.dp),
@@ -848,7 +849,7 @@ internal fun SessionNameDialog(
     }
     var selectedTag by remember { mutableStateOf(initialTag ?: parsed.first) }
 
-    androidx.compose.ui.window.Dialog(onDismissRequest = { /* non-dismissable, must choose */ }) {
+    com.safarparmar.app.ui.components.popups.SafarDialog(onDismissRequest = { /* non-dismissable, must choose */ }) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -985,7 +986,7 @@ internal fun PostSaveGoalLinkingSheet(
     val themeAccent = selectedTheme?.accent ?: MaterialTheme.colorScheme.primary
     val maxSheetHeight = LocalConfiguration.current.screenHeightDp.dp * 0.85f
 
-    com.composables.ui.components.BottomSheet(
+    com.safarparmar.app.ui.components.popups.SafarComposablesBottomSheet(
         onDismissRequest = onDismiss,
         state = sheetState,
         backgroundColor = if (isDarkTheme) MaterialTheme.colorScheme.surface else Color.White,

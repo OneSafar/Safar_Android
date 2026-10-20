@@ -1,5 +1,7 @@
 package com.safarparmar.app.feature.habits.ui.insights
 
+import androidx.compose.ui.platform.LocalLocale
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
@@ -252,7 +254,7 @@ fun HabitWeeklyRhythmCard(
         } else {
             com.safarparmar.app.ui.components.analytics.SafarAnalyticsChart(
                 values = rates,
-                labels = weekdays.map { it.getDisplayName(TextStyle.NARROW, Locale.getDefault()) },
+                labels = weekdays.map { it.getDisplayName(TextStyle.NARROW, LocalLocale.current.platformLocale) },
                 color = cardColor,
                 columns = true,
                 percent = true,
@@ -261,7 +263,7 @@ fun HabitWeeklyRhythmCard(
             )
             val best = rates.indices.maxByOrNull { rates[it] }?.takeIf { rates[it] > 0 }
             Text(if (best == null) "Every scheduled day counts. Start with one completion today."
-                else "Strongest day: ${weekdays[best].getDisplayName(TextStyle.FULL, Locale.getDefault())} · ${rates[best].toInt()}%",
+                else "Strongest day: ${weekdays[best].getDisplayName(TextStyle.FULL, LocalLocale.current.platformLocale)} · ${rates[best].toInt()}%",
                 style = androidx.compose.material3.MaterialTheme.typography.labelMedium,
                 color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant)
         }

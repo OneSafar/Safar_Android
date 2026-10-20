@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
+import com.safarparmar.app.ui.components.popups.SafarMaterialAlertDialog as AlertDialog
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -160,8 +161,8 @@ internal fun titliCompanionPosition(target: Rect, stage: Size, companion: Size, 
         ?: Offset(maxX, maxY)
 }
 
-internal enum class TitliFeature { EKAGRA, GOALS, YOUTUBE, HABITS }
-internal data class TitliRegistration(val feature: TitliFeature?, val start: () -> Unit, val lessons: () -> Unit)
+internal enum class TitliFeature { EKAGRA, GOALS, YOUTUBE, HABITS, TOPPERS_BATCH, MEHFIL, DHYAN, STUDY_CIRCLE, CHECK_IN, JOURNAL, STREAKS, ANALYTICS, EXAM_PLANNER }
+internal data class TitliRegistration(val feature: TitliFeature?, val start: () -> Unit, val lessons: () -> Unit, val ready: () -> Boolean = { true })
 
 @Stable
 internal class TitliController {
@@ -175,13 +176,14 @@ internal val LocalTitliController = staticCompositionLocalOf<TitliController?> {
 
 /** Register only while a feature is actually composed; callbacks retain its eligibility checks. */
 @Composable
-internal fun RegisterTitliGuide(start: () -> Unit, lessons: () -> Unit, feature: TitliFeature? = null) {
+internal fun RegisterTitliGuide(start: () -> Unit, lessons: () -> Unit, feature: TitliFeature? = null, ready: Boolean = true) {
     val controller = LocalTitliController.current ?: return
     val currentStart by rememberUpdatedState(start)
     val currentLessons by rememberUpdatedState(lessons)
+    val currentReady by rememberUpdatedState(ready)
     val key = remember { Any() }
     DisposableEffect(controller, key, feature) {
-        controller.guides[key] = TitliRegistration(feature, { currentStart() }, { currentLessons() })
+        controller.guides[key] = TitliRegistration(feature, { currentStart() }, { currentLessons() }, { currentReady })
         onDispose { controller.guides.remove(key) }
     }
 }
@@ -222,7 +224,9 @@ internal fun TitliIntroduction(onContinue: () -> Unit, onDismiss: () -> Unit) {
 /** Supplies actions/dialogs only. It adds no toolbar, space, insets, or screen overlay. */
 @Composable
 internal fun TitliHost(dataStore: SafarDataStore, onOpenEkagra: () -> Unit, onOpenGoals: () -> Unit,
-    onOpenYoutube: () -> Unit = {}, onOpenHabits: () -> Unit = {}, onOpenQueries: () -> Unit = {},
+    onOpenYoutube: () -> Unit = {}, onOpenHabits: () -> Unit = {},
+    onOpenBatch: () -> Unit = {}, onOpenMehfil: () -> Unit = {}, onOpenDhyan: () -> Unit = {}, onOpenQueries: () -> Unit = {},
+    onOpenCircle: () -> Unit = {}, onOpenCheckIn: () -> Unit = {}, onOpenJournal: () -> Unit = {}, onOpenStreaks: () -> Unit = {}, onOpenAnalytics: () -> Unit = {}, onOpenPlanner: () -> Unit = {},
     introductionKey: String = "titli_introduction_v1", content: @Composable () -> Unit) {
     if (!com.safarparmar.app.BuildConfig.TITLI_TUTORIALS_ENABLED) {
         content()
@@ -236,10 +240,10 @@ internal fun TitliHost(dataStore: SafarDataStore, onOpenEkagra: () -> Unit, onOp
     LaunchedEffect(pendingFeature) {
         val feature = pendingFeature ?: return@LaunchedEffect
         val guide = withTimeoutOrNull(6000) {
-            snapshotFlow { controller.guides.values.firstOrNull { it.feature == feature } }.first { it != null }
+            snapshotFlow { controller.guides.values.firstOrNull { it.feature == feature && it.ready() } }.first { it != null }
         }
         pendingFeature = null
-        guide?.start?.invoke()
+        (guide ?: controller.guides.values.firstOrNull { it.feature == feature })?.start?.invoke()
     }
     var showAvailable by remember { mutableStateOf(false) }
     fun showFeature(start: Boolean) {
@@ -264,6 +268,15 @@ internal fun TitliHost(dataStore: SafarDataStore, onOpenEkagra: () -> Unit, onOp
                 TitliFeature.GOALS -> onOpenGoals()
                 TitliFeature.YOUTUBE -> onOpenYoutube()
                 TitliFeature.HABITS -> onOpenHabits()
+                TitliFeature.TOPPERS_BATCH -> onOpenBatch()
+                TitliFeature.MEHFIL -> onOpenMehfil()
+                TitliFeature.DHYAN -> onOpenDhyan()
+                TitliFeature.STUDY_CIRCLE -> onOpenCircle()
+                TitliFeature.CHECK_IN -> onOpenCheckIn()
+                TitliFeature.JOURNAL -> onOpenJournal()
+                TitliFeature.STREAKS -> onOpenStreaks()
+                TitliFeature.ANALYTICS -> onOpenAnalytics()
+                TitliFeature.EXAM_PLANNER -> onOpenPlanner()
             }
         }, onQueries = { showAvailable = false; onOpenQueries() }, onDismiss = { showAvailable = false })
 }
@@ -276,7 +289,15 @@ internal fun TitliHelpMenu(name: String?, onFeature: (TitliFeature) -> Unit, onQ
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 listOf(TitliFeature.EKAGRA to R.string.titli_help_ekagra, TitliFeature.GOALS to R.string.titli_help_goals,
-                    TitliFeature.YOUTUBE to R.string.titli_help_youtube, TitliFeature.HABITS to R.string.titli_help_habits).forEach { (feature, label) ->
+                    TitliFeature.YOUTUBE to R.string.titli_help_youtube, TitliFeature.HABITS to R.string.titli_help_habits,
+                    TitliFeature.TOPPERS_BATCH to R.string.practice_batch, TitliFeature.MEHFIL to R.string.practice_mehfil,
+                    TitliFeature.DHYAN to R.string.practice_dhyan,
+                    TitliFeature.STUDY_CIRCLE to R.string.practice_next_circle,
+                    TitliFeature.CHECK_IN to R.string.practice_next_checkin,
+                    TitliFeature.JOURNAL to R.string.practice_next_journal,
+                    TitliFeature.STREAKS to R.string.practice_next_streaks,
+                    TitliFeature.ANALYTICS to R.string.practice_next_analytics,
+                    TitliFeature.EXAM_PLANNER to R.string.practice_next_planner).forEach { (feature, label) ->
                     TextButton(onClick = { onFeature(feature) }, modifier = Modifier.fillMaxWidth().testTag("titli.menu.${feature.name}")) { Text(stringResource(label), modifier = Modifier.fillMaxWidth()) }
                 }
                 HorizontalDivider()

@@ -1,6 +1,8 @@
 /* Hallmark · pre-emit critique: P5 H5 E4 S5 R5 V4 */
 package com.safarparmar.app.ui.premium
 
+import androidx.compose.ui.platform.LocalResources
+
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 import android.app.Activity
@@ -25,6 +27,7 @@ import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.material3.*
+import com.safarparmar.app.ui.components.popups.SafarMaterialAlertDialog as AlertDialog
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -130,6 +133,7 @@ fun PremiumPaywallScreen(
     val premiumStatus by viewModel.premiumStatus.collectAsStateWithLifecycle()
     val dhyanPricing by viewModel.dhyanPricing.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val localizedResources by rememberUpdatedState(LocalResources.current)
     val lifecycleOwner = LocalLifecycleOwner.current
     val activity = context as? Activity
     val scope = rememberCoroutineScope()
@@ -206,7 +210,7 @@ fun PremiumPaywallScreen(
                     delay(1_500)
                     viewModel.refreshPremiumStatus(
                         showLoading = true,
-                        fallbackError = context.getString(R.string.premium_payment_returned_inactive)
+                        fallbackError = localizedResources.getString(R.string.premium_payment_returned_inactive)
                     )
                 }
             }
@@ -220,12 +224,12 @@ fun PremiumPaywallScreen(
             val state = uiState as PremiumUiState.OrderCreated
             try {
                 if (activity == null) {
-                    viewModel.notifyPaymentFailed(context.getString(R.string.premium_checkout_active_screen))
+                    viewModel.notifyPaymentFailed(localizedResources.getString(R.string.premium_checkout_active_screen))
                     return@LaunchedEffect
                 }
                 val razorpayKeyId = state.keyId?.trim()?.takeIf { it.isNotEmpty() }
                 if (razorpayKeyId == null) {
-                    viewModel.notifyPaymentFailed(context.getString(R.string.premium_gateway_not_configured))
+                    viewModel.notifyPaymentFailed(localizedResources.getString(R.string.premium_gateway_not_configured))
                     return@LaunchedEffect
                 }
                 refreshAfterPaymentReturn = state.planType != "dhyan"
@@ -235,7 +239,7 @@ fun PremiumPaywallScreen(
                     put("name", "Safar")
                     put(
                         "description",
-                        context.getString(
+                        localizedResources.getString(
                             if (state.planType == "dhyan") R.string.premium_dhyan_six_months
                             else R.string.premium_plus_dhyan
                         )
@@ -250,7 +254,7 @@ fun PremiumPaywallScreen(
             } catch (e: Exception) {
                 e.printStackTrace()
                 refreshAfterPaymentReturn = false
-                viewModel.notifyPaymentFailed(e.message ?: context.getString(R.string.premium_checkout_launch_error))
+                viewModel.notifyPaymentFailed(e.message ?: localizedResources.getString(R.string.premium_checkout_launch_error))
             }
         }
     }

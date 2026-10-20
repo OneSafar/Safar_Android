@@ -1,4 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="youtube_focus_kavach_priority">YouTube Focus on aur uski accessibility service connected hone par YouTube ke rules wahi manage karega—chahe YouTube Kavach mein selected ho. Kavach baaki selected apps ko block karta rahega. YouTube Focus off karne par Kavach YouTube ko phir block karega.</string>
+    <string name="youtube_focus_kavach_priority">Dono saath use karein: Kavach aapke select kiye hue doosre apps block karta hai. YouTube Focus channels aur Shorts sambhalta hai, isliye YouTube Kavach ki block list se bahar rehta hai.</string>
+    <string name="youtube_focus_enable_accessibility_first">Protection on karne se pehle YouTube Focus ki accessibility permission dein.</string>
+    <string name="youtube_focus_connection_failed">YouTube Focus connect nahi ho paya. Uski accessibility permission check karke phir try karein.</string>
+    <string name="youtube_focus_activation_failed">YouTube Focus on nahi ho paya. Please phir try karein.</string>
+    <string name="youtube_focus_kavach_selection_failed">YouTube ki block setting update nahi ho payi. Aapka pehle wala choice rakha gaya hai. Phir try karein.</string>
+    <string name="kavach_youtube_managed_title">YouTube Focus, YouTube sambhal raha hai</string>
+    <string name="kavach_youtube_managed_body">Kavach aapke doosre apps block kar sakta hai. Options ke liye tap karein.</string>
+    <string name="kavach_youtube_managed_badge">YouTube Focus ki protection mein</string>
+    <string name="kavach_youtube_managed_description">Channels aur Shorts ki protection on rehti hai.</string>
+    <string name="kavach_youtube_view_options">YouTube blocking ke options dekhein</string>
+    <string name="kavach_youtube_conflict_title">Class chalne dein?</string>
+    <string name="kavach_youtube_conflict_body">Dono saath on reh sakte hain. Kavach aapke select kiye hue doosre apps block karta hai; YouTube Focus channels aur Shorts sambhalta hai. Kavach mein poora YouTube app block karne par class bhi ruk jayegi.</string>
+    <string name="kavach_youtube_conflict_override_hint">Poora YouTube block karne ke liye YouTube Focus off karein aur Kavach mein YouTube select karein. Kavach active hone par YouTube block hoga.</string>
+    <string name="kavach_youtube_select_all_notice">Doosre apps select ho gaye hain. YouTube, YouTube Focus ki protection mein rahega.</string>
+    <string name="kavach_youtube_keep_focus">YouTube Focus on rakhein</string>
+    <string name="kavach_youtube_turn_off_focus_select">Focus off karein aur YouTube select karein</string>
 </resources>

@@ -49,7 +49,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.ui.window.Dialog
+import com.safarparmar.app.ui.components.popups.SafarDialog as Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.heightIn
@@ -106,7 +106,7 @@ fun YoutubeFocusAccessibilityTutorialSheet(
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
         Surface(
-            modifier = Modifier.fillMaxWidth(0.90f).widthIn(max = 520.dp).fillMaxHeight(0.88f),
+            modifier = Modifier.widthIn(max = 520.dp).fillMaxWidth(0.90f).fillMaxHeight(0.88f),
             shape = RoundedCornerShape(26.dp),
             color = if (isLight) Color(0xFFF8FAFC) else Color(0xFF0F172A),
         ) {

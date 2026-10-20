@@ -1,5 +1,7 @@
 package com.safarparmar.app.feature.habits.ui
 
+import androidx.compose.ui.platform.LocalLocale
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -16,6 +18,8 @@ import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
+import com.safarparmar.app.ui.components.popups.SafarMaterialAlertDialog as AlertDialog
+import com.safarparmar.app.ui.components.popups.SafarModalBottomSheet as ModalBottomSheet
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -23,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
@@ -32,6 +37,7 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.safarparmar.app.ui.tutorial.tutorialTarget
 import com.safarparmar.app.feature.habits.data.HabitEntity
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
@@ -44,22 +50,53 @@ import java.util.Locale
 internal fun HabitFormBottomSheet(
     habit: HabitEntity? = null,
     onDismiss: () -> Unit,
-    onSubmit: suspend (String, Set<DayOfWeek>, Boolean) -> Unit,
+    onSubmit: suspend (String, Set<DayOfWeek>, Boolean, String?) -> Unit,
     onSuccess: (String, Set<DayOfWeek>) -> Unit = { _, _ -> },
     onArchive: (suspend () -> Unit)? = null,
-    onDelete: (suspend () -> Unit)? = null
+    onDelete: (suspend () -> Unit)? = null,
+    inlinePreview: Boolean = false,
+    initialName: String? = null,
 ) {
-    var name by rememberSaveable(habit?.id) { mutableStateOf(habit?.name.orEmpty()) }
+    var name by rememberSaveable(habit?.id) { mutableStateOf(initialName ?: habit?.name.orEmpty()) }
     var dayMask by rememberSaveable(habit?.id) {
         mutableIntStateOf(habit?.targetDays?.fold(0) { mask, day -> mask or (1 shl (day.value - 1)) } ?: 127)
     }
     var specificDays by rememberSaveable(habit?.id) { mutableStateOf(habit?.let { !it.isEveryDay } ?: false) }
+    var reminderEnabled by rememberSaveable(habit?.id) { mutableStateOf(habit?.reminderTime != null) }
+    var reminderTime by rememberSaveable(habit?.id) { mutableStateOf(habit?.reminderTime ?: "08:00") }
+    var showReminderTime by rememberSaveable { mutableStateOf(false) }
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val requestNotifications = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestPermission(),
+    ) { }
     var nameError by rememberSaveable { mutableStateOf(false) }
     var daysError by rememberSaveable { mutableStateOf(false) }
     var error by rememberSaveable { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
     var confirmArchive by rememberSaveable { mutableStateOf(false) }
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
+
+    if (showReminderTime) {
+        val initial = runCatching { java.time.LocalTime.parse(reminderTime) }.getOrDefault(java.time.LocalTime.of(8, 0))
+        val time = rememberTimePickerState(initialHour = initial.hour, initialMinute = initial.minute,
+            is24Hour = android.text.format.DateFormat.is24HourFormat(context))
+        AlertDialog(
+            onDismissRequest = { showReminderTime = false },
+            title = { Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habit_reminder_label)) },
+            text = { TimeInput(state = time) },
+            confirmButton = {
+                TextButton(onClick = {
+                    reminderTime = java.time.LocalTime.of(time.hour, time.minute).toString()
+                    showReminderTime = false
+                }) { Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.common_done)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showReminderTime = false }) {
+                    Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.common_cancel))
+                }
+            },
+        )
+    }
 
     val selectedDays = DayOfWeek.entries.filter { dayMask and (1 shl (it.value - 1)) != 0 }.toSet()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -84,7 +121,7 @@ internal fun HabitFormBottomSheet(
         error = null
         scope.launch {
             try {
-                onSubmit(savedName, savedDays, !specificDays)
+                onSubmit(savedName, savedDays, !specificDays, reminderTime.takeIf { reminderEnabled })
                 onSuccess(savedName, savedDays)
                 onDismiss()
             } catch (e: CancellationException) {
@@ -130,26 +167,11 @@ internal fun HabitFormBottomSheet(
         }
     }
 
-    ModalBottomSheet(
-        onDismissRequest = ::dismissSafely,
-        sheetState = sheetState,
-        containerColor = HabitColors.Background,
-        contentColor = HabitColors.TextPrimary,
-        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-        dragHandle = {
-            Box(
-                Modifier
-                    .padding(top = 10.dp, bottom = 5.dp)
-                    .size(width = 50.dp, height = 5.dp)
-                    .background(HabitColors.TextSecondary, CircleShape)
-            )
-        }
-    ) {
+    val form: @Composable () -> Unit = {
         Column(
             modifier = Modifier
-                .fillMaxWidth()
                 .widthIn(max = 720.dp)
-                .align(Alignment.CenterHorizontally)
+                .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
                 .navigationBarsPadding()
                 .padding(horizontal = 20.dp)
@@ -190,7 +212,7 @@ internal fun HabitFormBottomSheet(
                         name = it.take(60)
                         if (name.isNotBlank()) nameError = false
                     },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().tutorialTarget("habits.name"),
                     enabled = !busy,
                     placeholder = { Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_name_example), color = HabitColors.TextSecondary) },
                     singleLine = true,
@@ -211,7 +233,7 @@ internal fun HabitFormBottomSheet(
                 )
             }
 
-            FormSection(showDivider = false) {
+            FormSection(showDivider = false, modifier = Modifier.tutorialTarget("habits.repeat")) {
                 FormLabel("Repeat schedule")
                 Row(
                     modifier = Modifier
@@ -252,7 +274,7 @@ internal fun HabitFormBottomSheet(
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(
-                                        day.getDisplayName(TextStyle.SHORT, Locale.getDefault()),
+                                        day.getDisplayName(TextStyle.SHORT, LocalLocale.current.platformLocale),
                                         color = if (selected) HabitColors.RoyalPurple else HabitColors.TextPrimary,
                                         fontSize = 10.sp,
                                         fontWeight = FontWeight.Bold,
@@ -275,6 +297,38 @@ internal fun HabitFormBottomSheet(
                     fontSize = 12.sp,
                     modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
                 )
+            }
+
+            FormSection {
+                val reminderLabel = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habit_reminder_label)
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text(reminderLabel, modifier = Modifier.weight(1f), color = HabitColors.TextPrimary)
+                    Switch(
+                        checked = reminderEnabled,
+                        enabled = !busy,
+                        modifier = Modifier.semantics { contentDescription = reminderLabel },
+                        onCheckedChange = {
+                            reminderEnabled = it
+                            if (it && !inlinePreview && android.os.Build.VERSION.SDK_INT >= 33) {
+                                requestNotifications.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                            }
+                        },
+                    )
+                }
+                if (reminderEnabled) {
+                    TextButton(onClick = { showReminderTime = true }, enabled = !busy) {
+                        Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habit_reminder_time, reminderTime))
+                    }
+                    Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habit_reminder_help),
+                        color = HabitColors.TextSecondary, fontSize = 12.sp)
+                    TextButton(onClick = {
+                        context.startActivity(android.content.Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                            .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                            .putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, context.packageName))
+                    }, enabled = !busy && !inlinePreview) {
+                        Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habit_reminder_settings))
+                    }
+                }
             }
 
             error?.let {
@@ -313,6 +367,16 @@ internal fun HabitFormBottomSheet(
         }
     }
 
+    if (inlinePreview) Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) { form() } else ModalBottomSheet(
+        onDismissRequest = ::dismissSafely, sheetState = sheetState,
+        containerColor = HabitColors.Background, contentColor = HabitColors.TextPrimary,
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+        dragHandle = {
+            Box(Modifier.padding(top = 10.dp, bottom = 5.dp).size(width = 50.dp, height = 5.dp)
+                .background(HabitColors.TextSecondary, CircleShape))
+        },
+    ) { Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) { form() } }
+
     if (confirmArchive) {
         AlertDialog(
             onDismissRequest = { confirmArchive = false },
@@ -334,9 +398,9 @@ internal fun HabitFormBottomSheet(
 }
 
 @Composable
-private fun FormSection(showDivider: Boolean = true, content: @Composable ColumnScope.() -> Unit) {
+private fun FormSection(showDivider: Boolean = true, modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
     Column(
-        Modifier.fillMaxWidth().padding(vertical = 16.dp),
+        modifier.fillMaxWidth().padding(vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
         content = content
     )
@@ -346,7 +410,7 @@ private fun FormSection(showDivider: Boolean = true, content: @Composable Column
 @Composable
 private fun FormLabel(label: String) {
     Text(
-        label.uppercase(Locale.getDefault()),
+        label.uppercase(LocalLocale.current.platformLocale),
         color = HabitColors.TextTertiary,
         fontSize = 10.sp,
         fontWeight = FontWeight.Bold,

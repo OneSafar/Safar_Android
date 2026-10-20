@@ -131,10 +131,10 @@ class HabitRepository @Inject constructor(
 
     suspend fun deleteHabit(habit: HabitEntity) = remoteStore.deleteHabit(habit)
 
-    suspend fun createHabit(name: String, targetDays: Set<DayOfWeek>, isEveryDay: Boolean, order: Int) {
+    suspend fun createHabit(name: String, targetDays: Set<DayOfWeek>, isEveryDay: Boolean, order: Int, reminderTime: String? = null) {
         val today = LocalDate.now()
         remoteStore.insertHabit(HabitEntity(name = name, targetDays = targetDays,
-            isEveryDay = isEveryDay, scheduledSince = today, order = order))
+            isEveryDay = isEveryDay, scheduledSince = today, order = order, reminderTime = reminderTime))
     }
 
     /**

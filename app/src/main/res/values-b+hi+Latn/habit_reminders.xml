@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="habit_reminder_label">Habit reminder</string>
+    <string name="habit_reminder_time">Reminder ka time: %1$s</string>
+    <string name="habit_reminder_help">Scheduled din par adhuri habit yaad dilata hai. Android aur SAFAR Settings mein notifications on rakhein. Battery saving se reminder late aa sakta hai.</string>
+    <string name="habit_reminder_settings">Android notification settings</string>
+    <string name="habit_reminder_body">Habit poori karne ka time hai. Habit Tracker kholkar done karein.</string>
+</resources>

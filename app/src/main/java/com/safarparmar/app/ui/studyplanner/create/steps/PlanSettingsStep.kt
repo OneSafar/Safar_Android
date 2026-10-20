@@ -1,5 +1,9 @@
 package com.safarparmar.app.ui.studyplanner.create.steps
 
+import androidx.compose.runtime.rememberUpdatedState
+
+import androidx.compose.ui.platform.LocalResources
+
 import androidx.compose.ui.res.stringResource
 import com.safarparmar.app.R
 
@@ -93,13 +97,14 @@ fun PlanSettingsStep(
     val accent = scheme.primary
 
     val context = LocalContext.current
+    val localizedResources by rememberUpdatedState(LocalResources.current)
     var buildAttempted by remember { mutableStateOf(false) }
     var toastTrigger by remember { mutableIntStateOf(0) }
     val examDateOnly = examDate.take(10)
 
     LaunchedEffect(toastTrigger) {
         if (toastTrigger > 0) {
-            Toast.makeText(context, context.getString(com.safarparmar.app.R.string.planner_select_exam_date_error), Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, localizedResources.getString(com.safarparmar.app.R.string.planner_select_exam_date_error), Toast.LENGTH_SHORT).show()
         }
     }
 

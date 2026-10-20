@@ -1,5 +1,7 @@
 package com.safarparmar.app.feature.habits.ui
 
+import androidx.compose.ui.platform.LocalLocale
+
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -47,7 +49,7 @@ fun TodayView(
     ) {
         item {
             ModernPageHeader(
-                eyebrow = date.format(DateTimeFormatter.ofPattern("EEEE, d MMMM", Locale.getDefault())),
+                eyebrow = date.format(DateTimeFormatter.ofPattern("EEEE, d MMMM", LocalLocale.current.platformLocale)),
                 title = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_today_title)
             )
         }

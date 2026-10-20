@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.safarparmar.app.R
+import com.safarparmar.app.ui.ekagra.focusshield.FocusShieldRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -36,6 +37,7 @@ class YoutubeStudyV2ViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val repository: YoutubeStudyV2Repository,
     private val preferences: YoutubeStudyV2Preferences,
+    private val focusShieldRepository: FocusShieldRepository,
 ) : ViewModel() {
     private val local = MutableStateFlow(YoutubeStudyV2UiState())
     private data class SetupState(
@@ -86,6 +88,8 @@ class YoutubeStudyV2ViewModel @Inject constructor(
             available = mergedAvailable,
             classifications = classMap,
         )
+    }.combine(focusShieldRepository.youtubeFocusActivationError) { ui, activationError ->
+        ui.copy(message = activationError ?: ui.message, isError = activationError != null || ui.isError)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), YoutubeStudyV2UiState())
 
     init {
@@ -99,9 +103,7 @@ class YoutubeStudyV2ViewModel @Inject constructor(
     fun setReference(value: String) { local.value = local.value.copy(reference = value, message = null) }
 
     fun setEnabled(enabled: Boolean) {
-        preferences.setEnabled(enabled)
-        if (!enabled) YoutubeStudyV2GuardService.stop(context)
-        else if (YoutubeStudyV2HealthMonitor.isAccessibilityEnabled(context)) YoutubeStudyV2GuardService.start(context)
+        focusShieldRepository.setYoutubeFocusEnabled(enabled)
         refreshPermission()
     }
 
@@ -223,10 +225,9 @@ class YoutubeStudyV2ViewModel @Inject constructor(
         if (accessibilityEnabled && preferences.isDisclosureAccepted()) {
             if (!preferences.setupCompleted.value) {
                 preferences.completeSetup()
-                preferences.setEnabled(true)
+                focusShieldRepository.setYoutubeFocusEnabled(true)
                 // Accessibility may connect before setup flips enabled. Start
                 // foreground support here too so that ordering cannot leave it off.
-                YoutubeStudyV2GuardService.start(context)
             }
         } else {
             if (!preferences.setupCompleted.value && preferences.setupStep.value > 1) {

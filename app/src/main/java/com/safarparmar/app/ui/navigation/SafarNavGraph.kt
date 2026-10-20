@@ -1,5 +1,8 @@
 package com.safarparmar.app.ui.navigation
 
+import android.content.Context
+import android.content.ContextWrapper
+
 import androidx.compose.runtime.*
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -189,7 +192,8 @@ fun SafarNavGraph(
     }
 
     // ── PiP restore: navigate to Ekagra when user taps the PiP window ────────
-    val activity = LocalContext.current as? MainActivity
+    val activityContext = LocalContext.current
+    val activity = remember(activityContext) { activityContext.findMainActivity() }
     val navigateToEkagra = activity?.navigateToEkagra ?: false
     LaunchedEffect(navigateToEkagra) {
         if (navigateToEkagra) {
@@ -214,7 +218,12 @@ fun SafarNavGraph(
     com.safarparmar.app.ui.tutorial.TitliHost(dataStore,
         onOpenEkagra = { navigate(Routes.EKAGRA) }, onOpenGoals = { navigate(Routes.nishthaTab(2)) },
         onOpenYoutube = { navigate(Routes.YOUTUBE_STUDY_MODE_V2) }, onOpenHabits = { navigate(Routes.HABIT_TRACKER) },
-        onOpenQueries = { navigate(Routes.TITLI_QUERIES) }) {
+        onOpenBatch = { navigate(Routes.TOPPERS_BATCH) }, onOpenMehfil = { navigate(Routes.MEHFIL) },
+        onOpenDhyan = { navigate(Routes.DHYAN) },
+        onOpenCircle = { navigate(Routes.STUDY_CIRCLES) },
+        onOpenCheckIn = { navigate(Routes.nishthaTab(0)) }, onOpenJournal = { navigate(Routes.nishthaTab(1)) },
+        onOpenStreaks = { navigate(Routes.nishthaTab(3)) }, onOpenAnalytics = { navigate(Routes.ANALYTICS) },
+        onOpenPlanner = { navigate(Routes.STUDY_PLANNER) }, onOpenQueries = { navigate(Routes.TITLI_QUERIES) }) {
     NavHost(
         navController = navController,
         startDestination = Routes.SPLASH,
@@ -835,6 +844,12 @@ fun SafarNavGraph(
         }
     }
     }
+}
+
+private tailrec fun Context.findMainActivity(): MainActivity? = when (this) {
+    is MainActivity -> this
+    is ContextWrapper -> if (baseContext !== this) baseContext.findMainActivity() else null
+    else -> null
 }
 
 private fun safeDecodeParam(value: String?): String? {

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.feature.kavachanalytics.KavachPeriodTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-19T19:59:38.881Z" hostname="Shashanks-MacBook-Air.local" time="0.001">
+  <properties/>
+  <testcase name="previous period is the same granularity one step back" classname="com.safarparmar.app.feature.kavachanalytics.KavachPeriodTest" time="0.001"/>
+  <testcase name="daily period is a single day" classname="com.safarparmar.app.feature.kavachanalytics.KavachPeriodTest" time="0.0"/>
+  <testcase name="the current week runs Monday to today, not Monday to Sunday" classname="com.safarparmar.app.feature.kavachanalytics.KavachPeriodTest" time="0.0"/>
+  <testcase name="paging back steps one day at a time" classname="com.safarparmar.app.feature.kavachanalytics.KavachPeriodTest" time="0.0"/>
+  <testcase name="a past week is the full Monday to Sunday span" classname="com.safarparmar.app.feature.kavachanalytics.KavachPeriodTest" time="0.0"/>
+  <testcase name="the current month is clamped to today and a past month is whole" classname="com.safarparmar.app.feature.kavachanalytics.KavachPeriodTest" time="0.0"/>
+  <testcase name="paging forward past today is refused" classname="com.safarparmar.app.feature.kavachanalytics.KavachPeriodTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

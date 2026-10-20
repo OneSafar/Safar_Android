@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.feature.youtubestudyv2.YoutubePlaybackRevocationTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-19T19:59:39.642Z" hostname="Shashanks-MacBook-Air.local" time="0.088">
+  <properties/>
+  <testcase name="older first snapshot does not revoke a newly saved productive channel" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubePlaybackRevocationTest" time="0.085"/>
+  <testcase name="deleting a productive channel revokes floating and hidden fullscreen playback" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubePlaybackRevocationTest" time="0.001"/>
+  <testcase name="reclassifying a productive channel revokes both playback grants" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubePlaybackRevocationTest" time="0.001"/>
+  <testcase name="an added and verified channel survives HUD timeout but cannot override revoked rules" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubePlaybackRevocationTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

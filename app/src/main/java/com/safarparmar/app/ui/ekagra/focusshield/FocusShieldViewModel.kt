@@ -10,8 +10,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -114,16 +116,40 @@ class FocusShieldViewModel @Inject constructor(
 
     private val _pickerState = MutableStateFlow(AppPickerUiState())
     val pickerState: StateFlow<AppPickerUiState> = _pickerState.asStateFlow()
+    val youtubeFocusEnabled: StateFlow<Boolean> = repo.youtubeFocusEnabled
+    val youtubeSelectionBusy: StateFlow<Boolean> = repo.youtubeSelectionBusy
+    val youtubeSelectionError: StateFlow<String?> = repo.youtubeFocusActivationError
+
+    init {
+        viewModelScope.launch {
+            repo.blockedPackages.collect { packages ->
+                // Focus can remove YouTube while this picker stays open. The
+                // confirmed Kavach override also publishes its persisted choice here.
+                _pickerState.update { state ->
+                    state.copy(allApps = state.allApps.map { it.copy(isBlocked = it.packageName in packages) })
+                }
+            }
+        }
+    }
+
+    private fun applyPickerSelection(packages: Set<String>) {
+        val saved = repo.setBlockedPackages(packages)
+        _pickerState.value = _pickerState.value.copy(
+            allApps = _pickerState.value.allApps.map { it.copy(isBlocked = it.packageName in saved) },
+        )
+    }
 
     fun loadApps() {
         viewModelScope.launch {
             _pickerState.value = _pickerState.value.copy(isLoading = true)
             val apps = appsLoader.loadLaunchableApps()
-            val blocked = repo.blockedPackages.value
-            _pickerState.value = AppPickerUiState(
-                isLoading = false,
-                allApps = apps.map { it.copy(isBlocked = it.packageName in blocked) },
-            )
+            val blocked = repo.selectedPackages()
+            _pickerState.update { state ->
+                state.copy(
+                    isLoading = false,
+                    allApps = apps.map { it.copy(isBlocked = it.packageName in blocked) },
+                )
+            }
         }
     }
 
@@ -132,30 +158,21 @@ class FocusShieldViewModel @Inject constructor(
     }
 
     fun toggleApp(packageName: String) {
-        val current = repo.blockedPackages.value.toMutableSet()
+        val current = repo.selectedPackages().toMutableSet()
         if (packageName in current) current.remove(packageName) else current.add(packageName)
-        repo.setBlockedPackages(current)
-        // Update picker list to reflect change
-        _pickerState.value = _pickerState.value.copy(
-            allApps = _pickerState.value.allApps.map {
-                if (it.packageName == packageName) it.copy(isBlocked = !it.isBlocked) else it
-            },
-        )
+        applyPickerSelection(current)
     }
+
+    /** The repository publishes the selected row only after the explicit override is saved. */
+    fun selectYoutubeForKavach() = repo.selectYoutubeForKavach()
 
     fun selectAllApps() {
         val allPackages = _pickerState.value.allApps.map { it.packageName }.toSet()
-        repo.setBlockedPackages(allPackages)
-        _pickerState.value = _pickerState.value.copy(
-            allApps = _pickerState.value.allApps.map { it.copy(isBlocked = true) }
-        )
+        applyPickerSelection(allPackages)
     }
 
     fun deselectAllApps() {
-        repo.setBlockedPackages(emptySet())
-        _pickerState.value = _pickerState.value.copy(
-            allApps = _pickerState.value.allApps.map { it.copy(isBlocked = false) }
-        )
+        applyPickerSelection(emptySet())
     }
 
     fun selectDistractingApps() {
@@ -172,16 +189,10 @@ class FocusShieldViewModel @Inject constructor(
             "com.netflix.mediaclient",
             "com.reddit.frontpage"
         )
-        val current = repo.blockedPackages.value.toMutableSet()
+        val current = repo.selectedPackages().toMutableSet()
         val appsToBlock = _pickerState.value.allApps.filter { it.packageName in distractingPackages }.map { it.packageName }
         current.addAll(appsToBlock)
-        repo.setBlockedPackages(current)
-        
-        _pickerState.value = _pickerState.value.copy(
-            allApps = _pickerState.value.allApps.map {
-                if (it.packageName in distractingPackages) it.copy(isBlocked = true) else it
-            }
-        )
+        applyPickerSelection(current)
     }
 
     fun setPendingEnableAfterAppSelection(pending: Boolean) {
@@ -190,28 +201,30 @@ class FocusShieldViewModel @Inject constructor(
 
     fun isPendingEnableAfterAppSelection(): Boolean = repo.pendingEnableAfterAppSelection
 
+    /**
+     * App selections are saved as they change. Leaving the picker only activates
+     * Kavach when the student opened it to finish an explicit enable request.
+     */
     fun saveAndEnableShieldIfReady(): Boolean {
-        val selectedPackages = _pickerState.value.allApps
-            .filter { it.isBlocked }
-            .map { it.packageName }
-            .toSet()
-            .ifEmpty { repo.blockedPackages.value }
-
-        if (selectedPackages.isNotEmpty()) {
-            repo.setBlockedPackages(selectedPackages)
-            val hasUsage = FocusShieldPermissionHelper.hasUsageStatsPermission(app)
-            val hasOverlay = FocusShieldPermissionHelper.hasOverlayPermission(app)
-            if (KavachActivationReadiness.hasRequiredPermissions(hasUsage, hasOverlay)) {
-                repo.pendingEnableAfterAppSelection = false
-                repo.setEnabled(true)
-                return true
-            }
+        if (!repo.pendingEnableAfterAppSelection) return false
+        if (repo.isEnabled.value) {
+            repo.pendingEnableAfterAppSelection = false
+            return false
         }
-        return false
+        // The displayed rows can be loading or stale after Focus removes YouTube.
+        // Read the authoritative selection instead of writing those rows back.
+        if (repo.selectedPackages().isEmpty()) return false
+        val hasUsage = FocusShieldPermissionHelper.hasUsageStatsPermission(app)
+        val hasOverlay = FocusShieldPermissionHelper.hasOverlayPermission(app)
+        if (!KavachActivationReadiness.hasRequiredPermissions(hasUsage, hasOverlay)) return false
+
+        repo.pendingEnableAfterAppSelection = false
+        repo.setEnabled(true)
+        return true
     }
 
     fun setEnabled(enabled: Boolean) {
-        if (enabled && repo.blockedPackages.value.isEmpty()) {
+        if (enabled && repo.selectedPackages().isEmpty()) {
             Toast.makeText(app, app.getString(R.string.kavach_select_app_first), Toast.LENGTH_SHORT).show()
             return
         }

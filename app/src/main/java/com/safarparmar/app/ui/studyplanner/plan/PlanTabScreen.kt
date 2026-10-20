@@ -55,7 +55,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ModalBottomSheet
+import com.safarparmar.app.ui.components.popups.SafarModalBottomSheet as ModalBottomSheet
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -112,7 +112,7 @@ import com.safarparmar.app.ui.studyplanner.logic.todayKey
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
+import com.safarparmar.app.ui.components.popups.SafarDatePickerDialog as DatePickerDialog
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.SelectableDates
 import java.time.Instant

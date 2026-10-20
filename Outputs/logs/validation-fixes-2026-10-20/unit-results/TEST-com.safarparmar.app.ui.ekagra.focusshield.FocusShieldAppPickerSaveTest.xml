@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.ui.ekagra.focusshield.FocusShieldAppPickerSaveTest" tests="13" skipped="0" failures="0" errors="0" timestamp="2026-10-19T19:59:47.104Z" hostname="Shashanks-MacBook-Air.local" time="0.687">
+  <properties/>
+  <testcase name="stale selected YouTube row cannot restore a removed block" classname="com.safarparmar.app.ui.ekagra.focusshield.FocusShieldAppPickerSaveTest" time="0.147"/>
+  <testcase name="explicit pending setup activates Kavach using latest selection" classname="com.safarparmar.app.ui.ekagra.focusshield.FocusShieldAppPickerSaveTest" time="0.056"/>
+  <testcase name="confirmed YouTube override calls dedicated action without checking row early" classname="com.safarparmar.app.ui.ekagra.focusshield.FocusShieldAppPickerSaveTest" time="0.042"/>
+  <testcase name="select all preserves Focus and uses filtered authoritative selection" classname="com.safarparmar.app.ui.ekagra.focusshield.FocusShieldAppPickerSaveTest" time="0.042"/>
+  <testcase name="pending setup without required permissions preserves Focus" classname="com.safarparmar.app.ui.ekagra.focusshield.FocusShieldAppPickerSaveTest" time="0.048"/>
+  <testcase name="stale pending flag does not reactivate an already enabled Kavach" classname="com.safarparmar.app.ui.ekagra.focusshield.FocusShieldAppPickerSaveTest" time="0.049"/>
+  <testcase name="loaded picker follows automatic YouTube deselection while keeping search" classname="com.safarparmar.app.ui.ekagra.focusshield.FocusShieldAppPickerSaveTest" time="0.044"/>
+  <testcase name="clearing the last selected app does not resurrect it on save" classname="com.safarparmar.app.ui.ekagra.focusshield.FocusShieldAppPickerSaveTest" time="0.044"/>
+  <testcase name="persisted override emission checks YouTube and preserves other selection" classname="com.safarparmar.app.ui.ekagra.focusshield.FocusShieldAppPickerSaveTest" time="0.046"/>
+  <testcase name="editing an existing Kavach selection does not switch Focus off" classname="com.safarparmar.app.ui.ekagra.focusshield.FocusShieldAppPickerSaveTest" time="0.044"/>
+  <testcase name="viewing apps and returning preserves a later Focus activation" classname="com.safarparmar.app.ui.ekagra.focusshield.FocusShieldAppPickerSaveTest" time="0.043"/>
+  <testcase name="load completion uses latest selection and preserves query typed during loading" classname="com.safarparmar.app.ui.ekagra.focusshield.FocusShieldAppPickerSaveTest" time="0.04"/>
+  <testcase name="ordinary app selection does not enable disabled Kavach" classname="com.safarparmar.app.ui.ekagra.focusshield.FocusShieldAppPickerSaveTest" time="0.041"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

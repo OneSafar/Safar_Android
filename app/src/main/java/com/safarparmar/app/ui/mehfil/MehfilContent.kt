@@ -75,6 +75,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.safarparmar.app.R
+import com.safarparmar.app.ui.tutorial.tutorialTarget
 import com.safarparmar.app.domain.model.MehfilPost
 import com.safarparmar.app.ui.drawer.SafarDrawerScaffold
 import com.safarparmar.app.ui.studyplanner.components.isPlannerDark
@@ -351,7 +352,7 @@ private fun MehfilSearchBar(
  * Modern Flat Bottom Navigation Bar with Centered Overlapping FAB
  */
 @Composable
-private fun MehfilBottomBar(
+internal fun MehfilBottomBar(
     selectedTab: MehfilTab,
     pendingCount: Int,
     onTabSelected: (MehfilTab) -> Unit,
@@ -393,7 +394,7 @@ private fun MehfilBottomBar(
 
                     Column(
                         modifier = Modifier
-                            .weight(1f)
+                            .weight(1f).tutorialTarget("mehfil.${tab.name.lowercase(java.util.Locale.ROOT)}")
                             .fillMaxHeight()
                             .clip(RoundedCornerShape(12.dp))
                             .clickable {
@@ -431,7 +432,7 @@ private fun MehfilBottomBar(
 
                     Column(
                         modifier = Modifier
-                            .weight(1f)
+                            .weight(1f).tutorialTarget("mehfil.${tab.name.lowercase(java.util.Locale.ROOT)}")
                             .fillMaxHeight()
                             .clip(RoundedCornerShape(12.dp))
                             .clickable {
@@ -489,6 +490,7 @@ private fun MehfilBottomBar(
                 .size(54.dp)
                 .clip(CircleShape)
                 .background(MehfilFlatColors.Primary)
+                .tutorialTarget("mehfil.post")
                 .border(3.5.dp, MehfilFlatColors.Bg, CircleShape)
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },

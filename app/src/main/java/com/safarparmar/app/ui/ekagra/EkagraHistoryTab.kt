@@ -1,5 +1,7 @@
 package com.safarparmar.app.ui.ekagra
 
+import androidx.compose.ui.platform.LocalLocale
+
 import com.safarparmar.app.ui.tutorial.tutorialTarget
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
@@ -10,6 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import com.safarparmar.app.ui.components.popups.SafarMaterialAlertDialog as AlertDialog
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -52,6 +55,7 @@ import androidx.annotation.DrawableRes
 import androidx.compose.ui.draw.alpha
 import com.safarparmar.app.MainActivity
 import com.safarparmar.app.R
+import com.safarparmar.app.ui.components.popups.rememberSafarPopupContext
 import com.safarparmar.app.domain.model.EkagraAnalyticsStats
 import com.safarparmar.app.notifications.rememberNotificationPermissionRequester
 import com.safarparmar.app.ui.drawer.SafarDrawerScaffold
@@ -368,7 +372,7 @@ internal fun FocusHistoryContent(
             color = ink.mutedText,
         )
         Spacer(Modifier.height(8.dp))
-        val context = LocalContext.current
+        val popupContext = rememberSafarPopupContext()
 
         Row(
             modifier = Modifier
@@ -394,7 +398,7 @@ internal fun FocusHistoryContent(
 
             val customLabel = when (val filter = dateFilter) {
                 is DateFilter.Custom -> {
-                    val formatter = java.time.format.DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.getDefault())
+                    val formatter = java.time.format.DateTimeFormatter.ofPattern("MMM d, yyyy", LocalLocale.current.platformLocale)
                     filter.date.format(formatter)
                 }
                 else -> stringResource(R.string.ekagra_localized_pick_date)
@@ -412,7 +416,7 @@ internal fun FocusHistoryContent(
                         calendar.set(d.year, d.monthValue - 1, d.dayOfMonth)
                     }
                     android.app.DatePickerDialog(
-                        context,
+                        popupContext,
                         { _, year, month, dayOfMonth ->
                             val selectedDate = java.time.LocalDate.of(year, month + 1, dayOfMonth)
                             dateFilter = DateFilter.Custom(selectedDate)
@@ -658,7 +662,7 @@ internal fun HistorySection(
                 today -> "Today"
                 today.minusDays(1) -> "Yesterday"
                 else -> date.format(
-                    java.time.format.DateTimeFormatter.ofPattern("EEEE, MMM d", Locale.getDefault())
+                    java.time.format.DateTimeFormatter.ofPattern("EEEE, MMM d", LocalLocale.current.platformLocale)
                 )
             }
             Text(

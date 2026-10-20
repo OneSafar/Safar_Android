@@ -39,6 +39,7 @@ import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.core.os.LocaleListCompat
 import androidx.compose.material3.*
+import com.safarparmar.app.ui.components.popups.SafarMaterialAlertDialog as AlertDialog
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import com.safarparmar.app.ui.ekagra.focusshield.FocusShieldPermissionHelper

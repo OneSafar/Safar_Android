@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.feature.youtubestudyv2.YoutubeWatchMetadataTest" tests="12" skipped="0" failures="0" errors="0" timestamp="2026-10-20T02:12:56.646Z" hostname="Shashanks-MacBook-Air.local" time="0.01">
+  <properties/>
+  <testcase name="watch header wins over overlapping surface and Like control" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeWatchMetadataTest" time="0.001"/>
+  <testcase name="scrolled anonymous recommendation cannot become the playing owner" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeWatchMetadataTest" time="0.0"/>
+  <testcase name="control inside watch header cannot exclude the whole owner item" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeWatchMetadataTest" time="0.001"/>
+  <testcase name="merged title uploader and statistics identify the screenshot channels" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeWatchMetadataTest" time="0.002"/>
+  <testcase name="inline more button must not hide the uploader beside it" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeWatchMetadataTest" time="0.001"/>
+  <testcase name="missing owner does not borrow a recommended channel" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeWatchMetadataTest" time="0.0"/>
+  <testcase name="player actions cannot substitute for a missing title" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeWatchMetadataTest" time="0.001"/>
+  <testcase name="nested handle and statistics resolve without borrowing comments" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeWatchMetadataTest" time="0.001"/>
+  <testcase name="title only header does not discard the separate semantic owner handle" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeWatchMetadataTest" time="0.0"/>
+  <testcase name="merged live class metadata keeps title and uploader as viewer count changes" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeWatchMetadataTest" time="0.002"/>
+  <testcase name="description close button is never an owner card" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeWatchMetadataTest" time="0.0"/>
+  <testcase name="empty leading watch item cannot hide nested uploader metadata" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeWatchMetadataTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

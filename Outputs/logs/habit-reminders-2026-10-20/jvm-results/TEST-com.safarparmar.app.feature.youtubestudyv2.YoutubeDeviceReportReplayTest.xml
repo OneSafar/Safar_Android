@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.feature.youtubestudyv2.YoutubeDeviceReportReplayTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-20T02:12:56.031Z" hostname="Shashanks-MacBook-Air.local" time="0.034">
+  <properties/>
+  <testcase name="open panel inside the wrapper still cannot supply the uploader" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeDeviceReportReplayTest" time="0.011"/>
+  <testcase name="Mylan device report identifies the playing uploader" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeDeviceReportReplayTest" time="0.013"/>
+  <testcase name="EZVAL device report identifies the playing uploader" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeDeviceReportReplayTest" time="0.01"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -46,6 +46,7 @@ class KavachProgressiveUiTest {
         // the separate Android battery-optimization exemption.
         assumeFalse(FocusShieldPermissionHelper.isIgnoringBatteryOptimizations(instrumentation.targetContext))
         val enabled = AtomicReference(false)
+        withRequiredKavachAccess {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             scenario.onActivity { activity ->
                 activity.setContent {
@@ -68,6 +69,7 @@ class KavachProgressiveUiTest {
             clickSwitch("KAVACH")
             await { enabled.get() }
             assertFalse(hasText("Permissions & access"))
+        }
         }
     }
 
@@ -105,6 +107,32 @@ class KavachProgressiveUiTest {
             assertFalse(hasText("WHEN IT WORKS"))
         }
     }
+
+    /** ON_RESUME correctly refreshes real OS grants, rather than trusting the UI fixture. */
+    private fun withRequiredKavachAccess(block: () -> Unit) {
+        val context = instrumentation.targetContext
+        val pkg = context.packageName
+        require(pkg.matches(Regex("[a-zA-Z0-9_.]+")))
+        val operations = listOf("GET_USAGE_STATS", "SYSTEM_ALERT_WINDOW")
+        val previous = operations.associateWith { op ->
+            val result = shell("appops get --user current $pkg $op")
+            Regex("\\b$op:\\s*(allow|ignore|deny|default|foreground|errored)")
+                .find(result)?.groupValues?.get(1) ?: "default"
+        }
+        try {
+            operations.forEach { shell("appops set --user current $pkg $it allow") }
+            assertTrue(FocusShieldPermissionHelper.hasUsageStatsPermission(context))
+            assertTrue(FocusShieldPermissionHelper.hasOverlayPermission(context))
+            block()
+        } finally {
+            previous.forEach { (op, mode) -> shell("appops set --user current $pkg $op $mode") }
+        }
+    }
+
+    private fun shell(command: String): String =
+        android.os.ParcelFileDescriptor.AutoCloseInputStream(
+            instrumentation.uiAutomation.executeShellCommand(command),
+        ).bufferedReader().use { it.readText() }
 
     private fun nodes(node: AccessibilityNodeInfo? = instrumentation.uiAutomation.rootInActiveWindow): List<AccessibilityNodeInfo> {
         if (node == null) return emptyList()

@@ -1,5 +1,9 @@
 package com.safarparmar.app.ui.nishtha.checkin
 
+import androidx.compose.runtime.rememberUpdatedState
+
+import androidx.compose.ui.platform.LocalResources
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -68,6 +72,8 @@ import androidx.compose.material3.Icon
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.safarparmar.app.R
+import com.safarparmar.app.ui.tutorial.tutorialTarget
+import com.safarparmar.app.ui.nishtha.NishthaUiState
 import com.safarparmar.app.domain.model.Mood
 import com.safarparmar.app.ui.nishtha.NishthaViewModel
 import com.safarparmar.app.ui.studyplanner.components.LocalPlannerIsDarkTheme
@@ -191,16 +197,24 @@ fun SlimSlider(
 fun CheckInScreen(viewModel: NishthaViewModel = hiltViewModel()) {
     androidx.compose.runtime.LaunchedEffect(viewModel) { viewModel.loadTab(com.safarparmar.app.ui.nishtha.NishthaTab.CHECK_IN) }
     val isLight = MaterialTheme.colorScheme.background.isLightBackground()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    var draftBusy by remember { mutableStateOf(false) }
+    com.safarparmar.app.ui.tutorial.ScreenPracticeEntry(com.safarparmar.app.ui.tutorial.TitliFeature.CHECK_IN,
+        !isLight, eligible = !state.isLoadingMoods && !state.isCheckingIn && !draftBusy)
     CompositionLocalProvider(LocalPlannerIsDarkTheme provides !isLight) {
-        CheckInScreenContent(viewModel = viewModel, isLight = isLight)
+        CheckInScreenContent(uiState = state, isLight = isLight,
+            onClearSuccess = { viewModel.onEvent(com.safarparmar.app.ui.nishtha.NishthaEvent.ClearCheckInSuccess) },
+            onCreateMood = { mood, intensity, notes -> viewModel.createMood(mood, intensity, notes) },
+            onDraftChange = { draftBusy = it })
     }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun CheckInScreenContent(
-    viewModel: NishthaViewModel,
-    isLight: Boolean,
+internal fun CheckInScreenContent(
+    uiState: NishthaUiState, isLight: Boolean,
+    onClearSuccess: () -> Unit = {}, onCreateMood: (String, Int, String?) -> Unit = { _, _, _ -> },
+    onDraftChange: (Boolean) -> Unit = {}, initialMoodIndex: Int? = null, initialHistory: Boolean = false,
 ) {
     val moodOptions = remember {
         listOf(
@@ -216,14 +230,14 @@ private fun CheckInScreenContent(
         )
     }
 
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    var selectedMood by remember { mutableStateOf<MoodOption?>(null) }
+    var selectedMood by remember { mutableStateOf(initialMoodIndex?.let(moodOptions::getOrNull)) }
+    LaunchedEffect(selectedMood) { onDraftChange(selectedMood != null) }
     val selectedMoodLabel = selectedMood?.let { stringResource(it.labelRes) }
     var intensity by remember { mutableFloatStateOf(0.5f) }
     var note by remember { mutableStateOf("") }
     var causedBy by remember { mutableStateOf("") }
     var selectedTags by remember { mutableStateOf(setOf<String>()) }
-    var showHistory by remember { mutableStateOf(false) }
+    var showHistory by remember { mutableStateOf(initialHistory) }
     // Keep stored tag values stable; only the visible labels follow the app language.
     val moodTags = remember {
         listOf(
@@ -239,6 +253,7 @@ private fun CheckInScreenContent(
     }
 
     val context = LocalContext.current
+    val localizedResources by rememberUpdatedState(LocalResources.current)
     val scrollState = rememberScrollState()
     val scope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
@@ -246,13 +261,13 @@ private fun CheckInScreenContent(
 
     LaunchedEffect(uiState.checkInSuccess) {
         if (uiState.checkInSuccess) {
-            Toast.makeText(context, context.getString(com.safarparmar.app.R.string.nishtha_checkin_saved), Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, localizedResources.getString(com.safarparmar.app.R.string.nishtha_checkin_saved), Toast.LENGTH_SHORT).show()
             selectedMood = null
             intensity = 0.5f
             note = ""
             causedBy = ""
             selectedTags = setOf()
-            viewModel.onEvent(com.safarparmar.app.ui.nishtha.NishthaEvent.ClearCheckInSuccess)
+            onClearSuccess()
         }
     }
 
@@ -343,10 +358,10 @@ private fun CheckInScreenContent(
                         .fillMaxWidth()
                         .padding(top = 2.dp, bottom = 4.dp),
                 ) {
-                    moodOptions.chunked(3).forEach { rowMoods ->
+                    moodOptions.chunked(3).forEachIndexed { rowIndex, rowMoods ->
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier.fillMaxWidth().then(if (rowIndex == 0) Modifier.tutorialTarget("checkin.mood") else Modifier),
                         ) {
                             rowMoods.forEach { mood ->
                                 Box(modifier = Modifier.weight(1f)) {
@@ -389,7 +404,7 @@ private fun CheckInScreenContent(
                                 value = intensity,
                                 onValueChange = { intensity = it },
                                 modifier = Modifier
-                                    .weight(1f)
+                                    .weight(1f).tutorialTarget("checkin.details")
                                     .padding(horizontal = 12.dp),
                                 activeColor = currentColor,
                                 activeBrush = sliderGradient,
@@ -480,7 +495,7 @@ private fun CheckInScreenContent(
                 val saveEnabled = selectedMood != null && !uiState.isCheckingIn
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth()
+                        .fillMaxWidth().tutorialTarget("checkin.save")
                         .clip(RoundedCornerShape(14.dp))
                         .background(
                             if (saveEnabled) accent else PlannerFlatColors.BorderSoft.copy(alpha = 0.55f),
@@ -498,7 +513,7 @@ private fun CheckInScreenContent(
                                         append("Tags: ${selectedTags.joinToString(", ")}")
                                     }
                                 }
-                                viewModel.createMood(
+                                onCreateMood(
                                     label,
                                     (intensity * 5).toInt().coerceIn(1, 5),
                                     fullNote.ifBlank { null },
@@ -555,7 +570,7 @@ private fun CheckInScreenContent(
                     )
                 } else {
                     uiState.moods.take(5).forEachIndexed { index, mood ->
-                        HistoryMoodRow(mood = mood)
+                        Box(Modifier.tutorialTarget("checkin.history")) { HistoryMoodRow(mood = mood) }
                         if (index < uiState.moods.take(5).lastIndex) {
                             PlanHairline(alpha = 0.5f)
                         }

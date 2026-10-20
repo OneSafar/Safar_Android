@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.feature.habits.HabitCalendarTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-20T02:12:51.837Z" hostname="Shashanks-MacBook-Air.local" time="0.014">
+  <properties/>
+  <testcase name="off days and future days cannot be newly completed" classname="com.safarparmar.app.feature.habits.HabitCalendarTest" time="0.001"/>
+  <testcase name="badge identity survives filtering and deletion of other habits" classname="com.safarparmar.app.feature.habits.HabitCalendarTest" time="0.0"/>
+  <testcase name="creation feedback explains why a habit is absent today" classname="com.safarparmar.app.feature.habits.HabitCalendarTest" time="0.012"/>
+  <testcase name="calendar aligns weekdays including leap years and six row months" classname="com.safarparmar.app.feature.habits.HabitCalendarTest" time="0.001"/>
+  <testcase name="legacy completions can still be undone on future or off days" classname="com.safarparmar.app.feature.habits.HabitCalendarTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

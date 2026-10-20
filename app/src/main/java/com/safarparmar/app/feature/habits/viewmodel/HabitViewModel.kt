@@ -137,13 +137,14 @@ class HabitViewModel @Inject constructor(private val repository: HabitRepository
         }
     }
 
-    suspend fun createHabit(name: String, targetDays: Set<DayOfWeek>, isEveryDay: Boolean) {
+    suspend fun createHabit(name: String, targetDays: Set<DayOfWeek>, isEveryDay: Boolean, reminderTime: String? = null) {
         val habits = repository.observeHabits().first()
         repository.createHabit(
             name = name,
             targetDays = targetDays,
             isEveryDay = isEveryDay,
-            order = (habits.maxOfOrNull { it.order } ?: -1) + 1
+            order = (habits.maxOfOrNull { it.order } ?: -1) + 1,
+            reminderTime = reminderTime
         )
     }
 

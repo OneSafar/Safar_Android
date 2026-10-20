@@ -1,5 +1,11 @@
 package com.safarparmar.app.ui.nishtha.goals
 
+import androidx.compose.runtime.rememberUpdatedState
+
+import androidx.compose.ui.platform.LocalResources
+
+import androidx.compose.ui.platform.LocalLocale
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -20,7 +26,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
+import com.safarparmar.app.ui.components.popups.SafarDatePickerDialog as DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import com.composables.ui.components.Text
@@ -170,7 +176,7 @@ internal fun GoalHistoryContent(
                         )
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            selectedDate.format(DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.getDefault())),
+                            selectedDate.format(DateTimeFormatter.ofPattern("MMM d, yyyy", LocalLocale.current.platformLocale)),
                             fontSize = 13.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = GoalsFlatColors.Text,
@@ -252,6 +258,7 @@ internal fun GoalHistoryContent(
 private fun GoalFocusContribution(sessions: List<GoalLinkedSession>) {
     var expanded by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    val localizedResources by rememberUpdatedState(LocalResources.current)
     val totalSeconds = sessions.sumOf { linkedFocusSeconds(it) }
     val summary = context.resources.getQuantityString(
         R.plurals.goals_focus_sessions,
@@ -280,8 +287,8 @@ private fun GoalFocusContribution(sessions: List<GoalLinkedSession>) {
             sessions.sortedBy { it.startedAt }.forEach { session ->
                 val start = session.startedAt?.let { runCatching { Instant.parse(it) }.getOrNull() }
                 val end = session.endedAt?.let { runCatching { Instant.parse(it) }.getOrNull() }
-                val dateTime = DateTimeFormatter.ofPattern("MMM d, h:mm a", Locale.getDefault()).withZone(IstDateUtils.zone)
-                val time = DateTimeFormatter.ofPattern("h:mm a", Locale.getDefault()).withZone(IstDateUtils.zone)
+                val dateTime = DateTimeFormatter.ofPattern("MMM d, h:mm a", LocalLocale.current.platformLocale).withZone(IstDateUtils.zone)
+                val time = DateTimeFormatter.ofPattern("h:mm a", LocalLocale.current.platformLocale).withZone(IstDateUtils.zone)
                 val timing = when {
                     start != null && end != null -> {
                         val endFormat = if (start.atZone(IstDateUtils.zone).toLocalDate() == end.atZone(IstDateUtils.zone).toLocalDate()) time else dateTime
@@ -289,13 +296,13 @@ private fun GoalFocusContribution(sessions: List<GoalLinkedSession>) {
                     }
                     start != null -> dateTime.format(start)
                     end != null -> dateTime.format(end)
-                    else -> context.getString(R.string.common_time_unavailable)
+                    else -> localizedResources.getString(R.string.common_time_unavailable)
                 }
                 Text(
                     buildString {
                         append(timing)
                         if (sessions.size > 1) append(" · ${focusContributionDuration(context, linkedFocusSeconds(session))}")
-                        if (session.timerMode.equals("stopwatch", ignoreCase = true)) append(" · ${context.getString(R.string.common_stopwatch)}")
+                        if (session.timerMode.equals("stopwatch", ignoreCase = true)) append(" · ${localizedResources.getString(R.string.common_stopwatch)}")
                     },
                     fontSize = 12.sp,
                     lineHeight = 18.sp,

@@ -1,5 +1,9 @@
 package com.safarparmar.app.ui.nishtha.journal
 
+import androidx.compose.runtime.rememberUpdatedState
+
+import androidx.compose.ui.platform.LocalResources
+
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -114,6 +118,7 @@ private fun JournalScreenContent(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val localizedResources by rememberUpdatedState(LocalResources.current)
     var showWriteSheet by remember { mutableStateOf(false) }
     var titleInput by remember { mutableStateOf("") }
     var bodyInput by remember { mutableStateOf("") }
@@ -121,12 +126,15 @@ private fun JournalScreenContent(
     var showJournals by remember { mutableStateOf(false) }
     var selectedJournal by remember { mutableStateOf<JournalEntry?>(null) }
     val pagerState = rememberPagerState { journalPrompts.size }
+    com.safarparmar.app.ui.tutorial.ScreenPracticeEntry(com.safarparmar.app.ui.tutorial.TitliFeature.JOURNAL,
+        !isLight, eligible = !uiState.isLoadingJournals && !uiState.isSavingJournal && !showWriteSheet && selectedJournal == null)
+
     val accent = PlannerFlatColors.PrimaryAccent
     val journalAccent = if (isLight) Color(0xFF0284C7) else Color(0xFF38BDF8)
 
     LaunchedEffect(uiState.journalSaveSuccess) {
         if (uiState.journalSaveSuccess) {
-            Toast.makeText(context, context.getString(com.safarparmar.app.R.string.nishtha_journal_saved), Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, localizedResources.getString(com.safarparmar.app.R.string.nishtha_journal_saved), Toast.LENGTH_SHORT).show()
             showWriteSheet = false
             titleInput = ""
             bodyInput = ""
@@ -406,7 +414,7 @@ private fun JournalEmptyState(
 // ─── macOS Control Center tiles ──────────────────────────────────────────────
 
 @Composable
-private fun PromptGlassCard(
+internal fun PromptGlassCard(
     prompt: String,
     page: Int,
     pageCount: Int,
@@ -486,7 +494,7 @@ private fun PromptGlassCard(
 }
 
 @Composable
-private fun JournalGlassCard(
+internal fun JournalGlassCard(
     entry: JournalEntry,
     isLight: Boolean,
     accent: Color,
@@ -647,7 +655,7 @@ private fun JournalWriteSheet(
     onDismiss: () -> Unit,
     onSave: () -> Unit,
 ) {
-    com.composables.ui.components.AlertDialog(
+    com.safarparmar.app.ui.components.popups.SafarComposablesAlertDialog(
         visible = true,
         onDismissRequest = { if (!isSaving) onDismiss() },
         title = { com.composables.ui.components.Text(androidx.compose.ui.res.stringResource(R.string.nishtha_new_entry)) },
@@ -735,7 +743,7 @@ private fun JournalDetailSheet(
 }
 
 @Composable
-private fun FlatJournalField(
+internal fun FlatJournalField(
     value: String,
     onValueChange: (String) -> Unit,
     placeholder: String,
@@ -769,7 +777,7 @@ private fun FlatJournalField(
 }
 
 @Composable
-private fun FlatPrimaryButton(
+internal fun FlatPrimaryButton(
     label: String,
     enabled: Boolean,
     loading: Boolean,

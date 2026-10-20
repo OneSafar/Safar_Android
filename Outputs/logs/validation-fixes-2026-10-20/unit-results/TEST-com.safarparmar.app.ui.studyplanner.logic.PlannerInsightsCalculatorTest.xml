@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.ui.studyplanner.logic.PlannerInsightsCalculatorTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-19T19:59:48.494Z" hostname="Shashanks-MacBook-Air.local" time="0.005">
+  <properties/>
+  <testcase name="old plan without revision log opens Progress safely" classname="com.safarparmar.app.ui.studyplanner.logic.PlannerInsightsCalculatorTest" time="0.003"/>
+  <testcase name="late revision counts on the day it was actually finished" classname="com.safarparmar.app.ui.studyplanner.logic.PlannerInsightsCalculatorTest" time="0.001"/>
+  <testcase name="finished revisions count as study on each day" classname="com.safarparmar.app.ui.studyplanner.logic.PlannerInsightsCalculatorTest" time="0.0"/>
+  <testcase name="finish date uses topic size for both finished and remaining work" classname="com.safarparmar.app.ui.studyplanner.logic.PlannerInsightsCalculatorTest" time="0.0"/>
+  <testcase name="last revision is not counted twice when it also finishes the topic" classname="com.safarparmar.app.ui.studyplanner.logic.PlannerInsightsCalculatorTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.ui.components.popups.SafarPopupEnvironmentPolicyTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-20T02:12:56.843Z" hostname="Shashanks-MacBook-Air.local" time="0.088">
+  <properties/>
+  <testcase name="invalid font scale cannot create popup resources" classname="com.safarparmar.app.ui.components.popups.SafarPopupEnvironmentPolicyTest" time="0.0"/>
+  <testcase name="context preserves Activity unwrapping and services with isolated resources" classname="com.safarparmar.app.ui.components.popups.SafarPopupEnvironmentPolicyTest" time="0.087"/>
+  <testcase name="invalid display density cannot create popup resources" classname="com.safarparmar.app.ui.components.popups.SafarPopupEnvironmentPolicyTest" time="0.0"/>
+  <testcase name="resource scale represents the app density without changing its font limit" classname="com.safarparmar.app.ui.components.popups.SafarPopupEnvironmentPolicyTest" time="0.0"/>
+  <testcase name="Android resource density rounding stays within half a density dpi" classname="com.safarparmar.app.ui.components.popups.SafarPopupEnvironmentPolicyTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

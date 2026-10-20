@@ -1,5 +1,7 @@
 package com.safarparmar.app.ui.mehfil
 
+import androidx.compose.ui.platform.LocalResources
+
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
@@ -81,6 +83,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.safarparmar.app.R
+import com.safarparmar.app.ui.tutorial.tutorialTarget
 import com.safarparmar.app.domain.model.ActivityItem
 import com.safarparmar.app.domain.model.MehfilPost
 import com.safarparmar.app.domain.model.Sandesh
@@ -348,7 +351,7 @@ private fun RoomSelector(selectedSpace: String, onJoinRoom: (String) -> Unit) {
     )
     Row(
         Modifier
-            .fillMaxWidth()
+            .fillMaxWidth().tutorialTarget("mehfil.space")
             .padding(horizontal = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
@@ -667,6 +670,7 @@ private fun SandeshAnnouncementCard(
 @Composable
 private fun SandeshMedia(sandesh: Sandesh) {
     val context = LocalContext.current
+    val localizedResources by rememberUpdatedState(LocalResources.current)
     val youtubeRegex = Regex("""(?:https?://)?(?:www\.)?(?:youtube\.com/(?:[^/\n\s]+/\S+/|(?:v|e(?:mbed)?)/|\S*?[?&]v=)|youtu\.be/)([a-zA-Z0-9_-]{11})""")
     val imageVideoId = if (sandesh.imageUrl.contains("img.youtube.com")) {
         Regex("""img\.youtube\.com/vi/([a-zA-Z0-9_-]{11})""").find(sandesh.imageUrl)?.groupValues?.get(1)
@@ -687,7 +691,7 @@ private fun SandeshMedia(sandesh: Sandesh) {
                 try {
                     context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(videoUrl)))
                 } catch (e: android.content.ActivityNotFoundException) {
-                    android.widget.Toast.makeText(context, context.getString(R.string.mehfil_cannot_open_video), android.widget.Toast.LENGTH_SHORT).show()
+                    android.widget.Toast.makeText(context, localizedResources.getString(R.string.mehfil_cannot_open_video), android.widget.Toast.LENGTH_SHORT).show()
                 }
             },
             contentAlignment = Alignment.Center,
@@ -718,7 +722,7 @@ private fun SandeshMedia(sandesh: Sandesh) {
                     try {
                         context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(directImageUrl)))
                     } catch (e: android.content.ActivityNotFoundException) {
-                        android.widget.Toast.makeText(context, context.getString(R.string.mehfil_cannot_open_image), android.widget.Toast.LENGTH_SHORT).show()
+                        android.widget.Toast.makeText(context, localizedResources.getString(R.string.mehfil_cannot_open_image), android.widget.Toast.LENGTH_SHORT).show()
                     }
                 },
             contentScale = ContentScale.Crop,
@@ -744,7 +748,7 @@ private fun PostCard(
 
     Column(
         modifier = Modifier
-            .fillMaxWidth()
+            .fillMaxWidth().tutorialTarget("mehfil.react")
             .clip(RoundedCornerShape(14.dp))
             .background(MehfilFlatColors.Surface)
             .border(1.dp, MehfilFlatColors.Hairline, RoundedCornerShape(14.dp))

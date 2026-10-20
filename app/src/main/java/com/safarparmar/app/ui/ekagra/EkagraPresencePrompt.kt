@@ -1,6 +1,6 @@
 package com.safarparmar.app.ui.ekagra
 
-import androidx.compose.material3.AlertDialog
+import com.safarparmar.app.ui.components.popups.SafarMaterialAlertDialog as AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable

@@ -88,7 +88,7 @@ import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.automirrored.rounded.TrendingUp
-import androidx.compose.material3.AlertDialog
+import com.safarparmar.app.ui.components.popups.SafarMaterialAlertDialog as AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -97,7 +97,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
+import com.safarparmar.app.ui.components.popups.SafarDropdownMenu as DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -107,7 +107,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
+import com.safarparmar.app.ui.components.popups.SafarModalBottomSheet as ModalBottomSheet
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedButton
@@ -208,7 +208,7 @@ import java.time.YearMonth
 import java.time.Instant
 import java.time.ZoneOffset
 import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
+import com.safarparmar.app.ui.components.popups.SafarDatePickerDialog as DatePickerDialog
 import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.rememberDatePickerState
 import java.time.format.TextStyle

@@ -35,7 +35,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.PlayArrow
-import com.composables.ui.components.BottomSheet
+import com.safarparmar.app.ui.components.popups.SafarComposablesBottomSheet as BottomSheet
 import com.composables.ui.components.BottomSheetDetent
 import com.composables.ui.components.rememberBottomSheetState
 import com.composables.ui.components.Icon

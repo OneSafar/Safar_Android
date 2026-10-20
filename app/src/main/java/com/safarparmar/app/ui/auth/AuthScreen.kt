@@ -1,5 +1,9 @@
 package com.safarparmar.app.ui.auth
 
+import androidx.compose.ui.platform.LocalResources
+import com.safarparmar.app.ui.components.popups.SafarExposedDropdownMenu
+
+
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -117,6 +121,7 @@ fun AuthScreen(
     val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
+    val localizedResources by rememberUpdatedState(LocalResources.current)
     val logoRes = if (isDark) R.drawable.ic_safar_logo_brand_dark else R.drawable.ic_safar_logo_brand_light
     val backgroundRes = if (isDark) R.drawable.auth_bg_dark else R.drawable.auth_bg
 
@@ -126,7 +131,7 @@ fun AuthScreen(
 
     LaunchedEffect(uiState.error) {
         uiState.error?.let { error ->
-            snackbarHostState.showSnackbar(message = error, actionLabel = context.getString(R.string.common_ok))
+            snackbarHostState.showSnackbar(message = error, actionLabel = localizedResources.getString(R.string.common_ok))
             viewModel.onEvent(AuthEvent.ClearError)
         }
     }
@@ -372,7 +377,7 @@ fun HtmlDropdownField(
             ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
         }
         
-        ExposedDropdownMenu(
+        SafarExposedDropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
             modifier = Modifier.background(MaterialTheme.colorScheme.surface)

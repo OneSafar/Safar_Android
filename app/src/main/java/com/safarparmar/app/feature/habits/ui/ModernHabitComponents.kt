@@ -1,5 +1,9 @@
 package com.safarparmar.app.feature.habits.ui
 
+import androidx.compose.ui.platform.LocalLocale
+
+import com.safarparmar.app.ui.tutorial.tutorialTarget
+
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
@@ -28,6 +32,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.ChevronLeft
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material3.*
+import com.safarparmar.app.ui.components.popups.SafarModalBottomSheet as ModalBottomSheet
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -156,7 +161,7 @@ internal fun ModernPageHeader(
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             if (!eyebrow.isNullOrBlank()) {
                 Text(
-                    text = eyebrow.uppercase(Locale.getDefault()),
+                    text = eyebrow.uppercase(LocalLocale.current.platformLocale),
                     color = HabitColors.TextTertiary,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
@@ -333,10 +338,11 @@ internal fun ModernHabitRow(
                 overflow = TextOverflow.Ellipsis
             )
         }
-        IconButton(onClick = onEdit, modifier = Modifier.size(44.dp)) {
+        IconButton(onClick = onEdit, modifier = Modifier.size(44.dp).tutorialTarget("habit.edit")) {
             Icon(Icons.Default.Edit, contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_edit_named, habit.name), tint = HabitColors.TextTertiary, modifier = Modifier.size(18.dp))
         }
         ModernCheckButton(
+            modifier = Modifier.tutorialTarget("habit.check"),
             completed = completed,
             enabled = true,
             onClick = onToggle,
@@ -450,7 +456,7 @@ internal fun ModernWeekDayCell(
     ) {
         if (showWeekday) {
             Text(
-                date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault()).uppercase(Locale.getDefault()),
+                date.dayOfWeek.getDisplayName(TextStyle.SHORT, LocalLocale.current.platformLocale).uppercase(LocalLocale.current.platformLocale),
                 color = textColor.copy(alpha = .74f),
                 fontSize = 8.sp,
                 fontWeight = FontWeight.Bold,
@@ -538,7 +544,7 @@ internal fun ModernWeeklyProgressCard(
                         future -> HabitColors.TextTertiary
                         else -> HabitColors.TextPrimary
                     }
-                    Text(date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault()).uppercase(Locale.getDefault()), color = color.copy(alpha = .76f), fontSize = 8.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                    Text(date.dayOfWeek.getDisplayName(TextStyle.SHORT, LocalLocale.current.platformLocale).uppercase(LocalLocale.current.platformLocale), color = color.copy(alpha = .76f), fontSize = 8.sp, fontWeight = FontWeight.Bold, maxLines = 1)
                     Spacer(Modifier.height(3.dp))
                     Text(date.dayOfMonth.toString(), color = color, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     Spacer(Modifier.height(3.dp))
@@ -912,7 +918,7 @@ internal fun ModernMetricCard(
 ) {
     ModernSoftCard(modifier) {
         Column(Modifier.padding(15.dp)) {
-            Text(label.uppercase(Locale.getDefault()), color = HabitColors.TextTertiary, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = .6.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(label.uppercase(LocalLocale.current.platformLocale), color = HabitColors.TextTertiary, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = .6.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Spacer(Modifier.height(7.dp))
             Text(value, color = HabitColors.TextPrimary, fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Spacer(Modifier.height(3.dp))
@@ -973,7 +979,7 @@ internal fun ModernDayDetailSheet(
     ) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 32.dp)) {
             Text(
-                date.format(DateTimeFormatter.ofPattern("EEEE, d MMMM", Locale.getDefault())),
+                date.format(DateTimeFormatter.ofPattern("EEEE, d MMMM", LocalLocale.current.platformLocale)),
                 color = HabitColors.TextPrimary,
                 fontSize = 23.sp,
                 lineHeight = 28.sp,

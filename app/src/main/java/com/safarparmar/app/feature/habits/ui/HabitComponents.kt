@@ -1,5 +1,7 @@
 package com.safarparmar.app.feature.habits.ui
 
+import androidx.compose.ui.platform.LocalLocale
+
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
@@ -729,7 +731,7 @@ internal fun WeekdayLabels(modifier: Modifier = Modifier) {
     ) {
         DayOfWeek.entries.forEach { day ->
             Text(
-                text = day.getDisplayName(style, Locale.getDefault()).uppercase(),
+                text = day.getDisplayName(style, LocalLocale.current.platformLocale).uppercase(),
                 fontSize = 11.sp,
                 lineHeight = 14.sp,
                 fontWeight = FontWeight.Bold,

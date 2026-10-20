@@ -1,0 +1,327 @@
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preProdDebugBuild UP-TO-DATE
+> Task :app:generateProdDebugBuildConfig
+> Task :app:generateProdDebugResValues UP-TO-DATE
+> Task :app:generateProdDebugResources UP-TO-DATE
+> Task :app:injectCrashlyticsMappingFileIdProdDebug UP-TO-DATE
+> Task :app:injectCrashlyticsVersionControlInfoProdDebug UP-TO-DATE
+> Task :app:processProdDebugGoogleServices UP-TO-DATE
+> Task :app:packageProdDebugResources UP-TO-DATE
+> Task :app:processProdDebugNavigationResources UP-TO-DATE
+> Task :app:parseProdDebugLocalResources UP-TO-DATE
+> Task :app:generateProdDebugRFile UP-TO-DATE
+> Task :app:javaPreCompileProdDebug UP-TO-DATE
+> Task :app:checkProdDebugAarMetadata UP-TO-DATE
+> Task :app:mapProdDebugSourceSetPaths UP-TO-DATE
+> Task :app:compileProdDebugNavigationResources UP-TO-DATE
+> Task :app:mergeProdDebugResources UP-TO-DATE
+> Task :app:createProdDebugCompatibleScreenManifests
+> Task :app:extractDeepLinksProdDebug UP-TO-DATE
+> Task :app:processProdDebugMainManifest
+> Task :app:processProdDebugManifest
+> Task :app:preProdDebugUnitTestBuild UP-TO-DATE
+> Task :app:javaPreCompileProdDebugUnitTest UP-TO-DATE
+> Task :app:preProdReleaseBuild UP-TO-DATE
+> Task :app:generateProdReleaseBuildConfig
+> Task :app:generateProdReleaseResValues UP-TO-DATE
+> Task :app:generateProdReleaseResources
+> Task :app:injectCrashlyticsMappingFileIdProdRelease
+> Task :app:extractProdReleaseVersionControlInfo
+> Task :app:injectCrashlyticsVersionControlInfoProdRelease
+> Task :app:processProdReleaseGoogleServices UP-TO-DATE
+> Task :app:packageProdReleaseResources
+> Task :app:processProdReleaseNavigationResources
+> Task :app:processProdDebugManifestForPackage
+> Task :app:javaPreCompileProdRelease UP-TO-DATE
+> Task :app:extractProguardFiles UP-TO-DATE
+> Task :app:extractDeepLinksProdRelease UP-TO-DATE
+> Task :app:parseProdReleaseLocalResources
+> Task :app:processProdReleaseMainManifest
+> Task :app:preProdDebugAndroidTestBuild SKIPPED
+> Task :app:generateProdReleaseRFile
+> Task :app:processProdDebugAndroidTestManifest UP-TO-DATE
+> Task :app:generateProdDebugAndroidTestBuildConfig
+> Task :app:generateProdDebugAndroidTestResValues UP-TO-DATE
+> Task :app:generateProdDebugAndroidTestResources UP-TO-DATE
+> Task :app:packageProdDebugAndroidTestResources UP-TO-DATE
+> Task :app:processProdDebugAndroidTestNavigationResources UP-TO-DATE
+> Task :app:parseProdDebugAndroidTestLocalResources UP-TO-DATE
+> Task :app:generateProdDebugAndroidTestRFile UP-TO-DATE
+warn: removing resource com.safarparmar.app:string/support_asked_before without required default value.
+warn: removing resource com.safarparmar.app:string/support_first_time without required default value.
+
+> Task :app:processProdDebugResources
+> Task :app:kspProdDebugKotlin
+> Task :app:kspProdReleaseKotlin
+> Task :app:compileProdDebugKotlin
+> Task :app:compileProdReleaseKotlin
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/SafarApplication.kt:141:58 'static field TRIM_MEMORY_RUNNING_LOW: Int' is deprecated. Deprecated in Java.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/data/remote/maintenance/MaintenanceInterceptor.kt:45:59 Java type mismatch: inferred type is 'Nothing?', but 'String' was expected.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/data/remote/maintenance/MaintenanceInterceptor.kt:46:75 Java type mismatch: inferred type is 'Nothing?', but 'String' was expected.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/data/remote/maintenance/MaintenanceStateManager.kt:128:59 Java type mismatch: inferred type is 'Nothing?', but 'String' was expected.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/data/remote/maintenance/MaintenanceStateManager.kt:129:79 Java type mismatch: inferred type is 'Nothing?', but 'String' was expected.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/data/remote/maintenance/MaintenanceStateManager.kt:144:59 Java type mismatch: inferred type is 'Nothing?', but 'String' was expected.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/data/remote/maintenance/MaintenanceStateManager.kt:145:79 Java type mismatch: inferred type is 'Nothing?', but 'String' was expected.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/data/repository/HomeRepositoryImpl.kt:231:17 Expression is unused.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/data/repository/HomeRepositoryImpl.kt:242:17 Expression is unused.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/feature/kavachanalytics/data/KavachUsageCollector.kt:160:67 'static field MOVE_TO_FOREGROUND: Int' is deprecated. Deprecated in Java.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/feature/kavachanalytics/data/KavachUsageCollector.kt:163:67 'static field MOVE_TO_BACKGROUND: Int' is deprecated. Deprecated in Java.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/feature/kavachanalytics/di/KavachAnalyticsModule.kt:32:10 'fun fallbackToDestructiveMigration(): RoomDatabase.Builder<KavachAnalyticsDatabase>' is deprecated. Replace by overloaded version with parameter to indicate if all tables should be dropped or not.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/feature/live/presentation/LiveClassroomComponents.kt:332:36 'fun centerAlignedTopAppBarColors(containerColor: Color = ..., scrolledContainerColor: Color = ..., navigationIconContentColor: Color = ..., titleContentColor: Color = ..., actionIconContentColor: Color = ...): TopAppBarColors' is deprecated. Use topAppBarColors instead.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/feature/live/presentation/LiveSessionScreen.kt:904:53 'val Icons.Filled.ArrowBack: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.ArrowBack.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/feature/live/presentation/VideoPlayerActivity.kt:110:30 This declaration overrides a deprecated member but is not marked as deprecated itself. Add the '@Deprecated' annotation or suppress the diagnostic.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/feature/live/presentation/YouTubePlayerWebView.kt:95:55 'static field SYSTEM_UI_FLAG_VISIBLE: Int' is deprecated. Deprecated in Java.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/feature/toppersbatch/BatchStudentCalendar.kt:331:171 Unnecessary safe call on a non-null receiver of type 'BatchLecture'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/feature/toppersbatch/BatchWeeklyAgenda.kt:199:147 Condition is always 'true'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/feature/toppersbatch/GkLectureStore.kt:55:59 Elvis operator (?:) always returns the left operand of non-nullable type 'String'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/feature/toppersbatch/ToppersBatchDashboard.kt:132:58 Unnecessary safe call on a non-null receiver of type 'BatchLecture'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/feature/toppersbatch/ToppersBatchDashboard.kt:134:68 Unnecessary safe call on a non-null receiver of type 'BatchLecture'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/feature/youtubestudyv2/YoutubeFocusTutorialActivity.kt:100:48 The corresponding parameter in the supertype 'ComponentActivity' is named 'isInPictureInPictureMode'. This may cause problems when calling this function with named arguments.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/feature/youtubestudyv2/YoutubeStudyV2AccessibilityService.kt:1442:17 Unnecessary safe call on a non-null receiver of type 'AccessibilityNodeInfo'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/feature/youtubestudyv2/YoutubeStudyV2AccessibilityService.kt:1443:17 Unnecessary safe call on a non-null receiver of type 'AccessibilityNodeInfo'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/feature/youtubestudyv2/YoutubeStudyV2AccessibilityService.kt:1444:24 Unnecessary safe call on a non-null receiver of type 'AccessibilityNodeInfo'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/feature/youtubestudyv2/YoutubeStudyV2AccessibilityService.kt:1465:26 Unnecessary safe call on a non-null receiver of type 'AccessibilityNodeInfo'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/feature/youtubestudyv2/YoutubeStudyV2AccessibilityService.kt:1467:17 Unnecessary safe call on a non-null receiver of type 'AccessibilityNodeInfo'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/feature/youtubestudyv2/YoutubeStudyV2AccessibilityService.kt:1468:17 Unnecessary safe call on a non-null receiver of type 'AccessibilityNodeInfo'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/feature/youtubestudyv2/YoutubeStudyV2AccessibilityService.kt:1469:24 Unnecessary safe call on a non-null receiver of type 'AccessibilityNodeInfo'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/feature/youtubestudyv2/YoutubeStudyV2Module.kt:22:10 'fun fallbackToDestructiveMigration(): RoomDatabase.Builder<YoutubeStudyV2Database>' is deprecated. Replace by overloaded version with parameter to indicate if all tables should be dropped or not.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/feature/youtubestudyv2/YoutubeStudyV2Parser.kt:224:62 Unnecessary non-null assertion (!!) on a non-null receiver of type 'YoutubeV2Node'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/feature/youtubestudyv2/YoutubeStudyV2Parser.kt:237:84 Unnecessary non-null assertion (!!) on a non-null receiver of type 'YoutubeV2Node'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/achievements/AchievementsScreen.kt:83:13 'fun ScrollableTabRow(selectedTabIndex: Int, modifier: Modifier = ..., containerColor: Color = ..., contentColor: Color = ..., edgePadding: Dp = ..., indicator: ComposableFunction1<List<TabPosition>, Unit> = ..., divider: ComposableFunction0<Unit> = ..., tabs: ComposableFunction0<Unit>): Unit' is deprecated. Replaced with PrimaryScrollableTabRow and SecondaryScrollableTabRow tab variants.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/admin/AdminNotificationComposerScreen.kt:324:75 Elvis operator (?:) always returns the left operand of non-nullable type 'String'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/admin/AdminNotificationComposerScreen.kt:584:30 'fun Modifier.menuAnchor(): Modifier' is deprecated. Use overload that takes ExposedDropdownMenuAnchorType and enabled parameters.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/admin/AdminNotificationComposerScreen.kt:630:30 'fun Modifier.menuAnchor(): Modifier' is deprecated. Use overload that takes ExposedDropdownMenuAnchorType and enabled parameters.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/auth/AuthScreen.kt:354:29 'typealias MenuAnchorType = ExposedDropdownMenuAnchorType' is deprecated. Renamed to ExposedDropdownMenuAnchorType.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/auth/AuthViewModel.kt:208:48 Unnecessary safe call on a non-null receiver of type 'ForgotPasswordResult'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/components/SafarInputs.kt:128:33 Unnecessary non-null assertion (!!) on a non-null receiver of type 'String'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/components/SafarInputs.kt:175:33 'typealias MenuAnchorType = ExposedDropdownMenuAnchorType' is deprecated. Renamed to ExposedDropdownMenuAnchorType.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/dashboard/DashboardViewModel.kt:87:87 Elvis operator (?:) always returns the left operand of non-nullable type 'String'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/dhyan/DhyanPracticeStage.kt:45:142 'val Icons.Filled.VolumeOff: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.VolumeOff.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/dhyan/DhyanPracticeStage.kt:45:171 'val Icons.Filled.VolumeUp: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.VolumeUp.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/dhyan/DhyanScreen.kt:1010:63 'val Icons.Filled.VolumeOff: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.VolumeOff.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/dhyan/DhyanScreen.kt:1010:92 'val Icons.Filled.VolumeUp: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.VolumeUp.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/drawer/SafarDrawerScaffold.kt:276:49 Unnecessary non-null assertion (!!) on a non-null receiver of type 'String'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:405:35 Unnecessary safe call on a non-null receiver of type 'TimerService'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:428:29 Unnecessary safe call on a non-null receiver of type 'TimerService'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:494:135 Unnecessary safe call on a non-null receiver of type 'TimerService'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:495:25 Unnecessary safe call on a non-null receiver of type 'TimerService'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:1246:60 Unnecessary safe call on a non-null receiver of type 'VisualTheme'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:1377:149 Unnecessary safe call on a non-null receiver of type 'TimerService'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:1428:90 'val Icons.Filled.HelpOutline: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.HelpOutline.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:1433:103 'val Icons.Filled.VolumeUp: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.VolumeUp.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:1433:163 'val Icons.Filled.VolumeOff: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.VolumeOff.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:1600:65 Unnecessary safe call on a non-null receiver of type 'TimerService'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:1610:61 Unnecessary safe call on a non-null receiver of type 'TimerService'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:1613:196 Unnecessary safe call on a non-null receiver of type 'TimerService'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:1732:61 Unnecessary safe call on a non-null receiver of type 'TimerService'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraSessionJournal.kt:65:60 Expression is unused.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraSessionSaveWorker.kt:81:124 Unnecessary safe call on a non-null receiver of type 'String'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraSheets.kt:353:33 Unnecessary safe call on a non-null receiver of type 'PendingEndedEkagraSession'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraViewModel.kt:237:67 Elvis operator (?:) always returns the left operand of non-nullable type 'String'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/TimerService.kt:588:22 No cast needed.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/TimerService.kt:720:22 No cast needed.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/focusshield/KavachAboutScreen.kt:52:26 'val LocalLifecycleOwner: ProvidableCompositionLocal<LifecycleOwner>' is deprecated. Moved to lifecycle-runtime-compose library in androidx.lifecycle.compose package.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/focusshield/KavachAlwaysOnService.kt:518:67 'static field MOVE_TO_FOREGROUND: Int' is deprecated. Deprecated in Java.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/focusshield/KavachAlwaysOnService.kt:521:67 'static field MOVE_TO_BACKGROUND: Int' is deprecated. Deprecated in Java.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/focusshield/KavachOnboardingScreen.kt:394:39 'val Icons.Filled.HelpOutline: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.HelpOutline.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/focusshield/KavachOnboardingScreen.kt:615:35 'val Icons.Filled.HelpOutline: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.HelpOutline.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/focusshield/UsageAccessHelper.kt:27:20 'fun unsafeCheckOpNoThrow(p0: String, p1: Int, p2: String): Int' is deprecated. Deprecated in Java.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/leaderboard/LeaderboardPodiumVariations.kt:318:48 Unnecessary safe call on a non-null receiver of type 'WeeklyLeaderboardPeriodDto'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/leaderboard/LeaderboardScreen.kt:84:48 Unnecessary safe call on a non-null receiver of type 'WeeklyLeaderboardPeriodDto'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/leaderboard/LeaderboardScreen.kt:87:55 Unnecessary safe call on a non-null receiver of type 'WeeklyLeaderboardPeriodDto'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/leaderboard/LeaderboardScreen.kt:88:53 Unnecessary safe call on a non-null receiver of type 'WeeklyLeaderboardPeriodDto'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/leaderboard/LeaderboardScreen.kt:91:29 Unnecessary safe call on a non-null receiver of type 'WeeklyLeaderboardPeriodDto'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/leaderboard/LeaderboardScreen.kt:91:46 Unnecessary safe call on a non-null receiver of type 'WeeklyLeaderboardPeriodDto'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/leaderboard/LeaderboardScreen.kt:519:15 Unnecessary non-null assertion (!!) on a non-null receiver of type 'WeeklyLeaderboardEntryDto'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/leaderboard/LeaderboardScreen.kt:557:99 Unnecessary non-null assertion (!!) on a non-null receiver of type 'WeeklyLeaderboardEntryDto'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/navigation/SafarNavGraph.kt:186:81 Unnecessary safe call on a non-null receiver of type 'String'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/navigation/SafarNavGraph.kt:200:21 Unnecessary safe call on a non-null receiver of type 'MainActivity'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/nishtha/NishthaViewModel.kt:561:115 Elvis operator (?:) always returns the left operand of non-nullable type 'String'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/profile/ProfileScreen.kt:575:28 'val LocalClipboardManager: ProvidableCompositionLocal<ClipboardManager>' is deprecated. Use LocalClipboard instead which supports suspend functions.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/settings/SettingsScreen.kt:933:16 'fun unsafeCheckOpNoThrow(p0: String, p1: Int, p2: String): Int' is deprecated. Deprecated in Java.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/studycircle/StudyCircleScreen.kt:1906:21 'val LocalClipboardManager: ProvidableCompositionLocal<ClipboardManager>' is deprecated. Use LocalClipboard instead which supports suspend functions.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/studycircle/StudyCircleScreen.kt:2705:61 'val Icons.Filled.Chat: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.Chat.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/studyplanner/StudyPlannerViewModel.kt:929:34 Unnecessary safe call on a non-null receiver of type 'StudySubject'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/studyplanner/StudyPlannerViewModel.kt:1296:31 Unnecessary safe call on a non-null receiver of type 'StudyPlan'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/studyplanner/StudyPlannerViewModel.kt:1635:70 Elvis operator (?:) always returns the left operand of non-nullable type 'String'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/studyplanner/components/PlannerDialog.kt:67:44 'static field SOFT_INPUT_ADJUST_RESIZE: Int' is deprecated. Deprecated in Java.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/studyplanner/create/CreatePlanScreen.kt:187:48 'fun centerAlignedTopAppBarColors(containerColor: Color = ..., scrolledContainerColor: Color = ..., navigationIconContentColor: Color = ..., titleContentColor: Color = ..., actionIconContentColor: Color = ...): TopAppBarColors' is deprecated. Use topAppBarColors instead.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/studyplanner/create/CreatePlanViewModel.kt:764:64 Elvis operator (?:) always returns the left operand of non-nullable type 'String'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/studyplanner/create/CreatePlanViewModel.kt:1519:69 Elvis operator (?:) always returns the left operand of non-nullable type 'String'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/studyplanner/create/CreatePlanViewModel.kt:1547:74 Elvis operator (?:) always returns the left operand of non-nullable type 'String'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/studyplanner/logic/PlannerInsightsCalculator.kt:195:56 Elvis operator (?:) always returns the left operand of non-nullable type 'Int'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/studyplanner/plan/PlanHomeRedesign.kt:328:58 Unnecessary safe call on a non-null receiver of type '() -> Unit'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/studyplanner/screens/InsightsMomentumWidgets.kt:586:36 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Float'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/studyplanner/screens/InsightsMomentumWidgets.kt:599:55 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Float'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/studyplanner/screens/InsightsMomentumWidgets.kt:605:58 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Float'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/studyplanner/screens/InsightsMomentumWidgets.kt:609:85 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Float'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/studyplanner/screens/InsightsMomentumWidgets.kt:611:58 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Float'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/studyplanner/screens/InsightsMomentumWidgets.kt:611:106 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Float'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/tutorial/FeatureTutorialPracticeWindow.kt:58:59 Unnecessary safe call on a non-null receiver of type 'WindowInsetsControllerCompat'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/tutorial/FeatureTutorialPracticeWindow.kt:59:63 Unnecessary safe call on a non-null receiver of type 'WindowInsetsControllerCompat'.
+
+> Task :app:compileProdDebugKotlin
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/SafarApplication.kt:141:58 'static field TRIM_MEMORY_RUNNING_LOW: Int' is deprecated. Deprecated in Java.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/data/remote/maintenance/MaintenanceInterceptor.kt:45:59 Java type mismatch: inferred type is 'Nothing?', but 'String' was expected.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/data/remote/maintenance/MaintenanceInterceptor.kt:46:75 Java type mismatch: inferred type is 'Nothing?', but 'String' was expected.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/data/remote/maintenance/MaintenanceStateManager.kt:128:59 Java type mismatch: inferred type is 'Nothing?', but 'String' was expected.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/data/remote/maintenance/MaintenanceStateManager.kt:129:79 Java type mismatch: inferred type is 'Nothing?', but 'String' was expected.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/data/remote/maintenance/MaintenanceStateManager.kt:144:59 Java type mismatch: inferred type is 'Nothing?', but 'String' was expected.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/data/remote/maintenance/MaintenanceStateManager.kt:145:79 Java type mismatch: inferred type is 'Nothing?', but 'String' was expected.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/data/repository/HomeRepositoryImpl.kt:231:17 Expression is unused.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/data/repository/HomeRepositoryImpl.kt:242:17 Expression is unused.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/feature/kavachanalytics/data/KavachUsageCollector.kt:160:67 'static field MOVE_TO_FOREGROUND: Int' is deprecated. Deprecated in Java.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/feature/kavachanalytics/data/KavachUsageCollector.kt:163:67 'static field MOVE_TO_BACKGROUND: Int' is deprecated. Deprecated in Java.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/feature/kavachanalytics/di/KavachAnalyticsModule.kt:32:10 'fun fallbackToDestructiveMigration(): RoomDatabase.Builder<KavachAnalyticsDatabase>' is deprecated. Replace by overloaded version with parameter to indicate if all tables should be dropped or not.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/feature/live/presentation/LiveClassroomComponents.kt:332:36 'fun centerAlignedTopAppBarColors(containerColor: Color = ..., scrolledContainerColor: Color = ..., navigationIconContentColor: Color = ..., titleContentColor: Color = ..., actionIconContentColor: Color = ...): TopAppBarColors' is deprecated. Use topAppBarColors instead.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/feature/live/presentation/LiveSessionScreen.kt:904:53 'val Icons.Filled.ArrowBack: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.ArrowBack.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/feature/live/presentation/VideoPlayerActivity.kt:110:30 This declaration overrides a deprecated member but is not marked as deprecated itself. Add the '@Deprecated' annotation or suppress the diagnostic.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/feature/live/presentation/YouTubePlayerWebView.kt:95:55 'static field SYSTEM_UI_FLAG_VISIBLE: Int' is deprecated. Deprecated in Java.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/feature/toppersbatch/BatchStudentCalendar.kt:331:171 Unnecessary safe call on a non-null receiver of type 'BatchLecture'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/feature/toppersbatch/BatchWeeklyAgenda.kt:199:147 Condition is always 'true'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/feature/toppersbatch/GkLectureStore.kt:55:59 Elvis operator (?:) always returns the left operand of non-nullable type 'String'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/feature/toppersbatch/ToppersBatchDashboard.kt:132:58 Unnecessary safe call on a non-null receiver of type 'BatchLecture'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/feature/toppersbatch/ToppersBatchDashboard.kt:134:68 Unnecessary safe call on a non-null receiver of type 'BatchLecture'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/feature/youtubestudyv2/YoutubeFocusTutorialActivity.kt:100:48 The corresponding parameter in the supertype 'ComponentActivity' is named 'isInPictureInPictureMode'. This may cause problems when calling this function with named arguments.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/feature/youtubestudyv2/YoutubeStudyV2AccessibilityService.kt:1442:17 Unnecessary safe call on a non-null receiver of type 'AccessibilityNodeInfo'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/feature/youtubestudyv2/YoutubeStudyV2AccessibilityService.kt:1443:17 Unnecessary safe call on a non-null receiver of type 'AccessibilityNodeInfo'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/feature/youtubestudyv2/YoutubeStudyV2AccessibilityService.kt:1444:24 Unnecessary safe call on a non-null receiver of type 'AccessibilityNodeInfo'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/feature/youtubestudyv2/YoutubeStudyV2AccessibilityService.kt:1465:26 Unnecessary safe call on a non-null receiver of type 'AccessibilityNodeInfo'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/feature/youtubestudyv2/YoutubeStudyV2AccessibilityService.kt:1467:17 Unnecessary safe call on a non-null receiver of type 'AccessibilityNodeInfo'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/feature/youtubestudyv2/YoutubeStudyV2AccessibilityService.kt:1468:17 Unnecessary safe call on a non-null receiver of type 'AccessibilityNodeInfo'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/feature/youtubestudyv2/YoutubeStudyV2AccessibilityService.kt:1469:24 Unnecessary safe call on a non-null receiver of type 'AccessibilityNodeInfo'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/feature/youtubestudyv2/YoutubeStudyV2Module.kt:22:10 'fun fallbackToDestructiveMigration(): RoomDatabase.Builder<YoutubeStudyV2Database>' is deprecated. Replace by overloaded version with parameter to indicate if all tables should be dropped or not.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/feature/youtubestudyv2/YoutubeStudyV2Parser.kt:224:62 Unnecessary non-null assertion (!!) on a non-null receiver of type 'YoutubeV2Node'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/feature/youtubestudyv2/YoutubeStudyV2Parser.kt:237:84 Unnecessary non-null assertion (!!) on a non-null receiver of type 'YoutubeV2Node'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/achievements/AchievementsScreen.kt:83:13 'fun ScrollableTabRow(selectedTabIndex: Int, modifier: Modifier = ..., containerColor: Color = ..., contentColor: Color = ..., edgePadding: Dp = ..., indicator: ComposableFunction1<List<TabPosition>, Unit> = ..., divider: ComposableFunction0<Unit> = ..., tabs: ComposableFunction0<Unit>): Unit' is deprecated. Replaced with PrimaryScrollableTabRow and SecondaryScrollableTabRow tab variants.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/admin/AdminNotificationComposerScreen.kt:324:75 Elvis operator (?:) always returns the left operand of non-nullable type 'String'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/admin/AdminNotificationComposerScreen.kt:584:30 'fun Modifier.menuAnchor(): Modifier' is deprecated. Use overload that takes ExposedDropdownMenuAnchorType and enabled parameters.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/admin/AdminNotificationComposerScreen.kt:630:30 'fun Modifier.menuAnchor(): Modifier' is deprecated. Use overload that takes ExposedDropdownMenuAnchorType and enabled parameters.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/auth/AuthScreen.kt:354:29 'typealias MenuAnchorType = ExposedDropdownMenuAnchorType' is deprecated. Renamed to ExposedDropdownMenuAnchorType.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/auth/AuthViewModel.kt:208:48 Unnecessary safe call on a non-null receiver of type 'ForgotPasswordResult'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/components/SafarInputs.kt:128:33 Unnecessary non-null assertion (!!) on a non-null receiver of type 'String'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/components/SafarInputs.kt:175:33 'typealias MenuAnchorType = ExposedDropdownMenuAnchorType' is deprecated. Renamed to ExposedDropdownMenuAnchorType.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/dashboard/DashboardViewModel.kt:87:87 Elvis operator (?:) always returns the left operand of non-nullable type 'String'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/dhyan/DhyanPracticeStage.kt:45:142 'val Icons.Filled.VolumeOff: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.VolumeOff.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/dhyan/DhyanPracticeStage.kt:45:171 'val Icons.Filled.VolumeUp: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.VolumeUp.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/dhyan/DhyanScreen.kt:1010:63 'val Icons.Filled.VolumeOff: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.VolumeOff.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/dhyan/DhyanScreen.kt:1010:92 'val Icons.Filled.VolumeUp: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.VolumeUp.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/drawer/SafarDrawerScaffold.kt:276:49 Unnecessary non-null assertion (!!) on a non-null receiver of type 'String'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:405:35 Unnecessary safe call on a non-null receiver of type 'TimerService'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:428:29 Unnecessary safe call on a non-null receiver of type 'TimerService'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:494:135 Unnecessary safe call on a non-null receiver of type 'TimerService'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:495:25 Unnecessary safe call on a non-null receiver of type 'TimerService'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:1246:60 Unnecessary safe call on a non-null receiver of type 'VisualTheme'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:1377:149 Unnecessary safe call on a non-null receiver of type 'TimerService'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:1428:90 'val Icons.Filled.HelpOutline: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.HelpOutline.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:1433:103 'val Icons.Filled.VolumeUp: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.VolumeUp.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:1433:163 'val Icons.Filled.VolumeOff: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.VolumeOff.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:1600:65 Unnecessary safe call on a non-null receiver of type 'TimerService'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:1610:61 Unnecessary safe call on a non-null receiver of type 'TimerService'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:1613:196 Unnecessary safe call on a non-null receiver of type 'TimerService'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:1732:61 Unnecessary safe call on a non-null receiver of type 'TimerService'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraSessionJournal.kt:65:60 Expression is unused.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraSessionSaveWorker.kt:81:124 Unnecessary safe call on a non-null receiver of type 'String'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraSheets.kt:353:33 Unnecessary safe call on a non-null receiver of type 'PendingEndedEkagraSession'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraViewModel.kt:237:67 Elvis operator (?:) always returns the left operand of non-nullable type 'String'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/TimerService.kt:588:22 No cast needed.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/TimerService.kt:720:22 No cast needed.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/focusshield/KavachAboutScreen.kt:52:26 'val LocalLifecycleOwner: ProvidableCompositionLocal<LifecycleOwner>' is deprecated. Moved to lifecycle-runtime-compose library in androidx.lifecycle.compose package.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/focusshield/KavachAlwaysOnService.kt:518:67 'static field MOVE_TO_FOREGROUND: Int' is deprecated. Deprecated in Java.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/focusshield/KavachAlwaysOnService.kt:521:67 'static field MOVE_TO_BACKGROUND: Int' is deprecated. Deprecated in Java.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/focusshield/KavachOnboardingScreen.kt:394:39 'val Icons.Filled.HelpOutline: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.HelpOutline.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/focusshield/KavachOnboardingScreen.kt:615:35 'val Icons.Filled.HelpOutline: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.HelpOutline.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/focusshield/UsageAccessHelper.kt:27:20 'fun unsafeCheckOpNoThrow(p0: String, p1: Int, p2: String): Int' is deprecated. Deprecated in Java.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/leaderboard/LeaderboardPodiumVariations.kt:318:48 Unnecessary safe call on a non-null receiver of type 'WeeklyLeaderboardPeriodDto'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/leaderboard/LeaderboardScreen.kt:84:48 Unnecessary safe call on a non-null receiver of type 'WeeklyLeaderboardPeriodDto'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/leaderboard/LeaderboardScreen.kt:87:55 Unnecessary safe call on a non-null receiver of type 'WeeklyLeaderboardPeriodDto'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/leaderboard/LeaderboardScreen.kt:88:53 Unnecessary safe call on a non-null receiver of type 'WeeklyLeaderboardPeriodDto'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/leaderboard/LeaderboardScreen.kt:91:29 Unnecessary safe call on a non-null receiver of type 'WeeklyLeaderboardPeriodDto'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/leaderboard/LeaderboardScreen.kt:91:46 Unnecessary safe call on a non-null receiver of type 'WeeklyLeaderboardPeriodDto'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/leaderboard/LeaderboardScreen.kt:519:15 Unnecessary non-null assertion (!!) on a non-null receiver of type 'WeeklyLeaderboardEntryDto'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/leaderboard/LeaderboardScreen.kt:557:99 Unnecessary non-null assertion (!!) on a non-null receiver of type 'WeeklyLeaderboardEntryDto'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/navigation/SafarNavGraph.kt:186:81 Unnecessary safe call on a non-null receiver of type 'String'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/navigation/SafarNavGraph.kt:200:21 Unnecessary safe call on a non-null receiver of type 'MainActivity'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/nishtha/NishthaViewModel.kt:561:115 Elvis operator (?:) always returns the left operand of non-nullable type 'String'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/profile/ProfileScreen.kt:575:28 'val LocalClipboardManager: ProvidableCompositionLocal<ClipboardManager>' is deprecated. Use LocalClipboard instead which supports suspend functions.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/settings/SettingsScreen.kt:933:16 'fun unsafeCheckOpNoThrow(p0: String, p1: Int, p2: String): Int' is deprecated. Deprecated in Java.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/studycircle/StudyCircleScreen.kt:1906:21 'val LocalClipboardManager: ProvidableCompositionLocal<ClipboardManager>' is deprecated. Use LocalClipboard instead which supports suspend functions.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/studycircle/StudyCircleScreen.kt:2705:61 'val Icons.Filled.Chat: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.Chat.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/studyplanner/StudyPlannerViewModel.kt:929:34 Unnecessary safe call on a non-null receiver of type 'StudySubject'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/studyplanner/StudyPlannerViewModel.kt:1296:31 Unnecessary safe call on a non-null receiver of type 'StudyPlan'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/studyplanner/StudyPlannerViewModel.kt:1635:70 Elvis operator (?:) always returns the left operand of non-nullable type 'String'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/studyplanner/components/PlannerDialog.kt:67:44 'static field SOFT_INPUT_ADJUST_RESIZE: Int' is deprecated. Deprecated in Java.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/studyplanner/create/CreatePlanScreen.kt:187:48 'fun centerAlignedTopAppBarColors(containerColor: Color = ..., scrolledContainerColor: Color = ..., navigationIconContentColor: Color = ..., titleContentColor: Color = ..., actionIconContentColor: Color = ...): TopAppBarColors' is deprecated. Use topAppBarColors instead.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/studyplanner/create/CreatePlanViewModel.kt:764:64 Elvis operator (?:) always returns the left operand of non-nullable type 'String'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/studyplanner/create/CreatePlanViewModel.kt:1519:69 Elvis operator (?:) always returns the left operand of non-nullable type 'String'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/studyplanner/create/CreatePlanViewModel.kt:1547:74 Elvis operator (?:) always returns the left operand of non-nullable type 'String'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/studyplanner/logic/PlannerInsightsCalculator.kt:195:56 Elvis operator (?:) always returns the left operand of non-nullable type 'Int'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/studyplanner/plan/PlanHomeRedesign.kt:328:58 Unnecessary safe call on a non-null receiver of type '() -> Unit'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/studyplanner/screens/InsightsMomentumWidgets.kt:586:36 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Float'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/studyplanner/screens/InsightsMomentumWidgets.kt:599:55 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Float'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/studyplanner/screens/InsightsMomentumWidgets.kt:605:58 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Float'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/studyplanner/screens/InsightsMomentumWidgets.kt:609:85 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Float'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/studyplanner/screens/InsightsMomentumWidgets.kt:611:58 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Float'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/studyplanner/screens/InsightsMomentumWidgets.kt:611:106 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Float'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/tutorial/FeatureTutorialPracticeWindow.kt:58:59 Unnecessary safe call on a non-null receiver of type 'WindowInsetsControllerCompat'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/tutorial/FeatureTutorialPracticeWindow.kt:59:63 Unnecessary safe call on a non-null receiver of type 'WindowInsetsControllerCompat'.
+
+> Task :app:compileProdReleaseJavaWithJavac
+> Task :app:compileProdDebugJavaWithJavac
+> Task :app:hiltSyncProdDebug
+> Task :app:hiltAggregateDepsProdDebug UP-TO-DATE
+> Task :app:hiltJavaCompileProdDebug
+> Task :app:processProdDebugJavaRes UP-TO-DATE
+> Task :app:generateProdReleaseLintReportModel
+> Task :app:bundleProdDebugClassesToCompileJar
+> Task :app:transformProdDebugClassesWithAsm
+> Task :app:kspProdDebugUnitTestKotlin
+> Task :app:bundleProdDebugClassesToRuntimeJar
+> Task :app:kspProdDebugAndroidTestKotlin
+
+> Task :app:compileProdDebugAndroidTestKotlin
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/androidTest/java/com/safarparmar/app/feature/habits/HabitMigrationInstrumentedTest.kt:7:48 Unresolved reference 'MIGRATION_4_5'.
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/androidTest/java/com/safarparmar/app/feature/habits/HabitMigrationInstrumentedTest.kt:57:28 Unresolved reference 'MIGRATION_4_5'.
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/androidTest/java/com/safarparmar/app/feature/habits/HabitMigrationInstrumentedTest.kt:60:30 Unresolved reference 'getOwnerlessHabits'.
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/androidTest/java/com/safarparmar/app/feature/habits/HabitMigrationInstrumentedTest.kt:62:50 Unresolved reference 'name'.
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/androidTest/java/com/safarparmar/app/feature/habits/HabitMigrationInstrumentedTest.kt:63:40 Unresolved reference 'ownerUserId'.
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/androidTest/java/com/safarparmar/app/feature/habits/HabitMigrationInstrumentedTest.kt:64:40 Unresolved reference 'remoteId'.
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/androidTest/java/com/safarparmar/app/feature/habits/HabitReminderInstrumentedTest.kt:14:43 Unresolved reference 'reminders'.
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/androidTest/java/com/safarparmar/app/feature/habits/HabitReminderInstrumentedTest.kt:15:43 Unresolved reference 'reminders'.
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/androidTest/java/com/safarparmar/app/feature/habits/HabitReminderInstrumentedTest.kt:35:25 Unresolved reference 'HabitReminderScheduler'.
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/androidTest/java/com/safarparmar/app/feature/habits/HabitReminderInstrumentedTest.kt:44:47 Unresolved reference 'HabitReminderReceiver'.
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/androidTest/java/com/safarparmar/app/feature/habits/HabitReminderInstrumentedTest.kt:44:76 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/androidTest/java/com/safarparmar/app/feature/habits/HabitReminderInstrumentedTest.kt:44:76 Unresolved reference. None of the following candidates is applicable because of a receiver type mismatch:
+val <T> KClass<T>.java: Class<T>
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/androidTest/java/com/safarparmar/app/feature/habits/HabitReminderInstrumentedTest.kt:44:82 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/androidTest/java/com/safarparmar/app/feature/habits/HabitReminderInstrumentedTest.kt:44:82 Unresolved reference. None of the following candidates is applicable because of a receiver type mismatch:
+fun <T> T.apply(block: T.() -> Unit): T
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/androidTest/java/com/safarparmar/app/feature/habits/HabitReminderInstrumentedTest.kt:44:88 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/androidTest/java/com/safarparmar/app/feature/habits/HabitReminderInstrumentedTest.kt:45:17 Unresolved reference 'data'.
+
+> Task :app:compileProdDebugAndroidTestKotlin FAILED
+
+> Task :app:compileProdDebugUnitTestKotlin
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/test/java/com/safarparmar/app/feature/toppersbatch/BatchColourUpdateTest.kt:16:45 Unnecessary non-null assertion (!!) on a non-null receiver of type 'BatchOverview'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/test/java/com/safarparmar/app/feature/toppersbatch/BatchColourUpdateTest.kt:18:42 Unnecessary non-null assertion (!!) on a non-null receiver of type 'BatchToday'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/test/java/com/safarparmar/app/feature/toppersbatch/BatchColourUpdateTest.kt:20:45 Unnecessary non-null assertion (!!) on a non-null receiver of type 'BatchCalendar'.
+
+> Task :app:lintAnalyzeProdRelease
+
+[Incubating] Problems report is available at: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:compileProdDebugAndroidTestKotlin'.
+> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.btapi.BuildToolsApiCompilationWork
+   > Compilation error. See log for more details
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 6m 38s
+63 actionable tasks: 33 executed, 30 up-to-date

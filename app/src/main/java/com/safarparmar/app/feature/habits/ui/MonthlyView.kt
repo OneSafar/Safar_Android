@@ -1,5 +1,7 @@
 package com.safarparmar.app.feature.habits.ui
 
+import androidx.compose.ui.platform.LocalLocale
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -43,7 +45,7 @@ fun MonthlyView(
     var dayDetailDate by remember { mutableStateOf<LocalDate?>(null) }
 
     val visibleHabits = habits.filterByCriteria(filterState)
-    val monthTitle = monthAnchor.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale.getDefault()))
+    val monthTitle = monthAnchor.format(DateTimeFormatter.ofPattern("MMMM yyyy", LocalLocale.current.platformLocale))
 
     Box(modifier.fillMaxSize()) {
         LazyColumn(
@@ -151,7 +153,7 @@ private fun ModernMonthCalendar(
         ) {
             MondayFirst.forEach { day ->
                 Text(
-                    text = day.getDisplayName(TextStyle.SHORT, Locale.getDefault()).uppercase(Locale.getDefault()),
+                    text = day.getDisplayName(TextStyle.SHORT, LocalLocale.current.platformLocale).uppercase(LocalLocale.current.platformLocale),
                     modifier = Modifier.weight(1f),
                     color = HabitColors.TextTertiary,
                     fontSize = 9.sp,

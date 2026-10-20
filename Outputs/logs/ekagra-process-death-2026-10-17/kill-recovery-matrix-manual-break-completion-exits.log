@@ -1,0 +1,100 @@
+ACTIVITY MANAGER PROCESS EXIT INFO (dumpsys activity exit-info)
+Last Timestamp of Persistence Into Persistent Storage: 2026-10-17 11:12:18.918
+  package: com.safarparmar.app
+    Historical Process Exit for uid=10273
+        ApplicationExitInfo #0:
+          timestamp=2026-10-17 11:39:48.923 pid=18848 realUid=10273 packageUid=10273 definingUid=10273 user=0
+          process=com.safarparmar.app reason=2 (SIGNALED) subreason=0 (UNKNOWN) status=9
+          importance=125 pss=0.00 rss=0.00 state=empty trace=null
+          description=null
+          anrInfo=null
+        ApplicationExitInfo #1:
+          timestamp=2026-10-17 11:39:41.821 pid=18691 realUid=10273 packageUid=10273 definingUid=10273 user=0
+          process=com.safarparmar.app reason=2 (SIGNALED) subreason=0 (UNKNOWN) status=9
+          importance=125 pss=0.00 rss=0.00 state=empty trace=null
+          description=null
+          anrInfo=null
+        ApplicationExitInfo #2:
+          timestamp=2026-10-17 11:39:34.873 pid=18533 realUid=10273 packageUid=10273 definingUid=10273 user=0
+          process=com.safarparmar.app reason=2 (SIGNALED) subreason=0 (UNKNOWN) status=9
+          importance=125 pss=0.00 rss=0.00 state=empty trace=null
+          description=null
+          anrInfo=null
+        ApplicationExitInfo #3:
+          timestamp=2026-10-17 11:39:27.346 pid=18370 realUid=10273 packageUid=10273 definingUid=10273 user=0
+          process=com.safarparmar.app reason=2 (SIGNALED) subreason=0 (UNKNOWN) status=9
+          importance=125 pss=0.00 rss=0.00 state=empty trace=null
+          description=null
+          anrInfo=null
+        ApplicationExitInfo #4:
+          timestamp=2026-10-17 11:39:13.833 pid=18212 realUid=10273 packageUid=10273 definingUid=10273 user=0
+          process=com.safarparmar.app reason=2 (SIGNALED) subreason=0 (UNKNOWN) status=9
+          importance=125 pss=0.00 rss=0.00 state=empty trace=null
+          description=null
+          anrInfo=null
+        ApplicationExitInfo #5:
+          timestamp=2026-10-17 11:39:06.902 pid=18073 realUid=10273 packageUid=10273 definingUid=10273 user=0
+          process=com.safarparmar.app reason=2 (SIGNALED) subreason=0 (UNKNOWN) status=9
+          importance=125 pss=0.00 rss=0.00 state=empty trace=null
+          description=null
+          anrInfo=null
+        ApplicationExitInfo #6:
+          timestamp=2026-10-17 11:38:01.701 pid=17124 realUid=10273 packageUid=10273 definingUid=10273 user=0
+          process=com.safarparmar.app reason=2 (SIGNALED) subreason=0 (UNKNOWN) status=9
+          importance=125 pss=0.00 rss=0.00 state=empty trace=null
+          description=null
+          anrInfo=null
+        ApplicationExitInfo #7:
+          timestamp=2026-10-17 11:37:54.341 pid=16912 realUid=10273 packageUid=10273 definingUid=10273 user=0
+          process=com.safarparmar.app reason=2 (SIGNALED) subreason=0 (UNKNOWN) status=9
+          importance=125 pss=0.00 rss=0.00 state=empty trace=null
+          description=null
+          anrInfo=null
+        ApplicationExitInfo #8:
+          timestamp=2026-10-17 11:37:29.799 pid=16463 realUid=10273 packageUid=10273 definingUid=10273 user=0
+          process=com.safarparmar.app reason=2 (SIGNALED) subreason=0 (UNKNOWN) status=9
+          importance=125 pss=0.00 rss=0.00 state=empty trace=null
+          description=null
+          anrInfo=null
+        ApplicationExitInfo #9:
+          timestamp=2026-10-17 11:37:16.136 pid=16281 realUid=10273 packageUid=10273 definingUid=10273 user=0
+          process=com.safarparmar.app reason=2 (SIGNALED) subreason=0 (UNKNOWN) status=9
+          importance=125 pss=0.00 rss=0.00 state=empty trace=null
+          description=null
+          anrInfo=null
+        ApplicationExitInfo #10:
+          timestamp=2026-10-17 11:37:07.161 pid=16128 realUid=10273 packageUid=10273 definingUid=10273 user=0
+          process=com.safarparmar.app reason=2 (SIGNALED) subreason=0 (UNKNOWN) status=9
+          importance=125 pss=0.00 rss=0.00 state=empty trace=null
+          description=null
+          anrInfo=null
+        ApplicationExitInfo #11:
+          timestamp=2026-10-17 11:37:04.211 pid=16083 realUid=10273 packageUid=10273 definingUid=10273 user=0
+          process=com.safarparmar.app reason=10 (USER REQUESTED) subreason=21 (FORCE STOP) status=0
+          importance=1000 pss=0.00 rss=0.00 state=empty trace=null
+          description=stop com.safarparmar.app due to from pid 16085
+          anrInfo=null
+        ApplicationExitInfo #12:
+          timestamp=2026-10-17 11:37:04.061 pid=15993 realUid=10273 packageUid=10273 definingUid=10273 user=0
+          process=com.safarparmar.app reason=16 (PACKAGE UPDATED) subreason=0 (UNKNOWN) status=0
+          importance=125 pss=0.00 rss=291MB state=empty trace=null
+          description=stop com.safarparmar.app due to installPackageLI
+          anrInfo=null
+        ApplicationExitInfo #13:
+          timestamp=2026-10-17 11:36:09.886 pid=15543 realUid=10273 packageUid=10273 definingUid=10273 user=0
+          process=com.safarparmar.app reason=10 (USER REQUESTED) subreason=21 (FORCE STOP) status=0
+          importance=125 pss=0.00 rss=256MB state=empty trace=null
+          description=stop com.safarparmar.app due to from pid 15985
+          anrInfo=null
+        ApplicationExitInfo #14:
+          timestamp=2026-10-17 11:35:21.728 pid=15130 realUid=10273 packageUid=10273 definingUid=10273 user=0
+          process=com.safarparmar.app reason=16 (PACKAGE UPDATED) subreason=0 (UNKNOWN) status=0
+          importance=125 pss=0.00 rss=283MB state=empty trace=null
+          description=stop com.safarparmar.app due to installPackageLI
+          anrInfo=null
+        ApplicationExitInfo #15:
+          timestamp=2026-10-17 11:33:33.281 pid=14949 realUid=10273 packageUid=10273 definingUid=10273 user=0
+          process=com.safarparmar.app reason=2 (SIGNALED) subreason=0 (UNKNOWN) status=9
+          importance=125 pss=0.00 rss=0.00 state=empty trace=null
+          description=null
+          anrInfo=null

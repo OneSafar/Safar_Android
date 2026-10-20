@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.ui.ekagra.RankedFocusTrackerTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-19T19:59:40.643Z" hostname="Shashanks-MacBook-Air.local" time="0.037">
+  <properties/>
+  <testcase name="heartbeats cannot silently confirm attendance" classname="com.safarparmar.app.ui.ekagra.RankedFocusTrackerTest" time="0.03"/>
+  <testcase name="restored session obtains token before explicit confirmation" classname="com.safarparmar.app.ui.ekagra.RankedFocusTrackerTest" time="0.001"/>
+  <testcase name="only explicit confirmation sends server checkpoint" classname="com.safarparmar.app.ui.ekagra.RankedFocusTrackerTest" time="0.002"/>
+  <testcase name="offline failure does not replay confirmation on next heartbeat" classname="com.safarparmar.app.ui.ekagra.RankedFocusTrackerTest" time="0.002"/>
+  <testcase name="expired attendance is shown as personal time only" classname="com.safarparmar.app.ui.ekagra.RankedFocusTrackerTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -36,7 +36,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
+import com.safarparmar.app.ui.components.popups.SafarDialog as Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.safarparmar.app.R
 
@@ -58,9 +58,9 @@ fun FocusShieldConsentDialog(
     ) {
         Surface(
             modifier = Modifier
-                .fillMaxWidth()
                 .padding(horizontal = 20.dp)
-                .widthIn(max = 400.dp),
+                .widthIn(max = 400.dp)
+                .fillMaxWidth(),
             shape = RoundedCornerShape(20.dp),
             color = scheme.surface,
             shadowElevation = 2.dp,

@@ -1,5 +1,7 @@
 package com.safarparmar.app.ui.studyplanner.create.steps
 
+import androidx.compose.ui.platform.LocalLocale
+
 import androidx.compose.ui.res.stringResource
 import com.safarparmar.app.R
 
@@ -38,7 +40,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.AlertDialog
+import com.safarparmar.app.ui.components.popups.SafarMaterialAlertDialog as AlertDialog
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -539,7 +541,7 @@ private fun DayHeader(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    date.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.getDefault()),
+                    date.dayOfWeek.getDisplayName(TextStyle.FULL, LocalLocale.current.platformLocale),
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                     color = scheme.onSurface,

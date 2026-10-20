@@ -38,7 +38,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
+import com.safarparmar.app.ui.components.popups.SafarDialog as Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -376,7 +376,7 @@ fun DashboardScreen(
 
             // ── Interactive Detail Bottom Sheets ─────────────────────────────
             if (activeSheet != DashboardSheetType.NONE) {
-                com.composables.ui.components.BottomSheet(
+                com.safarparmar.app.ui.components.popups.SafarComposablesBottomSheet(
                     state = com.composables.ui.components.rememberBottomSheetState(initialDetent = com.composables.ui.components.BottomSheetDetent.FullyExpanded),
                     onDismissRequest = { activeSheet = DashboardSheetType.NONE },
                     backgroundColor = DashboardFlatColors.Bg,

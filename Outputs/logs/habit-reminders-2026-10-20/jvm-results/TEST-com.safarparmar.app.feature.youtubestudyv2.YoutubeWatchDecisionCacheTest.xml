@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.feature.youtubestudyv2.YoutubeWatchDecisionCacheTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-20T02:12:56.645Z" hostname="Shashanks-MacBook-Air.local" time="0.0">
+  <properties/>
+  <testcase name="confirmed video enters monitoring and skips the unchanged applied decision" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeWatchDecisionCacheTest" time="0.0"/>
+  <testcase name="autoplay and changed allow rules require a new evaluation" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeWatchDecisionCacheTest" time="0.0"/>
+  <testcase name="explicit add to productive can resume a long paused video with a hidden owner row" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeWatchDecisionCacheTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -14,10 +14,10 @@ fun EditHabitBottomSheet(
     HabitFormBottomSheet(
         habit = habit,
         onDismiss = onDismiss,
-        onSubmit = { name, days, isEveryDay ->
+        onSubmit = { name, days, isEveryDay, reminderTime ->
             // Schedule history is versioned atomically by the repository. The UI only
             // submits the new visible state; it must not rewrite historical dates itself.
-            onSave(habit.copy(name = name, targetDays = days, isEveryDay = isEveryDay))
+            onSave(habit.copy(name = name, targetDays = days, isEveryDay = isEveryDay, reminderTime = reminderTime))
         },
         onArchive = { onArchive(habit.id) },
         onDelete = { onDelete(habit) }

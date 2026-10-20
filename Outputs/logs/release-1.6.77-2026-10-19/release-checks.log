@@ -1,0 +1,29 @@
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preProdReleaseBuild UP-TO-DATE
+> Task :app:generateProdReleaseBuildConfig UP-TO-DATE
+> Task :app:generateProdReleaseResValues UP-TO-DATE
+> Task :app:generateProdReleaseResources
+> Task :app:injectCrashlyticsMappingFileIdProdRelease
+> Task :app:extractProdReleaseVersionControlInfo UP-TO-DATE
+> Task :app:injectCrashlyticsVersionControlInfoProdRelease UP-TO-DATE
+> Task :app:processProdReleaseGoogleServices UP-TO-DATE
+> Task :app:packageProdReleaseResources
+> Task :app:processProdReleaseNavigationResources
+> Task :app:javaPreCompileProdRelease UP-TO-DATE
+> Task :app:extractProguardFiles UP-TO-DATE
+> Task :app:extractDeepLinksProdRelease UP-TO-DATE
+> Task :app:processProdReleaseMainManifest UP-TO-DATE
+> Task :app:validateSigningProdRelease UP-TO-DATE
+> Task :app:parseProdReleaseLocalResources
+> Task :app:generateProdReleaseRFile UP-TO-DATE
+> Task :app:kspProdReleaseKotlin UP-TO-DATE
+> Task :app:compileProdReleaseKotlin UP-TO-DATE
+> Task :app:compileProdReleaseJavaWithJavac UP-TO-DATE
+> Task :app:generateProdReleaseLintVitalReportModel
+> Task :app:lintVitalAnalyzeProdRelease
+> Task :app:lintVitalReportProdRelease
+> Task :app:lintVitalProdRelease
+
+BUILD SUCCESSFUL in 1m 16s
+23 actionable tasks: 9 executed, 14 up-to-date
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.3.1/userguide/configuration_cache_enabling.html

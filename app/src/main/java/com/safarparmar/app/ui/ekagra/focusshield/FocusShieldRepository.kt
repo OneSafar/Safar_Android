@@ -4,10 +4,19 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.os.SystemClock
+import com.safarparmar.app.R
+import com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2AccessibilityService
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import com.safarparmar.app.BuildConfig
 import com.safarparmar.app.data.local.SafarDataStore
 import com.safarparmar.app.domain.repository.HomeRepository
 import com.safarparmar.app.feature.kavachanalytics.data.KavachAnalyticsRecorder
+import com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2Preferences
+import com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2Parser
+import com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2GuardService
+import com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2HealthMonitor
 import com.safarparmar.app.ui.ekagra.TimerService
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -25,6 +34,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * Single source of truth for Focus Shield settings and session runtime state.
@@ -35,8 +45,191 @@ class FocusShieldRepository @Inject constructor(
     private val homeRepository: HomeRepository,
     private val analyticsRecorder: KavachAnalyticsRecorder,
     @ApplicationContext private val appContext: Context,
+    private val youtubePreferences: YoutubeStudyV2Preferences,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    val youtubeFocusEnabled: StateFlow<Boolean> = youtubePreferences.enabled
+    private val modeChangeRequests = MutableStateFlow(0L)
+    private val modeChangeGeneration: Long get() = modeChangeRequests.value
+
+    private fun nextModeChange(): Long = (modeChangeGeneration + 1).also {
+        modeChangeRequests.value = it
+    }
+    private var youtubeFocusRequested = youtubePreferences.enabled.value
+    private val _youtubeSelectionBusy = MutableStateFlow(false)
+    val youtubeSelectionBusy: StateFlow<Boolean> = _youtubeSelectionBusy.asStateFlow()
+    private val selectionMutex = Mutex()
+    private var selectionRevision = 0L
+    private val _youtubeFocusActivationError = MutableStateFlow<String?>(null)
+    val youtubeFocusActivationError: StateFlow<String?> = _youtubeFocusActivationError.asStateFlow()
+
+    /** Every enable path (including initial setup) uses the same persisted selection change. */
+    fun setYoutubeFocusEnabled(enabled: Boolean) {
+        val request = nextModeChange()
+        _youtubeFocusActivationError.value = null
+        if (!enabled || !youtubePreferences.isDisclosureAccepted()) {
+            youtubeFocusRequested = false
+            youtubePreferences.setEnabled(false)
+            YoutubeStudyV2GuardService.stop(appContext)
+            return
+        }
+        if (!YoutubeStudyV2HealthMonitor.isAccessibilityEnabled(appContext)) {
+            failYoutubeActivation(R.string.youtube_focus_enable_accessibility_first)
+            return
+        }
+        youtubeFocusRequested = true
+        scope.launch {
+            // Permission can be granted just before Android connects the service.
+            var attempts = 0
+            while (!YoutubeStudyV2AccessibilityService.isConnected && attempts++ < 50) {
+                if (request != modeChangeGeneration) return@launch
+                if (!YoutubeStudyV2HealthMonitor.isAccessibilityEnabled(appContext)) break
+                delay(100L)
+            }
+            if (request != modeChangeGeneration) return@launch
+            if (!youtubeMonitorReady()) {
+                failYoutubeActivation(R.string.youtube_focus_connection_failed)
+                return@launch
+            }
+            try {
+                selectionMutex.withLock {
+                    if (request != modeChangeGeneration) return@withLock
+                    val persisted = if (_inMemoryBlockedPackages.value == null) dataStore.focusShieldBlockedPackages.first() else null
+                    if (request != modeChangeGeneration) return@withLock
+                    // The initial disk read may suspend while a newer picker edit arrives.
+                    val original = _inMemoryBlockedPackages.value ?: checkNotNull(persisted)
+                    val originalRevision = selectionRevision
+                    var revision = selectionRevision
+                    var packages = original - YoutubeStudyV2Parser.YOUTUBE_PACKAGE
+                    while (true) {
+                        dataStore.setFocusShieldBlockedPackages(packages)
+                        if (request != modeChangeGeneration || !youtubeMonitorReady()) {
+                            // A later action or lost permission must not leave a half-applied handoff.
+                            val restore = if (selectionRevision == originalRevision) original
+                                else _inMemoryBlockedPackages.value ?: original
+                            dataStore.setFocusShieldBlockedPackages(restore)
+                            if (request == modeChangeGeneration) failYoutubeActivation(R.string.youtube_focus_connection_failed)
+                            return@withLock
+                        }
+                        if (revision == selectionRevision) break
+                        revision = selectionRevision
+                        packages = (_inMemoryBlockedPackages.value ?: original) - YoutubeStudyV2Parser.YOUTUBE_PACKAGE
+                    }
+                    _inMemoryBlockedPackages.value = packages
+                    selectionRevision++
+                    updateLiveBlockedPackages(packages)
+                    youtubePreferences.setEnabled(true)
+                    youtubePreferences.recordAccessibilityHeartbeat()
+                    YoutubeStudyV2GuardService.start(appContext)
+                }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                if (request == modeChangeGeneration) {
+                    youtubeFocusRequested = youtubePreferences.enabled.value
+                    _youtubeFocusActivationError.value = appContext.getString(R.string.youtube_focus_activation_failed)
+                }
+            }
+        }
+    }
+
+    private fun youtubeMonitorReady(): Boolean =
+        YoutubeStudyV2HealthMonitor.isAccessibilityEnabled(appContext) &&
+            YoutubeStudyV2AccessibilityService.isConnected
+
+    private fun failYoutubeActivation(message: Int) {
+        youtubeFocusRequested = false
+        youtubePreferences.setEnabled(false)
+        YoutubeStudyV2GuardService.stop(appContext)
+        _youtubeFocusActivationError.value = appContext.getString(message)
+    }
+
+    /** Only this explicit, confirmed choice replaces Focus with a whole-app selection. */
+    fun selectYoutubeForKavach() {
+        if (_youtubeSelectionBusy.value) return
+        val request = nextModeChange()
+        _youtubeSelectionBusy.value = true
+        _youtubeFocusActivationError.value = null
+        scope.launch {
+            try {
+                selectionMutex.withLock {
+                    if (request != modeChangeGeneration) return@withLock
+                    val persisted = if (_inMemoryBlockedPackages.value == null) dataStore.focusShieldBlockedPackages.first() else null
+                    if (request != modeChangeGeneration) return@withLock
+                    val original = _inMemoryBlockedPackages.value ?: checkNotNull(persisted)
+                    val originalRevision = selectionRevision
+                    suspend fun restoreSelection() {
+                        val restore = if (selectionRevision == originalRevision) original
+                            else _inMemoryBlockedPackages.value ?: original
+                        dataStore.setFocusShieldBlockedPackages(restore)
+                        updateLiveBlockedPackages(restore)
+                    }
+                    try {
+                        var revision = selectionRevision
+                        var packages = original + YoutubeStudyV2Parser.YOUTUBE_PACKAGE
+                        while (true) {
+                            dataStore.setFocusShieldBlockedPackages(packages)
+                            if (request != modeChangeGeneration) {
+                                restoreSelection()
+                                return@withLock
+                            }
+                            val needsProtectionNow = currentSettings().enabled &&
+                                (isAlwaysOnMode.value || _sessionActive.value)
+                            if (needsProtectionNow) {
+                                check(startKavachService(packages)) { "Kavach could not start" }
+                                val ready = withTimeoutOrNull(5_500L) {
+                                    combine(_protectionActive, _activationBlockedReason, modeChangeRequests, confirmedBlockedPackages) { active, error, currentRequest, confirmed ->
+                                        when {
+                                            currentRequest != request -> false
+                                            error != null -> false
+                                            active && confirmed == packages -> true
+                                            else -> null
+                                        }
+                                    }.first { it != null }
+                                } == true
+                                check(ready) { "Kavach did not confirm protection" }
+                            }
+                            if (request != modeChangeGeneration) {
+                                restoreSelection()
+                                return@withLock
+                            }
+                            if (revision == selectionRevision) break
+                            revision = selectionRevision
+                            packages = (_inMemoryBlockedPackages.value ?: original) + YoutubeStudyV2Parser.YOUTUBE_PACKAGE
+                        }
+                        _inMemoryBlockedPackages.value = packages
+                        selectionRevision++
+                        updateLiveBlockedPackages(packages)
+                        youtubeFocusRequested = false
+                        youtubePreferences.setEnabled(false)
+                        YoutubeStudyV2GuardService.stop(appContext)
+                    } catch (failure: Exception) {
+                        runCatching { restoreSelection() }
+                        throw failure
+                    }
+                }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                if (request == modeChangeGeneration) {
+                    youtubeFocusRequested = youtubePreferences.enabled.value
+                    _youtubeFocusActivationError.value = appContext.getString(R.string.youtube_focus_kavach_selection_failed)
+                }
+            } finally {
+                _youtubeSelectionBusy.value = false
+            }
+        }
+    }
+
+    private fun updateLiveBlockedPackages(packages: Set<String>) {
+        if (_sessionActive.value) _sessionBlockedPackages.value = packages
+        if (Snapshot.active) Snapshot.packages = packages
+        if (ShieldPrefs.isActive(appContext)) {
+            ShieldPrefs.write(appContext, true, packages, isStrictMode.value, resetUnlocks = false)
+        }
+        if (NotificationShieldPrefs.isActive(appContext)) NotificationShieldPrefs.write(appContext, packages)
+        if (KavachAlwaysOnPrefs.isActive(appContext)) KavachAlwaysOnPrefs.write(appContext, packages)
+    }
 
     companion object {
         private const val TAG = "FocusShield"
@@ -114,12 +307,15 @@ class FocusShieldRepository @Inject constructor(
 
     private val _protectionActive = MutableStateFlow(false)
     val protectionActive: StateFlow<Boolean> = _protectionActive.asStateFlow()
+    private val confirmedBlockedPackages = MutableStateFlow<Set<String>?>(null)
 
     private val _protectionStarting = MutableStateFlow(false)
     val protectionStarting: StateFlow<Boolean> = _protectionStarting.asStateFlow()
     private var protectionStartAttempt = 0L
 
     init {
+        // Bring an existing installation's selection into line with the new switching rule.
+        if (youtubePreferences.enabled.value) setYoutubeFocusEnabled(true)
         scope.launch {
             combine(
                 dataStore.focusShieldEnabled,
@@ -128,7 +324,7 @@ class FocusShieldRepository @Inject constructor(
             ) { enabled, strict, packages ->
                 ShieldActivationSettings(enabled = enabled, strict = strict, packages = packages)
             }.collect { settings ->
-                if (!settings.enabled) deactivateSession()
+                if (!settings.enabled && _inMemoryEnabled.value != true) deactivateSession()
             }
         }
     }
@@ -255,13 +451,15 @@ class FocusShieldRepository @Inject constructor(
     /** The timer owns the expiry ticket and has verified the matching grace window. */
     fun finishQuickUnlockForAutomaticResume() {
         analyticsRecorder.settleExpiredUnlocks()
-        ShieldPrefs.clearQuickUnlock(appContext)
+        ShieldPrefs.clearKavachQuickUnlock(appContext)
     }
 
     /** Returning to a timer-linked focus session immediately restores protection. */
     fun endQuickUnlockForEkagraResume() {
-        if (isAlwaysOnMode.value || !ShieldPrefs.isInGracePeriod(appContext)) return
-        ShieldPrefs.clearQuickUnlock(appContext)
+        if (isAlwaysOnMode.value || !ShieldPrefs.isInGracePeriod(appContext) ||
+            ShieldPrefs.quickUnlockOrigin(appContext) == ShieldPrefs.QUICK_UNLOCK_ORIGIN_YOUTUBE_STUDY
+        ) return
+        ShieldPrefs.clearKavachQuickUnlock(appContext)
         analyticsRecorder.quickUnlockEnded()
     }
 
@@ -271,16 +469,17 @@ class FocusShieldRepository @Inject constructor(
     }
 
     fun setKavachProfile(mode: String) {
+        val activateAlwaysOn = mode == com.safarparmar.app.ui.launch.AppUsageMode.ALWAYS_ON && currentSettings().enabled
+        if (activateAlwaysOn) {
+            activationWarning(selectedPackages())?.let { reportProtectionFailure(it); return }
+        }
         scope.launch {
             dataStore.setAppUsageMode(mode)
             dataStore.setFocusShieldScheduleEnabled(false)
-            val currentlyEnabled = isEnabled.value
             when (mode) {
                 com.safarparmar.app.ui.launch.AppUsageMode.ALWAYS_ON -> {
                     dataStore.setFocusShieldAlwaysOnMode(true)
-                    if (currentlyEnabled && hasRequiredPermissions()) {
-                        startKavachService()
-                    }
+                    if (activateAlwaysOn) startKavachService(selectedPackages())
                 }
                 com.safarparmar.app.ui.launch.AppUsageMode.FOCUSED,
                 com.safarparmar.app.ui.launch.AppUsageMode.STANDARD -> {
@@ -288,10 +487,11 @@ class FocusShieldRepository @Inject constructor(
                     if (!_sessionActive.value) KavachAlwaysOnService.stop(appContext)
                 }
                 else -> {
+                    _inMemoryEnabled.value = false
                     dataStore.setFocusShieldEnabled(false)
                     dataStore.setFocusShieldStrictMode(false)
                     dataStore.setFocusShieldAlwaysOnMode(false)
-                    ShieldPrefs.clearQuickUnlock(appContext)
+                    ShieldPrefs.clearKavachQuickUnlock(appContext)
                     KavachAlwaysOnService.stop(appContext)
                     deactivateSession()
                 }
@@ -300,7 +500,7 @@ class FocusShieldRepository @Inject constructor(
     }
 
     fun setEnabled(enabled: Boolean) {
-        val currentPackages = blockedPackages.value
+        val currentPackages = selectedPackages()
         val warning = if (enabled) activationWarning(currentPackages) else null
         if (warning != null) {
             reportProtectionFailure(warning)
@@ -310,9 +510,8 @@ class FocusShieldRepository @Inject constructor(
         scope.launch {
             dataStore.setFocusShieldEnabled(enabled)
             if (!enabled) {
-                // Turning Kavach off takes Beast Mode and active Quick Unlock with it
                 dataStore.setFocusShieldAlwaysOnMode(false)
-                ShieldPrefs.clearQuickUnlock(appContext)
+                ShieldPrefs.clearKavachQuickUnlock(appContext)
                 NotificationShieldPrefs.clear(appContext)
                 KavachAlwaysOnService.stop(appContext)
                 deactivateSession()
@@ -321,29 +520,25 @@ class FocusShieldRepository @Inject constructor(
                 if (mode == com.safarparmar.app.ui.launch.AppUsageMode.ALWAYS_ON) {
                     dataStore.setFocusShieldAlwaysOnMode(true)
                 }
-                // Normal mode is now ready; actual protection starts with Ekagra.
-                if (dataStore.focusShieldAlwaysOnMode.first()) startKavachService()
-                if (currentPackages.isNotEmpty()) {
-                    homeRepository.trackKavachEvent("enabled", currentPackages.size)
+                if (dataStore.focusShieldAlwaysOnMode.first() || _sessionActive.value) {
+                    startKavachService(selectedPackages())
                 }
+                homeRepository.trackKavachEvent("enabled", currentPackages.size)
             }
         }
     }
 
-
-
-    /**
-     * Turns all-day blocking on or off.
-     *
-     * Enabling implies Kavach itself is on — a student who asks for Always On has
-     * unambiguously asked for blocking.
-     */
+    /** Kavach protects its selected apps alongside YouTube Focus. */
     fun setAlwaysOnMode(enabled: Boolean) {
+        if (enabled) {
+            activationWarning(selectedPackages())?.let { reportProtectionFailure(it); return }
+        }
+        if (enabled) _inMemoryEnabled.value = true
         scope.launch {
             dataStore.setFocusShieldAlwaysOnMode(enabled)
             if (enabled) {
                 dataStore.setFocusShieldEnabled(true)
-                startKavachService()
+                startKavachService(selectedPackages())
             } else {
                 KavachAlwaysOnService.stop(appContext)
             }
@@ -353,20 +548,24 @@ class FocusShieldRepository @Inject constructor(
     fun setStrictMode(enabled: Boolean) {
         scope.launch {
             dataStore.setFocusShieldStrictMode(enabled)
-            if (enabled) ShieldPrefs.clearQuickUnlock(appContext)
+            if (shouldClearKavachQuickUnlockForStrictMode(enabled, ShieldPrefs.quickUnlockOrigin(appContext))) {
+                ShieldPrefs.clearKavachQuickUnlock(appContext)
+            }
             if (isAlwaysOnMode.value || _sessionActive.value) startKavachService()
         }
     }
 
-    private fun startKavachService(packages: Set<String> = blockedPackages.value): Boolean {
+    private fun startKavachService(packages: Set<String> = selectedPackages()): Boolean {
         activationWarning(packages)?.let { warning ->
             reportProtectionFailure(warning)
             return false
         }
+        _activationBlockedReason.value = null
+        confirmedBlockedPackages.value = null
         _protectionStarting.value = true
         _protectionActive.value = false
         val attempt = ++protectionStartAttempt
-        if (!KavachAlwaysOnService.start(appContext)) {
+        if (!KavachAlwaysOnService.start(appContext, activationRequest = attempt)) {
             reportProtectionFailure("Kavach could not start. Please try again.")
             return false
         }
@@ -381,24 +580,37 @@ class FocusShieldRepository @Inject constructor(
         return true
     }
 
-    fun reportProtectionActive() {
-        _protectionStarting.value = false
-        _protectionActive.value = true
-        _activationBlockedReason.value = null
+    fun reportProtectionActive(packages: Set<String>? = null, activationRequest: Long? = null) {
+        scope.launch {
+            if (activationRequest != null && activationRequest != protectionStartAttempt) return@launch
+            if (!currentSettings().enabled) return@launch
+            confirmedBlockedPackages.value = packages
+            _protectionStarting.value = false
+            _protectionActive.value = true
+            _activationBlockedReason.value = null
+        }
     }
 
-    fun reportProtectionFailure(message: String) {
-        protectionStartAttempt++
-        _protectionStarting.value = false
-        _protectionActive.value = false
-        _activationBlockedReason.value = message
-        debugLog(message)
+    fun reportProtectionFailure(message: String, activationRequest: Long? = null) {
+        scope.launch {
+            if (activationRequest != null && activationRequest != protectionStartAttempt) return@launch
+            protectionStartAttempt++
+            confirmedBlockedPackages.value = null
+            _protectionStarting.value = false
+            _protectionActive.value = false
+            _activationBlockedReason.value = message
+            debugLog(message)
+        }
     }
 
-    fun reportProtectionStopped() {
-        protectionStartAttempt++
-        _protectionStarting.value = false
-        _protectionActive.value = false
+    fun reportProtectionStopped(activationRequest: Long? = null) {
+        scope.launch {
+            if (activationRequest != null && activationRequest != protectionStartAttempt) return@launch
+            protectionStartAttempt++
+            confirmedBlockedPackages.value = null
+            _protectionStarting.value = false
+            _protectionActive.value = false
+        }
     }
 
     fun clearActivationMessage() {
@@ -414,15 +626,23 @@ class FocusShieldRepository @Inject constructor(
         }
     }
 
-    fun setBlockedPackages(packages: Set<String>) {
+    fun selectedPackages(): Set<String> = _inMemoryBlockedPackages.value ?: blockedPackages.value
+
+    fun setBlockedPackages(requestedPackages: Set<String>): Set<String> {
+        val packages = if (youtubeFocusRequested) requestedPackages - YoutubeStudyV2Parser.YOUTUBE_PACKAGE else requestedPackages
         _inMemoryBlockedPackages.value = packages
+        val revision = ++selectionRevision
         scope.launch {
-            dataStore.setFocusShieldBlockedPackages(packages)
-            if (isEnabled.value && packages.isNotEmpty() && (isAlwaysOnMode.value || _sessionActive.value)) {
-                startKavachService(packages)
-                homeRepository.trackKavachEvent("configured", packages.size)
+            selectionMutex.withLock {
+                if (revision != selectionRevision) return@withLock
+                dataStore.setFocusShieldBlockedPackages(packages)
+            }
+            if (isEnabled.value && selectedPackages().isNotEmpty() && (isAlwaysOnMode.value || _sessionActive.value)) {
+                startKavachService(selectedPackages())
+                homeRepository.trackKavachEvent("configured", selectedPackages().size)
             }
         }
+        return packages
     }
 
     fun setScheduleEnabled(enabled: Boolean) {
@@ -457,9 +677,9 @@ class FocusShieldRepository @Inject constructor(
 
     private fun currentSettings(): ShieldActivationSettings =
         ShieldActivationSettings(
-            enabled = isEnabled.value,
+            enabled = _inMemoryEnabled.value ?: isEnabled.value,
             strict = isStrictMode.value,
-            packages = blockedPackages.value,
+            packages = selectedPackages(),
         )
 
     // KAVACH needs Usage access (to see the foreground app) and Display-over-other-apps
@@ -493,6 +713,7 @@ class FocusShieldRepository @Inject constructor(
         private fun prefs(ctx: Context): SharedPreferences =
             ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
+        @Synchronized
         fun write(
             ctx: Context,
             active: Boolean,
@@ -500,17 +721,18 @@ class FocusShieldRepository @Inject constructor(
             strict: Boolean = false,
             resetUnlocks: Boolean = true,
         ) {
-            prefs(ctx).edit().apply {
+            val storage = prefs(ctx)
+            val preserveStudyBreak = storage.getString(KEY_GRACE_ORIGIN, null) == QUICK_UNLOCK_ORIGIN_YOUTUBE_STUDY
+            storage.edit().apply {
                 putBoolean(KEY_ACTIVE, active)
                 putStringSet(KEY_PACKAGES, packages)
                 putBoolean("strict", strict)
                 if (resetUnlocks) {
-                    putLong(KEY_GRACE_UNTIL_MS, 0L)
-                    remove(KEY_GRACE_PACKAGE)
-                    remove(KEY_GRACE_ORIGIN)
+                    if (!preserveStudyBreak) clearQuickUnlockFields()
                     putString(KEY_ONE_TIME_UNLOCK_PACKAGE, null)
                 }
             }.apply()
+            if (resetUnlocks && !preserveStudyBreak) QuickUnlockNotification.cancel(ctx)
             if (BuildConfig.DEBUG) {
                 android.util.Log.d(
                     TAG,
@@ -519,16 +741,17 @@ class FocusShieldRepository @Inject constructor(
             }
         }
 
+        @Synchronized
         fun clear(ctx: Context) {
-            prefs(ctx).edit()
-                .putBoolean(KEY_ACTIVE, false)
-                .putStringSet(KEY_PACKAGES, emptySet())
-                .putLong(KEY_GRACE_UNTIL_MS, 0L)
-                .remove(KEY_GRACE_PACKAGE)
-                .remove(KEY_GRACE_ORIGIN)
-                .putString(KEY_ONE_TIME_UNLOCK_PACKAGE, null)
-                .apply()
-            QuickUnlockNotification.cancel(ctx)
+            val storage = prefs(ctx)
+            val preserveStudyBreak = storage.getString(KEY_GRACE_ORIGIN, null) == QUICK_UNLOCK_ORIGIN_YOUTUBE_STUDY
+            storage.edit().apply {
+                putBoolean(KEY_ACTIVE, false)
+                putStringSet(KEY_PACKAGES, emptySet())
+                if (!preserveStudyBreak) clearQuickUnlockFields()
+                putString(KEY_ONE_TIME_UNLOCK_PACKAGE, null)
+            }.apply()
+            if (!preserveStudyBreak) QuickUnlockNotification.cancel(ctx)
             if (BuildConfig.DEBUG) android.util.Log.d(TAG, "ShieldPrefs.clear()")
         }
 
@@ -554,6 +777,7 @@ class FocusShieldRepository @Inject constructor(
             prefs(ctx).getString(KEY_GRACE_ORIGIN, null).takeIf { isInGracePeriod(ctx) }
 
         /** Grants a quick-unlock grace window (flat duration, no per-session quota). */
+        @Synchronized
         fun applyEmergencyUnlock(
             ctx: Context,
             graceUntilMs: Long,
@@ -575,13 +799,23 @@ class FocusShieldRepository @Inject constructor(
             }
         }
 
-        fun clearQuickUnlock(ctx: Context) {
-            prefs(ctx).edit()
-                .putLong(KEY_GRACE_UNTIL_MS, 0L)
+        /** Clears app-blocking grace while leaving a YouTube Focus break untouched. */
+        @Synchronized
+        fun clearKavachQuickUnlock(ctx: Context) {
+            if (prefs(ctx).getString(KEY_GRACE_ORIGIN, null) == QUICK_UNLOCK_ORIGIN_YOUTUBE_STUDY) return
+            clearQuickUnlock(ctx)
+        }
+
+        private fun SharedPreferences.Editor.clearQuickUnlockFields(): SharedPreferences.Editor =
+            putLong(KEY_GRACE_UNTIL_MS, 0L)
                 .putBoolean(KEY_QUICK_UNLOCK_JUST_EXPIRED, false)
                 .remove(KEY_GRACE_PACKAGE)
                 .remove(KEY_GRACE_ORIGIN)
-                .apply()
+
+        /** Full clear for an explicit break ending, including YouTube Focus. */
+        @Synchronized
+        fun clearQuickUnlock(ctx: Context) {
+            prefs(ctx).edit().clearQuickUnlockFields().apply()
             QuickUnlockNotification.cancel(ctx)
             if (BuildConfig.DEBUG) android.util.Log.d(TAG, "ShieldPrefs.clearQuickUnlock()")
         }

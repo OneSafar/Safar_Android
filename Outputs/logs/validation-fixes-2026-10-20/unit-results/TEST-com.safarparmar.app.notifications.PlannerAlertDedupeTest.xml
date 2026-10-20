@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.notifications.PlannerAlertDedupeTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-19T19:59:40.418Z" hostname="Shashanks-MacBook-Air.local" time="0.001">
+  <properties/>
+  <testcase name="overdue alert key is stable per plan and date" classname="com.safarparmar.app.notifications.PlannerAlertDedupeTest" time="0.0"/>
+  <testcase name="pace warning key changes by week" classname="com.safarparmar.app.notifications.PlannerAlertDedupeTest" time="0.0"/>
+  <testcase name="exam countdown key is sent once per milestone" classname="com.safarparmar.app.notifications.PlannerAlertDedupeTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

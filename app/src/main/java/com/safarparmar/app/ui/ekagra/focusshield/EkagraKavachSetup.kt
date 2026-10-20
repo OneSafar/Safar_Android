@@ -1,5 +1,9 @@
 package com.safarparmar.app.ui.ekagra.focusshield
 
+import androidx.compose.runtime.rememberUpdatedState
+
+import androidx.compose.ui.platform.LocalResources
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -92,6 +96,7 @@ fun EkagraKavachInlineCard(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+    val localizedResources by rememberUpdatedState(LocalResources.current)
     val lifecycleOwner = LocalLifecycleOwner.current
     val scheme = MaterialTheme.colorScheme
     val resolvedDark = isDarkTheme || scheme.background.luminance() < 0.5f
@@ -133,7 +138,7 @@ fun EkagraKavachInlineCard(
     fun onKavachToggle(enabled: Boolean) {
         if (enabled) {
             if (shieldState.blockedPackages.isEmpty()) {
-                android.widget.Toast.makeText(context, context.getString(R.string.kavach_select_app_first), android.widget.Toast.LENGTH_SHORT).show()
+                android.widget.Toast.makeText(context, localizedResources.getString(R.string.kavach_select_app_first), android.widget.Toast.LENGTH_SHORT).show()
                 return
             }
             if (requiredPermissionsGranted) onToggleEnabled(true) else onSetupPermissions()

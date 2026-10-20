@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.feature.kavachanalytics.QuickUnlockRecordingTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-10-20T02:12:55.504Z" hostname="Shashanks-MacBook-Air.local" time="0.001">
+  <properties/>
+  <testcase name="an unlock with no session is findable by type" classname="com.safarparmar.app.feature.kavachanalytics.QuickUnlockRecordingTest" time="0.001"/>
+  <testcase name="the newest open unlock wins when two overlap" classname="com.safarparmar.app.feature.kavachanalytics.QuickUnlockRecordingTest" time="0.0"/>
+  <testcase name="a clock that jumps backwards cannot produce negative time" classname="com.safarparmar.app.feature.kavachanalytics.QuickUnlockRecordingTest" time="0.0"/>
+  <testcase name="closing early records the time actually spent, not the window chosen" classname="com.safarparmar.app.feature.kavachanalytics.QuickUnlockRecordingTest" time="0.0"/>
+  <testcase name="the chosen window is a ceiling, never exceeded" classname="com.safarparmar.app.feature.kavachanalytics.QuickUnlockRecordingTest" time="0.0"/>
+  <testcase name="the session-scoped lookup misses an Always On unlock entirely" classname="com.safarparmar.app.feature.kavachanalytics.QuickUnlockRecordingTest" time="0.0"/>
+  <testcase name="a consumed unlock is not found again, so it cannot be closed twice" classname="com.safarparmar.app.feature.kavachanalytics.QuickUnlockRecordingTest" time="0.0"/>
+  <testcase name="a close at the exact expiry records the full window" classname="com.safarparmar.app.feature.kavachanalytics.QuickUnlockRecordingTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

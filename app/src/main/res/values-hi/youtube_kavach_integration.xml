@@ -1,4 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="youtube_focus_kavach_priority">YouTube Focus चालू होने और उसकी एक्सेसिबिलिटी सेवा जुड़ी होने पर YouTube के नियम वही संभालता है—भले ही YouTube कवच में चुना हो। कवच आपके बाकी चुने हुए ऐप्स को ब्लॉक करता रहेगा। YouTube Focus बंद करने पर कवच YouTube को फिर ब्लॉक करेगा।</string>
+    <string name="youtube_focus_kavach_priority">दोनों साथ इस्तेमाल करें: कवच आपके चुने हुए दूसरे ऐप्स ब्लॉक करता है। YouTube Focus चैनल और Shorts संभालता है, इसलिए YouTube कवच की ब्लॉक सूची से बाहर रहता है।</string>
+    <string name="youtube_focus_enable_accessibility_first">सुरक्षा चालू करने से पहले YouTube Focus की एक्सेसिबिलिटी अनुमति दें।</string>
+    <string name="youtube_focus_connection_failed">YouTube Focus कनेक्ट नहीं हो पाया। उसकी एक्सेसिबिलिटी अनुमति जाँचें और फिर कोशिश करें।</string>
+    <string name="youtube_focus_activation_failed">YouTube Focus चालू नहीं हो पाया। कृपया फिर कोशिश करें।</string>
+    <string name="youtube_focus_kavach_selection_failed">YouTube की ब्लॉक सेटिंग बदल नहीं पाई। आपका पिछला चुनाव रखा गया है। फिर कोशिश करें।</string>
+    <string name="kavach_youtube_managed_title">YouTube Focus, YouTube संभाल रहा है</string>
+    <string name="kavach_youtube_managed_body">कवच आपके दूसरे ऐप्स ब्लॉक कर सकता है। विकल्प देखने के लिए टैप करें।</string>
+    <string name="kavach_youtube_managed_badge">YouTube Focus की सुरक्षा में</string>
+    <string name="kavach_youtube_managed_description">चैनल और Shorts की सुरक्षा चालू रहती है।</string>
+    <string name="kavach_youtube_view_options">YouTube ब्लॉक करने के विकल्प देखें</string>
+    <string name="kavach_youtube_conflict_title">क्लास चलने दें?</string>
+    <string name="kavach_youtube_conflict_body">दोनों साथ चालू रह सकते हैं। कवच आपके चुने हुए दूसरे ऐप्स ब्लॉक करता है; YouTube Focus चैनल और Shorts संभालता है। कवच में पूरा YouTube ऐप ब्लॉक करने पर क्लास भी रुक जाएगी।</string>
+    <string name="kavach_youtube_conflict_override_hint">पूरा YouTube ब्लॉक करने के लिए YouTube Focus बंद करें और कवच में YouTube चुनें। कवच की सुरक्षा सक्रिय होने पर YouTube ब्लॉक होगा।</string>
+    <string name="kavach_youtube_select_all_notice">दूसरे ऐप्स चुन लिए गए हैं। YouTube, YouTube Focus की सुरक्षा में रहेगा।</string>
+    <string name="kavach_youtube_keep_focus">YouTube Focus चालू रखें</string>
+    <string name="kavach_youtube_turn_off_focus_select">Focus बंद करें और YouTube चुनें</string>
 </resources>

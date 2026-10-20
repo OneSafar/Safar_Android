@@ -65,6 +65,7 @@ object NotificationDeepLinkHandler {
             }
             "toppers_batch" -> Routes.TOPPERS_BATCH
             "titli" -> if (firstSegment == "queries") Routes.TITLI_QUERIES else Routes.HOME
+            "habits" -> Routes.HABIT_TRACKER
             "home" -> Routes.HOME
             "dashboard" -> Routes.DASHBOARD
             "nishtha" -> when (firstSegment) {

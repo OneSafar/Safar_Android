@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.feature.kavachanalytics.ProtectionWindowTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-19T19:59:38.885Z" hostname="Shashanks-MacBook-Air.local" time="0.0">
+  <properties/>
+  <testcase name="an open window runs to now, so live protection is counted" classname="com.safarparmar.app.feature.kavachanalytics.ProtectionWindowTest" time="0.0"/>
+  <testcase name="a closed window ends exactly where it was closed" classname="com.safarparmar.app.feature.kavachanalytics.ProtectionWindowTest" time="0.0"/>
+  <testcase name="an Always On window and a session inside it are merged, not double counted" classname="com.safarparmar.app.feature.kavachanalytics.ProtectionWindowTest" time="0.0"/>
+  <testcase name="two separate protected stretches stay separate" classname="com.safarparmar.app.feature.kavachanalytics.ProtectionWindowTest" time="0.0"/>
+  <testcase name="a window killed mid-heartbeat ends at its last heartbeat, not forever" classname="com.safarparmar.app.feature.kavachanalytics.ProtectionWindowTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

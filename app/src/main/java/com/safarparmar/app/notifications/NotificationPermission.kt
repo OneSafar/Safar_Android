@@ -26,7 +26,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material3.*
-import com.composables.ui.components.AlertDialog as UiAlertDialog
+import com.safarparmar.app.ui.components.popups.SafarComposablesAlertDialog as UiAlertDialog
 import com.composables.ui.components.Button as UiButton
 import com.composables.ui.components.ButtonStyle as UiButtonStyle
 import androidx.compose.runtime.*
@@ -41,7 +41,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
+import com.safarparmar.app.ui.components.popups.SafarDialog as Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
 import androidx.core.app.ActivityCompat

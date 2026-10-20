@@ -87,7 +87,7 @@ import com.safarparmar.app.feature.toppersbatch.BatchButton as Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
+import com.safarparmar.app.ui.components.popups.SafarDropdownMenu as DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import com.safarparmar.app.feature.toppersbatch.BatchFilterChip as FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -180,6 +180,10 @@ private fun ToppersBatchScreenContent(
 ) {
     val strings = rememberBatchStrings()
     val state by viewModel.state.collectAsStateWithLifecycle()
+    com.safarparmar.app.ui.tutorial.ScreenPracticeEntry(
+        com.safarparmar.app.ui.tutorial.TitliFeature.TOPPERS_BATCH, isDarkTheme,
+        eligible = state.gate != BatchGate.LOADING && state.busyIds.isEmpty() && state.completionFeedback == null)
+
     var dismissedFeedbackEvent by remember { mutableStateOf<Long?>(null) }
     val lifecycleOwner = LocalLifecycleOwner.current
     LaunchedEffect(lifecycleOwner, viewModel) {
@@ -294,7 +298,7 @@ private fun ToppersBatchScreenContent(
 }
 
 /** The four tracker destinations use the shared Composables UI navigation bar. */
-@Composable private fun BatchBottomNav(selected: BatchSection, choose: (BatchSection) -> Unit) {
+@Composable internal fun BatchBottomNav(selected: BatchSection, choose: (BatchSection) -> Unit) {
     val strings = rememberBatchStrings()
     com.composables.ui.components.NavigationBar(modifier = Modifier.fillMaxWidth()) {
         navigation.forEach { item ->
@@ -557,7 +561,7 @@ private fun LazyListScope.libraryItems(state: BatchUiState, vm: ToppersBatchView
     }
 }
 
-@Composable private fun CourseSwitch(label: String, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
+@Composable internal fun CourseSwitch(label: String, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
     Surface(color = if (selected) Color(0xFF9D174D) else MaterialTheme.colorScheme.surfaceVariant,
         contentColor = if (selected) Color.White else MaterialTheme.colorScheme.onSurface,
         shape = RoundedCornerShape(12.dp), modifier = modifier.clickable(role = Role.Tab, onClick = batchFeatureAction(onClick))) {
@@ -567,7 +571,7 @@ private fun LazyListScope.libraryItems(state: BatchUiState, vm: ToppersBatchView
     }
 }
 
-@Composable private fun SubjectRow(subject: BatchSubject, progress: SubjectProgress?, onClick: () -> Unit) {
+@Composable internal fun SubjectRow(subject: BatchSubject, progress: SubjectProgress?, onClick: () -> Unit) {
     val strings = rememberBatchStrings()
     val done = progress?.completed ?: 0
     val total = progress?.total ?: 0

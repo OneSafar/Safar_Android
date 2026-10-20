@@ -1,5 +1,7 @@
 package com.safarparmar.app.feature.habits.ui.insights
 
+import androidx.compose.ui.platform.LocalLocale
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -12,6 +14,7 @@ import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.ArrowDropDown
 import androidx.compose.material3.*
+import com.safarparmar.app.ui.components.popups.SafarDropdownMenu as DropdownMenu
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -323,7 +326,7 @@ fun ContributionHeatmapMatrix(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    val fmt = cell.date.format(DateTimeFormatter.ofPattern("EEE, d MMM yyyy", Locale.getDefault()))
+                    val fmt = cell.date.format(DateTimeFormatter.ofPattern("EEE, d MMM yyyy", LocalLocale.current.platformLocale))
                     Text(
                         text = fmt,
                         fontSize = 13.sp,
@@ -426,7 +429,7 @@ private fun MonthHeatmapBlock(
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Text(
-                text = month.month.getDisplayName(TextStyle.FULL, Locale.getDefault()),
+                text = month.month.getDisplayName(TextStyle.FULL, LocalLocale.current.platformLocale),
                 fontSize = 12.sp,
                 fontWeight = if (isCurrentMonth) FontWeight.ExtraBold else FontWeight.Bold,
                 color = if (isCurrentMonth) HabitColors.RoyalPurple else HabitColors.TextPrimary

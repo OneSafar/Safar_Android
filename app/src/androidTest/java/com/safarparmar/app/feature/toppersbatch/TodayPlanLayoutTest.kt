@@ -73,7 +73,9 @@ class TodayPlanLayoutTest(private val width: Int, private val scale: Float, priv
                         studyPlannedFor = day, completedAt = if (mode == "completed") Instant.now().toString() else null), day)
                     current.value = current.value.copy(studyMode = studyMode, overview = overview, today = overview.todayEvents(day))
                 }
-                compose.onNodeWithText(batchTestText(R.string.toppers_batch_your_plan_today)).performScrollTo().assertIsDisplayed()
+                val heading = if (studyMode == BatchStudyMode.PERSONAL) R.string.toppers_batch_your_plan_today
+                    else R.string.toppers_batch_next_official_classes
+                compose.onNodeWithText(batchTestText(heading)).performScrollTo().assertIsDisplayed()
                 compose.onNodeWithText(batchTestText(R.string.toppers_batch_overall_batch_progress)).performScrollTo().assertIsDisplayed()
                 for (choice in BatchStudyMode.entries) {
                     compose.onNodeWithContentDescription(batchTestText(R.string.toppers_batch_about_count, batchTestText(choice.titleRes))).assertExists()

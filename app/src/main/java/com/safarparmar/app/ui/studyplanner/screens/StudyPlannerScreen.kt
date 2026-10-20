@@ -118,7 +118,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
+import com.safarparmar.app.ui.components.popups.SafarModalBottomSheet as ModalBottomSheet
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
@@ -636,6 +636,9 @@ fun StudyPlannerScreen(
         if (!actions.navigateBack()) onBack()
     }
 
+    com.safarparmar.app.ui.tutorial.ScreenPracticeEntry(com.safarparmar.app.ui.tutorial.TitliFeature.EXAM_PLANNER,
+        isDarkTheme, eligible = !chromeState.loading && !chromeState.mutating && !dailyTodoSetupVisible)
+
     val selectedPlanForDrawer = chromeState.selectedPlan
     val drawerTitle = when {
         selectedPlanForDrawer != null &&
@@ -1093,7 +1096,7 @@ private fun DraftsInfoDialog(
     val textSecondary = if (isLight) Color(0xFF64748B) else Color(0xFF94A3B8)
     val accent = if (isLight) Color(0xFF064E3B) else Color(0xFF34D399)
 
-    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
+    com.safarparmar.app.ui.components.popups.SafarDialog(onDismissRequest = onDismiss) {
         Surface(
             shape = RoundedCornerShape(20.dp),
             color = bg,
@@ -1243,7 +1246,7 @@ private fun planCreatedDate(value: String?): String? {
 }
 
 @Composable
-private fun PlannerTargetExamRow(
+internal fun PlannerTargetExamRow(
     plan: StudyPlan,
     planNumber: Int,
     isActive: Boolean = false,

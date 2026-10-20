@@ -1,0 +1,51 @@
+ACTIVITY MANAGER SERVICES (dumpsys activity services)
+  User 0 active services:
+  * ServiceRecord{88c5a13 u0 com.safarparmar.app.qa/com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2AccessibilityService c:android}
+    intent={cmp=com.safarparmar.app.qa/com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2AccessibilityService}
+    packageName=com.safarparmar.app.qa
+    processName=com.safarparmar.app.qa
+    targetSdkVersion=36
+    permission=android.permission.BIND_ACCESSIBILITY_SERVICE
+    baseDir=/data/app/~~ScmS06mwGTu-k7g_prL_7g==/com.safarparmar.app.qa-NtDF5MXg69iAt2ysMcbR-w==/base.apk
+    dataDir=/data/user/0/com.safarparmar.app.qa
+    app=ProcessRecord{71c32da 1592:com.safarparmar.app.qa/u0a268}
+    mIsAllowedBgActivityStartsByBinding=true
+    useNewWiuLogic_forCapabilities()=true
+    useNewWiuLogic_forStart()=true
+    useNewBfslLogic()=true
+    mAllowWiu_noBinding=DENIED
+    mAllowWiu_inBindService=PROC_STATE_PERSISTENT
+    mAllowWiu_byBindings=DENIED
+    getFgsAllowWiu_legacy=PROC_STATE_PERSISTENT
+    getFgsAllowWiu_new=DENIED
+    getFgsAllowWiu_forStart=DENIED
+    getFgsAllowWiu_forCapabilities=DENIED
+    allowUiJobScheduling=false
+    recentCallingPackage=android
+    recentCallingUid=1000
+    mAllowStart_noBinding=DENIED
+    mAllowStart_inBindService=PROC_STATE_PERSISTENT
+    mAllowStart_byBindings=DENIED
+    getFgsAllowStart_legacy=PROC_STATE_PERSISTENT
+    getFgsAllowStart_new=DENIED
+    getFgsAllowStart=DENIED
+    startForegroundCount=0
+    infoAllowStartForeground=[callingPackage: android; callingUid: 1000; uidState: PER ; uidBFSL: [BFSL]; BFGS denied: false; intent: Intent { cmp=com.safarparmar.app.qa/com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2AccessibilityService }; code:PROC_STATE_PERSISTENT; tempAllowListReason:<keychain,reasonCode:KEY_CHAIN,duration:30000,callingUid:1000>; allowWiu:10; targetSdkVersion:36; callerTargetSdkVersion:37; startForegroundCount:0; bindFromPackage:null; isBindService:true]
+    createTime=-2m57s913ms startingBgTimeout=--
+    lastActivity=-2m57s913ms restartTime=-2m57s913ms createdFromFg=true
+    Bindings:
+    * IntentBindRecord{c65a086 CREATE}:
+      intent={cmp=com.safarparmar.app.qa/com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2AccessibilityService}
+      binder=android.os.BinderProxy@bd25d47
+      requested=true received=true hasBound=true doRebind=false
+      * Client AppBindRecord{ce78974 ProcessRecord{218012f 651:system/1000}}
+        Per-process Connections:
+          ConnectionRecord{441a102 u0 CR FGSA CAPS com.safarparmar.app.qa/com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2AccessibilityService:@f9b024d flags=0x2101001}
+    All Connections:
+      ConnectionRecord{441a102 u0 CR FGSA CAPS com.safarparmar.app.qa/com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2AccessibilityService:@f9b024d flags=0x2101001}
+
+  Connection bindings to services:
+  * ConnectionRecord{441a102 u0 CR FGSA CAPS com.safarparmar.app.qa/com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2AccessibilityService:@f9b024d flags=0x2101001}
+    binding=AppBindRecord{ce78974 com.safarparmar.app.qa/com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2AccessibilityService:system}
+    conn=android.app.LoadedApk$ServiceDispatcher$InnerConnection@f9b024d flags=0x2101001
+    ongoingCalls=false

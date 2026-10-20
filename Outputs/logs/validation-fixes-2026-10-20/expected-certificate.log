@@ -1,0 +1,26 @@
+Alias name: safar-alias
+Creation date: 31-May-2026
+Entry type: PrivateKeyEntry
+Certificate chain length: 1
+Certificate[1]:
+Owner: CN=Safar App, OU=Development, O=Safar, L=Delhi, ST=Delhi, C=IN
+Issuer: CN=Safar App, OU=Development, O=Safar, L=Delhi, ST=Delhi, C=IN
+Serial number: 92c00b121280f1c0
+Valid from: Sun May 31 00:17:25 IST 2026 until: Thu Oct 16 00:17:25 IST 2053
+Certificate fingerprints:
+	 SHA1: FE:AD:DA:8E:7F:7C:CB:F9:70:E9:C2:66:93:3B:7A:CC:07:92:D1:AB
+	 SHA256: 7F:C5:E6:0E:58:55:CE:8D:D7:A2:75:4C:F0:62:01:1B:AC:D4:7C:F1:48:DE:AE:2D:F8:DB:11:45:C7:1B:B6:2B
+Signature algorithm name: SHA384withRSA
+Subject Public Key Algorithm: 2048-bit RSA key
+Version: 3
+
+Extensions: 
+
+#1: ObjectId: 2.5.29.14 Criticality=false
+SubjectKeyIdentifier [
+KeyIdentifier [
+0000: 92 46 87 AF AE 3D 05 BC   8B 01 0D FD AD D5 8A 97  .F...=..........
+0010: 5C 47 A5 49                                        \G.I
+]
+]
+

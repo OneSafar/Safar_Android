@@ -24,7 +24,8 @@ data class HabitSyncStatus(val loading: Boolean = true, val error: String? = nul
 class HabitRemoteStore @Inject constructor(
     private val api: HabitApi,
     private val accounts: SafarDataStore,
-    private val legacyDatabase: HabitDatabase
+    private val legacyDatabase: HabitDatabase,
+    private val reminders: com.safarparmar.app.feature.habits.reminders.HabitReminderScheduler? = null
 ) {
     private data class Projection(
         val owner: String? = null,
@@ -32,7 +33,8 @@ class HabitRemoteStore @Inject constructor(
         val habits: List<HabitEntity> = emptyList(),
         val completions: List<HabitCompletionEntity> = emptyList(),
         val revisions: List<HabitScheduleRevisionEntity> = emptyList(),
-        val status: HabitSyncStatus = HabitSyncStatus()
+        val status: HabitSyncStatus = HabitSyncStatus(),
+        val remoteRecords: List<HabitRemoteRecord> = emptyList()
     )
     private val state = MutableStateFlow(Projection())
     private val mutex = Mutex()
@@ -70,7 +72,12 @@ class HabitRemoteStore @Inject constructor(
                 val before = readSnapshot(owner, if (importing) null else state.value.version)
                 if (importing) applySnapshot(owner, migrateLegacy(owner, before!!.habits))
                 else if (before != null) applySnapshot(owner, before)
-                else state.value = state.value.copy(status = HabitSyncStatus(false))
+                else {
+                    // Restore alarms/cache even after logout/login or a local cache reset.
+                    // The server has confirmed that this in-memory snapshot is unchanged.
+                    reminders?.replace(owner, state.value.remoteRecords)
+                    state.value = state.value.copy(status = HabitSyncStatus(false))
+                }
             } catch (e: CancellationException) { throw e }
             catch (e: Exception) {
                 if (ownerFlow.first() == owner) state.value = state.value.copy(status = HabitSyncStatus(false,
@@ -125,7 +132,9 @@ class HabitRemoteStore @Inject constructor(
                 archivedAt = remote.archivedAt?.let(LocalDate::parse),
                 scheduledSince = LocalDate.parse(remote.scheduledSince), reminderTime = remote.reminderTime)
         }
-        state.value = Projection(owner, snapshot.version, habits, completions, revisions, HabitSyncStatus(false))
+        reminders?.replace(owner, snapshot.habits)
+        checkOwner(owner)
+        state.value = Projection(owner, snapshot.version, habits, completions, revisions, HabitSyncStatus(false), snapshot.habits)
     }
 
     private fun schedule(days: List<Int>, everyDay: Boolean): Set<DayOfWeek> =

@@ -1,4 +1,6 @@
 package com.safarparmar.app.ui.admin
+import com.safarparmar.app.ui.components.popups.SafarExposedDropdownMenu
+
 
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
@@ -12,7 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
+import com.safarparmar.app.ui.components.popups.SafarMaterialAlertDialog as AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Card
@@ -588,7 +590,7 @@ private fun ComposerContent(
                             ExposedDropdownMenuDefaults.TrailingIcon(expanded = triggerExpanded)
                         },
                     )
-                    ExposedDropdownMenu(
+                    SafarExposedDropdownMenu(
                         expanded = triggerExpanded,
                         onDismissRequest = { triggerExpanded = false },
                     ) {
@@ -634,7 +636,7 @@ private fun ComposerContent(
                             ExposedDropdownMenuDefaults.TrailingIcon(expanded = deepLinkExpanded)
                         },
                     )
-                    ExposedDropdownMenu(
+                    SafarExposedDropdownMenu(
                         expanded = deepLinkExpanded,
                         onDismissRequest = { deepLinkExpanded = false },
                     ) {

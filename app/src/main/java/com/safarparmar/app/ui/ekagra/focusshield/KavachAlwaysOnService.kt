@@ -57,6 +57,7 @@ class KavachAlwaysOnService : Service() {
         /** Tighter poll while the overlay is up so it dismisses almost instantly. */
         private const val OVERLAY_DISMISS_POLL_MS = 250L
         private const val YOUTUBE_UNLOCK_POLL_MS = 1_000L
+        private const val EXTRA_ACTIVATION_REQUEST = "kavach_activation_request"
 
         private val KNOWN_HOME_PACKAGES = setOf(
             "com.miui.home", "com.mi.android.globallauncher", "com.android.launcher",
@@ -65,7 +66,7 @@ class KavachAlwaysOnService : Service() {
             "com.vivo.launcher", "com.transsion.XOSLauncher",
         )
 
-        fun start(context: Context, isBootTrigger: Boolean = false): Boolean {
+        fun start(context: Context, isBootTrigger: Boolean = false, activationRequest: Long = 0L): Boolean {
             val appContext = context.applicationContext
             // On Android 12+ (API 31+), starting a foreground service while running in the background
             // is strictly forbidden by the OS unless a recognized system exemption applies.
@@ -83,6 +84,7 @@ class KavachAlwaysOnService : Service() {
             }
 
             val intent = Intent(appContext, KavachAlwaysOnService::class.java)
+                .putExtra(EXTRA_ACTIVATION_REQUEST, activationRequest)
             return runCatching {
                 // Ensure only the status channel exists; avoid synchronous 12-channel Binder calls on main thread
                 SafarNotificationChannels.ensureFocusShieldStatusChannel(appContext)
@@ -112,6 +114,7 @@ class KavachAlwaysOnService : Service() {
     private val blockOverlay by lazy { KavachBlockOverlay(this) }
 
     private var monitorJob: Job? = null
+    private var activationRequest = 0L
     private var blockedPackages: Set<String> = emptySet()
     private var lastBlockedPackage: String? = null
     private var lastBlockedAt = 0L
@@ -149,6 +152,7 @@ class KavachAlwaysOnService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        activationRequest = intent?.getLongExtra(EXTRA_ACTIVATION_REQUEST, 0L) ?: 0L
         if (!lifecycle.start(startId, ::promoteToForeground)) {
             stopSelfResult(startId)
             return START_NOT_STICKY
@@ -165,7 +169,7 @@ class KavachAlwaysOnService : Service() {
         // The old settings read must not stop a newer request or leave a completed
         // monitorJob attached to an otherwise running service.
         monitorJob?.cancel()
-        startMonitoring(startId)
+        startMonitoring(startId, intent?.getLongExtra(EXTRA_ACTIVATION_REQUEST, 0L) ?: 0L)
         // Use START_NOT_STICKY so the OS does not resurrect the service with a null intent in
         // background under heavy memory pressure, avoiding background start crashes.
         return START_NOT_STICKY
@@ -218,9 +222,10 @@ class KavachAlwaysOnService : Service() {
         if (!stopReasonAlreadyReported && FocusShieldRepository.ShieldPrefs.isActive(this)) {
             repository?.reportProtectionFailure(
                 "Your phone stopped Kavach in the background. Allow unrestricted battery use.",
+                activationRequest = activationRequest.takeIf { it != 0L },
             )
         } else {
-            repository?.reportProtectionStopped()
+            repository?.reportProtectionStopped(activationRequest = activationRequest.takeIf { it != 0L })
         }
         monitorJob?.cancel()
         stopYoutubeKavachUnlockTracking()
@@ -228,12 +233,12 @@ class KavachAlwaysOnService : Service() {
         super.onDestroy()
     }
 
-    private fun startMonitoring(startId: Int) {
+    private fun startMonitoring(startId: Int, activationRequest: Long) {
         monitorJob = scope.launch {
             var untilSync = 0L
             while (true) {
                 if (untilSync <= 0L) {
-                    if (!syncSettings(startId)) return@launch
+                    if (!syncSettings(startId, activationRequest)) return@launch
                     untilSync = SETTINGS_SYNC_MS
                 }
                 val waitMs = monitorForegroundApp()
@@ -247,13 +252,13 @@ class KavachAlwaysOnService : Service() {
     }
 
     /** @return false when Always On should no longer be running, which stops the service. */
-    private suspend fun syncSettings(startId: Int): Boolean {
+    private suspend fun syncSettings(startId: Int, activationRequest: Long): Boolean {
         val alwaysOn = dataStore.focusShieldAlwaysOnMode.first()
         val strict = dataStore.focusShieldStrictMode.first()
         val enabled = dataStore.focusShieldEnabled.first()
         val configuredPackages = dataStore.focusShieldBlockedPackages.first()
-        // Preserve the configured list. The live policy delegates YouTube only
-        // while Focus is enabled and connected, so disabling it restores this block.
+        // Focus activation removes YouTube from this saved list. The live policy
+        // also protects playback while an already-running monitor refreshes its cache.
         val packages = configuredPackages
         // Peak Focus scheduling is intentionally outside the first activation/protection release.
         scheduleEnabled = false
@@ -275,7 +280,14 @@ class KavachAlwaysOnService : Service() {
                         !ready -> "Kavach stopped working. Check Usage Access and Display over other apps."
                         else -> null
                     }
-                    warning?.let { runCatching { focusShieldRepository().reportProtectionFailure(it) } }
+                    warning?.let {
+                        runCatching {
+                            focusShieldRepository().reportProtectionFailure(
+                                it,
+                                activationRequest = activationRequest.takeIf { request -> request != 0L },
+                            )
+                        }
+                    }
                 }
                 KavachAlwaysOnPrefs.clear(this@KavachAlwaysOnService)
                 FocusShieldRepository.Snapshot.active = false
@@ -315,7 +327,12 @@ class KavachAlwaysOnService : Service() {
         FocusShieldRepository.Snapshot.scheduleEnabled = scheduleEnabled
         FocusShieldRepository.Snapshot.scheduleStartMinute = scheduleStartMinute
         FocusShieldRepository.Snapshot.scheduleEndMinute = scheduleEndMinute
-        runCatching { focusShieldRepository().reportProtectionActive() }
+        runCatching {
+            focusShieldRepository().reportProtectionActive(
+                packages = packages,
+                activationRequest = activationRequest.takeIf { it != 0L },
+            )
+        }
         return true
     }
 
@@ -348,8 +365,13 @@ class KavachAlwaysOnService : Service() {
                 return poller.onSample(null, isBlockedApp = false)
             }
 
-        if (isStrictMode && FocusShieldRepository.ShieldPrefs.isInGracePeriod(this)) {
-            FocusShieldRepository.ShieldPrefs.clearQuickUnlock(this)
+        if (FocusShieldRepository.ShieldPrefs.isInGracePeriod(this) &&
+            shouldClearKavachQuickUnlockForStrictMode(
+                strict = isStrictMode,
+                quickUnlockOrigin = FocusShieldRepository.ShieldPrefs.quickUnlockOrigin(this),
+            )
+        ) {
+            FocusShieldRepository.ShieldPrefs.clearKavachQuickUnlock(this)
         }
 
         // Normal mode honors quick unlock grace periods

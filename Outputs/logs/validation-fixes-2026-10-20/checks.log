@@ -1,0 +1,168 @@
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preProdDebugBuild UP-TO-DATE
+> Task :app:generateProdDebugBuildConfig UP-TO-DATE
+> Task :app:generateProdDebugResValues UP-TO-DATE
+> Task :app:generateProdDebugResources UP-TO-DATE
+> Task :app:injectCrashlyticsMappingFileIdProdDebug UP-TO-DATE
+> Task :app:injectCrashlyticsVersionControlInfoProdDebug UP-TO-DATE
+> Task :app:processProdDebugGoogleServices UP-TO-DATE
+> Task :app:packageProdDebugResources UP-TO-DATE
+> Task :app:processProdDebugNavigationResources UP-TO-DATE
+> Task :app:parseProdDebugLocalResources UP-TO-DATE
+> Task :app:generateProdDebugRFile UP-TO-DATE
+> Task :app:javaPreCompileProdDebug UP-TO-DATE
+> Task :app:checkProdDebugAarMetadata UP-TO-DATE
+> Task :app:mapProdDebugSourceSetPaths UP-TO-DATE
+> Task :app:compileProdDebugNavigationResources UP-TO-DATE
+> Task :app:mergeProdDebugResources UP-TO-DATE
+> Task :app:createProdDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksProdDebug UP-TO-DATE
+> Task :app:processProdDebugMainManifest UP-TO-DATE
+> Task :app:processProdDebugManifest UP-TO-DATE
+> Task :app:processProdDebugManifestForPackage UP-TO-DATE
+> Task :app:processProdDebugResources UP-TO-DATE
+> Task :app:preProdDebugAndroidTestBuild SKIPPED
+> Task :app:processProdDebugAndroidTestManifest UP-TO-DATE
+> Task :app:generateProdDebugAndroidTestBuildConfig UP-TO-DATE
+> Task :app:generateProdDebugAndroidTestResValues UP-TO-DATE
+> Task :app:generateProdDebugAndroidTestResources UP-TO-DATE
+> Task :app:packageProdDebugAndroidTestResources UP-TO-DATE
+> Task :app:processProdDebugAndroidTestNavigationResources UP-TO-DATE
+> Task :app:parseProdDebugAndroidTestLocalResources UP-TO-DATE
+> Task :app:generateProdDebugAndroidTestRFile UP-TO-DATE
+> Task :app:preProdDebugUnitTestBuild UP-TO-DATE
+> Task :app:javaPreCompileProdDebugUnitTest UP-TO-DATE
+> Task :app:preProdReleaseBuild UP-TO-DATE
+> Task :app:generateProdReleaseBuildConfig UP-TO-DATE
+> Task :app:generateProdReleaseResValues UP-TO-DATE
+> Task :app:generateProdReleaseResources
+> Task :app:injectCrashlyticsMappingFileIdProdRelease
+> Task :app:extractProdReleaseVersionControlInfo UP-TO-DATE
+> Task :app:injectCrashlyticsVersionControlInfoProdRelease UP-TO-DATE
+> Task :app:processProdReleaseGoogleServices UP-TO-DATE
+> Task :app:packageProdReleaseResources
+> Task :app:processProdReleaseNavigationResources
+> Task :app:javaPreCompileProdRelease UP-TO-DATE
+> Task :app:extractProguardFiles UP-TO-DATE
+> Task :app:extractDeepLinksProdRelease UP-TO-DATE
+> Task :app:processProdReleaseMainManifest UP-TO-DATE
+> Task :app:parseProdReleaseLocalResources
+> Task :app:generateProdReleaseRFile UP-TO-DATE
+> Task :app:kspProdDebugKotlin
+> Task :app:kspProdReleaseKotlin
+
+> Task :app:compileProdDebugKotlin
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/auth/AuthScreen.kt:357:29 'typealias MenuAnchorType = ExposedDropdownMenuAnchorType' is deprecated. Renamed to ExposedDropdownMenuAnchorType.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:408:35 Unnecessary safe call on a non-null receiver of type 'TimerService'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:431:29 Unnecessary safe call on a non-null receiver of type 'TimerService'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:497:135 Unnecessary safe call on a non-null receiver of type 'TimerService'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:498:25 Unnecessary safe call on a non-null receiver of type 'TimerService'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:1249:60 Unnecessary safe call on a non-null receiver of type 'VisualTheme'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:1380:149 Unnecessary safe call on a non-null receiver of type 'TimerService'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:1431:90 'val Icons.Filled.HelpOutline: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.HelpOutline.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:1436:103 'val Icons.Filled.VolumeUp: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.VolumeUp.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:1436:163 'val Icons.Filled.VolumeOff: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.VolumeOff.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:1603:65 Unnecessary safe call on a non-null receiver of type 'TimerService'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:1613:61 Unnecessary safe call on a non-null receiver of type 'TimerService'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:1616:196 Unnecessary safe call on a non-null receiver of type 'TimerService'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:1735:61 Unnecessary safe call on a non-null receiver of type 'TimerService'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/leaderboard/LeaderboardScreen.kt:87:48 Unnecessary safe call on a non-null receiver of type 'WeeklyLeaderboardPeriodDto'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/leaderboard/LeaderboardScreen.kt:90:55 Unnecessary safe call on a non-null receiver of type 'WeeklyLeaderboardPeriodDto'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/leaderboard/LeaderboardScreen.kt:91:53 Unnecessary safe call on a non-null receiver of type 'WeeklyLeaderboardPeriodDto'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/leaderboard/LeaderboardScreen.kt:94:29 Unnecessary safe call on a non-null receiver of type 'WeeklyLeaderboardPeriodDto'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/leaderboard/LeaderboardScreen.kt:94:46 Unnecessary safe call on a non-null receiver of type 'WeeklyLeaderboardPeriodDto'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/leaderboard/LeaderboardScreen.kt:522:15 Unnecessary non-null assertion (!!) on a non-null receiver of type 'WeeklyLeaderboardEntryDto'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/leaderboard/LeaderboardScreen.kt:560:99 Unnecessary non-null assertion (!!) on a non-null receiver of type 'WeeklyLeaderboardEntryDto'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/navigation/SafarNavGraph.kt:189:81 Unnecessary safe call on a non-null receiver of type 'String'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/navigation/SafarNavGraph.kt:204:21 Unnecessary safe call on a non-null receiver of type 'MainActivity'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/profile/ProfileScreen.kt:578:28 'val LocalClipboardManager: ProvidableCompositionLocal<ClipboardManager>' is deprecated. Use LocalClipboard instead which supports suspend functions.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/studycircle/StudyCircleScreen.kt:1909:21 'val LocalClipboardManager: ProvidableCompositionLocal<ClipboardManager>' is deprecated. Use LocalClipboard instead which supports suspend functions.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/studycircle/StudyCircleScreen.kt:2708:61 'val Icons.Filled.Chat: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.Chat.
+
+> Task :app:compileProdReleaseKotlin
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/auth/AuthScreen.kt:357:29 'typealias MenuAnchorType = ExposedDropdownMenuAnchorType' is deprecated. Renamed to ExposedDropdownMenuAnchorType.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:408:35 Unnecessary safe call on a non-null receiver of type 'TimerService'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:431:29 Unnecessary safe call on a non-null receiver of type 'TimerService'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:497:135 Unnecessary safe call on a non-null receiver of type 'TimerService'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:498:25 Unnecessary safe call on a non-null receiver of type 'TimerService'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:1249:60 Unnecessary safe call on a non-null receiver of type 'VisualTheme'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:1380:149 Unnecessary safe call on a non-null receiver of type 'TimerService'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:1431:90 'val Icons.Filled.HelpOutline: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.HelpOutline.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:1436:103 'val Icons.Filled.VolumeUp: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.VolumeUp.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:1436:163 'val Icons.Filled.VolumeOff: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.VolumeOff.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:1603:65 Unnecessary safe call on a non-null receiver of type 'TimerService'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:1613:61 Unnecessary safe call on a non-null receiver of type 'TimerService'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:1616:196 Unnecessary safe call on a non-null receiver of type 'TimerService'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:1735:61 Unnecessary safe call on a non-null receiver of type 'TimerService'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/leaderboard/LeaderboardScreen.kt:87:48 Unnecessary safe call on a non-null receiver of type 'WeeklyLeaderboardPeriodDto'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/leaderboard/LeaderboardScreen.kt:90:55 Unnecessary safe call on a non-null receiver of type 'WeeklyLeaderboardPeriodDto'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/leaderboard/LeaderboardScreen.kt:91:53 Unnecessary safe call on a non-null receiver of type 'WeeklyLeaderboardPeriodDto'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/leaderboard/LeaderboardScreen.kt:94:29 Unnecessary safe call on a non-null receiver of type 'WeeklyLeaderboardPeriodDto'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/leaderboard/LeaderboardScreen.kt:94:46 Unnecessary safe call on a non-null receiver of type 'WeeklyLeaderboardPeriodDto'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/leaderboard/LeaderboardScreen.kt:522:15 Unnecessary non-null assertion (!!) on a non-null receiver of type 'WeeklyLeaderboardEntryDto'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/leaderboard/LeaderboardScreen.kt:560:99 Unnecessary non-null assertion (!!) on a non-null receiver of type 'WeeklyLeaderboardEntryDto'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/navigation/SafarNavGraph.kt:189:81 Unnecessary safe call on a non-null receiver of type 'String'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/navigation/SafarNavGraph.kt:204:21 Unnecessary safe call on a non-null receiver of type 'MainActivity'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/profile/ProfileScreen.kt:578:28 'val LocalClipboardManager: ProvidableCompositionLocal<ClipboardManager>' is deprecated. Use LocalClipboard instead which supports suspend functions.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/studycircle/StudyCircleScreen.kt:1909:21 'val LocalClipboardManager: ProvidableCompositionLocal<ClipboardManager>' is deprecated. Use LocalClipboard instead which supports suspend functions.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/studycircle/StudyCircleScreen.kt:2708:61 'val Icons.Filled.Chat: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.Chat.
+
+> Task :app:compileProdDebugJavaWithJavac UP-TO-DATE
+> Task :app:hiltSyncProdDebug
+> Task :app:hiltAggregateDepsProdDebug UP-TO-DATE
+> Task :app:hiltJavaCompileProdDebug UP-TO-DATE
+> Task :app:processProdDebugJavaRes UP-TO-DATE
+> Task :app:compileProdReleaseJavaWithJavac UP-TO-DATE
+> Task :app:generateProdReleaseLintReportModel
+> Task :app:bundleProdDebugClassesToCompileJar
+> Task :app:kspProdDebugAndroidTestKotlin
+> Task :app:kspProdDebugUnitTestKotlin
+> Task :app:transformProdDebugClassesWithAsm
+
+> Task :app:compileProdDebugAndroidTestKotlin FAILED
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/androidTest/java/com/safarparmar/app/feature/habits/HabitReminderInstrumentedTest.kt:14:43 Unresolved reference 'reminders'.
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/androidTest/java/com/safarparmar/app/feature/habits/HabitReminderInstrumentedTest.kt:15:43 Unresolved reference 'reminders'.
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/androidTest/java/com/safarparmar/app/feature/habits/HabitReminderInstrumentedTest.kt:35:25 Unresolved reference 'HabitReminderScheduler'.
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/androidTest/java/com/safarparmar/app/feature/habits/HabitReminderInstrumentedTest.kt:44:47 Unresolved reference 'HabitReminderReceiver'.
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/androidTest/java/com/safarparmar/app/feature/habits/HabitReminderInstrumentedTest.kt:44:76 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/androidTest/java/com/safarparmar/app/feature/habits/HabitReminderInstrumentedTest.kt:44:76 Unresolved reference. None of the following candidates is applicable because of a receiver type mismatch:
+val <T> KClass<T>.java: Class<T>
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/androidTest/java/com/safarparmar/app/feature/habits/HabitReminderInstrumentedTest.kt:44:82 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/androidTest/java/com/safarparmar/app/feature/habits/HabitReminderInstrumentedTest.kt:44:82 Unresolved reference. None of the following candidates is applicable because of a receiver type mismatch:
+fun <T> T.apply(block: T.() -> Unit): T
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/androidTest/java/com/safarparmar/app/feature/habits/HabitReminderInstrumentedTest.kt:44:88 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/androidTest/java/com/safarparmar/app/feature/habits/HabitReminderInstrumentedTest.kt:45:17 Unresolved reference 'data'.
+
+> Task :app:compileProdDebugUnitTestKotlin
+> Task :app:processProdDebugUnitTestJavaRes UP-TO-DATE
+> Task :app:compileProdDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :app:hiltSyncProdDebugUnitTest
+> Task :app:bundleProdDebugClassesToRuntimeJar
+> Task :app:hiltAggregateDepsProdDebugUnitTest UP-TO-DATE
+> Task :app:hiltJavaCompileProdDebugUnitTest NO-SOURCE
+> Task :app:transformProdDebugUnitTestClassesWithAsm
+> Task :app:testProdDebugUnitTest
+> Task :app:lintAnalyzeProdRelease
+
+> Task :app:lintReportProdRelease
+Wrote HTML report to file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/build/reports/lint-results-prodRelease.html
+
+> Task :app:lintProdRelease
+
+[Incubating] Problems report is available at: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:compileProdDebugAndroidTestKotlin'.
+> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.btapi.BuildToolsApiCompilationWork
+   > Compilation error. See log for more details
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 1m 44s
+69 actionable tasks: 22 executed, 47 up-to-date

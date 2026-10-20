@@ -13,7 +13,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.IconButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.DropdownMenu
+import com.safarparmar.app.ui.components.popups.SafarDropdownMenu as DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import com.composables.ui.components.Icon
 import androidx.compose.runtime.*

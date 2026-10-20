@@ -36,7 +36,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
+import com.safarparmar.app.ui.components.popups.SafarDialog as Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.DialogWindowProvider
 import com.composables.ui.components.Text
@@ -86,6 +86,7 @@ internal fun BatchCompletionCelebrationOverlay(
 ) {
     val strings = rememberBatchStrings()
     Dialog(
+        fullScreen = true,
         onDismissRequest = onDismiss,
         properties = DialogProperties(
             usePlatformDefaultWidth = false,
@@ -124,8 +125,8 @@ internal fun BatchCompletionCelebrationOverlay(
                 modifier = Modifier
                     .statusBarsPadding()
                     .padding(top = 24.dp, start = 16.dp, end = 16.dp)
-                    .fillMaxWidth()
                     .widthIn(max = 480.dp)
+                    .fillMaxWidth()
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,

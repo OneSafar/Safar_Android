@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.feature.kavachanalytics.KavachDailyAggregatorTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-10-20T02:12:55.492Z" hostname="Shashanks-MacBook-Air.local" time="0.005">
+  <properties/>
+  <testcase name="an app with only a blocked attempt still gets a row" classname="com.safarparmar.app.feature.kavachanalytics.KavachDailyAggregatorTest" time="0.001"/>
+  <testcase name="all-day and during-Kavach totals stay separate" classname="com.safarparmar.app.feature.kavachanalytics.KavachDailyAggregatorTest" time="0.001"/>
+  <testcase name="separate visits to the same app add up" classname="com.safarparmar.app.feature.kavachanalytics.KavachDailyAggregatorTest" time="0.0"/>
+  <testcase name="shipped defaults classify known apps and leave everything else unclassified" classname="com.safarparmar.app.feature.kavachanalytics.KavachDailyAggregatorTest" time="0.001"/>
+  <testcase name="intervals from another day are ignored" classname="com.safarparmar.app.feature.kavachanalytics.KavachDailyAggregatorTest" time="0.0"/>
+  <testcase name="time outside every session counts only towards the all-day total" classname="com.safarparmar.app.feature.kavachanalytics.KavachDailyAggregatorTest" time="0.0"/>
+  <testcase name="session category totals attribute overlap to the right category" classname="com.safarparmar.app.feature.kavachanalytics.KavachDailyAggregatorTest" time="0.0"/>
+  <testcase name="no default silently marks an unknown package as distracting" classname="com.safarparmar.app.feature.kavachanalytics.KavachDailyAggregatorTest" time="0.002"/>
+  <testcase name="unknown apps are reported as unclassified not distracting" classname="com.safarparmar.app.feature.kavachanalytics.KavachDailyAggregatorTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

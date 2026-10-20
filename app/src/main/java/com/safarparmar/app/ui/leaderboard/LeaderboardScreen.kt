@@ -1,5 +1,7 @@
 package com.safarparmar.app.ui.leaderboard
 
+import androidx.compose.ui.platform.LocalLocale
+
 import com.safarparmar.app.performance.decorativeFloat
 import androidx.compose.animation.core.EaseOutBack
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -81,12 +83,13 @@ private fun formatMinutes(minutes: Int): String {
 
 @Composable
 private fun formatWeekRange(period: WeeklyLeaderboardPeriodDto?): String {
+    val locale = LocalLocale.current.platformLocale
     if (period?.start.isNullOrBlank() || period?.end.isNullOrBlank()) return stringResource(R.string.leaderboard_this_week)
     return runCatching {
-        val parser = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+        val parser = SimpleDateFormat("yyyy-MM-dd", locale)
         val start = requireNotNull(parser.parse(period?.start.orEmpty()))
         val end = requireNotNull(parser.parse(period?.end.orEmpty()))
-        val formatter = SimpleDateFormat("d MMM", Locale.getDefault())
+        val formatter = SimpleDateFormat("d MMM", locale)
         "${formatter.format(start)}–${formatter.format(end)}"
     }.getOrDefault("${period?.start}–${period?.end}")
 }

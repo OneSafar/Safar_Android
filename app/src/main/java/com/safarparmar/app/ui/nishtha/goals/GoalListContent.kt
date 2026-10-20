@@ -36,7 +36,7 @@ import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material.icons.filled.Timer
 import com.composables.ui.components.ButtonSize
 import com.composables.ui.components.ButtonStyle
-import com.composables.ui.components.DropdownMenu
+import com.safarparmar.app.ui.components.popups.SafarComposablesDropdownMenu as DropdownMenu
 import com.composables.ui.components.DropdownMenuAlignment
 import com.composables.ui.components.DropdownMenuItem
 import com.composables.ui.components.DropdownMenuItemStyle

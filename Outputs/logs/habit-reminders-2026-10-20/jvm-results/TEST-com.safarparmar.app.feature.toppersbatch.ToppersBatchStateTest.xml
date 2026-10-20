@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.feature.toppersbatch.ToppersBatchStateTest" tests="13" skipped="0" failures="0" errors="0" timestamp="2026-10-20T02:12:55.985Z" hostname="Shashanks-MacBook-Air.local" time="0.007">
+  <properties/>
+  <testcase name="lateJoinerKeepsPersonalQueueEvenWhenEveryOfficialDateIsPast" classname="com.safarparmar.app.feature.toppersbatch.ToppersBatchStateTest" time="0.001"/>
+  <testcase name="librarySearchAndFiltersUsePersonalBacklogAndRevisionDates" classname="com.safarparmar.app.feature.toppersbatch.ToppersBatchStateTest" time="0.001"/>
+  <testcase name="personalEstimateUsesIndiaCompletionDatesAndPartialWeekSinceStart" classname="com.safarparmar.app.feature.toppersbatch.ToppersBatchStateTest" time="0.001"/>
+  <testcase name="personalCourseAndOfficialDatesRemainDistinct" classname="com.safarparmar.app.feature.toppersbatch.ToppersBatchStateTest" time="0.0"/>
+  <testcase name="activityGridKeepsThirtyFiveOrderedDaysAndCountsCompletionDay" classname="com.safarparmar.app.feature.toppersbatch.ToppersBatchStateTest" time="0.002"/>
+  <testcase name="completionTrendIncludesEarlierWorkAndUpdatesOnCompletionDay" classname="com.safarparmar.app.feature.toppersbatch.ToppersBatchStateTest" time="0.0"/>
+  <testcase name="insightsExcludeDisabledSubjectsAndHandleMissedTargetsAndDueRevisions" classname="com.safarparmar.app.feature.toppersbatch.ToppersBatchStateTest" time="0.0"/>
+  <testcase name="completingAndUndoingOlderLectureUpdatesCountsImmediately" classname="com.safarparmar.app.feature.toppersbatch.ToppersBatchStateTest" time="0.0"/>
+  <testcase name="officialTrackerExcludesSavedPersonalCoursesFromEveryView" classname="com.safarparmar.app.feature.toppersbatch.ToppersBatchStateTest" time="0.001"/>
+  <testcase name="backendNamesAndEmptySubjectsArePreservedWithoutInventingLectures" classname="com.safarparmar.app.feature.toppersbatch.ToppersBatchStateTest" time="0.001"/>
+  <testcase name="completedSyllabusHasActualFinishAndUndoRemovesIt" classname="com.safarparmar.app.feature.toppersbatch.ToppersBatchStateTest" time="0.0"/>
+  <testcase name="watchListAdvancesPerSubjectAndUndoRestoresThePreviousLecture" classname="com.safarparmar.app.feature.toppersbatch.ToppersBatchStateTest" time="0.0"/>
+  <testcase name="completionGraphUsesIndiaDayAndOnlySelectedLectures" classname="com.safarparmar.app.feature.toppersbatch.ToppersBatchStateTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

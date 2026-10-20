@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.feature.youtubestudyv2.YoutubeServiceLifecycleWiringTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-19T19:59:39.736Z" hostname="Shashanks-MacBook-Air.local" time="0.473">
+  <properties/>
+  <testcase name="feedback interruption preserves the bound monitor and schedules a new read" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeServiceLifecycleWiringTest" time="0.318"/>
+  <testcase name="guard acknowledges startup before rejecting a stale command with a newer start pending" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeServiceLifecycleWiringTest" time="0.155"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

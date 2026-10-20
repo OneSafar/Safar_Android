@@ -12,6 +12,10 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class NotificationDeepLinkHandlerTest {
+    @Test fun habitRemindersOpenHabitTracker() {
+        assertEquals(Routes.HABIT_TRACKER, NotificationDeepLinkHandler.routeFor("safar://habits"))
+    }
+
     @Test fun titliReplyOpensTheQueryInbox() {
         assertEquals(Routes.TITLI_QUERIES, NotificationDeepLinkHandler.routeFor("safar://titli/queries?id=q"))
         assertEquals(Routes.HOME, NotificationDeepLinkHandler.routeFor("safar://titli/unknown"))

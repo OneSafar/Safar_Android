@@ -1,0 +1,14 @@
+[
+  {
+    "case": "focus",
+    "interruption": "kill",
+    "seedPid": 13134,
+    "verificationPid": 13388,
+    "clientSessionId": "local-dc7d26c0-60f5-4aed-978c-58598014e414",
+    "initialFocusSeconds": 720,
+    "finalFocusSeconds": 727,
+    "endReason": "user-ended",
+    "rowCount": 1,
+    "passed": true
+  }
+]

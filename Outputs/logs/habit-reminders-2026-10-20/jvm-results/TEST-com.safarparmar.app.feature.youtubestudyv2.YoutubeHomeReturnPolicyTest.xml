@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.feature.youtubestudyv2.YoutubeHomeReturnPolicyTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-20T02:12:56.071Z" hostname="Shashanks-MacBook-Air.local" time="0.0">
+  <properties/>
+  <testcase name="deep linked player opens YouTube Home once and never uses Back" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeHomeReturnPolicyTest" time="0.0"/>
+  <testcase name="leaving YouTube cancels navigation" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeHomeReturnPolicyTest" time="0.0"/>
+  <testcase name="unselected Home is never treated as ready to refresh" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeHomeReturnPolicyTest" time="0.0"/>
+  <testcase name="Shorts tab returns through Home and waits for the player to disappear" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeHomeReturnPolicyTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

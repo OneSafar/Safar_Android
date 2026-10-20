@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.feature.toppersbatch.BatchStudyWorkflowTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-20T02:12:55.935Z" hostname="Shashanks-MacBook-Air.local" time="0.001">
+  <properties/>
+  <testcase name="revisionHistoryHasBothPlannedAndActualDatesAndSeparateCounts" classname="com.safarparmar.app.feature.toppersbatch.BatchStudyWorkflowTest" time="0.0"/>
+  <testcase name="futurePlansAreDeliberateWhileMissedSkippedAndManualRemainDistinct" classname="com.safarparmar.app.feature.toppersbatch.BatchStudyWorkflowTest" time="0.0"/>
+  <testcase name="oldBatchDatesNeverCreateLateEnrollmentBacklogAndUnknownImportAddsNoActivity" classname="com.safarparmar.app.feature.toppersbatch.BatchStudyWorkflowTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

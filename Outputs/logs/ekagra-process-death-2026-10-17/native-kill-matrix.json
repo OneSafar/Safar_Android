@@ -1,0 +1,54 @@
+[
+  {
+    "case": "focus",
+    "interruption": "kill",
+    "seedPid": 16128,
+    "verificationPid": 16281,
+    "clientSessionId": "local-ecca0a4c-55b8-48ac-b122-436a0258e969",
+    "initialFocusSeconds": 720,
+    "finalFocusSeconds": 726,
+    "rowCount": 1,
+    "passed": true,
+    "backgroundPid": 16281,
+    "backgroundRestarted": true
+  },
+  {
+    "case": "focus-completion",
+    "interruption": "kill",
+    "seedPid": 16281,
+    "verificationPid": 16463,
+    "clientSessionId": "local-fd69ea8b-898a-4e33-83c0-ab64feb28a4e",
+    "initialFocusSeconds": 7194,
+    "finalFocusSeconds": 7200,
+    "rowCount": 1,
+    "passed": true,
+    "backgroundPid": null,
+    "backgroundRestarted": false
+  },
+  {
+    "case": "stopwatch",
+    "interruption": "kill",
+    "seedPid": 16463,
+    "verificationPid": 16912,
+    "clientSessionId": "local-7ed7c15c-60a8-40b8-bc2d-0d8a14bf88e1",
+    "initialFocusSeconds": 720,
+    "finalFocusSeconds": 742,
+    "rowCount": 1,
+    "passed": true,
+    "backgroundPid": 16912,
+    "backgroundRestarted": true
+  },
+  {
+    "case": "paused",
+    "interruption": "kill",
+    "seedPid": 16912,
+    "verificationPid": 17124,
+    "clientSessionId": "local-5d55b162-e50e-48a8-a525-c1b86a0fe9c0",
+    "initialFocusSeconds": 720,
+    "finalFocusSeconds": 720,
+    "rowCount": 1,
+    "passed": true,
+    "backgroundPid": null,
+    "backgroundRestarted": false
+  }
+]

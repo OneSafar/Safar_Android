@@ -34,6 +34,8 @@ class TitliReleaseGateInstrumentedTest {
                     EkagraTutorialEntry(store, eligible = true, isDarkTheme = false, model = ekagra)
                     GoalsTutorialEntry(store, eligible = true, model = goals)
                     TitliFeatureHelp(TitliFeature.YOUTUBE, onDone = {})
+                    listOf(TitliFeature.HABITS, TitliFeature.TOPPERS_BATCH, TitliFeature.MEHFIL, TitliFeature.DHYAN)
+                        .forEach { ScreenPracticeEntry(it, isDarkTheme = false) }
                 }
             }
         }
@@ -42,6 +44,7 @@ class TitliReleaseGateInstrumentedTest {
         compose.onNodeWithTag("titli.portrait").assertDoesNotExist()
         compose.onNodeWithTag("ekagra.tutorial.practice").assertDoesNotExist()
         compose.onNodeWithTag("goals.tutorial.practice").assertDoesNotExist()
+        compose.onNodeWithTag("practice.label").assertDoesNotExist()
         compose.onNodeWithText(context.getString(R.string.ekagra_tutorial_invite)).assertDoesNotExist()
         compose.onNodeWithText(context.getString(R.string.goals_tutorial_invite)).assertDoesNotExist()
     }

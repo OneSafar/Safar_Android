@@ -282,6 +282,7 @@ fun KavachStitchPillToggle(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
 ) {
     val thumbOffset by animateFloatAsState(
         targetValue = if (checked) 20f else 2f,
@@ -293,6 +294,7 @@ fun KavachStitchPillToggle(
             .clip(RoundedCornerShape(999.dp))
             .background(if (checked) KavachDesign.Primary else KavachDesign.SearchFieldBg)
             .clickable(
+                enabled = enabled,
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
             ) { onCheckedChange(!checked) },

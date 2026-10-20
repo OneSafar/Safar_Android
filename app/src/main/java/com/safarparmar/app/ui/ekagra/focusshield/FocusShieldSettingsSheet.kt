@@ -1,5 +1,9 @@
 package com.safarparmar.app.ui.ekagra.focusshield
 
+import androidx.compose.runtime.rememberUpdatedState
+
+import androidx.compose.ui.platform.LocalResources
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -54,7 +58,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
+import com.safarparmar.app.ui.components.popups.SafarModalBottomSheet as ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -133,6 +137,7 @@ fun FocusShieldSettingsContent(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+    val localizedResources by rememberUpdatedState(LocalResources.current)
     val lifecycleOwner = LocalLifecycleOwner.current
     var hasOverlay by remember { mutableStateOf(state.hasOverlayPermission) }
     var hasNotifications by remember { mutableStateOf(state.hasNotifications) }
@@ -160,7 +165,7 @@ fun FocusShieldSettingsContent(
         if (pendingEnableFlow) {
             pendingEnableFlow = false
             if (state.blockedPackages.isEmpty()) {
-                android.widget.Toast.makeText(context, context.getString(R.string.kavach_select_app_first), android.widget.Toast.LENGTH_SHORT).show()
+                android.widget.Toast.makeText(context, localizedResources.getString(R.string.kavach_select_app_first), android.widget.Toast.LENGTH_SHORT).show()
                 pendingEnableAfterAppSelection = true
                 onSetPendingEnableAfterAppSelection(true)
                 onOpenAppPicker()
@@ -168,7 +173,7 @@ fun FocusShieldSettingsContent(
                 if (!state.isEnabled) {
                     onToggleEnabled(true)
                 }
-                grantedBannerText = context.getString(R.string.kavach_active_ready)
+                grantedBannerText = localizedResources.getString(R.string.kavach_active_ready)
             }
         }
     }
@@ -241,7 +246,7 @@ fun FocusShieldSettingsContent(
                 if (!state.isEnabled) {
                     onToggleEnabled(true)
                 }
-                grantedBannerText = context.getString(R.string.kavach_active_ready)
+                grantedBannerText = localizedResources.getString(R.string.kavach_active_ready)
             }
         }
     }
@@ -285,7 +290,7 @@ fun FocusShieldSettingsContent(
                         if (!state.isEnabled) {
                             onToggleEnabled(true)
                         }
-                        grantedBannerText = context.getString(R.string.kavach_active_ready)
+                        grantedBannerText = localizedResources.getString(R.string.kavach_active_ready)
                     }
                 }
 
@@ -370,7 +375,7 @@ fun FocusShieldSettingsContent(
 
                         // 2. Mandatory permissions granted. Now check apps to block
                         if (state.blockedPackages.isEmpty()) {
-                            android.widget.Toast.makeText(context, context.getString(R.string.kavach_select_app_first), android.widget.Toast.LENGTH_SHORT).show()
+                            android.widget.Toast.makeText(context, localizedResources.getString(R.string.kavach_select_app_first), android.widget.Toast.LENGTH_SHORT).show()
                             pendingEnableAfterAppSelection = true
                             onSetPendingEnableAfterAppSelection(true)
                             onOpenAppPicker()
@@ -379,7 +384,7 @@ fun FocusShieldSettingsContent(
 
                         // 3. Both permissions and apps are selected -> turn on Kavach!
                         onToggleEnabled(true)
-                        grantedBannerText = context.getString(R.string.kavach_active_ready)
+                        grantedBannerText = localizedResources.getString(R.string.kavach_active_ready)
                     } else {
                         pendingEnableFlow = false
                         pendingEnableAfterAppSelection = false

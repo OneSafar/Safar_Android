@@ -23,7 +23,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
+import com.safarparmar.app.ui.components.popups.SafarDialog as Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.os.LocaleListCompat
 import com.safarparmar.app.R
@@ -59,8 +59,9 @@ fun LanguageSelectionDialog(
     ) {
         Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp),
+                .padding(horizontal = 20.dp)
+                .widthIn(max = 420.dp)
+                .fillMaxWidth(),
             contentAlignment = Alignment.Center
         ) {
             Surface(

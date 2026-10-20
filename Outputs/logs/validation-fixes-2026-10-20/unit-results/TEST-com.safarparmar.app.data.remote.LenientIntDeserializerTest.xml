@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.data.remote.LenientIntDeserializerTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-19T19:59:37.291Z" hostname="Shashanks-MacBook-Air.local" time="0.031">
+  <properties/>
+  <testcase name="a whole number is unaffected" classname="com.safarparmar.app.data.remote.LenientIntDeserializerTest" time="0.026"/>
+  <testcase name="missing and null stay null rather than defaulting" classname="com.safarparmar.app.data.remote.LenientIntDeserializerTest" time="0.002"/>
+  <testcase name="a fractional dailyGoal parses instead of crashing" classname="com.safarparmar.app.data.remote.LenientIntDeserializerTest" time="0.002"/>
+  <testcase name="rounds to the nearest whole goal" classname="com.safarparmar.app.data.remote.LenientIntDeserializerTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

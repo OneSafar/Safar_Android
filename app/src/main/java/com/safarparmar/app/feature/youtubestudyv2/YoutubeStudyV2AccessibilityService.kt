@@ -47,6 +47,7 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val session = YoutubeStudyV2Session()
     private var classificationObserver: Job? = null
+    private var enabledObserver: Job? = null
     private val overlay by lazy { KavachBlockOverlay(this, accessibilityOverlay = true) }
     private var latestDetectionReport: YoutubeDetectionReport? = null
     private var firstStableRead: YoutubeV2Observation? = null
@@ -153,16 +154,41 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
 
     override fun onServiceConnected() {
         super.onServiceConnected()
+        isConnected = true
+        enabledObserver?.cancel()
+        enabledObserver = scope.launch(Dispatchers.Main.immediate) {
+            preferences.enabled.collect { enabled ->
+                if (enabled) {
+                    scheduleRead(0L)
+                } else {
+                    clearPlaybackState()
+                    YoutubeStudyV2GuardService.stop(this@YoutubeStudyV2AccessibilityService)
+                }
+            }
+        }
         classificationObserver?.cancel()
         classificationObserver = scope.launch(Dispatchers.Main.immediate) {
             repository.classifications.collect { classifications ->
                 classificationsByChannelId = classifications.associate { entity ->
                     entity.channelId to YoutubeChannelClassification.fromWire(entity.classification)
                 }
-                lastWatchedChannelId?.let { channelId ->
-                    // Keep the already verified playback decision if Room emits
-                    // a transient list that does not contain this entry yet.
-                    classificationsByChannelId[channelId]?.let { lastWatchedClassification = it }
+                val watchedChannelId = lastWatchedChannelId
+                val playbackGeneration = evaluationGeneration
+                val currentClassification = currentYoutubePlaybackClassification(
+                    channelId = watchedChannelId,
+                    previous = lastWatchedClassification,
+                    observedRules = classificationsByChannelId,
+                    reload = { channelId ->
+                        withContext(Dispatchers.IO) { repository.evaluateChannelId(channelId).classification }
+                    },
+                )
+                // A read can suspend while the user disables Focus or selects another video.
+                if (evaluationGeneration != playbackGeneration || lastWatchedChannelId != watchedChannelId) {
+                    return@collect
+                }
+                lastWatchedClassification = currentClassification
+                if (currentClassification != YoutubeChannelClassification.PRODUCTIVE) {
+                    verifiedVideoTitle = null
                 }
                 // Invalidate both cached and in-flight decisions after a saved rule
                 // change. The next stable read uses the updated local allowlist.
@@ -183,7 +209,6 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
         handler.post(heartbeat)
         handler.removeCallbacks(analyticsHeartbeat)
         handler.post(analyticsHeartbeat)
-        isConnected = true
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
@@ -276,7 +301,22 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
         }
     }
 
-    override fun onInterrupt() = stopRuntime()
+    override fun onInterrupt() {
+        // Android interrupts accessibility feedback without unbinding this service.
+        // Retain the verified owner and connection, and resume monitoring afterward.
+        homeNavigationGeneration++
+        returningHome = false
+        evaluationGeneration++
+        evaluationJob?.cancel()
+        pendingEvaluationKey = null
+        confirmation?.let(handler::removeCallbacks)
+        confirmation = null
+        confirmationKey = null
+        lastEvaluatedKey = null
+        dismissBlockOverlaySilently()
+        stopAnalytics()
+        if (preferences.enabled.value) scheduleRead(0L)
+    }
 
     override fun onDestroy() {
         isConnected = false
@@ -293,23 +333,38 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
 
     private fun stopRuntime() {
         isConnected = false
+        YoutubeStudyV2GuardService.stop(this)
+        enabledObserver?.cancel()
+        enabledObserver = null
+        classificationObserver?.cancel()
+        classificationObserver = null
+        handler.removeCallbacks(heartbeat)
+        handler.removeCallbacks(analyticsHeartbeat)
+        handler.removeCallbacks(pipMonitor)
+        clearPlaybackState()
+    }
+
+    /** Disabling Focus clears its overlay and pending decisions without unbinding accessibility. */
+    private fun clearPlaybackState() {
         homeNavigationGeneration++
         evaluationJob?.cancel()
         confirmation?.let(handler::removeCallbacks)
         confirmationKey = null
         returningHome = false
-        classificationObserver?.cancel()
-        classificationObserver = null
         handler.removeCallbacks(debounce)
         scheduledReadAtMs = Long.MAX_VALUE
-        handler.removeCallbacks(heartbeat)
-        handler.removeCallbacks(analyticsHeartbeat)
-        handler.removeCallbacks(pipMonitor)
         evaluationGeneration++
         firstStableRead = null
         lastEvaluatedKey = null
         ownerMissingSinceMs = null
         pendingYoutubeClickAtMs = null
+        fullscreenTransition.clear()
+        verifiedVideoTitle = null
+        lastWatchedChannelId = null
+        lastWatchedDisplayName = null
+        lastWatchedExactHandle = null
+        lastWatchedClassification = null
+        pendingEvaluationKey = null
         fullscreenMissingSinceMs = null
         fullscreenHudRevealAttempts = 0
         fullscreenHudRevealInFlight = false
@@ -498,6 +553,7 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
             scheduleRead(DEBOUNCE_MS)
             return
         }
+        session.acceptStable(second, SystemClock.elapsedRealtime())
         if (session.isAlreadyEvaluated(second.stableKey, lastEvaluatedKey)) {
             if (pausedForFullscreenIdentity && lastWatchedClassification == YoutubeChannelClassification.PRODUCTIVE) {
                 resumeMedia()
@@ -685,6 +741,9 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
                     return@withContext
                 }
                 if (!blockOverlayVisible || returningHome) return@withContext
+                evaluationGeneration++
+                evaluationJob?.cancel()
+                pendingEvaluationKey = null
                 val current = readObservation()
                 val channel = result.getOrThrow().channel
                 lastWatchedChannelId = channel.channelId
@@ -695,6 +754,10 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
                 overlay.dismiss()
                 if (isYoutubeVisible() && expectedVideoKey != null && current.stableKey == expectedVideoKey) {
                     verifiedVideoTitle = current.title
+                    fullscreenTransition.markVerified(current)
+                    val now = SystemClock.elapsedRealtime()
+                    session.onVideoTap(now)
+                    session.acceptStable(current, now)
                     resumeMedia()
                     recordAnalytics(channel.channelId, YoutubeInsightsRepository.CATEGORY_PRODUCTIVE, false)
                     lastEvaluatedKey = current.stableKey
@@ -909,8 +972,8 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
                 overlay.dismiss()
                 navigateToYoutubeHome()
             },
-            quickUnlockMinutes = if (FocusShieldRepository.ShieldPrefs.isActive(this) &&
-                FocusShieldRepository.ShieldPrefs.isStrict(this)) emptyList() else listOf(5, 10, 15, 20),
+            // Focus owns YouTube even when Kavach uses strict blocking for other apps.
+            quickUnlockMinutes = listOf(5, 10, 15, 20),
             blockedPackage = YoutubeStudyV2Parser.YOUTUBE_PACKAGE,
             quickUnlockOrigin = FocusShieldRepository.ShieldPrefs.QUICK_UNLOCK_ORIGIN_YOUTUBE_STUDY,
             onQuickUnlock = { minutes ->

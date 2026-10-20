@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.ui.ekagra.focusshield.ForegroundAppTrackerTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-19T19:59:47.792Z" hostname="Shashanks-MacBook-Air.local" time="0.0">
+  <properties/>
+  <testcase name="pause from replaced activity does not forget the fullscreen foreground app" classname="com.safarparmar.app.ui.ekagra.focusshield.ForegroundAppTrackerTest" time="0.0"/>
+  <testcase name="switching apps replaces the cached foreground package" classname="com.safarparmar.app.ui.ekagra.focusshield.ForegroundAppTrackerTest" time="0.0"/>
+  <testcase name="background event only clears the matching foreground package" classname="com.safarparmar.app.ui.ekagra.focusshield.ForegroundAppTrackerTest" time="0.0"/>
+  <testcase name="blocked app remains tracked after switching between its activities" classname="com.safarparmar.app.ui.ekagra.focusshield.ForegroundAppTrackerTest" time="0.0"/>
+  <testcase name="keeps foreground package when a later query has no new events" classname="com.safarparmar.app.ui.ekagra.focusshield.ForegroundAppTrackerTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

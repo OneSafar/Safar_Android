@@ -1,5 +1,7 @@
 package com.safarparmar.app.ui.nishtha
 
+import androidx.compose.ui.platform.LocalLocale
+
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -55,6 +57,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.safarparmar.app.R
+import com.safarparmar.app.ui.tutorial.tutorialTarget
 import com.safarparmar.app.ui.components.StatCardSkeleton
 import com.safarparmar.app.ui.studyplanner.components.LocalPlannerIsDarkTheme
 import com.safarparmar.app.ui.studyplanner.components.PlannerFlatColors
@@ -102,17 +105,18 @@ private object StreaksPalette {
 fun StreaksScreen(viewModel: NishthaViewModel = hiltViewModel()) {
     androidx.compose.runtime.LaunchedEffect(viewModel) { viewModel.loadTab(com.safarparmar.app.ui.nishtha.NishthaTab.STREAKS) }
     val isLight = MaterialTheme.colorScheme.background.isLightBackground()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    com.safarparmar.app.ui.tutorial.ScreenPracticeEntry(com.safarparmar.app.ui.tutorial.TitliFeature.STREAKS,
+        !isLight, eligible = !state.isLoadingStreaks && !state.isRestoringStreak)
     CompositionLocalProvider(LocalPlannerIsDarkTheme provides !isLight) {
-        StreaksScreenContent(viewModel = viewModel, isLight = isLight)
+        StreaksScreenContent(uiState = state, isLight = isLight, onRestore = viewModel::restoreCheckInStreak)
     }
 }
 
 @Composable
-private fun StreaksScreenContent(
-    viewModel: NishthaViewModel,
-    isLight: Boolean,
+internal fun StreaksScreenContent(
+    uiState: NishthaUiState, isLight: Boolean, onRestore: () -> Unit = {},
 ) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val streaks = uiState.streaks
     val loginDates = remember(uiState.loginHistory) {
         uiState.loginHistory.mapNotNull { entry ->
@@ -188,6 +192,7 @@ private fun StreaksScreenContent(
 
             // ── macOS glass streak tiles ────────────────────────────────────
             StreakGlassCard(
+                modifier = Modifier.tutorialTarget("streaks.counts"),
                 label = stringResource(R.string.streaks_checkin_label),
                 value = streaks.checkInStreak,
                 accent = StreaksPalette.CheckIn,
@@ -212,7 +217,7 @@ private fun StreaksScreenContent(
                                     enabled = !uiState.isRestoringStreak,
                                     interactionSource = remember { MutableInteractionSource() },
                                     indication = null,
-                                    onClick = viewModel::restoreCheckInStreak,
+                                    onClick = onRestore,
                                 ),
                             ) {
                                 if (uiState.isRestoringStreak) {
@@ -346,7 +351,7 @@ private fun StreaksScreenContent(
             lineColor = StreaksPalette.Trend,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(100.dp),
+                .height(100.dp).tutorialTarget("streaks.trend"),
         )
         Spacer(Modifier.height(8.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
@@ -472,7 +477,7 @@ private fun CalendarSection(
     val startDow = firstOfMonth.dayOfWeek.value % 7
 
     Text(
-        today.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale.getDefault())).uppercase(),
+        today.format(DateTimeFormatter.ofPattern("MMMM yyyy", LocalLocale.current.platformLocale)).uppercase(),
         fontSize = 11.sp,
         fontWeight = FontWeight.Bold,
         letterSpacing = 2.sp,
@@ -498,7 +503,7 @@ private fun CalendarSection(
     val totalCells = startDow + daysInMonth
     val rows = (totalCells + 6) / 7
     repeat(rows) { row ->
-        Row(Modifier.fillMaxWidth()) {
+        Row(Modifier.fillMaxWidth().then(if (row == 0) Modifier.tutorialTarget("streaks.calendar") else Modifier)) {
             repeat(7) { col ->
                 val cellIndex = row * 7 + col
                 val day = cellIndex - startDow + 1

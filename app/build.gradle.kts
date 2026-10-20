@@ -92,13 +92,15 @@ android {
         applicationId = "com.safarparmar.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 76
-        versionName = "1.6.76"
+        versionCode = 77
+        versionName = "1.6.77"
         val compactSummary = providers.gradleProperty("dashboardMonthlySummary").getOrElse("false")
         require(compactSummary in setOf("true", "false")) { "dashboardMonthlySummary must be true or false" }
         buildConfigField("boolean", "DASHBOARD_MONTHLY_SUMMARY_ENABLED", compactSummary)
-        // Keep unfinished Titli guidance hidden in every build until it is ready to ship.
-        buildConfigField("boolean", "TITLI_TUTORIALS_ENABLED", "false")
+        // Debug preview opt-in; release builds force tutorials off below.
+        val titliTutorialsEnabled = providers.gradleProperty("titliTutorialsEnabled").getOrElse("false")
+        require(titliTutorialsEnabled in setOf("true", "false")) { "titliTutorialsEnabled must be true or false" }
+        buildConfigField("boolean", "TITLI_TUTORIALS_ENABLED", titliTutorialsEnabled)
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         // Compile-time override for manual comparison; normal builds select by device capabilities.
         val effects = providers.gradleProperty("safarEffects").getOrElse("auto")
@@ -167,6 +169,8 @@ android {
 
     buildTypes {
         release {
+            // Hide every Titli icon, invitation, replay action and practice lesson in this version.
+            buildConfigField("boolean", "TITLI_TUTORIALS_ENABLED", "false")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")

@@ -579,8 +579,6 @@
     <string name="support_afternoon">dopahara</string>
     <string name="support_evening">sama</string>
     <string name="support_anytime">kabhi bhi</string>
-    <string name="support_asked_before">pehle bhi support mamga hai?</string>
-    <string name="support_first_time">nahi, pahali baar</string>
     <string name="support_send_request">meri request bhejein</string>
     <string name="support_request_status">Request status</string>
     <string name="support_preferred_callback">Preferred callback: %1$s</string>

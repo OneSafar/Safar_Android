@@ -54,14 +54,14 @@ fun HabitScreen(
     onToggleDarkTheme: () -> Unit = {},
     viewModel: HabitViewModel = hiltViewModel()
 ) {
-    var showTitliHelp by rememberSaveable { mutableStateOf(false) }
-    com.safarparmar.app.ui.tutorial.RegisterTitliGuide(start = { showTitliHelp = true }, lessons = { showTitliHelp = true },
-        feature = com.safarparmar.app.ui.tutorial.TitliFeature.HABITS)
-    if (showTitliHelp) com.safarparmar.app.ui.tutorial.TitliFeatureHelp(com.safarparmar.app.ui.tutorial.TitliFeature.HABITS, onDone = { showTitliHelp = false })
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     var showAddHabit by rememberSaveable { mutableStateOf(false) }
     var editingId by rememberSaveable { mutableStateOf<Long?>(null) }
+    com.safarparmar.app.ui.tutorial.ScreenPracticeEntry(
+        com.safarparmar.app.ui.tutorial.TitliFeature.HABITS, isDarkTheme,
+        eligible = !state.isLoading && !showAddHabit && editingId == null)
+
     val selectedHabit = state.weeklyHabits.firstOrNull { it.habit.id == editingId }?.habit
     val snackbar = remember { SnackbarHostState() }
     val pager = rememberPagerState(initialPage = state.selectedTab.ordinal) { HabitTab.entries.size }
@@ -212,7 +212,7 @@ fun HabitScreen(
         if (showAddHabit) {
             AddHabitBottomSheet(
                 onDismiss = { showAddHabit = false },
-                onCreate = { name, days, isEveryDay -> viewModel.createHabit(name, days, isEveryDay) },
+                onCreate = { name, days, isEveryDay, reminderTime -> viewModel.createHabit(name, days, isEveryDay, reminderTime) },
                 onCreated = { name, days ->
                     scope.launch { snackbar.showSnackbar(habitCreatedMessage(name, days, LocalDate.now())) }
                 }

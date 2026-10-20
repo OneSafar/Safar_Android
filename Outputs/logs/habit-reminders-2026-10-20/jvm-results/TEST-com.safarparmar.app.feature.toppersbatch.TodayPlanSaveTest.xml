@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.feature.toppersbatch.TodayPlanSaveTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-20T02:12:55.966Z" hostname="Shashanks-MacBook-Air.local" time="0.018">
+  <properties/>
+  <testcase name="oneTapAddsTodayAndAStaleSecondTapDoesNotResave" classname="com.safarparmar.app.feature.toppersbatch.TodayPlanSaveTest" time="0.003"/>
+  <testcase name="failedSaveKeepsTheDialogOpenAndDoesNotInventAPlan" classname="com.safarparmar.app.feature.toppersbatch.TodayPlanSaveTest" time="0.002"/>
+  <testcase name="conflictRefreshesTheVersionAndRetryUsesTheLatestLecture" classname="com.safarparmar.app.feature.toppersbatch.TodayPlanSaveTest" time="0.004"/>
+  <testcase name="confirmedSaveIsVisibleBeforeDismissEvenIfRefreshFails" classname="com.safarparmar.app.feature.toppersbatch.TodayPlanSaveTest" time="0.003"/>
+  <testcase name="quickAddPreservesFuturePlansAndIgnoresDoneAndLockedLectures" classname="com.safarparmar.app.feature.toppersbatch.TodayPlanSaveTest" time="0.002"/>
+  <testcase name="repeatedSaveTapsSendOnlyOneMutation" classname="com.safarparmar.app.feature.toppersbatch.TodayPlanSaveTest" time="0.003"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

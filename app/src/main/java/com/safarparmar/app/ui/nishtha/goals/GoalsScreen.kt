@@ -1,5 +1,11 @@
 package com.safarparmar.app.ui.nishtha.goals
 
+import androidx.compose.runtime.rememberUpdatedState
+
+import androidx.compose.ui.platform.LocalResources
+
+import androidx.compose.ui.platform.LocalLocale
+
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -45,11 +51,11 @@ import com.safarparmar.app.ui.nishtha.goals.GoalDialog as AlertDialog
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
+import com.safarparmar.app.ui.components.popups.SafarDatePickerDialog as DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
+import com.safarparmar.app.ui.components.popups.SafarModalBottomSheet as ModalBottomSheet
 import com.safarparmar.app.ui.nishtha.goals.GoalInput as OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.SelectableDates
@@ -140,6 +146,8 @@ private fun GoalsScreenContent(
     }
 
     val context = LocalContext.current
+    val localizedResources by rememberUpdatedState(LocalResources.current)
+    val locale = LocalLocale.current.platformLocale
     var selectedTab by remember { mutableStateOf(0) }
     val tabs = listOf(
         stringResource(R.string.common_today),
@@ -240,7 +248,7 @@ private fun GoalsScreenContent(
 
     // Study time completion dialog
     if (showRepeatPicker) {
-        com.composables.ui.components.AlertDialog(visible = true, onDismissRequest = { showRepeatPicker = false },
+        com.safarparmar.app.ui.components.popups.SafarComposablesAlertDialog(visible = true, onDismissRequest = { showRepeatPicker = false },
             paneTitle = "Goals", modifier = Modifier.heightIn(max = (androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp * 0.8f).dp)) {
             GoalRepeatContent(uiState.goals, uiState.isSavingGoal, onRepeat = { selectedGoals, source, daily ->
                 if (source == 0) viewModel.repeatGoalsOnDate(selectedGoals, LocalDate.parse(IstDateUtils.todayKey()).plusDays(1).toString(), daily)
@@ -251,7 +259,7 @@ private fun GoalsScreenContent(
     }
 
     if (showDeletedSheet) {
-        com.composables.ui.components.AlertDialog(visible = true, onDismissRequest = { showDeletedSheet = false },
+        com.safarparmar.app.ui.components.popups.SafarComposablesAlertDialog(visible = true, onDismissRequest = { showDeletedSheet = false },
             paneTitle = "Goals", modifier = Modifier.heightIn(max = (androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp * 0.8f).dp)) {
             GoalDeletedContent(uiState.recentlyDeletedGoals, uiState.isLoadingDeletedGoals, uiState.isSavingGoal,
                 onRestore = { viewModel.restoreGoal(it.id) })
@@ -259,7 +267,7 @@ private fun GoalsScreenContent(
     }
 
     deleteGoal?.let { goal ->
-        com.composables.ui.components.AlertDialog(
+        com.safarparmar.app.ui.components.popups.SafarComposablesAlertDialog(
             visible = true,
             onDismissRequest = { deleteGoal = null },
             title = { Text(stringResource(R.string.goals_delete_title)) },
@@ -317,7 +325,7 @@ private fun GoalsScreenContent(
         val originalDateKey = goal.assignedDateKey().orEmpty()
         val originalDate = runCatching {
             LocalDate.parse(originalDateKey).format(
-                DateTimeFormatter.ofPattern("MMMM d", Locale.getDefault()),
+                DateTimeFormatter.ofPattern("MMMM d", locale),
             )
         }.getOrDefault(originalDateKey)
         AlertDialog(
@@ -369,7 +377,7 @@ private fun GoalsScreenContent(
 
     // Edit sheet
     editGoal?.let { goal ->
-        com.composables.ui.components.AlertDialog(visible = true, onDismissRequest = { editGoal = null },
+        com.safarparmar.app.ui.components.popups.SafarComposablesAlertDialog(visible = true, onDismissRequest = { editGoal = null },
             paneTitle = "Goals", modifier = Modifier.heightIn(max = (androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp * 0.8f).dp)) {
             GoalCreationContent(
                 title = editTitle, description = editDesc, scheduled = editGoalKind == "scheduled",
@@ -423,7 +431,7 @@ private fun GoalsScreenContent(
     }
 
     if (showAddSheet) {
-        com.composables.ui.components.AlertDialog(visible = true, onDismissRequest = { showAddSheet = false },
+        com.safarparmar.app.ui.components.popups.SafarComposablesAlertDialog(visible = true, onDismissRequest = { showAddSheet = false },
             paneTitle = "Goals", modifier = Modifier.heightIn(max = (androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp * 0.8f).dp)) {
             GoalCreationContent(
                 title = newTitle, description = newDesc, scheduled = newGoalKind == "scheduled",
@@ -515,8 +523,8 @@ private fun GoalsScreenContent(
                     deleteGoal = null
                     viewModel.loadRecentlyDeletedGoals()
                     val result = snackbarHostState.showSnackbar(
-                        message = context.getString(R.string.goals_moved_to_recently_deleted),
-                        actionLabel = context.getString(R.string.common_undo),
+                        message = localizedResources.getString(R.string.goals_moved_to_recently_deleted),
+                        actionLabel = localizedResources.getString(R.string.common_undo),
                         withDismissAction = true,
                     )
                     if (result == SnackbarResult.ActionPerformed && actionGoalId != null) {

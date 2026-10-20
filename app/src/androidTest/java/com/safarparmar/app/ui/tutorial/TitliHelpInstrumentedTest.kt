@@ -43,6 +43,27 @@ class TitliHelpInstrumentedTest {
         compose.waitUntil(5000) { starts == 1 }
         compose.runOnIdle { assertEquals(TitliFeature.EKAGRA, destination) }
     }
+    @Test fun selectingANewFeatureWaitsForItsLoadingState() {
+        org.junit.Assume.assumeTrue(com.safarparmar.app.BuildConfig.TITLI_TUTORIALS_ENABLED)
+        val store = SafarDataStore(InstrumentationRegistry.getInstrumentation().context)
+        val key = "test-titli-ready-${UUID.randomUUID()}"
+        runBlocking { store.setTitliIntroductionSeen(key) }
+        var destination by mutableStateOf(false)
+        var ready by mutableStateOf(false)
+        var starts = 0
+        compose.setContent { SafarTheme {
+            TitliHost(store, {}, {}, onOpenHabits = { destination = true }, introductionKey = key) {
+                if (destination) RegisterTitliGuide({ starts++ }, {}, TitliFeature.HABITS, ready = ready)
+                TitliGuideButton()
+            }
+        } }
+        compose.onNodeWithTag("titli.button").performClick()
+        compose.waitUntil(5000) { compose.onAllNodesWithTag("titli.menu.HABITS").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithTag("titli.menu.HABITS").performScrollTo().performClick()
+        compose.runOnIdle { assertEquals(0, starts); ready = true }
+        compose.waitUntil(5000) { starts == 1 }
+    }
+
     @Test fun queryFormValidatesAndDisplaysReplyWithoutNetworkWrites() {
         var state by mutableStateOf(TitliQueriesState(loading = false, signedIn = true,
             queries = listOf(TitliQueryDto("sample", "How do I start?", reply = TitliReplyDto("Tap Start.")))))

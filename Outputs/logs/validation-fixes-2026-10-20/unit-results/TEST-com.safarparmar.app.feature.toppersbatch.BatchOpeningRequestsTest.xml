@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.feature.toppersbatch.BatchOpeningRequestsTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-19T19:59:39.125Z" hostname="Shashanks-MacBook-Air.local" time="0.013">
+  <properties/>
+  <testcase name="missingEnrollmentActivatesOnce" classname="com.safarparmar.app.feature.toppersbatch.BatchOpeningRequestsTest" time="0.007"/>
+  <testcase name="existingStudentNeedsOnlyOneOverviewRequest" classname="com.safarparmar.app.feature.toppersbatch.BatchOpeningRequestsTest" time="0.004"/>
+  <testcase name="accessDenialDoesNotAttemptActivation" classname="com.safarparmar.app.feature.toppersbatch.BatchOpeningRequestsTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

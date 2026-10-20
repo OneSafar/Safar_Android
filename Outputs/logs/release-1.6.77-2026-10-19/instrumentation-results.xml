@@ -1,0 +1,668 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="148" failures="19" errors="0" skipped="5" time="688.645" timestamp="2026-10-19T18:19:22" hostname="localhost">
+  <testsuite name="com.safarparmar.app.feature.habits.HabitDatabaseRecoveryTest" tests="1" failures="0" errors="0" skipped="0" time="0.505" timestamp="2026-10-19T18:19:22" hostname="localhost">
+    <properties>
+      <property name="device" value="Resizable_Experimental(AVD) - 17" />
+      <property name="flavor" value="prod" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="versionFiveDataSurvivesRecovery" classname="com.safarparmar.app.feature.habits.HabitDatabaseRecoveryTest" time="0.505" />
+  </testsuite>
+  <testsuite name="com.safarparmar.app.feature.habits.HabitSyncInstrumentedTest" tests="2" failures="0" errors="0" skipped="0" time="0.556" timestamp="2026-10-19T18:19:22" hostname="localhost">
+    <properties>
+      <property name="device" value="Resizable_Experimental(AVD) - 17" />
+      <property name="flavor" value="prod" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="legacyImportSurvivesLostResponseRestoresFreshPhoneAndRemovesLocalHistory" classname="com.safarparmar.app.feature.habits.HabitSyncInstrumentedTest" time="0.438" />
+    <testcase name="importedRemoteCopyCannotOverwriteNewerServerEditsOrResurrectDeletion" classname="com.safarparmar.app.feature.habits.HabitSyncInstrumentedTest" time="0.118" />
+  </testsuite>
+  <testsuite name="com.safarparmar.app.feature.toppersbatch.BatchCalendarLayoutTest" tests="8" failures="0" errors="0" skipped="0" time="105.64" timestamp="2026-10-19T18:19:22" hostname="localhost">
+    <properties>
+      <property name="device" value="Resizable_Experimental(AVD) - 17" />
+      <property name="flavor" value="prod" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="calendarReflowsAndPreservesActions[320dp/1x/dark=false]" classname="com.safarparmar.app.feature.toppersbatch.BatchCalendarLayoutTest" time="18.553" />
+    <testcase name="calendarReflowsAndPreservesActions[375dp/1x/dark=false]" classname="com.safarparmar.app.feature.toppersbatch.BatchCalendarLayoutTest" time="13.006" />
+    <testcase name="calendarReflowsAndPreservesActions[414dp/1x/dark=false]" classname="com.safarparmar.app.feature.toppersbatch.BatchCalendarLayoutTest" time="13.979" />
+    <testcase name="calendarReflowsAndPreservesActions[768dp/1x/dark=false]" classname="com.safarparmar.app.feature.toppersbatch.BatchCalendarLayoutTest" time="12.313" />
+    <testcase name="calendarReflowsAndPreservesActions[1,000dp/1x/dark=false]" classname="com.safarparmar.app.feature.toppersbatch.BatchCalendarLayoutTest" time="12.155" />
+    <testcase name="calendarReflowsAndPreservesActions[320dp/1.6x/dark=false]" classname="com.safarparmar.app.feature.toppersbatch.BatchCalendarLayoutTest" time="11.277" />
+    <testcase name="calendarReflowsAndPreservesActions[320dp/2x/dark=false]" classname="com.safarparmar.app.feature.toppersbatch.BatchCalendarLayoutTest" time="13.311" />
+    <testcase name="calendarReflowsAndPreservesActions[375dp/1x/dark=true]" classname="com.safarparmar.app.feature.toppersbatch.BatchCalendarLayoutTest" time="11.046" />
+  </testsuite>
+  <testsuite name="com.safarparmar.app.feature.toppersbatch.BatchLocalizationTest" tests="12" failures="0" errors="0" skipped="0" time="111.083" timestamp="2026-10-19T18:19:22" hostname="localhost">
+    <properties>
+      <property name="device" value="Resizable_Experimental(AVD) - 17" />
+      <property name="flavor" value="prod" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="screensDialogsAndLanguageSwitchKeepExistingState[en/wide-dark-large=false]" classname="com.safarparmar.app.feature.toppersbatch.BatchLocalizationTest" time="17.566" />
+    <testcase name="resourcesFormatsAndEnglishOverridePolicy[en/wide-dark-large=false]" classname="com.safarparmar.app.feature.toppersbatch.BatchLocalizationTest" time="2.778" />
+    <testcase name="screensDialogsAndLanguageSwitchKeepExistingState[en/wide-dark-large=true]" classname="com.safarparmar.app.feature.toppersbatch.BatchLocalizationTest" time="15.836" />
+    <testcase name="resourcesFormatsAndEnglishOverridePolicy[en/wide-dark-large=true]" classname="com.safarparmar.app.feature.toppersbatch.BatchLocalizationTest" time="4.074" />
+    <testcase name="screensDialogsAndLanguageSwitchKeepExistingState[hi/wide-dark-large=false]" classname="com.safarparmar.app.feature.toppersbatch.BatchLocalizationTest" time="17.915" />
+    <testcase name="resourcesFormatsAndEnglishOverridePolicy[hi/wide-dark-large=false]" classname="com.safarparmar.app.feature.toppersbatch.BatchLocalizationTest" time="3.793" />
+    <testcase name="screensDialogsAndLanguageSwitchKeepExistingState[hi/wide-dark-large=true]" classname="com.safarparmar.app.feature.toppersbatch.BatchLocalizationTest" time="14.061" />
+    <testcase name="resourcesFormatsAndEnglishOverridePolicy[hi/wide-dark-large=true]" classname="com.safarparmar.app.feature.toppersbatch.BatchLocalizationTest" time="3.183" />
+    <testcase name="screensDialogsAndLanguageSwitchKeepExistingState[hi-Latn/wide-dark-large=false]" classname="com.safarparmar.app.feature.toppersbatch.BatchLocalizationTest" time="13.837" />
+    <testcase name="resourcesFormatsAndEnglishOverridePolicy[hi-Latn/wide-dark-large=false]" classname="com.safarparmar.app.feature.toppersbatch.BatchLocalizationTest" time="3.167" />
+    <testcase name="screensDialogsAndLanguageSwitchKeepExistingState[hi-Latn/wide-dark-large=true]" classname="com.safarparmar.app.feature.toppersbatch.BatchLocalizationTest" time="12.601" />
+    <testcase name="resourcesFormatsAndEnglishOverridePolicy[hi-Latn/wide-dark-large=true]" classname="com.safarparmar.app.feature.toppersbatch.BatchLocalizationTest" time="2.272" />
+  </testsuite>
+  <testsuite name="com.safarparmar.app.feature.toppersbatch.BatchPickerThemeTest" tests="1" failures="0" errors="0" skipped="0" time="0.367" timestamp="2026-10-19T18:19:22" hostname="localhost">
+    <properties>
+      <property name="device" value="Resizable_Experimental(AVD) - 17" />
+      <property name="flavor" value="prod" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="datePickerInflatesWithClampedScaleAndActivityTheme" classname="com.safarparmar.app.feature.toppersbatch.BatchPickerThemeTest" time="0.367" />
+  </testsuite>
+  <testsuite name="com.safarparmar.app.feature.toppersbatch.BatchPremiumAccessTest" tests="2" failures="0" errors="0" skipped="0" time="7.302" timestamp="2026-10-19T18:19:22" hostname="localhost">
+    <properties>
+      <property name="device" value="Resizable_Experimental(AVD) - 17" />
+      <property name="flavor" value="prod" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="freeStudentsReachPremiumWithoutRunningFeatureActions" classname="com.safarparmar.app.feature.toppersbatch.BatchPremiumAccessTest" time="3.443" />
+    <testcase name="premiumStudentsUseFeaturesWithoutAnyRedirect" classname="com.safarparmar.app.feature.toppersbatch.BatchPremiumAccessTest" time="3.859" />
+  </testsuite>
+  <testsuite name="com.safarparmar.app.feature.toppersbatch.CalendarBusyDayTest" tests="1" failures="0" errors="0" skipped="0" time="4.338" timestamp="2026-10-19T18:19:22" hostname="localhost">
+    <properties>
+      <property name="device" value="Resizable_Experimental(AVD) - 17" />
+      <property name="flavor" value="prod" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="manyCompletionsStayInsideTheirDateAndRemainInTheAgenda" classname="com.safarparmar.app.feature.toppersbatch.CalendarBusyDayTest" time="4.338" />
+  </testsuite>
+  <testsuite name="com.safarparmar.app.feature.toppersbatch.TodayPlanFlowTest" tests="9" failures="0" errors="0" skipped="0" time="57.56" timestamp="2026-10-19T18:19:22" hostname="localhost">
+    <properties>
+      <property name="device" value="Resizable_Experimental(AVD) - 17" />
+      <property name="flavor" value="prod" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="failedSaveRetainsChosenFutureDateAndRetryReturnsToToday" classname="com.safarparmar.app.feature.toppersbatch.TodayPlanFlowTest" time="5.868" />
+    <testcase name="subjectCardsOpenTheirContentsInBothModes" classname="com.safarparmar.app.feature.toppersbatch.TodayPlanFlowTest" time="7.611" />
+    <testcase name="addCompleteAndUndoFromToday" classname="com.safarparmar.app.feature.toppersbatch.TodayPlanFlowTest" time="5.658" />
+    <testcase name="fullTrackerTitleWrapsWithLargeText" classname="com.safarparmar.app.feature.toppersbatch.TodayPlanFlowTest" time="2.639" />
+    <testcase name="savedSubjectColourUpdatesBothModesAndSurvivesRefresh" classname="com.safarparmar.app.feature.toppersbatch.TodayPlanFlowTest" time="6.636" />
+    <testcase name="completedUnplannedLectureHasNoEmptyWatchDateAndUnfinishedDateIsActionable" classname="com.safarparmar.app.feature.toppersbatch.TodayPlanFlowTest" time="7.021" />
+    <testcase name="modeHelpSubjectCardsAndRemoveRemainAccessible" classname="com.safarparmar.app.feature.toppersbatch.TodayPlanFlowTest" time="10.016" />
+    <testcase name="fullTrackerTitleWrapsWithoutTruncation" classname="com.safarparmar.app.feature.toppersbatch.TodayPlanFlowTest" time="3.531" />
+    <testcase name="switchingToOfficialHidesWatchDatesAndRetainsThePersonalPlan" classname="com.safarparmar.app.feature.toppersbatch.TodayPlanFlowTest" time="8.58" />
+  </testsuite>
+  <testsuite name="com.safarparmar.app.feature.toppersbatch.TodayPlanLayoutTest" tests="16" failures="16" errors="0" skipped="0" time="44.381" timestamp="2026-10-19T18:19:22" hostname="localhost">
+    <properties>
+      <property name="device" value="Resizable_Experimental(AVD) - 17" />
+      <property name="flavor" value="prod" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="emptyPopulatedAndCompletedPlansFit[320dp/1x/dark=false]" classname="com.safarparmar.app.feature.toppersbatch.TodayPlanLayoutTest" time="2.957">
+      <failure>java.lang.AssertionError: Action performScrollTo() failed.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (Text + InputText + EditableText contains 'Planned lectures for today' (ignoreCase: false))
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performScrollTo(Actions.kt:80)
+at com.safarparmar.app.feature.toppersbatch.TodayPlanLayoutTest.emptyPopulatedAndCompletedPlansFit(TodayPlanLayoutTest.kt:76)
+</failure>
+    </testcase>
+    <testcase name="emptyPopulatedAndCompletedPlansFit[320dp/1.6x/dark=false]" classname="com.safarparmar.app.feature.toppersbatch.TodayPlanLayoutTest" time="2.967">
+      <failure>java.lang.AssertionError: Action performScrollTo() failed.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (Text + InputText + EditableText contains 'Planned lectures for today' (ignoreCase: false))
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performScrollTo(Actions.kt:80)
+at com.safarparmar.app.feature.toppersbatch.TodayPlanLayoutTest.emptyPopulatedAndCompletedPlansFit(TodayPlanLayoutTest.kt:76)
+</failure>
+    </testcase>
+    <testcase name="emptyPopulatedAndCompletedPlansFit[320dp/1x/dark=true]" classname="com.safarparmar.app.feature.toppersbatch.TodayPlanLayoutTest" time="2.918">
+      <failure>java.lang.AssertionError: Action performScrollTo() failed.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (Text + InputText + EditableText contains 'Planned lectures for today' (ignoreCase: false))
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performScrollTo(Actions.kt:80)
+at com.safarparmar.app.feature.toppersbatch.TodayPlanLayoutTest.emptyPopulatedAndCompletedPlansFit(TodayPlanLayoutTest.kt:76)
+</failure>
+    </testcase>
+    <testcase name="emptyPopulatedAndCompletedPlansFit[320dp/1.6x/dark=true]" classname="com.safarparmar.app.feature.toppersbatch.TodayPlanLayoutTest" time="3.145">
+      <failure>java.lang.AssertionError: Action performScrollTo() failed.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (Text + InputText + EditableText contains 'Planned lectures for today' (ignoreCase: false))
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performScrollTo(Actions.kt:80)
+at com.safarparmar.app.feature.toppersbatch.TodayPlanLayoutTest.emptyPopulatedAndCompletedPlansFit(TodayPlanLayoutTest.kt:76)
+</failure>
+    </testcase>
+    <testcase name="emptyPopulatedAndCompletedPlansFit[375dp/1x/dark=false]" classname="com.safarparmar.app.feature.toppersbatch.TodayPlanLayoutTest" time="2.617">
+      <failure>java.lang.AssertionError: Action performScrollTo() failed.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (Text + InputText + EditableText contains 'Planned lectures for today' (ignoreCase: false))
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performScrollTo(Actions.kt:80)
+at com.safarparmar.app.feature.toppersbatch.TodayPlanLayoutTest.emptyPopulatedAndCompletedPlansFit(TodayPlanLayoutTest.kt:76)
+</failure>
+    </testcase>
+    <testcase name="emptyPopulatedAndCompletedPlansFit[375dp/1.6x/dark=false]" classname="com.safarparmar.app.feature.toppersbatch.TodayPlanLayoutTest" time="3.284">
+      <failure>java.lang.AssertionError: Action performScrollTo() failed.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (Text + InputText + EditableText contains 'Planned lectures for today' (ignoreCase: false))
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performScrollTo(Actions.kt:80)
+at com.safarparmar.app.feature.toppersbatch.TodayPlanLayoutTest.emptyPopulatedAndCompletedPlansFit(TodayPlanLayoutTest.kt:76)
+</failure>
+    </testcase>
+    <testcase name="emptyPopulatedAndCompletedPlansFit[375dp/1x/dark=true]" classname="com.safarparmar.app.feature.toppersbatch.TodayPlanLayoutTest" time="2.999">
+      <failure>java.lang.AssertionError: Action performScrollTo() failed.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (Text + InputText + EditableText contains 'Planned lectures for today' (ignoreCase: false))
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performScrollTo(Actions.kt:80)
+at com.safarparmar.app.feature.toppersbatch.TodayPlanLayoutTest.emptyPopulatedAndCompletedPlansFit(TodayPlanLayoutTest.kt:76)
+</failure>
+    </testcase>
+    <testcase name="emptyPopulatedAndCompletedPlansFit[375dp/1.6x/dark=true]" classname="com.safarparmar.app.feature.toppersbatch.TodayPlanLayoutTest" time="3.156">
+      <failure>java.lang.AssertionError: Action performScrollTo() failed.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (Text + InputText + EditableText contains 'Planned lectures for today' (ignoreCase: false))
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performScrollTo(Actions.kt:80)
+at com.safarparmar.app.feature.toppersbatch.TodayPlanLayoutTest.emptyPopulatedAndCompletedPlansFit(TodayPlanLayoutTest.kt:76)
+</failure>
+    </testcase>
+    <testcase name="emptyPopulatedAndCompletedPlansFit[414dp/1x/dark=false]" classname="com.safarparmar.app.feature.toppersbatch.TodayPlanLayoutTest" time="2.073">
+      <failure>java.lang.AssertionError: Action performScrollTo() failed.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (Text + InputText + EditableText contains 'Planned lectures for today' (ignoreCase: false))
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performScrollTo(Actions.kt:80)
+at com.safarparmar.app.feature.toppersbatch.TodayPlanLayoutTest.emptyPopulatedAndCompletedPlansFit(TodayPlanLayoutTest.kt:76)
+</failure>
+    </testcase>
+    <testcase name="emptyPopulatedAndCompletedPlansFit[414dp/1.6x/dark=false]" classname="com.safarparmar.app.feature.toppersbatch.TodayPlanLayoutTest" time="2.406">
+      <failure>java.lang.AssertionError: Action performScrollTo() failed.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (Text + InputText + EditableText contains 'Planned lectures for today' (ignoreCase: false))
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performScrollTo(Actions.kt:80)
+at com.safarparmar.app.feature.toppersbatch.TodayPlanLayoutTest.emptyPopulatedAndCompletedPlansFit(TodayPlanLayoutTest.kt:76)
+</failure>
+    </testcase>
+    <testcase name="emptyPopulatedAndCompletedPlansFit[414dp/1x/dark=true]" classname="com.safarparmar.app.feature.toppersbatch.TodayPlanLayoutTest" time="2.143">
+      <failure>java.lang.AssertionError: Action performScrollTo() failed.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (Text + InputText + EditableText contains 'Planned lectures for today' (ignoreCase: false))
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performScrollTo(Actions.kt:80)
+at com.safarparmar.app.feature.toppersbatch.TodayPlanLayoutTest.emptyPopulatedAndCompletedPlansFit(TodayPlanLayoutTest.kt:76)
+</failure>
+    </testcase>
+    <testcase name="emptyPopulatedAndCompletedPlansFit[414dp/1.6x/dark=true]" classname="com.safarparmar.app.feature.toppersbatch.TodayPlanLayoutTest" time="2.809">
+      <failure>java.lang.AssertionError: Action performScrollTo() failed.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (Text + InputText + EditableText contains 'Planned lectures for today' (ignoreCase: false))
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performScrollTo(Actions.kt:80)
+at com.safarparmar.app.feature.toppersbatch.TodayPlanLayoutTest.emptyPopulatedAndCompletedPlansFit(TodayPlanLayoutTest.kt:76)
+</failure>
+    </testcase>
+    <testcase name="emptyPopulatedAndCompletedPlansFit[768dp/1x/dark=false]" classname="com.safarparmar.app.feature.toppersbatch.TodayPlanLayoutTest" time="3.287">
+      <failure>java.lang.AssertionError: Action performScrollTo() failed.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (Text + InputText + EditableText contains 'Planned lectures for today' (ignoreCase: false))
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performScrollTo(Actions.kt:80)
+at com.safarparmar.app.feature.toppersbatch.TodayPlanLayoutTest.emptyPopulatedAndCompletedPlansFit(TodayPlanLayoutTest.kt:76)
+</failure>
+    </testcase>
+    <testcase name="emptyPopulatedAndCompletedPlansFit[768dp/1.6x/dark=false]" classname="com.safarparmar.app.feature.toppersbatch.TodayPlanLayoutTest" time="3.502">
+      <failure>java.lang.AssertionError: Action performScrollTo() failed.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (Text + InputText + EditableText contains 'Planned lectures for today' (ignoreCase: false))
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performScrollTo(Actions.kt:80)
+at com.safarparmar.app.feature.toppersbatch.TodayPlanLayoutTest.emptyPopulatedAndCompletedPlansFit(TodayPlanLayoutTest.kt:76)
+</failure>
+    </testcase>
+    <testcase name="emptyPopulatedAndCompletedPlansFit[768dp/1x/dark=true]" classname="com.safarparmar.app.feature.toppersbatch.TodayPlanLayoutTest" time="2.505">
+      <failure>java.lang.AssertionError: Action performScrollTo() failed.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (Text + InputText + EditableText contains 'Planned lectures for today' (ignoreCase: false))
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performScrollTo(Actions.kt:80)
+at com.safarparmar.app.feature.toppersbatch.TodayPlanLayoutTest.emptyPopulatedAndCompletedPlansFit(TodayPlanLayoutTest.kt:76)
+</failure>
+    </testcase>
+    <testcase name="emptyPopulatedAndCompletedPlansFit[768dp/1.6x/dark=true]" classname="com.safarparmar.app.feature.toppersbatch.TodayPlanLayoutTest" time="1.613">
+      <failure>java.lang.AssertionError: Action performScrollTo() failed.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (Text + InputText + EditableText contains 'Planned lectures for today' (ignoreCase: false))
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performScrollTo(Actions.kt:80)
+at com.safarparmar.app.feature.toppersbatch.TodayPlanLayoutTest.emptyPopulatedAndCompletedPlansFit(TodayPlanLayoutTest.kt:76)
+</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="com.safarparmar.app.feature.toppersbatch.ToppersBatchOpeningTest" tests="3" failures="0" errors="0" skipped="0" time="9.224" timestamp="2026-10-19T18:19:22" hostname="localhost">
+    <properties>
+      <property name="device" value="Resizable_Experimental(AVD) - 17" />
+      <property name="flavor" value="prod" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="opensInDarkMode" classname="com.safarparmar.app.feature.toppersbatch.ToppersBatchOpeningTest" time="3.449" />
+    <testcase name="opensWithNoLectures" classname="com.safarparmar.app.feature.toppersbatch.ToppersBatchOpeningTest" time="2.83" />
+    <testcase name="opensWithOfficialSyllabus" classname="com.safarparmar.app.feature.toppersbatch.ToppersBatchOpeningTest" time="2.945" />
+  </testsuite>
+  <testsuite name="com.safarparmar.app.feature.toppersbatch.ToppersReminderLinkTest" tests="2" failures="0" errors="0" skipped="0" time="0.063" timestamp="2026-10-19T18:19:22" hostname="localhost">
+    <properties>
+      <property name="device" value="Resizable_Experimental(AVD) - 17" />
+      <property name="flavor" value="prod" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="classReminderOpensAndroidTracker" classname="com.safarparmar.app.feature.toppersbatch.ToppersReminderLinkTest" time="0.062" />
+    <testcase name="unrelatedWebLinksRemainExternal" classname="com.safarparmar.app.feature.toppersbatch.ToppersReminderLinkTest" time="0.001" />
+  </testsuite>
+  <testsuite name="com.safarparmar.app.ui.components.SafarAdaptiveLayoutTest" tests="12" failures="0" errors="0" skipped="0" time="33.399" timestamp="2026-10-19T18:19:22" hostname="localhost">
+    <properties>
+      <property name="device" value="Resizable_Experimental(AVD) - 17" />
+      <property name="flavor" value="prod" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="subscriptionDetailsAreNotSqueezedByAction[width=320, scale=1, dark=false]" classname="com.safarparmar.app.ui.components.SafarAdaptiveLayoutTest" time="2.633" />
+    <testcase name="bottomBarReservesSpaceAtEveryFontSize[width=320, scale=1, dark=false]" classname="com.safarparmar.app.ui.components.SafarAdaptiveLayoutTest" time="2.711" />
+    <testcase name="profileActionsKeepLabelsReadableAndClicksWork[width=320, scale=1, dark=false]" classname="com.safarparmar.app.ui.components.SafarAdaptiveLayoutTest" time="2.76" />
+    <testcase name="subscriptionDetailsAreNotSqueezedByAction[width=320, scale=1.5, dark=true]" classname="com.safarparmar.app.ui.components.SafarAdaptiveLayoutTest" time="2.209" />
+    <testcase name="bottomBarReservesSpaceAtEveryFontSize[width=320, scale=1.5, dark=true]" classname="com.safarparmar.app.ui.components.SafarAdaptiveLayoutTest" time="2.794" />
+    <testcase name="profileActionsKeepLabelsReadableAndClicksWork[width=320, scale=1.5, dark=true]" classname="com.safarparmar.app.ui.components.SafarAdaptiveLayoutTest" time="3.078" />
+    <testcase name="subscriptionDetailsAreNotSqueezedByAction[width=360, scale=2, dark=false]" classname="com.safarparmar.app.ui.components.SafarAdaptiveLayoutTest" time="3.009" />
+    <testcase name="bottomBarReservesSpaceAtEveryFontSize[width=360, scale=2, dark=false]" classname="com.safarparmar.app.ui.components.SafarAdaptiveLayoutTest" time="2.661" />
+    <testcase name="profileActionsKeepLabelsReadableAndClicksWork[width=360, scale=2, dark=false]" classname="com.safarparmar.app.ui.components.SafarAdaptiveLayoutTest" time="3.34" />
+    <testcase name="subscriptionDetailsAreNotSqueezedByAction[width=600, scale=1, dark=true]" classname="com.safarparmar.app.ui.components.SafarAdaptiveLayoutTest" time="3.012" />
+    <testcase name="bottomBarReservesSpaceAtEveryFontSize[width=600, scale=1, dark=true]" classname="com.safarparmar.app.ui.components.SafarAdaptiveLayoutTest" time="2.068" />
+    <testcase name="profileActionsKeepLabelsReadableAndClicksWork[width=600, scale=1, dark=true]" classname="com.safarparmar.app.ui.components.SafarAdaptiveLayoutTest" time="3.124" />
+  </testsuite>
+  <testsuite name="com.safarparmar.app.ui.components.popups.SafarPopupEnvironmentInstrumentedTest" tests="2" failures="2" errors="0" skipped="0" time="8.123" timestamp="2026-10-19T18:19:22" hostname="localhost">
+    <properties>
+      <property name="device" value="Resizable_Experimental(AVD) - 17" />
+      <property name="flavor" value="prod" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="bridgeDoesNotAddSpacedLayoutChildrenAndIsRemovedOnDismissal" classname="com.safarparmar.app.ui.components.popups.SafarPopupEnvironmentInstrumentedTest" time="2.958">
+      <failure>java.lang.AssertionError
+at org.junit.Assert.fail(Assert.java:87)
+at org.junit.Assert.assertTrue(Assert.java:42)
+at org.junit.Assert.assertTrue(Assert.java:53)
+at com.safarparmar.app.ui.components.popups.SafarPopupEnvironmentInstrumentedTest.bridgeDoesNotAddSpacedLayoutChildrenAndIsRemovedOnDismissal$lambda$4(SafarPopupEnvironmentInstrumentedTest.kt:72)
+at com.safarparmar.app.ui.components.popups.SafarPopupEnvironmentInstrumentedTest$$ExternalSyntheticLambda18.invoke(D8$$SyntheticClass:0)
+at androidx.compose.ui.test.AndroidSynchronization_androidKt.runOnUiThread$lambda$0(AndroidSynchronization.android.kt:39)
+at androidx.compose.ui.test.AndroidSynchronization_androidKt$$ExternalSyntheticLambda0.call(D8$$SyntheticClass:0)
+at java.util.concurrent.FutureTask.run(FutureTask.java:328)
+at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:520)
+at java.util.concurrent.FutureTask.run(FutureTask.java:328)
+at android.app.Instrumentation$SyncRunnable.run(Instrumentation.java:2675)
+at android.os.Handler.handleCallback(Handler.java:1082)
+at android.os.Handler.dispatchMessageImpl(Handler.java:135)
+at android.os.Handler.dispatchMessage(Handler.java:126)
+at android.os.Looper.loopOnce(Looper.java:295)
+at android.os.Looper.loop(Looper.java:398)
+at android.app.ActivityThread.main(ActivityThread.java:9569)
+at java.lang.reflect.Method.invoke(Native Method)
+at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:575)
+at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:918)
+Suppressed: java.util.concurrent.ExecutionException: An Exception occurred on the UI thread during runOnUiThread()
+at androidx.compose.ui.test.AndroidSynchronization_androidKt.runOnUiThread(AndroidSynchronization.android.kt:50)
+at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$AndroidComposeUiTestImpl.runOnUiThread(ComposeUiTest.android.kt:834)
+at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$AndroidComposeUiTestImpl.runOnIdle(ComposeUiTest.android.kt:841)
+at androidx.compose.ui.test.junit4.AndroidComposeTestRule.runOnIdle(AndroidComposeTestRule.android.kt:475)
+at com.safarparmar.app.ui.components.popups.SafarPopupEnvironmentInstrumentedTest.bridgeDoesNotAddSpacedLayoutChildrenAndIsRemovedOnDismissal(SafarPopupEnvironmentInstrumentedTest.kt:71)
+at java.lang.reflect.Method.invoke(Native Method)
+at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59)
+at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:56)
+at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+at androidx.compose.ui.test.junit4.AndroidComposeTestRule$apply$testWithDisposal$1.evaluate(AndroidComposeTestRule.android.kt:418)
+at org.junit.rules.ExternalResource$1.evaluate(ExternalResource.java:54)
+at androidx.compose.ui.test.junit4.AndroidComposeTestRule$apply$1$evaluate$1.invokeSuspend(AndroidComposeTestRule.android.kt:438)
+at androidx.compose.ui.test.junit4.AndroidComposeTestRule$apply$1$evaluate$1.invoke(AndroidComposeTestRule.android.kt:8)
+at androidx.compose.ui.test.junit4.AndroidComposeTestRule$apply$1$evaluate$1.invoke(AndroidComposeTestRule.android.kt:4)
+at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$runTest$1$1$1$1$1.invokeSuspend(ComposeUiTest.android.kt:682)
+at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$runTest$1$1$1$1$1.invoke(ComposeUiTest.android.kt:8)
+at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$runTest$1$1$1$1$1.invoke(ComposeUiTest.android.kt:2)
+at androidx.compose.ui.test.EspressoLink.withStrategy(EspressoLink.android.kt:69)
+at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$runTest$1$1.invokeSuspend(ComposeUiTest.android.kt:679)
+at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$runTest$1$1.invoke(ComposeUiTest.android.kt:8)
+at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$runTest$1$1.invoke(ComposeUiTest.android.kt:4)
+at kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt$runTest$2$1$1.invokeSuspend(TestBuilders.kt:317)
+at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:100)
+at kotlinx.coroutines.test.TestDispatcher.processEvent$kotlinx_coroutines_test(TestDispatcher.kt:24)
+at kotlinx.coroutines.test.TestCoroutineScheduler.tryRunNextTaskUnless$kotlinx_coroutines_test(TestCoroutineScheduler.kt:99)
+at kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt$runTest$2$1$workRunner$1.invokeSuspend(TestBuilders.kt:326)
+at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:100)
+at kotlinx.coroutines.EventLoopImplBase.processNextEvent(EventLoop.common.kt:263)
+at kotlinx.coroutines.BlockingCoroutine.joinBlocking(Builders.kt:94)
+at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking(Builders.kt:70)
+at kotlinx.coroutines.BuildersKt.runBlocking(dex-id-c4231c70dd7e9e457b3dabf31cd412caa6042531:1)
+at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking$default(Builders.kt:48)
+at kotlinx.coroutines.BuildersKt.runBlocking$default(dex-id-c4231c70dd7e9e457b3dabf31cd412caa6042531:1)
+at kotlinx.coroutines.test.TestBuildersJvmKt.createTestResult(TestBuildersJvm.kt:10)
+at kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt.runTest-8Mi8wO0(TestBuilders.kt:309)
+at kotlinx.coroutines.test.TestBuildersKt.runTest-8Mi8wO0(dex-id-762224b92c0265491019c805d36b29175707d801:1)
+at kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt.runTest-8Mi8wO0(TestBuilders.kt:167)
+at kotlinx.coroutines.test.TestBuildersKt.runTest-8Mi8wO0(dex-id-762224b92c0265491019c805d36b29175707d801:1)
+at androidx.compose.ui.test.AndroidComposeUiTestEnvironment.runTest(ComposeUiTest.android.kt:658)
+at androidx.compose.ui.test.junit4.AndroidComposeTestRule$apply$1.evaluate(AndroidComposeTestRule.android.kt:438)
+at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+at org.junit.runners.BlockJUnit4ClassRunner$1.evaluate(BlockJUnit4ClassRunner.java:100)
+at org.junit.runners.ParentRunner.runLeaf(ParentRunner.java:366)
+at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:103)
+at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:63)
+at org.junit.runners.ParentRunner$4.run(ParentRunner.java:331)
+at org.junit.runners.ParentRunner$1.schedule(ParentRunner.java:79)
+at org.junit.runners.ParentRunner.runChildren(ParentRunner.java:329)
+at org.junit.runners.ParentRunner.access$100(ParentRunner.java:66)
+at org.junit.runners.ParentRunner$2.evaluate(ParentRunner.java:293)
+at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+at org.junit.runners.ParentRunner.run(ParentRunner.java:413)
+at org.junit.runners.Suite.runChild(Suite.java:128)
+at org.junit.runners.Suite.runChild(Suite.java:27)
+at org.junit.runners.ParentRunner$4.run(ParentRunner.java:331)
+at org.junit.runners.ParentRunner$1.schedule(ParentRunner.java:79)
+at org.junit.runners.ParentRunner.runChildren(ParentRunner.java:329)
+at org.junit.runners.ParentRunner.access$100(ParentRunner.java:66)
+at org.junit.runners.ParentRunner$2.evaluate(ParentRunner.java:293)
+at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+at org.junit.runners.ParentRunner.run(ParentRunner.java:413)
+at org.junit.runner.JUnitCore.run(JUnitCore.java:137)
+at org.junit.runner.JUnitCore.run(JUnitCore.java:115)
+at androidx.test.internal.runner.TestExecutor.execute(TestExecutor.java:68)
+at androidx.test.internal.runner.TestExecutor.execute(TestExecutor.java:59)
+at androidx.test.runner.AndroidJUnitRunner.onStart(AndroidJUnitRunner.java:467)
+at android.app.Instrumentation$InstrumentationThread.run(Instrumentation.java:2655)
+</failure>
+    </testcase>
+    <testcase name="nativeDialogChromeTracksScaleAndKeepsFormStateWithoutChangingHostResources" classname="com.safarparmar.app.ui.components.popups.SafarPopupEnvironmentInstrumentedTest" time="5.165">
+      <failure>java.lang.AssertionError: Failed to assert the following: (Text + InputText + EditableText contains 'keep slot state' (ignoreCase: false))
+Semantics of the node:
+Node #20747 at (l=38.0, t=208.0, r=410.0, b=298.0)px, Tag: 'native.popup.slot.input'
+ContentDataType = 'AndroidContentDataType(androidAutofillType=1)'
+EditableText = 'slot draft'
+FillableData = 'androidx.compose.ui.autofill.AndroidFillableData&#64;44e7475'
+Focused = 'false'
+ImeAction = 'Default'
+InputText = 'slot draft'
+IsEditable = 'true'
+TextSelectionRange = 'TextRange(0, 0)'
+Actions = [GetTextLayoutResult, InsertTextAtCursor, OnClick, OnFillData, OnLongClick, PasteText, PerformImeAction, RequestFocus, SetSelection, SetText]
+MergeDescendants = 'true'
+Has 3 siblings
+Selector used: (TestTag = 'native.popup.slot.input')
+
+at androidx.compose.ui.test.AssertionsKt.assert(Assertions.kt:264)
+at androidx.compose.ui.test.AssertionsKt.assert$default(Assertions.kt:254)
+at androidx.compose.ui.test.AssertionsKt.assertTextContains(Assertions.kt:208)
+at androidx.compose.ui.test.AssertionsKt.assertTextContains$default(Assertions.kt:204)
+at com.safarparmar.app.ui.components.popups.SafarPopupEnvironmentInstrumentedTest.nativeDialogChromeTracksScaleAndKeepsFormStateWithoutChangingHostResources(SafarPopupEnvironmentInstrumentedTest.kt:140)
+</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="com.safarparmar.app.ui.drawer.ViewportDrawerStateTest" tests="2" failures="0" errors="0" skipped="0" time="6.344" timestamp="2026-10-19T18:19:22" hostname="localhost">
+    <properties>
+      <property name="device" value="Resizable_Experimental(AVD) - 17" />
+      <property name="flavor" value="prod" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="otherScreensRetainTheirDrawerStateWhenPolicyIsDisabled" classname="com.safarparmar.app.ui.drawer.ViewportDrawerStateTest" time="2.723" />
+    <testcase name="closedDrawerStaysClosedAcrossRepeatedLandscapePortraitDensityChanges" classname="com.safarparmar.app.ui.drawer.ViewportDrawerStateTest" time="3.621" />
+  </testsuite>
+  <testsuite name="com.safarparmar.app.ui.ekagra.EkagraAlarmInstrumentedTest" tests="2" failures="0" errors="0" skipped="0" time="0.316" timestamp="2026-10-19T18:19:22" hostname="localhost">
+    <properties>
+      <property name="device" value="Resizable_Experimental(AVD) - 17" />
+      <property name="flavor" value="prod" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="systemAlarmIsRegisteredWithAndWithoutExactAccess" classname="com.safarparmar.app.ui.ekagra.EkagraAlarmInstrumentedTest" time="0.196" />
+    <testcase name="ekagraChannelsUseDeviceSoundOrVibration" classname="com.safarparmar.app.ui.ekagra.EkagraAlarmInstrumentedTest" time="0.12" />
+  </testsuite>
+  <testsuite name="com.safarparmar.app.ui.ekagra.EkagraJournalInstrumentedTest" tests="24" failures="0" errors="0" skipped="0" time="1.054" timestamp="2026-10-19T18:19:22" hostname="localhost">
+    <properties>
+      <property name="device" value="Resizable_Experimental(AVD) - 17" />
+      <property name="flavor" value="prod" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="resumableProcessDeathRetainsTheOriginalIdentityAndDoesNotUploadATwelveMinuteFragment" classname="com.safarparmar.app.ui.ekagra.EkagraJournalInstrumentedTest" time="0.232" />
+    <testcase name="sameProcessScreenRecreationDoesNotFinalize" classname="com.safarparmar.app.ui.ekagra.EkagraJournalInstrumentedTest" time="0.115" />
+    <testcase name="completionAndEndRaceAndLateCheckpointProduceOneFinalRecord" classname="com.safarparmar.app.ui.ekagra.EkagraJournalInstrumentedTest" time="0.119" />
+    <testcase name="failedDiskWriteRetainsCheckpointAndCanRetry" classname="com.safarparmar.app.ui.ekagra.EkagraJournalInstrumentedTest" time="0.102" />
+    <testcase name="uploadAcknowledgementKeepsIdentityAndCannotBeReopened" classname="com.safarparmar.app.ui.ekagra.EkagraJournalInstrumentedTest" time="0.091" />
+    <testcase name="serviceRecreationInTheSameProcessCanClaimItsActiveDurableCheckpoint" classname="com.safarparmar.app.ui.ekagra.EkagraJournalInstrumentedTest" time="0.031" />
+    <testcase name="retryWithTheSameClockMillisecondCannotUndoANewerPause" classname="com.safarparmar.app.ui.ekagra.EkagraJournalInstrumentedTest" time="0.029" />
+    <testcase name="pendingHistoryAndUploadsAreAccountIsolated" classname="com.safarparmar.app.ui.ekagra.EkagraJournalInstrumentedTest" time="0.001" />
+    <testcase name="claimRetainsOlderOrphanProgressWithoutStartingTwoTimers" classname="com.safarparmar.app.ui.ekagra.EkagraJournalInstrumentedTest" time="0.029" />
+    <testcase name="emptyCloseNeverDropsExistingNonzeroProgressOrRewritesAFinalizedCompletion" classname="com.safarparmar.app.ui.ekagra.EkagraJournalInstrumentedTest" time="0.03" />
+    <testcase name="legacyPomodoroBreakOnlyCountsCompletedFocusRounds" classname="com.safarparmar.app.ui.ekagra.EkagraJournalInstrumentedTest" time="0.031" />
+    <testcase name="failedEmptyCloseCanRetryWithoutResurrectingTheTimer" classname="com.safarparmar.app.ui.ekagra.EkagraJournalInstrumentedTest" time="0.001" />
+    <testcase name="acknowledgementDiskFailureKeepsTwoHourSessionPendingForTheSameUploadRetry" classname="com.safarparmar.app.ui.ekagra.EkagraJournalInstrumentedTest" time="0.029" />
+    <testcase name="goalChoiceOnOfflineCompletionUpdatesSamePendingRow" classname="com.safarparmar.app.ui.ekagra.EkagraJournalInstrumentedTest" time="0.031" />
+    <testcase name="closingBeforeTheFirstDurableCheckpointCreatesATombstoneForLateRetries" classname="com.safarparmar.app.ui.ekagra.EkagraJournalInstrumentedTest" time="0.001" />
+    <testcase name="processDeathSavesCheckpointNotThePlannedFiveHours" classname="com.safarparmar.app.ui.ekagra.EkagraJournalInstrumentedTest" time="0.031" />
+    <testcase name="failedRecoveryCheckpointWriteRemainsRetryableWithTheSameIdentity" classname="com.safarparmar.app.ui.ekagra.EkagraJournalInstrumentedTest" time="0.001" />
+    <testcase name="legacyRecoveryDoesNotCountOvernightGapAndMigrationIsIdempotent" classname="com.safarparmar.app.ui.ekagra.EkagraJournalInstrumentedTest" time="0.028" />
+    <testcase name="legacyManualBreakPreservesSuspendedFocus" classname="com.safarparmar.app.ui.ekagra.EkagraJournalInstrumentedTest" time="0.03" />
+    <testcase name="recoveryReadsAreAccountIsolatedAndDoNotClaimOrFinalizeRows" classname="com.safarparmar.app.ui.ekagra.EkagraJournalInstrumentedTest" time="0.002" />
+    <testcase name="immediatelyEndedEmptySessionCannotResumeAfterProcessDeathOrLateCheckpoint" classname="com.safarparmar.app.ui.ekagra.EkagraJournalInstrumentedTest" time="0.029" />
+    <testcase name="retryingAnOlderCheckpointCannotMoveAResumedTimerBackwards" classname="com.safarparmar.app.ui.ekagra.EkagraJournalInstrumentedTest" time="0.029" />
+    <testcase name="acknowledgedGoalChoiceUsesExistingServerIdentity" classname="com.safarparmar.app.ui.ekagra.EkagraJournalInstrumentedTest" time="0.001" />
+    <testcase name="recoveredCompletionAndLateCheckpointStillProduceOneFullTwoHourRecord" classname="com.safarparmar.app.ui.ekagra.EkagraJournalInstrumentedTest" time="0.031" />
+  </testsuite>
+  <testsuite name="com.safarparmar.app.ui.ekagra.EkagraServiceInstrumentedTest" tests="8" failures="0" errors="0" skipped="0" time="36.136" timestamp="2026-10-19T18:19:22" hostname="localhost">
+    <properties>
+      <property name="device" value="Resizable_Experimental(AVD) - 17" />
+      <property name="flavor" value="prod" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="serviceDestructionAfterSleepKeepsTwoHoursResumableInsteadOfFinalizingTwelveMinutes" classname="com.safarparmar.app.ui.ekagra.EkagraServiceInstrumentedTest" time="3.28" />
+    <testcase name="bothPomodoroStylesPreserveFocusDuringManualBreakTransition" classname="com.safarparmar.app.ui.ekagra.EkagraServiceInstrumentedTest" time="6.756" />
+    <testcase name="recentAppsCheckInExpiryAndNotificationEndKeepStudyTimeSafe" classname="com.safarparmar.app.ui.ekagra.EkagraServiceInstrumentedTest" time="3.563" />
+    <testcase name="progressSnapshotReconcilesSleepBeforeTheScreenPausesTheTimer" classname="com.safarparmar.app.ui.ekagra.EkagraServiceInstrumentedTest" time="5.183" />
+    <testcase name="presenceResponsesDismissBothSurfacesAndRejectStaleActions" classname="com.safarparmar.app.ui.ekagra.EkagraServiceInstrumentedTest" time="4.566" />
+    <testcase name="stopwatchReminderAndPauseResumeDoNotChangeElapsedFocus" classname="com.safarparmar.app.ui.ekagra.EkagraServiceInstrumentedTest" time="4.257" />
+    <testcase name="manualBreakAfterSleepPreservesFocusAndPomodoroTimeWithoutCreditingTheBreak" classname="com.safarparmar.app.ui.ekagra.EkagraServiceInstrumentedTest" time="4.032" />
+    <testcase name="repeatedStartAfterSleepKeepsTheOriginalTwoHourPeriod" classname="com.safarparmar.app.ui.ekagra.EkagraServiceInstrumentedTest" time="4.499" />
+  </testsuite>
+  <testsuite name="com.safarparmar.app.ui.ekagra.EkagraTutorialInstrumentedTest" tests="10" failures="0" errors="0" skipped="1" time="68.88" timestamp="2026-10-19T18:19:22" hostname="localhost">
+    <properties>
+      <property name="device" value="Resizable_Experimental(AVD) - 17" />
+      <property name="flavor" value="prod" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="everyLessonHasEnglishHindiAndHinglishCopy" classname="com.safarparmar.app.ui.ekagra.EkagraTutorialInstrumentedTest" time="2.224" />
+    <testcase name="shortGuidesKeepNavigationGroupedAndCircleChoicesReadableInBothModes" classname="com.safarparmar.app.ui.ekagra.EkagraTutorialInstrumentedTest" time="10.201" />
+    <testcase name="blockedAppsUsesTheRealPickerLayoutWithIsolatedSamplesInBothThemes" classname="com.safarparmar.app.ui.ekagra.EkagraTutorialInstrumentedTest" time="6.237" />
+    <testcase name="helpReturnsToOnlyFourGuidesAndCanReplay" classname="com.safarparmar.app.ui.ekagra.EkagraTutorialInstrumentedTest" time="4.117" />
+    <testcase name="darkThemeLargeTextKeepsGuidanceAndExitReachable" classname="com.safarparmar.app.ui.ekagra.EkagraTutorialInstrumentedTest" time="4.745" />
+    <testcase name="speechGuidanceHidesDetailsBehindInfoAndPreservesFullScreenNavigation" classname="com.safarparmar.app.ui.ekagra.EkagraTutorialInstrumentedTest" time="7.048" />
+    <testcase name="everyLessonMeasuresTargetsCompletesAndReplaysWithoutLiveDependencies" classname="com.safarparmar.app.ui.ekagra.EkagraTutorialInstrumentedTest" time="20.904" />
+    <testcase name="invitationIsOfferedOnceAndActiveFlowsBlockManualReplay" classname="com.safarparmar.app.ui.ekagra.EkagraTutorialInstrumentedTest" time="3.342">
+      <skipped />
+    </testcase>
+    <testcase name="timerFollowsAppAppearanceAndSelectedFeatureBackdrop" classname="com.safarparmar.app.ui.ekagra.EkagraTutorialInstrumentedTest" time="7.338" />
+    <testcase name="tutorialPreferencesAreVersionedAndDoNotChangeTimerSettings" classname="com.safarparmar.app.ui.ekagra.EkagraTutorialInstrumentedTest" time="2.724" />
+  </testsuite>
+  <testsuite name="com.safarparmar.app.ui.ekagra.focusshield.KavachProgressiveUiTest" tests="4" failures="1" errors="0" skipped="0" time="24.447" timestamp="2026-10-19T18:19:22" hostname="localhost">
+    <properties>
+      <property name="device" value="Resizable_Experimental(AVD) - 17" />
+      <property name="flavor" value="prod" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="legacyYoutubeShortcutStillOpensYoutubeSetup" classname="com.safarparmar.app.ui.ekagra.focusshield.KavachProgressiveUiTest" time="3.476" />
+    <testcase name="kavachCanTurnOnWithoutBatteryOptimizationExemption" classname="com.safarparmar.app.ui.ekagra.focusshield.KavachProgressiveUiTest" time="14.144">
+      <failure>java.lang.AssertionError: Screen did not reach the expected state. Nodes: android.widget.FrameLayout: text=null, description=null, checked=false
+android.widget.FrameLayout: text=null, description=null, checked=false
+android.widget.FrameLayout: text=null, description=null, checked=false
+android.view.ViewGroup: text=null, description=null, checked=false
+android.view.View: text=null, description=null, checked=false
+android.view.View: text=null, description=null, checked=false
+android.view.View: text=null, description=null, checked=false
+android.view.View: text=null, description=Close sheet, checked=false
+android.view.View: text=null, description=null, checked=false
+android.view.View: text=null, description=null, checked=false
+android.view.View: text=null, description=null, checked=false
+android.view.View: text=null, description=null, checked=false
+android.view.View: text=null, description=Drag handle, checked=false
+android.widget.TextView: text=FOCUS ACCESS, description=null, checked=false
+android.widget.TextView: text=Permissions &amp; access, description=null, checked=false
+android.widget.TextView: text=Allow required permissions to start blocking apps., description=null, checked=false
+android.view.View: text=null, description=null, checked=false
+android.widget.TextView: text=App check, description=null, checked=false
+android.widget.TextView: text=Lets Kavach notice when a blocked app opens., description=null, checked=false
+android.view.View: text=null, description=null, checked=false
+android.widget.TextView: text=Allow, description=null, checked=false
+android.widget.Button: text=null, description=null, checked=false
+android.view.View: text=null, description=null, checked=false
+android.widget.TextView: text=Display over other apps, description=null, checked=false
+android.widget.TextView: text=Shows the block screen over distracting apps., description=null, checked=false
+android.view.View: text=null, description=null, checked=false
+android.widget.TextView: text=Allow, description=null, checked=false
+android.widget.Button: text=null, description=null, checked=false
+android.view.View: text=null, description=null, checked=false
+android.widget.TextView: text=Background permission, description=null, checked=false
+android.widget.TextView: text=Keeps Kavach running even when your phone saves battery., description=null, checked=false
+android.view.View: text=null, description=null, checked=false
+android.widget.TextView: text=Optional, description=null, checked=false
+android.view.View: text=null, description=null, checked=false
+android.widget.TextView: text=Notifications, description=null, checked=false
+android.widget.TextView: text=Lets SAFAR send you useful updates., description=null, checked=false
+android.view.View: text=null, description=null, checked=false
+android.widget.TextView: text=Optional, description=null, checked=false
+android.view.View: text=null, description=null, checked=false
+android.widget.TextView: text=Notification Shield, description=null, checked=false
+android.widget.TextView: text=Hides notifications from blocked apps., description=null, checked=false
+android.view.View: text=null, description=null, checked=false
+android.widget.TextView: text=Optional, description=null, checked=false
+at org.junit.Assert.fail(Assert.java:89)
+at com.safarparmar.app.ui.ekagra.focusshield.KavachProgressiveUiTest.await(KavachProgressiveUiTest.kt:134)
+at com.safarparmar.app.ui.ekagra.focusshield.KavachProgressiveUiTest.kavachCanTurnOnWithoutBatteryOptimizationExemption(KavachProgressiveUiTest.kt:69)
+</failure>
+    </testcase>
+    <testcase name="turningKavachOffHidesItsConfiguration" classname="com.safarparmar.app.ui.ekagra.focusshield.KavachProgressiveUiTest" time="3.059" />
+    <testcase name="disabledScreenHasTwoSwitchesAndYoutubeEnableOpensSetup" classname="com.safarparmar.app.ui.ekagra.focusshield.KavachProgressiveUiTest" time="3.768" />
+  </testsuite>
+  <testsuite name="com.safarparmar.app.ui.nishtha.goals.GoalsTutorialInstrumentedTest" tests="6" failures="0" errors="0" skipped="1" time="46.911" timestamp="2026-10-19T18:19:22" hostname="localhost">
+    <properties>
+      <property name="device" value="Resizable_Experimental(AVD) - 17" />
+      <property name="flavor" value="prod" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="allSceneInstructionsAndInfoHaveHindiAndHinglishTranslations" classname="com.safarparmar.app.ui.nishtha.goals.GoalsTutorialInstrumentedTest" time="3.14" />
+    <testcase name="darkLargeTextGuidanceAndInfoStayAccessible" classname="com.safarparmar.app.ui.nishtha.goals.GoalsTutorialInstrumentedTest" time="6.692" />
+    <testcase name="invitationAndCompletionBookkeepingAreIndependentOfEkagra" classname="com.safarparmar.app.ui.nishtha.goals.GoalsTutorialInstrumentedTest" time="3.702">
+      <skipped />
+    </testcase>
+    <testcase name="shortCompletionIncludesTimeAndHelpReplaysOnlyFourGuides" classname="com.safarparmar.app.ui.nishtha.goals.GoalsTutorialInstrumentedTest" time="4.159" />
+    <testcase name="allLessonsMeasureTargetsNavigateAndReplayWithoutLiveDependencies" classname="com.safarparmar.app.ui.nishtha.goals.GoalsTutorialInstrumentedTest" time="20.708" />
+    <testcase name="lightAndDarkGuidanceBlendsWithTheFeatureCanvasLikeEkagra" classname="com.safarparmar.app.ui.nishtha.goals.GoalsTutorialInstrumentedTest" time="8.51" />
+  </testsuite>
+  <testsuite name="com.safarparmar.app.ui.tutorial.FeatureTutorialInstrumentedTest" tests="6" failures="0" errors="0" skipped="0" time="31.751" timestamp="2026-10-19T18:19:22" hostname="localhost">
+    <properties>
+      <property name="device" value="Resizable_Experimental(AVD) - 17" />
+      <property name="flavor" value="prod" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="companionFollowsEachSpotlightStaysOutsideControlAndStopsWithReducedMotion" classname="com.safarparmar.app.ui.tutorial.FeatureTutorialInstrumentedTest" time="4.72" />
+    <testcase name="resizingStageRemeasuresDestinationWithoutChangingStep" classname="com.safarparmar.app.ui.tutorial.FeatureTutorialInstrumentedTest" time="3.379" />
+    <testcase name="unavailableTargetCanRetryAndScrimNeverInvokesUnderlyingActions" classname="com.safarparmar.app.ui.tutorial.FeatureTutorialInstrumentedTest" time="8.846" />
+    <testcase name="floatingSpeechNeverResizesFeatureWhenStepsChange" classname="com.safarparmar.app.ui.tutorial.FeatureTutorialInstrumentedTest" time="3.51" />
+    <testcase name="offscreenTargetsScrollIntoViewAndReregisterOnBackAndNext" classname="com.safarparmar.app.ui.tutorial.FeatureTutorialInstrumentedTest" time="3.98" />
+    <testcase name="nextAndBackHoldDuringMeasurementThenTravelDirectlyWithoutResetting" classname="com.safarparmar.app.ui.tutorial.FeatureTutorialInstrumentedTest" time="7.316" />
+  </testsuite>
+  <testsuite name="com.safarparmar.app.ui.tutorial.FeatureTutorialScalingInstrumentedTest" tests="1" failures="0" errors="0" skipped="0" time="4.429" timestamp="2026-10-19T18:19:22" hostname="localhost">
+    <properties>
+      <property name="device" value="Resizable_Experimental(AVD) - 17" />
+      <property name="flavor" value="prod" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="practiceWindowMatchesFeatureDpAndSpAcrossScalingChanges" classname="com.safarparmar.app.ui.tutorial.FeatureTutorialScalingInstrumentedTest" time="4.429" />
+  </testsuite>
+  <testsuite name="com.safarparmar.app.ui.tutorial.ScreenPracticeInstrumentedTest" tests="5" failures="0" errors="0" skipped="0" time="48.077" timestamp="2026-10-19T18:19:22" hostname="localhost">
+    <properties>
+      <property name="device" value="Resizable_Experimental(AVD) - 17" />
+      <property name="flavor" value="prod" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="darkLargeTextUsesSameHostAndInlineFormsRemainInItsWindow" classname="com.safarparmar.app.ui.tutorial.ScreenPracticeInstrumentedTest" time="7.255" />
+    <testcase name="everyDarkSceneHandlesLargeTextWithoutLiveDependencies" classname="com.safarparmar.app.ui.tutorial.ScreenPracticeInstrumentedTest" time="8.08" />
+    <testcase name="allInstructionsAndDetailsHaveHindiAndHinglishCopy" classname="com.safarparmar.app.ui.tutorial.ScreenPracticeInstrumentedTest" time="3.24" />
+    <testcase name="batchUsesTrackerBackgroundAndReadableNativeInkInBothThemes" classname="com.safarparmar.app.ui.tutorial.ScreenPracticeInstrumentedTest" time="3.816" />
+    <testcase name="everyNativeTargetMeasuresAndSupportsForwardBackwardAndReplay" classname="com.safarparmar.app.ui.tutorial.ScreenPracticeInstrumentedTest" time="25.686" />
+  </testsuite>
+  <testsuite name="com.safarparmar.app.ui.tutorial.TitliHelpInstrumentedTest" tests="5" failures="0" errors="0" skipped="2" time="18.049" timestamp="2026-10-19T18:19:22" hostname="localhost">
+    <properties>
+      <property name="device" value="Resizable_Experimental(AVD) - 17" />
+      <property name="flavor" value="prod" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="queryFormValidatesAndDisplaysReplyWithoutNetworkWrites" classname="com.safarparmar.app.ui.tutorial.TitliHelpInstrumentedTest" time="4.181" />
+    <testcase name="finalActionSaysOk" classname="com.safarparmar.app.ui.tutorial.TitliHelpInstrumentedTest" time="2.194" />
+    <testcase name="selectingANewFeatureWaitsForItsLoadingState" classname="com.safarparmar.app.ui.tutorial.TitliHelpInstrumentedTest" time="3.148">
+      <skipped />
+    </testcase>
+    <testcase name="personalizedMenuRoutesAllFeaturesAndOther" classname="com.safarparmar.app.ui.tutorial.TitliHelpInstrumentedTest" time="5.315" />
+    <testcase name="selectingFeatureAutomaticallyStartsItsRegisteredGuide" classname="com.safarparmar.app.ui.tutorial.TitliHelpInstrumentedTest" time="3.211">
+      <skipped />
+    </testcase>
+  </testsuite>
+  <testsuite name="com.safarparmar.app.ui.tutorial.TitliInstrumentedTest" tests="3" failures="0" errors="0" skipped="1" time="8.676" timestamp="2026-10-19T18:19:22" hostname="localhost">
+    <properties>
+      <property name="device" value="Resizable_Experimental(AVD) - 17" />
+      <property name="flavor" value="prod" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="firstTapIntroducesAndStartsGuideLaterTapsOpenLessonsWithoutAddingChrome" classname="com.safarparmar.app.ui.tutorial.TitliInstrumentedTest" time="2.877">
+      <skipped />
+    </testcase>
+    <testcase name="spotlightCompanionGentlyFloatsWithoutDots" classname="com.safarparmar.app.ui.tutorial.TitliInstrumentedTest" time="2.828" />
+    <testcase name="blackWingsAndPinkGlowRenderInBothThemesWithStaticAccessibleFallback" classname="com.safarparmar.app.ui.tutorial.TitliInstrumentedTest" time="2.971" />
+  </testsuite>
+  <testsuite name="com.safarparmar.app.ui.tutorial.TitliReleaseGateInstrumentedTest" tests="1" failures="0" errors="0" skipped="0" time="3.188" timestamp="2026-10-19T18:19:22" hostname="localhost">
+    <properties>
+      <property name="device" value="Resizable_Experimental(AVD) - 17" />
+      <property name="flavor" value="prod" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="disabledGuidanceKeepsScreenContentAndHidesEvenExplicitReplayActions" classname="com.safarparmar.app.ui.tutorial.TitliReleaseGateInstrumentedTest" time="3.188" />
+  </testsuite>
+</testsuites>

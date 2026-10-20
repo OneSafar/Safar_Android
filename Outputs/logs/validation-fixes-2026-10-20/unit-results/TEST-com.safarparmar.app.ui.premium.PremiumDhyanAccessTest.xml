@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.ui.premium.PremiumDhyanAccessTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-19T19:59:48.404Z" hostname="Shashanks-MacBook-Air.local" time="0.087">
+  <properties/>
+  <testcase name="standaloneLiveFeatureMarksHasAnyPaidAccessTrue" classname="com.safarparmar.app.ui.premium.PremiumDhyanAccessTest" time="0.076"/>
+  <testcase name="pricingFailureDoesNotFallBackToPremium" classname="com.safarparmar.app.ui.premium.PremiumDhyanAccessTest" time="0.003"/>
+  <testcase name="legacyPremiumDoesNotUnlockCourse" classname="com.safarparmar.app.ui.premium.PremiumDhyanAccessTest" time="0.001"/>
+  <testcase name="returningFromCheckoutRefreshesExistingScreen" classname="com.safarparmar.app.ui.premium.PremiumDhyanAccessTest" time="0.002"/>
+  <testcase name="liveSessionsFeatureUnlocksAccessEvenWhenPricingCheckFails" classname="com.safarparmar.app.ui.premium.PremiumDhyanAccessTest" time="0.001"/>
+  <testcase name="verifiedStandalonePurchaseRefreshesCourseAccess" classname="com.safarparmar.app.ui.premium.PremiumDhyanAccessTest" time="0.004"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

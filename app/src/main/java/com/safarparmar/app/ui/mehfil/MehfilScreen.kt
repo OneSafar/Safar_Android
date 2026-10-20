@@ -1,5 +1,9 @@
 package com.safarparmar.app.ui.mehfil
 
+import androidx.compose.runtime.rememberUpdatedState
+
+import androidx.compose.ui.platform.LocalResources
+
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.CompositionLocalProvider
@@ -30,6 +34,7 @@ fun MehfilScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val localizedResources by rememberUpdatedState(LocalResources.current)
 
     val tabBackStack = rememberFeatureTabBackStack(MehfilTab.COMMUNITY)
     val selectedTab = tabBackStack.currentTab
@@ -43,6 +48,12 @@ fun MehfilScreen(
     var searchActive by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
     val dmChatNavigated = remember { mutableStateOf(false) }
+    com.safarparmar.app.ui.tutorial.ScreenPracticeEntry(
+        com.safarparmar.app.ui.tutorial.TitliFeature.MEHFIL, isDarkTheme,
+        eligible = !uiState.isInitializing && !uiState.isPosting && !uiState.isPostingComment &&
+            !showSandeshSheet && !showCreatePostSheet && !showGuidelinesSheet && commentPost == null &&
+            !uiState.showPremiumGate && uiState.dmState !is DmState.Open)
+
 
     BackHandler(enabled = tabBackStack.hasHistory) {
         tabBackStack.goBack()
@@ -51,7 +62,7 @@ fun MehfilScreen(
     LaunchedEffect(uiState.postSuccess) {
         if (uiState.postSuccess) {
             showCreatePostSheet = false
-            Toast.makeText(context, context.getString(com.safarparmar.app.R.string.mehfil_post_shared), Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, localizedResources.getString(com.safarparmar.app.R.string.mehfil_post_shared), Toast.LENGTH_SHORT).show()
             viewModel.clearPostSuccess()
         }
     }
@@ -72,7 +83,7 @@ fun MehfilScreen(
 
     LaunchedEffect(uiState.dmState) {
         if (uiState.dmState is DmState.Waiting) {
-            Toast.makeText(context, context.getString(com.safarparmar.app.R.string.mehfil_connection_sent), Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, localizedResources.getString(com.safarparmar.app.R.string.mehfil_connection_sent), Toast.LENGTH_SHORT).show()
         }
     }
 

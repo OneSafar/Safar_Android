@@ -1,5 +1,7 @@
 package com.safarparmar.app.feature.kavachanalytics.ui
 
+import androidx.compose.ui.platform.LocalLocale
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -35,7 +37,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
+import com.safarparmar.app.ui.components.popups.SafarModalBottomSheet as ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -665,13 +667,14 @@ private fun CategoryChips(
  */
 @Composable
 private fun DailyBreakdown(state: KavachAnalyticsUiState, isLight: Boolean) {
+    val locale = LocalLocale.current.platformLocale
     val totals = (if (state.scope == KavachScope.ALL_DAY) state.report?.allDay else state.report?.duringKavach)
         ?: CategoryTotals()
     val totalSeconds = totals.totalSeconds
     val dayName = runCatching {
         LocalDate.parse(state.endDate).dayOfWeek.getDisplayName(
             java.time.format.TextStyle.FULL,
-            Locale.getDefault(),
+            locale,
         )
     }.getOrDefault("Day")
 

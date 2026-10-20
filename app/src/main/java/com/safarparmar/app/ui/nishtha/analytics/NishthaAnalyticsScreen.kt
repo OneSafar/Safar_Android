@@ -13,7 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.AlertDialog
+import com.safarparmar.app.ui.components.popups.SafarMaterialAlertDialog as AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon as M3Icon
@@ -46,6 +46,8 @@ import com.composables.ui.components.IconButton as UiIconButton
 import com.composables.ui.components.Text as UiText
 import com.composables.ui.theme.ComposablesTheme
 import com.safarparmar.app.R
+import com.safarparmar.app.ui.tutorial.tutorialTarget
+import com.safarparmar.app.ui.nishtha.NishthaUiState
 import com.safarparmar.app.domain.model.MonthlyReport
 import com.safarparmar.app.ui.glass.LiquidGlassBackdrop
 import com.safarparmar.app.ui.glass.SafarGlassButton
@@ -67,6 +69,16 @@ fun NishthaAnalyticsScreen(
 ) {
     LaunchedEffect(viewModel) { viewModel.loadTab(NishthaTab.ANALYTICS) }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val dark = !MaterialTheme.colorScheme.background.isLightBackground()
+    com.safarparmar.app.ui.tutorial.ScreenPracticeEntry(com.safarparmar.app.ui.tutorial.TitliFeature.ANALYTICS,
+        dark, eligible = !uiState.isLoadingReport)
+    NishthaAnalyticsContent(uiState, onNavigate, initialSection,
+        onLoadMonth = { viewModel.onEvent(NishthaEvent.LoadReportForMonth(it)) })
+}
+
+@Composable
+internal fun NishthaAnalyticsContent(uiState: NishthaUiState, onNavigate: (String) -> Unit = {},
+    initialSection: String = "overview", onLoadMonth: (String) -> Unit = {}) {
     val report = uiState.monthlyReport
     val achievements = uiState.achievements
 
@@ -105,7 +117,7 @@ fun NishthaAnalyticsScreen(
     var showMonthPicker by remember { mutableStateOf(false) }
 
     LaunchedEffect(selectedMonth) {
-        viewModel.onEvent(NishthaEvent.LoadReportForMonth(selectedMonth))
+        onLoadMonth(selectedMonth)
     }
 
     val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
@@ -129,7 +141,7 @@ fun NishthaAnalyticsScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState())
+                        .horizontalScroll(rememberScrollState()).tutorialTarget("analytics.sections")
                         .padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 4.dp),
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
@@ -165,7 +177,7 @@ fun NishthaAnalyticsScreen(
                             achievements = achievements,
                             isLight = isLight,
                             onNavigate = onNavigate,
-                            onGenerate = { viewModel.onEvent(NishthaEvent.LoadReportForMonth(selectedMonth)) },
+                            onGenerate = { onLoadMonth(selectedMonth) },
                         )
                         else -> AnalyticsOverviewSection(uiState.goals, uiState.ekagraAnalytics, report)
                     }
@@ -236,7 +248,7 @@ private fun MonthlyReviewSection(
     ) {
         // Month Selector Bar (Composables UI IconButton + Dropdown Pill)
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().tutorialTarget("analytics.month"),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {

@@ -40,7 +40,7 @@ import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.ModalBottomSheet
+import com.safarparmar.app.ui.components.popups.SafarModalBottomSheet as ModalBottomSheet
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.ui.draw.clip
 import com.safarparmar.app.feature.toppersbatch.BatchAlertDialog as AlertDialog
@@ -51,7 +51,7 @@ import androidx.compose.material3.CardDefaults
 import com.composables.ui.components.Checkbox
 import com.composables.ui.components.Radio
 import com.composables.ui.components.RadioGroup
-import com.composables.ui.components.DropdownMenu as UiDropdownMenu
+import com.safarparmar.app.ui.components.popups.SafarComposablesDropdownMenu as UiDropdownMenu
 import com.composables.ui.components.DropdownMenuAlignment
 import com.composables.ui.components.DropdownMenuItem as UiDropdownMenuItem
 import com.composables.ui.components.DropdownMenuItemStyle
@@ -91,6 +91,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.safarparmar.app.R
+import com.safarparmar.app.ui.tutorial.tutorialTarget
+import com.safarparmar.app.ui.components.popups.rememberSafarPopupContext
 import java.time.LocalDate
 import java.time.Instant
 import java.time.ZoneId
@@ -121,12 +123,32 @@ internal fun LectureDetailsDialog(lecture: BatchLecture, subject: BatchSubject?,
 @Composable
 internal fun LectureCard(lecture: BatchLecture, subject: BatchSubject?, state: BatchUiState,
                          vm: ToppersBatchViewModel, focused: Boolean = false, flat: Boolean = false, onPlan: (() -> Unit)? = null) {
-    BatchClampedContent { LectureCardContent(lecture, subject, state, vm, focused, flat, onPlan) }
+    val context = LocalContext.current
+    BatchClampedContent {
+        LectureCardContent(lecture, subject, state, focused, flat, onPlan,
+            onToggleDone = { vm.toggleDone(lecture) },
+            onAction = { action, remove -> vm.lectureAction(lecture, action, remove = remove) },
+            onEdit = { title, done -> vm.editLecture(lecture, title, done) },
+            onDelete = { done -> vm.removeLecture(lecture, done) },
+            onOpenLink = { link, youtube ->
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(link))
+                if (youtube) intent.setPackage("com.google.android.youtube")
+                runCatching { context.startActivity(intent) }.isSuccess ||
+                    (youtube && runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link))) }.isSuccess)
+            },
+            planContent = { item, dismiss -> StudyPlanDialog(item, state, vm, dismiss) })
+    }
 }
 
 @Composable
-private fun LectureCardContent(lecture: BatchLecture, subject: BatchSubject?, state: BatchUiState,
-                               vm: ToppersBatchViewModel, focused: Boolean, flat: Boolean, onPlan: (() -> Unit)?) {
+internal fun LectureCardContent(lecture: BatchLecture, subject: BatchSubject?, state: BatchUiState,
+                               focused: Boolean = false, flat: Boolean = false, onPlan: (() -> Unit)? = null,
+                               onToggleDone: () -> Unit = {},
+                               onAction: (String, Boolean) -> Unit = { _, _ -> },
+                               onEdit: (String, () -> Unit) -> Unit = { _, _ -> },
+                               onDelete: (() -> Unit) -> Unit = {},
+                               onOpenLink: (String, Boolean) -> Boolean = { _, _ -> false },
+                               planContent: @Composable (BatchLecture, () -> Unit) -> Unit = { _, _ -> }) {
     val strings = rememberBatchStrings()
     val pink = Color(0xFFBE185D)
     val lectureColour = (subject?.color ?: subject?.defaultColor ?: lecture.color)?.takeIf { it.matches(Regex("^#[0-9a-fA-F]{6}$")) }
@@ -143,7 +165,6 @@ private fun LectureCardContent(lecture: BatchLecture, subject: BatchSubject?, st
     var delete by remember { mutableStateOf(false) }
     var sourceChooser by remember { mutableStateOf(false) }
     var sourceError by remember { mutableStateOf(false) }
-    val context = LocalContext.current
     var liveNow by remember { mutableStateOf(Instant.now()) }
     LaunchedEffect(sourceChooser) {
         if (sourceChooser) while (true) { liveNow = Instant.now(); delay(1000) }
@@ -182,9 +203,9 @@ private fun LectureCardContent(lecture: BatchLecture, subject: BatchSubject?, st
         Column(Modifier.padding(if (flat) 0.dp else 16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 if (!flat) IconButton(
-                    onClick = batchFeatureAction({ haptics.performHapticFeedback(HapticFeedbackType.LongPress); vm.toggleDone(lecture) }),
+                    onClick = batchFeatureAction({ haptics.performHapticFeedback(HapticFeedbackType.LongPress); onToggleDone() }),
                     enabled = !busy && !locked,
-                    modifier = Modifier.size(44.dp).semantics { contentDescription =
+                    modifier = Modifier.size(44.dp).tutorialTarget("batch.done").semantics { contentDescription =
                         "${if (lecture.completedAt == null) strings.text(R.string.toppers_batch_mark_as_done) else strings.text(R.string.toppers_batch_mark_as_not_done)}: ${lecture.displayTopic}" },
                 ) {
                     Surface(shape = CircleShape, color = if (lecture.completedAt == null) Color.Transparent else Color(0xFF198754),
@@ -211,15 +232,15 @@ private fun LectureCardContent(lecture: BatchLecture, subject: BatchSubject?, st
                     alignment = DropdownMenuAlignment.End,
                     panel = { BatchDropdownMenuPanel {
                         fun close() { menu = false }
-                        if (flat && lecture.completedAt == null) UiDropdownMenuItem(enabled = !busy && !locked, onClick = batchFeatureAction({ close(); vm.toggleDone(lecture) })) { UiText(strings.text(R.string.toppers_batch_mark_as_completed)) }
-                        if (lecture.pendingRevision) UiDropdownMenuItem(enabled = !busy && !locked, onClick = batchFeatureAction({ close(); vm.lectureAction(lecture, "revision/complete") })) {
+                        if (flat && lecture.completedAt == null) UiDropdownMenuItem(enabled = !busy && !locked, onClick = batchFeatureAction({ close(); onToggleDone() })) { UiText(strings.text(R.string.toppers_batch_mark_as_completed)) }
+                        if (lecture.pendingRevision) UiDropdownMenuItem(enabled = !busy && !locked, onClick = batchFeatureAction({ close(); onAction("revision/complete", false) })) {
                             UiText(strings.text(R.string.toppers_batch_revision_done))
                         }
                         val manuallyOlder = lecture.backlogAddedAt != null && lecture.backlogResolvedAt == null
-                        if (lecture.completedAt != null) UiDropdownMenuItem(enabled = !busy, onClick = batchFeatureAction({ close(); vm.toggleDone(lecture) })) {
+                        if (lecture.completedAt != null) UiDropdownMenuItem(enabled = !busy, onClick = batchFeatureAction({ close(); onToggleDone() })) {
                             UiText(strings.text(R.string.toppers_batch_undo_completion))
                         }
-                        UiDropdownMenuItem(enabled = !locked, onClick = batchFeatureAction({ close(); vm.lectureAction(lecture, "backlog", remove = manuallyOlder) })) {
+                        UiDropdownMenuItem(enabled = !locked, onClick = batchFeatureAction({ close(); onAction("backlog", manuallyOlder) })) {
                             UiText(if (manuallyOlder) strings.text(R.string.toppers_batch_remove_from_backlog) else strings.text(R.string.toppers_batch_add_to_backlog))
                         }
                         UiDropdownMenuItem(onClick = batchFeatureAction({ close(); edit = true })) { UiText(strings.text(R.string.toppers_batch_change_lecture_name)) }
@@ -243,7 +264,7 @@ private fun LectureCardContent(lecture: BatchLecture, subject: BatchSubject?, st
                 Column(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f), RoundedCornerShape(12.dp)).padding(12.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     @Composable fun dateRow(label: String, value: String, icon: androidx.compose.ui.graphics.vector.ImageVector, divider: Boolean = true, onClick: (() -> Unit)? = null) {
-    val strings = rememberBatchStrings()
+                        val strings = rememberBatchStrings()
                         if (divider) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                         Row(modifier = Modifier.fillMaxWidth().then(if (onClick != null) Modifier.clickable(enabled = !busy, onClick = batchFeatureAction(onClick)).heightIn(min = 48.dp) else Modifier),
                             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -279,15 +300,13 @@ private fun LectureCardContent(lecture: BatchLecture, subject: BatchSubject?, st
             UiDropdownMenu(expanded = sourceChooser, onExpandedChange = { sourceChooser = it },
                 alignment = DropdownMenuAlignment.End, panel = { BatchDropdownMenuPanel {
                     UiDropdownMenuItem(enabled = recordedUrl != null, onClick = batchFeatureAction({
-                        if (runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(recordedUrl))) }.isSuccess)
+                        if (recordedUrl?.let { onOpenLink(it, false) } == true)
                             sourceChooser = false else sourceError = true
                     })) { UiText(copy("openAcademy", strings.text(R.string.toppers_batch_open_in_parmar_academy))) }
                     UiDropdownMenuItem(enabled = liveStatus == "live" && liveUrl != null, onClick = batchFeatureAction({
                         // Re-check at tap time, including the exact end boundary.
                         if (lecture.liveWindow?.status(Instant.now()) == "live" && liveUrl != null) {
-                            val native = Intent(Intent.ACTION_VIEW, Uri.parse(liveUrl)).setPackage("com.google.android.youtube")
-                            val opened = runCatching { context.startActivity(native) }.isSuccess ||
-                                runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(liveUrl))) }.isSuccess
+                            val opened = onOpenLink(liveUrl, true)
                             if (opened) sourceChooser = false else sourceError = true
                         }
                     })) {
@@ -306,7 +325,7 @@ private fun LectureCardContent(lecture: BatchLecture, subject: BatchSubject?, st
                 }
             }
             if (state.studyMode == BatchStudyMode.PERSONAL || lecture.completedAt != null) UiButton(onClick = batchFeatureAction(::editPlan), enabled = !busy, style = ButtonStyle.Secondary,
-                modifier = if (flat) Modifier.fillMaxWidth() else Modifier) {
+                modifier = (if (flat) Modifier.fillMaxWidth() else Modifier).tutorialTarget("batch.revision")) {
                 UiText(if (lecture.completedAt != null) {
                     if (lecture.pendingRevision) strings.text(R.string.toppers_batch_revise_count, calendarDateLabel(lecture.revisionDate, strings)) else strings.text(R.string.toppers_batch_plan_revision)
                 } else lecture.studyPlannedFor?.let { strings.text(R.string.toppers_batch_watch_count, calendarDateLabel(it, strings)) } ?: strings.text(R.string.toppers_batch_plan_lecture))
@@ -316,15 +335,15 @@ private fun LectureCardContent(lecture: BatchLecture, subject: BatchSubject?, st
             }
             if (sourceError) Text(strings.text(R.string.toppers_batch_could_not_open_this_link), color = MaterialTheme.colorScheme.error)
             if (lecture.pendingRevision) {
-                UiButton(onClick = batchFeatureAction({ vm.lectureAction(lecture, "revision/complete") }), enabled = !busy, style = ButtonStyle.Secondary, modifier = if (flat) Modifier.fillMaxWidth() else Modifier) { UiText(strings.text(R.string.toppers_batch_revision_done)) }
+                UiButton(onClick = batchFeatureAction({ onAction("revision/complete", false) }), enabled = !busy, style = ButtonStyle.Secondary, modifier = if (flat) Modifier.fillMaxWidth() else Modifier) { UiText(strings.text(R.string.toppers_batch_revision_done)) }
             }
         }
     }
     if (edit) TextEditDialog(strings.text(R.string.toppers_batch_change_lecture_name), strings.text(R.string.toppers_batch_lecture_name), lecture.displayTopic, 300,
-        onDismiss = { edit = false }, error = state.error?.let(strings::notice)) { title -> vm.editLecture(lecture, title) { edit = false } }
-    if (plan) StudyPlanDialog(state.overview?.lectures?.firstOrNull { it.id == lecture.id } ?: lecture, state, vm) { plan = false }
+        onDismiss = { edit = false }, error = state.error?.let(strings::notice)) { title -> onEdit(title) { edit = false } }
+    if (plan) planContent(state.overview?.lectures?.firstOrNull { it.id == lecture.id } ?: lecture) { plan = false }
     if (delete) ConfirmDeleteDialog(strings.text(R.string.toppers_batch_delete_this_lecture), strings.text(R.string.toppers_batch_your_work_will_stay_saved_restore_it_in_lectures),
-        onDismiss = { delete = false }, onConfirm = { vm.removeLecture(lecture) { delete = false } })
+        onDismiss = { delete = false }, onConfirm = { onDelete { delete = false } })
 }
 
 @Composable
@@ -388,11 +407,11 @@ private fun TextEditDialog(title: String, field: String, initial: String, limit:
 @Composable
 internal fun DateButton(value: String, label: String, enabled: Boolean = true, onChange: (String) -> Unit) {
     val strings = rememberBatchStrings()
-    val context = LocalContext.current
+    val popupContext = rememberSafarPopupContext()
     OutlinedButton(
         onClick = batchFeatureAction({
             val date = runCatching { LocalDate.parse(value) }.getOrDefault(LocalDate.now())
-            val pickerContext = batchPickerContext(context)
+            val pickerContext = batchPickerContext(popupContext)
             DatePickerDialog(pickerContext, { _, year, month, day ->
                 onChange(LocalDate.of(year, month + 1, day).toString())
             }, date.year, date.monthValue - 1, date.dayOfMonth).show()
@@ -499,7 +518,7 @@ private fun LinkDialog(subject: BatchSubject, vm: ToppersBatchViewModel, onDismi
 /** Give the framework picker a full platform theme while clamping extreme font scale. */
 internal fun batchPickerContext(context: android.content.Context): ContextThemeWrapper =
     ContextThemeWrapper(context, R.style.ThemeOverlay_Safar_ToppersPicker).apply {
-        applyOverrideConfiguration(android.content.res.Configuration().apply {
+        applyOverrideConfiguration(android.content.res.Configuration(context.resources.configuration).apply {
             fontScale = context.resources.configuration.fontScale.coerceIn(0.85f, 1.05f)
         })
     }

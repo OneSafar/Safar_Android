@@ -34,6 +34,7 @@ import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.material3.*
+import com.safarparmar.app.ui.components.popups.SafarMaterialAlertDialog as AlertDialog
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.graphics.*
@@ -44,6 +45,7 @@ import com.composables.ui.components.DropdownMenuPanel
 import com.composeunstyled.ProvideTextStyle
 import com.composables.ui.components.Button as ComposablesButton
 import com.composables.ui.components.ButtonStyle
+import com.safarparmar.app.ui.components.popups.ProvideSafarPopupScale
 import kotlinx.coroutines.flow.drop
 
 /** Adapted from Composables UI Buttons/Utils and AlertDialog (MIT).
@@ -155,10 +157,10 @@ internal fun BatchAlertDialog(
     dismissButton: @Composable () -> Unit,
 ) {
     val strings = rememberBatchStrings()
-    com.composables.ui.components.AlertDialog(
+    com.safarparmar.app.ui.components.popups.SafarComposablesAlertDialog(
         visible = true,
         onDismissRequest = onDismissRequest,
-        modifier = Modifier.fillMaxWidth().imePadding().widthIn(max = 520.dp),
+        modifier = Modifier.imePadding().widthIn(max = 520.dp).fillMaxWidth(),
         paneTitle = strings.text(R.string.toppers_batch_toppers_batch_dialog),
     ) {
         BatchClampedContent {
@@ -214,8 +216,9 @@ internal fun BatchIconButton(
 @Composable
 internal fun BatchClampedContent(content: @Composable () -> Unit) {
     val density = androidx.compose.ui.platform.LocalDensity.current
-    CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides
-        androidx.compose.ui.unit.Density(density.density, density.fontScale.coerceIn(0.85f, 1.05f))) {
+    ProvideSafarPopupScale(
+        androidx.compose.ui.unit.Density(density.density, density.fontScale.coerceIn(0.85f, 1.05f)),
+    ) {
         ProvideTextStyle(MaterialTheme.typography.bodyMedium) { content() }
     }
 }

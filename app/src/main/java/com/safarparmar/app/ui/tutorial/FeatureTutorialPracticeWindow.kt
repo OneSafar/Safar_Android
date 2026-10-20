@@ -16,7 +16,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
+import com.safarparmar.app.ui.components.popups.SafarDialog as Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.DialogWindowProvider
 import androidx.core.view.WindowCompat
@@ -41,6 +41,7 @@ internal fun FeatureTutorialPracticeWindow(
     val featureDensity = LocalDensity.current
     CompositionLocalProvider(LocalTitliController provides null) {
     Dialog(
+        fullScreen = true,
         onDismissRequest = onExit,
         properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
     ) {

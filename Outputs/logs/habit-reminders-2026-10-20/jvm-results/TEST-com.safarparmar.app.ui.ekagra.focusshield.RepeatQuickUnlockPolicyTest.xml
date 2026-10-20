@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.ui.ekagra.focusshield.RepeatQuickUnlockPolicyTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-20T02:13:05.194Z" hostname="Shashanks-MacBook-Air.local" time="0.0">
+  <properties/>
+  <testcase name="invalidHistoryDoesNotDisplayNegativeMinutes" classname="com.safarparmar.app.ui.ekagra.focusshield.RepeatQuickUnlockPolicyTest" time="0.0"/>
+  <testcase name="newDayAllowsFreshFirstBreak" classname="com.safarparmar.app.ui.ekagra.focusshield.RepeatQuickUnlockPolicyTest" time="0.0"/>
+  <testcase name="firstBreakNeedsNoReminder" classname="com.safarparmar.app.ui.ekagra.focusshield.RepeatQuickUnlockPolicyTest" time="0.0"/>
+  <testcase name="repeatedBreakRemembersPreviousDuration" classname="com.safarparmar.app.ui.ekagra.focusshield.RepeatQuickUnlockPolicyTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

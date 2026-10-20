@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.ui.ekagra.focusshield.FocusModeSwitchingTest" tests="33" skipped="0" failures="0" errors="0" timestamp="2026-10-20T02:12:57.404Z" hostname="Shashanks-MacBook-Air.local" time="6.675">
+  <properties/>
+  <testcase name="changing away from pending Always On preserves the later profile choice" classname="com.safarparmar.app.ui.ekagra.focusshield.FocusModeSwitchingTest" time="0.29"/>
+  <testcase name="failed Kavach activation does not turn Focus off" classname="com.safarparmar.app.ui.ekagra.focusshield.FocusModeSwitchingTest" time="0.195"/>
+  <testcase name="canceled Focus request does not keep YouTube disabled in picker" classname="com.safarparmar.app.ui.ekagra.focusshield.FocusModeSwitchingTest" time="0.199"/>
+  <testcase name="new timer Kavach session preserves Focus" classname="com.safarparmar.app.ui.ekagra.focusshield.FocusModeSwitchingTest" time="0.202"/>
+  <testcase name="lost permission during persistence restores the previous selection" classname="com.safarparmar.app.ui.ekagra.focusshield.FocusModeSwitchingTest" time="0.204"/>
+  <testcase name="missing disclosure does not remove YouTube or enable Focus" classname="com.safarparmar.app.ui.ekagra.focusshield.FocusModeSwitchingTest" time="0.21"/>
+  <testcase name="empty Always On profile is rejected before disabling Focus" classname="com.safarparmar.app.ui.ekagra.focusshield.FocusModeSwitchingTest" time="0.193"/>
+  <testcase name="missing accessibility permission preserves the selected YouTube app block" classname="com.safarparmar.app.ui.ekagra.focusshield.FocusModeSwitchingTest" time="0.196"/>
+  <testcase name="permission without a connected monitor never transfers protection" classname="com.safarparmar.app.ui.ekagra.focusshield.FocusModeSwitchingTest" time="0.196"/>
+  <testcase name="Kavach enable does not cancel pending Focus persistence" classname="com.safarparmar.app.ui.ekagra.focusshield.FocusModeSwitchingTest" time="0.224"/>
+  <testcase name="canceling pending Kavach leaves Focus running after a late acknowledgement" classname="com.safarparmar.app.ui.ekagra.focusshield.FocusModeSwitchingTest" time="0.2"/>
+  <testcase name="whole app persistence failure leaves Focus and old choice unchanged" classname="com.safarparmar.app.ui.ekagra.focusshield.FocusModeSwitchingTest" time="0.199"/>
+  <testcase name="rejected Kavach service start preserves working Focus" classname="com.safarparmar.app.ui.ekagra.focusshield.FocusModeSwitchingTest" time="0.192"/>
+  <testcase name="new picker selections are retained while whole app override is pending" classname="com.safarparmar.app.ui.ekagra.focusshield.FocusModeSwitchingTest" time="0.204"/>
+  <testcase name="turning Focus off does not silently reselect YouTube" classname="com.safarparmar.app.ui.ekagra.focusshield.FocusModeSwitchingTest" time="0.212"/>
+  <testcase name="accepted start that times out preserves Focus until actual protection" classname="com.safarparmar.app.ui.ekagra.focusshield.FocusModeSwitchingTest" time="0.197"/>
+  <testcase name="persistence failure leaves old protection and reports activation error" classname="com.safarparmar.app.ui.ekagra.focusshield.FocusModeSwitchingTest" time="0.197"/>
+  <testcase name="sole YouTube whole app choice restarts active Kavach" classname="com.safarparmar.app.ui.ekagra.focusshield.FocusModeSwitchingTest" time="0.196"/>
+  <testcase name="enabling Focus persists YouTube deselection and preserves all other blocks" classname="com.safarparmar.app.ui.ekagra.focusshield.FocusModeSwitchingTest" time="0.193"/>
+  <testcase name="later Focus action wins over an earlier pending Kavach acknowledgement" classname="com.safarparmar.app.ui.ekagra.focusshield.FocusModeSwitchingTest" time="0.197"/>
+  <testcase name="existing enabled Focus cleans up saved YouTube selection on startup" classname="com.safarparmar.app.ui.ekagra.focusshield.FocusModeSwitchingTest" time="0.197"/>
+  <testcase name="new app edits made during initial selection read are preserved" classname="com.safarparmar.app.ui.ekagra.focusshield.FocusModeSwitchingTest" time="0.192"/>
+  <testcase name="whole app acknowledgement timeout restores Focus selection" classname="com.safarparmar.app.ui.ekagra.focusshield.FocusModeSwitchingTest" time="0.192"/>
+  <testcase name="newer Focus choice promptly cancels a waiting whole app override" classname="com.safarparmar.app.ui.ekagra.focusshield.FocusModeSwitchingTest" time="0.216"/>
+  <testcase name="whole app choice waits for service to load YouTube before stopping Focus" classname="com.safarparmar.app.ui.ekagra.focusshield.FocusModeSwitchingTest" time="0.203"/>
+  <testcase name="initial accessibility connection can complete before transfer" classname="com.safarparmar.app.ui.ekagra.focusshield.FocusModeSwitchingTest" time="0.193"/>
+  <testcase name="enabling Kavach preserves Focus and its guard" classname="com.safarparmar.app.ui.ekagra.focusshield.FocusModeSwitchingTest" time="0.204"/>
+  <testcase name="confirmed whole app choice selects YouTube and preserves other selections" classname="com.safarparmar.app.ui.ekagra.focusshield.FocusModeSwitchingTest" time="0.195"/>
+  <testcase name="continuing an existing timer session preserves a later Focus action" classname="com.safarparmar.app.ui.ekagra.focusshield.FocusModeSwitchingTest" time="0.197"/>
+  <testcase name="Always On activation keeps Focus managing YouTube" classname="com.safarparmar.app.ui.ekagra.focusshield.FocusModeSwitchingTest" time="0.202"/>
+  <testcase name="failed whole app service startup keeps Focus and previous selections" classname="com.safarparmar.app.ui.ekagra.focusshield.FocusModeSwitchingTest" time="0.197"/>
+  <testcase name="editing apps while Kavach runs does not switch Focus off" classname="com.safarparmar.app.ui.ekagra.focusshield.FocusModeSwitchingTest" time="0.195"/>
+  <testcase name="Always On can activate after Kavach was manually disabled" classname="com.safarparmar.app.ui.ekagra.focusshield.FocusModeSwitchingTest" time="0.195"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

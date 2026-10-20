@@ -1,5 +1,7 @@
 package com.safarparmar.app.ui.profile
 
+import androidx.compose.ui.platform.LocalResources
+
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -44,7 +46,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
+import com.safarparmar.app.ui.components.popups.SafarDialog as Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -53,11 +55,11 @@ import coil.compose.SubcomposeAsyncImage
 import coil.compose.SubcomposeAsyncImageContent
 
 // Composables UI imports
-import com.composables.ui.components.AlertDialog as ComposablesAlertDialog
+import com.safarparmar.app.ui.components.popups.SafarComposablesAlertDialog as ComposablesAlertDialog
 import com.composables.ui.components.Button
 import com.composables.ui.components.ButtonSize
 import com.composables.ui.components.ButtonStyle
-import com.composables.ui.components.DropdownMenu
+import com.safarparmar.app.ui.components.popups.SafarComposablesDropdownMenu as DropdownMenu
 import com.composables.ui.components.DropdownMenuAlignment
 import com.composables.ui.components.DropdownMenuItem
 import com.composables.ui.components.DropdownMenuPanel
@@ -65,7 +67,7 @@ import com.composables.ui.components.HorizontalSeparator
 import com.composables.ui.components.Icon as ComposablesIcon
 import com.composables.ui.components.IconButton as ComposablesIconButton
 import com.composables.ui.components.Text as ComposablesText
-import com.composables.ui.components.Tooltip
+import com.safarparmar.app.ui.components.popups.SafarComposablesTooltip as Tooltip
 import com.composables.ui.components.TooltipPanel
 import com.composables.ui.components.TooltipSide
 import com.composables.ui.theme.colors
@@ -112,6 +114,7 @@ fun ProfileScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val premiumStatus by premiumViewModel.premiumStatus.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val localizedResources by rememberUpdatedState(LocalResources.current)
     val scheme = MaterialTheme.colorScheme
 
     var showAvatarPreview by rememberSaveable { mutableStateOf(false) }
@@ -122,7 +125,7 @@ fun ProfileScreen(
 
     LaunchedEffect(uiState.saveSuccess) {
         if (uiState.saveSuccess) {
-            Toast.makeText(context, context.getString(R.string.profile_saved_success), Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, localizedResources.getString(R.string.profile_saved_success), Toast.LENGTH_SHORT).show()
         }
     }
     LaunchedEffect(uiState.error) {
@@ -132,7 +135,7 @@ fun ProfileScreen(
     }
     LaunchedEffect(uiState.avatarUploadSuccess) {
         if (uiState.avatarUploadSuccess) {
-            Toast.makeText(context, context.getString(R.string.profile_photo_updated), Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, localizedResources.getString(R.string.profile_photo_updated), Toast.LENGTH_SHORT).show()
             viewModel.onEvent(ProfileEvent.ClearAvatarUploadSuccess)
         }
     }
@@ -527,6 +530,7 @@ private fun ProfilePhotoPreview(
     onEdit: () -> Unit,
 ) {
     Dialog(
+        fullScreen = true,
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
@@ -573,6 +577,7 @@ private fun ProfilePhotoPreview(
 private fun PersonalInfoFields(uiState: ProfileUiState, viewModel: ProfileViewModel) {
     val clipboardManager = LocalClipboardManager.current
     val context = LocalContext.current
+    val localizedResources by rememberUpdatedState(LocalResources.current)
 
     // Row 1: Full Name — Clean inline row with Person icon + editable text
     Row(
@@ -645,7 +650,7 @@ private fun PersonalInfoFields(uiState: ProfileUiState, viewModel: ProfileViewMo
                     .size(20.dp)
                     .clickable {
                         clipboardManager.setText(AnnotatedString(uiState.userEmail))
-                        Toast.makeText(context, context.getString(R.string.profile_email_copied), Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, localizedResources.getString(R.string.profile_email_copied), Toast.LENGTH_SHORT).show()
                     },
             )
         }

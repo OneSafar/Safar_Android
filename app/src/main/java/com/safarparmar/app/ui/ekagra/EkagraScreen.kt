@@ -1,4 +1,6 @@
 package com.safarparmar.app.ui.ekagra
+
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.draw.drawBehind
 
 import com.safarparmar.app.performance.decorativeFloat
@@ -121,6 +123,7 @@ fun EkagraScreen(
     val allGoals             by viewModel.allGoals.collectAsStateWithLifecycle()
     val timerService         = LocalTimerService.current
     val context              = LocalContext.current
+    val localizedResources by rememberUpdatedState(LocalResources.current)
     val requestNotificationPermission = rememberNotificationPermissionRequester()
     val shieldState          by focusShieldViewModel.shieldState.collectAsStateWithLifecycle()
     val youtubeState         by youtubeViewModel.state.collectAsStateWithLifecycle()
@@ -253,7 +256,7 @@ fun EkagraScreen(
             ((mode == TimerMode.FOCUS || mode == TimerMode.POMODORO) && durationSeconds > 4 * 60 * 60)
         ) {
             ekagraScope.launch {
-                snackbarHostState.showSnackbar(context.getString(R.string.ekagra_long_session_intro))
+                snackbarHostState.showSnackbar(localizedResources.getString(R.string.ekagra_long_session_intro))
             }
         }
     }
@@ -787,7 +790,7 @@ fun EkagraScreen(
                             showThemeDialog = false 
                         }, onDismiss = { showThemeDialog = false })
                     if (showEndSessionConfirmDialog) {
-                        com.composables.ui.components.AlertDialog(
+                        com.safarparmar.app.ui.components.popups.SafarComposablesAlertDialog(
                             visible = true,
                             onDismissRequest = { showEndSessionConfirmDialog = false },
                             shape = RoundedCornerShape(20.dp),
@@ -830,7 +833,7 @@ fun EkagraScreen(
                     // STOPWATCH) while a session is running and then presses Play.
                     val modeSwitchTarget = pendingModeSwitchConfirm
                     if (modeSwitchTarget != null) {
-                        com.composables.ui.components.AlertDialog(
+                        com.safarparmar.app.ui.components.popups.SafarComposablesAlertDialog(
                             visible = true,
                             onDismissRequest = { pendingModeSwitchConfirm = null },
                             shape = RoundedCornerShape(20.dp),
@@ -903,7 +906,7 @@ fun EkagraScreen(
                     }
                     // ── Overlay bubble permission prompt (shown once) ─────────────
                     if (showOverlayPermPrompt) {
-                        com.composables.ui.components.BottomSheet(
+                        com.safarparmar.app.ui.components.popups.SafarComposablesBottomSheet(
                             state = com.composables.ui.components.rememberBottomSheetState(
                                 initialDetent = com.composables.ui.components.BottomSheetDetent.FullyExpanded,
                             ),
@@ -1206,7 +1209,7 @@ fun EkagraScreen(
                             onDismiss     = { if (pending?.topicId != null) saveTopicLinkedSession(false) else savePendingAsFree() },
                             onSaveFree    = {
                                 pendingSaveConfirmation = PendingSaveConfirmation(
-                                    label = context.getString(R.string.ekagra_quick_save),
+                                    label = localizedResources.getString(R.string.ekagra_quick_save),
                                     completesTarget = false,
                                     commit = { savePendingAsFree() },
                                 )
@@ -1285,7 +1288,7 @@ fun EkagraScreen(
 
                     if (showDurationPromptDialog) {
                         val dialogInk = rememberEkagraInk(onCanvas = false)
-                        androidx.compose.ui.window.Dialog(
+                        com.safarparmar.app.ui.components.popups.SafarDialog(
                             onDismissRequest = { showDurationPromptDialog = false },
                             properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false),
                         ) {
@@ -1785,7 +1788,7 @@ fun MusicPromptDialog(
 ) {
     var dontShowAgain by remember { mutableStateOf(false) }
 
-    com.composables.ui.components.AlertDialog(
+    com.safarparmar.app.ui.components.popups.SafarComposablesAlertDialog(
         visible = true,
         onDismissRequest = onDismiss,
         shape = RoundedCornerShape(24.dp),

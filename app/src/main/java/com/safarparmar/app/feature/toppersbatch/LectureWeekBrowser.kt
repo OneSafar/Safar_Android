@@ -12,6 +12,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
 import com.composables.ui.components.*
+import com.safarparmar.app.ui.components.popups.SafarComposablesDropdownMenu as DropdownMenu
 import java.time.LocalDate
 
 internal fun lecturePages(lectures: List<BatchLecture>): List<List<BatchLecture>> =

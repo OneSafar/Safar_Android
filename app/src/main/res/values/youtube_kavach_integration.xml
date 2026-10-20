@@ -1,4 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="youtube_focus_kavach_priority">While YouTube Focus is on and its accessibility service is connected, it manages YouTube—even if YouTube is selected in Kavach. Kavach still blocks your other selected apps. Turning YouTube Focus off restores Kavach’s YouTube block.</string>
+    <string name="youtube_focus_kavach_priority">Use both together: Kavach blocks your other selected apps. YouTube Focus manages channels and Shorts, so YouTube stays out of Kavach’s block list.</string>
+    <string name="youtube_focus_enable_accessibility_first">Turn on the YouTube Focus accessibility permission before enabling protection.</string>
+    <string name="youtube_focus_connection_failed">YouTube Focus could not connect. Check its accessibility permission and try again.</string>
+    <string name="youtube_focus_activation_failed">Could not enable YouTube Focus. Please try again.</string>
+    <string name="youtube_focus_kavach_selection_failed">Could not update YouTube’s blocking setting. Your previous choice has been kept. Try again.</string>
+    <string name="kavach_youtube_managed_title">YouTube Focus is managing YouTube</string>
+    <string name="kavach_youtube_managed_body">Kavach can still block your other apps. Tap to see options.</string>
+    <string name="kavach_youtube_managed_badge">Managed by YouTube Focus</string>
+    <string name="kavach_youtube_managed_description">Channel and Shorts protection stays on.</string>
+    <string name="kavach_youtube_view_options">View YouTube blocking options</string>
+    <string name="kavach_youtube_conflict_title">Keep lessons available?</string>
+    <string name="kavach_youtube_conflict_body">Both can stay on together. Kavach blocks your other selected apps; YouTube Focus manages channels and Shorts. Blocking the entire YouTube app in Kavach stops lessons too.</string>
+    <string name="kavach_youtube_conflict_override_hint">To block all of YouTube, turn off YouTube Focus and select YouTube for Kavach. YouTube will be blocked when Kavach is active.</string>
+    <string name="kavach_youtube_select_all_notice">Other apps are selected. YouTube stays managed by YouTube Focus.</string>
+    <string name="kavach_youtube_keep_focus">Keep YouTube Focus</string>
+    <string name="kavach_youtube_turn_off_focus_select">Turn off Focus &amp; select YouTube</string>
 </resources>

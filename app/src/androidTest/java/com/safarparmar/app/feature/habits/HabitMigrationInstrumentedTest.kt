@@ -4,7 +4,7 @@ import androidx.room.Room
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.safarparmar.app.feature.habits.data.HabitDatabase
-import com.safarparmar.app.feature.habits.data.MIGRATION_4_5
+import com.safarparmar.app.feature.habits.data.MIGRATION_4_6
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.*
 import org.junit.Test
@@ -12,7 +12,7 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class HabitMigrationInstrumentedTest {
-    @Test fun existingHabitAndHistorySurviveVersionFiveMigration() = runBlocking {
+    @Test fun existingHabitAndHistorySurviveVersionSixMigration() = runBlocking {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val name = "habit-migration-fixture.db"
         context.deleteDatabase(name)
@@ -54,10 +54,11 @@ class HabitMigrationInstrumentedTest {
         raw.close()
 
         val db = Room.databaseBuilder(context, HabitDatabase::class.java, name)
-            .addMigrations(MIGRATION_4_5).build()
+            .addMigrations(MIGRATION_4_6).build()
         try {
             val dao = db.habitDao()
-            val habits = dao.getOwnerlessHabits()
+            val habits = dao.getLegacyHabits("migration-test-owner")
+            assertEquals(6, db.openHelper.writableDatabase.version)
             assertEquals(1, habits.size)
             assertEquals("Read", habits.single().name)
             assertNull(habits.single().ownerUserId)

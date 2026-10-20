@@ -1,5 +1,6 @@
 package com.safarparmar.app.feature.habits.data
 
+import androidx.annotation.Keep
 import com.google.gson.JsonObject
 import com.google.gson.annotations.SerializedName
 import retrofit2.http.Body
@@ -10,12 +11,14 @@ import retrofit2.http.Query
 
 data class HabitBatchRequest(val mutations: List<JsonObject>)
 data class HabitBatchResponse(val version: Long, val acknowledged: List<String>)
+@Keep
 data class HabitSnapshotResponse(
     val version: Long,
     val habits: List<HabitRemoteRecord>,
     val nextCursor: String? = null,
     val unchanged: Boolean = false
 )
+@Keep
 data class HabitRemoteRecord(
     val id: String,
     val name: String = "",
@@ -30,11 +33,13 @@ data class HabitRemoteRecord(
     val revisions: List<HabitRemoteRevision> = emptyList(),
     val completions: List<HabitRemoteCompletion> = emptyList()
 )
+@Keep
 data class HabitRemoteRevision(
     @SerializedName("effective_from") val effectiveFrom: String,
     @SerializedName("target_days") val targetDays: List<Int>,
     @SerializedName("is_every_day") val isEveryDay: Boolean
 )
+@Keep
 data class HabitRemoteCompletion(val date: String, val completed: Boolean)
 
 interface HabitApi {

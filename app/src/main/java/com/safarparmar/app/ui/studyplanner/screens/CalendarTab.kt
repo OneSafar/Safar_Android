@@ -1,4 +1,6 @@
 package com.safarparmar.app.ui.studyplanner.screens
+
+import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.material3.BottomSheetDefaults
 import android.content.Context
 import android.net.Uri
@@ -96,7 +98,7 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Today
 import androidx.compose.material.icons.filled.UploadFile
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.AlertDialog
+import com.safarparmar.app.ui.components.popups.SafarMaterialAlertDialog as AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material.icons.automirrored.rounded.List
 import androidx.compose.material3.Button
@@ -107,9 +109,9 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
+import com.safarparmar.app.ui.components.popups.SafarDatePickerDialog as DatePickerDialog
 import androidx.compose.material3.rememberDatePickerState
-import androidx.compose.material3.DropdownMenu
+import com.safarparmar.app.ui.components.popups.SafarDropdownMenu as DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -119,7 +121,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
+import com.safarparmar.app.ui.components.popups.SafarModalBottomSheet as ModalBottomSheet
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -133,6 +135,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import com.safarparmar.app.ui.tutorial.tutorialTarget
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
@@ -253,7 +256,7 @@ import kotlin.math.max
 internal fun CalendarTab(plan: StudyPlan, state: StudyPlannerUiState, actions: PlannerActions) {
     val todayK = todayKey()
     var visibleMonth by remember { mutableStateOf(YearMonth.now()) }
-    val locale = Locale.getDefault()
+    val locale = LocalLocale.current.platformLocale
     val monthSlots = remember(visibleMonth) { monthCalendarSlots(visibleMonth) }
     val weeks = remember(monthSlots) { monthSlots.chunked(7) }
     var sheetDay by remember { mutableStateOf<String?>(null) }
@@ -297,107 +300,10 @@ internal fun CalendarTab(plan: StudyPlan, state: StudyPlannerUiState, actions: P
                         .fillMaxWidth()
                         .padding(vertical = 8.dp)
                 ) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        Row(
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 8.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                        ) {
-                            IconButton(onClick = { visibleMonth = visibleMonth.minusMonths(1) }) {
-                                Icon(
-                                    imageVector = Icons.Default.ChevronLeft,
-                                    contentDescription = stringResource(R.string.planner_previous_month),
-                                    tint = PlannerFlatColors.TextDark,
-                                    modifier = Modifier.size(28.dp),
-                                )
-                            }
-
-                            Text(
-                                text = "${visibleMonth.month.getDisplayName(TextStyle.FULL, locale)} ${visibleMonth.year}",
-                                style = MaterialTheme.typography.titleLarge.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    color = PlannerFlatColors.TextDark,
-                                ),
-                            )
-
-                            IconButton(onClick = { visibleMonth = visibleMonth.plusMonths(1) }) {
-                                Icon(
-                                    imageVector = Icons.Default.ChevronRight,
-                                    contentDescription = stringResource(R.string.planner_next_month),
-                                    tint = PlannerFlatColors.TextDark,
-                                    modifier = Modifier.size(28.dp),
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        Row(
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp),
-                            horizontalArrangement = Arrangement.SpaceAround,
-                        ) {
-                            listOf("S", "M", "T", "W", "T", "F", "S").forEach { label ->
-                                Text(
-                                    text = label,
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = PlannerFlatColors.TextMuted,
-                                    textAlign = TextAlign.Center,
-                                    modifier = Modifier.width(36.dp),
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        Column(
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(top = 4.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp),
-                        ) {
-                            weeks.forEach { week ->
-                                Row(
-                                    Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceAround,
-                                ) {
-                                    week.forEach { date ->
-                                        Box(
-                                            Modifier
-                                                .weight(1f)
-                                                .aspectRatio(1f)
-                                                .padding(2.dp),
-                                        ) {
-                                            if (date != null) {
-                                                val dateIso = date.toString()
-                                                val dayItems = state.calendar[dateIso].orEmpty()
-                                                CalendarDayChip(
-                                                    dateIso = dateIso,
-                                                    items = dayItems,
-                                                    selected = sheetDay == dateIso,
-                                                    isToday = dateIso == todayK,
-                                                    isOff = jsDayOfWeek(date) in plan.offDays.toSet(),
-                                                    isExamDay = dateIso == plan.examDate?.take(10),
-                                                    isWeekend = date.dayOfWeek == DayOfWeek.SATURDAY || date.dayOfWeek == DayOfWeek.SUNDAY,
-                                                    dense = true,
-                                                    isLight = isLight,
-                                                    onClick = { sheetDay = dateIso },
-                                                    modifier = Modifier.fillMaxSize(),
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    PlannerMonthGrid(visibleMonth, weeks, locale, todayK, sheetDay, plan, isLight,
+                        dayItems = { state.calendar[it].orEmpty() },
+                        onPrevious = { visibleMonth = visibleMonth.minusMonths(1) },
+                        onNext = { visibleMonth = visibleMonth.plusMonths(1) }, onDay = { sheetDay = it })
                 }
             }
 
@@ -437,7 +343,7 @@ internal fun CalendarTab(plan: StudyPlan, state: StudyPlannerUiState, actions: P
 }
 
 @Composable
-private fun CalendarPlainHeader(plan: StudyPlan, isLight: Boolean = false, modifier: Modifier = Modifier) {
+internal fun CalendarPlainHeader(plan: StudyPlan, isLight: Boolean = false, modifier: Modifier = Modifier) {
     val examDays = daysUntil(plan.examDate)
     val examDate = readableDate(plan.examDate).takeUnless { it == "Not set" }.orEmpty()
 
@@ -989,5 +895,116 @@ private fun CalendarActionRow(
             tint = PlannerFlatColors.BorderSoft,
             modifier = Modifier.size(18.dp),
         )
+    }
+}
+
+/** The live calendar and tutorial share the same month controls and day cells. */
+@Composable
+internal fun PlannerMonthGrid(
+    visibleMonth: java.time.YearMonth, weeks: List<List<LocalDate?>>, locale: java.util.Locale,
+    todayK: String, sheetDay: String?, plan: StudyPlan, isLight: Boolean,
+    dayItems: (String) -> List<CalendarTopicItem>, onPrevious: () -> Unit, onNext: () -> Unit,
+    onDay: (String) -> Unit,
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Row(
+            Modifier
+                .fillMaxWidth().tutorialTarget("planner.calendar")
+                .padding(horizontal = 8.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            IconButton(onClick = { onPrevious() }) {
+                Icon(
+                    imageVector = Icons.Default.ChevronLeft,
+                    contentDescription = stringResource(R.string.planner_previous_month),
+                    tint = PlannerFlatColors.TextDark,
+                    modifier = Modifier.size(28.dp),
+                )
+            }
+
+            Text(
+                text = "${visibleMonth.month.getDisplayName(TextStyle.FULL, locale)} ${visibleMonth.year}",
+                style = MaterialTheme.typography.titleLarge.copy(
+                    fontWeight = FontWeight.Bold,
+                    color = PlannerFlatColors.TextDark,
+                ),
+            )
+
+            IconButton(onClick = { onNext() }) {
+                Icon(
+                    imageVector = Icons.Default.ChevronRight,
+                    contentDescription = stringResource(R.string.planner_next_month),
+                    tint = PlannerFlatColors.TextDark,
+                    modifier = Modifier.size(28.dp),
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
+            horizontalArrangement = Arrangement.SpaceAround,
+        ) {
+            listOf("S", "M", "T", "W", "T", "F", "S").forEach { label ->
+                Text(
+                    text = label,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = PlannerFlatColors.TextMuted,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.width(36.dp),
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .padding(top = 4.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            weeks.forEach { week ->
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceAround,
+                ) {
+                    week.forEach { date ->
+                        Box(
+                            Modifier
+                                .weight(1f)
+                                .aspectRatio(1f)
+                                .padding(2.dp),
+                        ) {
+                            if (date != null) {
+                                val dateIso = date.toString()
+                                val dayItems = dayItems(dateIso)
+                                CalendarDayChip(
+                                    dateIso = dateIso,
+                                    items = dayItems,
+                                    selected = sheetDay == dateIso,
+                                    isToday = dateIso == todayK,
+                                    isOff = jsDayOfWeek(date) in plan.offDays.toSet(),
+                                    isExamDay = dateIso == plan.examDate?.take(10),
+                                    isWeekend = date.dayOfWeek == DayOfWeek.SATURDAY || date.dayOfWeek == DayOfWeek.SUNDAY,
+                                    dense = true,
+                                    isLight = isLight,
+                                    onClick = { onDay(dateIso) },
+                                    modifier = Modifier.fillMaxSize(),
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }

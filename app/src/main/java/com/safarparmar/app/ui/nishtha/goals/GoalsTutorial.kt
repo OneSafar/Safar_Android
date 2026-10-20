@@ -1,5 +1,7 @@
 package com.safarparmar.app.ui.nishtha.goals
 
+import androidx.compose.ui.platform.LocalLocale
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -7,6 +9,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.*
+import com.safarparmar.app.ui.components.popups.SafarMaterialAlertDialog as AlertDialog
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -165,7 +168,7 @@ private fun GoalsPracticeStage(demo: GoalsTutorialDemoState) {
             GoalsTutorialScene.MISSED_CHOICE -> Column(
                 Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                val originalDate = demo.today.minusDays(1).format(java.time.format.DateTimeFormatter.ofPattern("MMMM d", java.util.Locale.getDefault()))
+                val originalDate = demo.today.minusDays(1).format(java.time.format.DateTimeFormatter.ofPattern("MMMM d", LocalLocale.current.platformLocale))
                 Text(stringResource(R.string.goals_earlier_day_title), style = MaterialTheme.typography.titleLarge)
                 Text(stringResource(R.string.goals_earlier_day_body, originalDate))
                 Box(Modifier.tutorialTarget("goals.missedActions")) { GoalOverdueActions(originalDate, false, {}, {}, {}) }

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.feature.toppersbatch.BatchReleaseProgressTest" tests="11" skipped="0" failures="0" errors="0" timestamp="2026-10-19T19:59:39.396Z" hostname="Shashanks-MacBook-Air.local" time="0.002">
+  <properties/>
+  <testcase name="legacyDatesIncludeTodayAndPastButExcludeFutureMissingAndInvalidDates" classname="com.safarparmar.app.feature.toppersbatch.BatchReleaseProgressTest" time="0.001"/>
+  <testcase name="remainingLecturesUseSubjectOrderAndNumericLectureOrder" classname="com.safarparmar.app.feature.toppersbatch.BatchReleaseProgressTest" time="0.0"/>
+  <testcase name="personalDatesBacklogAndRevisionSessionsDoNotChangeTheComparison" classname="com.safarparmar.app.feature.toppersbatch.BatchReleaseProgressTest" time="0.0"/>
+  <testcase name="releaseFlagsOverrideDatesWhenAvailabilityIsAbsent" classname="com.safarparmar.app.feature.toppersbatch.BatchReleaseProgressTest" time="0.0"/>
+  <testcase name="comparesCompletedLecturesWithTheReleasedSetInsteadOfTheWholeCourse" classname="com.safarparmar.app.feature.toppersbatch.BatchReleaseProgressTest" time="0.0"/>
+  <testcase name="importedCompletionWithUnknownDateStillCountsAsCourseCoverage" classname="com.safarparmar.app.feature.toppersbatch.BatchReleaseProgressTest" time="0.0"/>
+  <testcase name="serverAvailabilityOverridesScheduleAndCompletedDoesNotUnlockTheReleaseCount" classname="com.safarparmar.app.feature.toppersbatch.BatchReleaseProgressTest" time="0.0"/>
+  <testcase name="zeroReleasedLecturesIsSafeAndDoesNotTreatFutureCompletionAsTeacherProgress" classname="com.safarparmar.app.feature.toppersbatch.BatchReleaseProgressTest" time="0.0"/>
+  <testcase name="studentAdditionsDoNotInflateOfficialBatchProgress" classname="com.safarparmar.app.feature.toppersbatch.BatchReleaseProgressTest" time="0.0"/>
+  <testcase name="confirmedCompletionAndUndoUpdateTheReleasedComparisonImmediately" classname="com.safarparmar.app.feature.toppersbatch.BatchReleaseProgressTest" time="0.0"/>
+  <testcase name="disabledAndUnknownSubjectsDoNotInflateCounts" classname="com.safarparmar.app.feature.toppersbatch.BatchReleaseProgressTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

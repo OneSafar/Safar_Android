@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="home_banner_youtube_focus_description">YouTube, सिर्फ़ पढ़ाई के लिए। अपने पढ़ाई वाले चैनल रखें और ध्यान भटकाने वाली चीज़ें रोकें। YouTube Focus आज़माएँ।</string>
+    <string name="home_banner_habit_tracker_description">पढ़ाई का सिलसिला जारी रखें। हर दिन थोड़ी प्रगति करें। Habit Tracker खोलें।</string>
+    <string name="home_banner_show_youtube_focus">YouTube Focus बैनर दिखाएँ</string>
+    <string name="home_banner_show_habit_tracker">Habit Tracker बैनर दिखाएँ</string>
+    <string name="youtube_study_mode_control">YouTube पढ़ाई मोड</string>
+    <string name="youtube_study_mode_configure">सेटअप करें</string>
+    <string name="youtube_focus_share_detection_report">पहचान रिपोर्ट साझा करें</string>
+    <string name="youtube_focus_detection_report_disclosure">रिपोर्ट में YouTube का टेक्स्ट और लेआउट शामिल है</string>
+    <string name="youtube_focus_detection_report_failed">रिपोर्ट साझा नहीं हो सकी। कृपया फिर से कोशिश करें।</string>
+</resources>

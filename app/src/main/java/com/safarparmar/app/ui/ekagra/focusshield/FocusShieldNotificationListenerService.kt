@@ -6,11 +6,20 @@ import android.service.notification.NotificationListenerService
 import android.service.notification.NotificationListenerService.RankingMap
 import android.service.notification.StatusBarNotification
 import com.safarparmar.app.BuildConfig
+import com.safarparmar.app.data.local.SafarDataStore
 import com.safarparmar.app.ui.ekagra.TimerService
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
 class FocusShieldNotificationListenerService : NotificationListenerService() {
 
     private val mainHandler = Handler(Looper.getMainLooper())
+    private val mediaScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private val dataStore by lazy { SafarDataStore(applicationContext) }
 
     override fun onListenerConnected() {
         suppressActiveBlockedNotifications("listener connected")
@@ -26,7 +35,7 @@ class FocusShieldNotificationListenerService : NotificationListenerService() {
         val notification = sbn ?: return
         if (!shouldSuppressPackage(notification.packageName)) return
 
-        BlockedMediaEnforcer.stop(this, notification.packageName)
+        pauseBlockedMedia(notification.packageName)
         cancelBlockedNotification(notification, "posted")
         mainHandler.postDelayed(
             { suppressActiveBlockedNotifications("posted sweep") },
@@ -36,6 +45,12 @@ class FocusShieldNotificationListenerService : NotificationListenerService() {
 
     override fun onNotificationRankingUpdate(rankingMap: RankingMap?) {
         suppressActiveBlockedNotifications("ranking update")
+    }
+
+    override fun onDestroy() {
+        mainHandler.removeCallbacksAndMessages(null)
+        mediaScope.cancel()
+        super.onDestroy()
     }
 
     private fun suppressActiveBlockedNotifications(reason: String) {
@@ -55,7 +70,7 @@ class FocusShieldNotificationListenerService : NotificationListenerService() {
             activeNotifications
                 ?.filter { shouldSuppressPackage(it.packageName, blockedPackages) }
                 ?.forEach {
-                    BlockedMediaEnforcer.stop(this, it.packageName)
+                    pauseBlockedMedia(it.packageName)
                     cancelBlockedNotification(it, reason)
                 }
         }.onFailure {
@@ -87,6 +102,21 @@ class FocusShieldNotificationListenerService : NotificationListenerService() {
             debugLog("Suppressed notification from ${sbn.packageName} ($reason)")
         }.onFailure {
             debugLog("Notification suppression failed for ${sbn.packageName}: ${it.javaClass.simpleName}")
+        }
+    }
+
+    private fun pauseBlockedMedia(packageName: String) {
+        mediaScope.launch {
+            runCatching {
+                pauseKavachNotificationMediaIfBlocked(
+                    context = this@FocusShieldNotificationListenerService,
+                    packageName = packageName,
+                    strictMode = { dataStore.focusShieldStrictMode.first() },
+                    isStillBlocked = { shouldSuppressPackage(packageName) },
+                )
+            }.onFailure {
+                debugLog("Notification media enforcement failed: ${it.javaClass.simpleName}")
+            }
         }
     }
 

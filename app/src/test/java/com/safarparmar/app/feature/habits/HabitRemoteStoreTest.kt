@@ -1,5 +1,6 @@
 package com.safarparmar.app.feature.habits
 
+import com.safarparmar.app.feature.habits.reminders.HabitReminderScheduler
 import com.google.gson.Gson
 import com.safarparmar.app.data.local.SafarDataStore
 import com.safarparmar.app.feature.habits.data.*
@@ -16,7 +17,7 @@ import java.time.DayOfWeek
 import java.time.LocalDate
 
 class HabitRemoteStoreTest {
-    private class Device(api: HabitApi, initialOwner: String = "alice") {
+    private class Device(api: HabitApi, initialOwner: String = "alice", reminders: HabitReminderScheduler? = null) {
         val owner = MutableStateFlow<String?>(initialOwner)
         val loggedIn = MutableStateFlow(true)
         val accounts = mockk<SafarDataStore> {
@@ -28,7 +29,7 @@ class HabitRemoteStoreTest {
             coEvery { pendingMutationCount(any()) } returns 0
         }
         val db = mockk<HabitDatabase> { every { habitDao() } returns dao }
-        val source = HabitRemoteStore(api, accounts, db)
+        val source = HabitRemoteStore(api, accounts, db, reminders)
         val repository = HabitRepository(source)
     }
     private class Backend : HabitApi {
@@ -54,6 +55,7 @@ class HabitRemoteStoreTest {
                     "create" -> if (old == null) values[id] = HabitRemoteRecord(id = id, name = m.get("name").asString,
                         targetDays = days(), isEveryDay = m.get("isEveryDay").asBoolean,
                         scheduledSince = m.get("scheduledSince").asString, order = m.get("order").asInt,
+                        reminderTime = m.get("reminderTime")?.takeUnless { it.isJsonNull }?.asString,
                         revisions = listOf(HabitRemoteRevision(m.get("scheduledSince").asString, days(), m.get("isEveryDay").asBoolean)))
                     "patch" -> {
                         val f = m.getAsJsonObject("fields")
@@ -184,4 +186,46 @@ class HabitRemoteStoreTest {
         assertEquals(listOf(1), record.revisions.single().targetDays)
         assertTrue(record.completions.single().completed)
     }
+    @Test fun `reminders receive confirmed creates edits completions archives and deletes`() = runTest {
+        val backend = Backend()
+        val reminders = mockk<HabitReminderScheduler>(relaxed = true)
+        val device = Device(backend, reminders = reminders)
+        device.source.refresh()
+        device.repository.createHabit("Read", DayOfWeek.entries.toSet(), true, 0, "08:30")
+        val habit = device.repository.observeHabits().first().single()
+        assertEquals("08:30", habit.reminderTime)
+        coVerify { reminders.replace("alice", match { it.singleOrNull()?.reminderTime == "08:30" }) }
+        device.repository.editHabit(habit.copy(reminderTime = "09:45"))
+        coVerify { reminders.replace("alice", match { it.singleOrNull()?.reminderTime == "09:45" }) }
+        device.repository.toggle(habit.id, LocalDate.now(), false)
+        coVerify { reminders.replace("alice", match { it.singleOrNull()?.completions?.any { c -> c.completed } == true }) }
+        device.repository.archiveHabit(habit.id)
+        coVerify { reminders.replace("alice", match { it.singleOrNull()?.archivedAt != null }) }
+        device.repository.deleteHabit(habit)
+        coVerify { reminders.replace("alice", match { it.singleOrNull()?.deleted == true }) }
+    }
+
+    @Test fun `unconfirmed network mutation never replaces reminder projection`() = runTest {
+        val backend = Backend()
+        val reminders = mockk<HabitReminderScheduler>(relaxed = true)
+        val device = Device(backend, reminders = reminders)
+        device.source.refresh()
+        clearMocks(reminders)
+        backend.fail = true
+        try { device.repository.createHabit("Read", DayOfWeek.entries.toSet(), true, 0, "08:30"); fail("Must report save error") }
+        catch (_: IOException) { }
+        coVerify(exactly = 0) { reminders.replace(any(), any()) }
+    }
+
+    @Test fun `unchanged server snapshot restores reminders after local cache reset`() = runTest {
+        val backend = Backend()
+        val reminders = mockk<HabitReminderScheduler>(relaxed = true)
+        val device = Device(backend, reminders = reminders)
+        device.source.refresh()
+        device.repository.createHabit("Read", DayOfWeek.entries.toSet(), true, 0, "08:30")
+        clearMocks(reminders)
+        device.source.refresh()
+        coVerify(exactly = 1) { reminders.replace("alice", match { it.singleOrNull()?.reminderTime == "08:30" }) }
+    }
+
 }
