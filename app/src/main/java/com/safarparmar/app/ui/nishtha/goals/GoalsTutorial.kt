@@ -1,5 +1,14 @@
 package com.safarparmar.app.ui.nishtha.goals
 
+import androidx.compose.ui.text.font.FontWeight
+import com.safarparmar.app.ui.tutorial.TitliFeature
+import com.safarparmar.app.ui.tutorial.TutorialVisualStyle
+import com.safarparmar.app.ui.tutorial.TutorialLessonCard
+import com.safarparmar.app.ui.tutorial.TutorialLessonMenu
+import androidx.compose.material.icons.filled.Flag
+import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.ui.platform.LocalLocale
 
 import androidx.compose.foundation.background
@@ -35,7 +44,7 @@ import java.time.LocalDate
 @Composable
 internal fun GoalsTutorialEntry(dataStore: SafarDataStore, eligible: Boolean, model: GoalsTutorialViewModel, version: Int = 1) {
     if (!com.safarparmar.app.BuildConfig.TITLI_TUTORIALS_ENABLED) return
-    com.safarparmar.app.ui.tutorial.RegisterTitliGuide(start = { model.start(GoalsTutorialLesson.CORE) }, lessons = model::open, feature = com.safarparmar.app.ui.tutorial.TitliFeature.GOALS)
+    com.safarparmar.app.ui.tutorial.RegisterTitliGuide(start = { model.start(GoalsTutorialLesson.CORE) }, lessons = model::open, feature = TitliFeature.GOALS)
     val seen by remember(dataStore, version) { dataStore.featureTutorialInvitationSeen("goals", version) }
         .collectAsStateWithLifecycle(initialValue = null)
     val completed by remember(dataStore, version) { dataStore.featureTutorialCompletedLessons("goals", version) }
@@ -62,19 +71,19 @@ internal fun GoalsTutorialEntry(dataStore: SafarDataStore, eligible: Boolean, mo
     }
     if (com.safarparmar.app.ui.tutorial.LocalTitliController.current == null && seen == false && !handled && readyToOffer && eligible && !model.isOpen && !busy) {
         fun dismiss() { handled = true; scope.launch { dataStore.setFeatureTutorialInvitationSeen("goals", version) } }
-        AlertDialog(
+        TutorialVisualStyle { AlertDialog(
             onDismissRequest = ::dismiss,
             title = { Text(stringResource(R.string.goals_tutorial_invite)) },
             text = { Text(stringResource(R.string.goals_tutorial_invite_body)) },
             confirmButton = { TextButton(onClick = { dismiss(); model.start(GoalsTutorialLesson.CORE) }) { Text(stringResource(R.string.ekagra_tutorial_start)) } },
             dismissButton = { TextButton(onClick = ::dismiss) { Text(stringResource(R.string.ekagra_tutorial_later)) } },
-        )
+        ) }
     }
-    if (busy) AlertDialog(
+    if (busy) TutorialVisualStyle { AlertDialog(
         onDismissRequest = { busy = false }, title = { Text(stringResource(R.string.goals_tutorial_learn)) },
         text = { Text(stringResource(R.string.goals_tutorial_busy)) },
         confirmButton = { TextButton(onClick = { busy = false }) { Text(stringResource(R.string.ekagra_tutorial_done)) } },
-    )
+    ) }
     if (model.isOpen && eligible) GoalsTutorialPractice(model, completed)
 }
 
@@ -109,20 +118,18 @@ internal fun GoalsTutorialPractice(model: GoalsTutorialViewModel, completed: Set
 
 @Composable
 private fun GoalsTutorialLessons(completed: Set<String>, onStart: (GoalsTutorialLesson) -> Unit, onExit: () -> Unit) {
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(stringResource(R.string.goals_tutorial_lessons), style = MaterialTheme.typography.headlineSmall)
+    TutorialLessonMenu(TitliFeature.GOALS) {
+        Text(stringResource(R.string.goals_tutorial_lessons), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
         GoalsTutorialLesson.entries.forEach { lesson ->
-            OutlinedCard(onClick = { onStart(lesson) }, modifier = Modifier.fillMaxWidth().testTag("goals.tutorial.lesson.${lesson.name}")) {
-                Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text(stringResource(lesson.title), style = MaterialTheme.typography.titleMedium)
-                        if (lesson.name in completed) Text(stringResource(R.string.ekagra_tutorial_completed), style = MaterialTheme.typography.labelMedium)
-                    }
-                    if (lesson.name in completed) Icon(Icons.Default.CheckCircle, null, tint = MaterialTheme.colorScheme.primary)
-                }
-            }
+            TutorialLessonCard(stringResource(lesson.title), lesson.name in completed,
+                icon = when (lesson) {
+                    GoalsTutorialLesson.CORE -> Icons.Filled.Flag
+                    GoalsTutorialLesson.SCHEDULE -> Icons.Filled.CalendarMonth
+                    GoalsTutorialLesson.MANAGE -> Icons.Filled.Edit
+                    GoalsTutorialLesson.PROGRESS -> Icons.Filled.BarChart
+                }, modifier = Modifier.testTag("goals.tutorial.lesson.${lesson.name}"), onClick = { onStart(lesson) })
         }
-        Button(onClick = onExit, modifier = Modifier.fillMaxWidth().testTag("goals.tutorial.done")) { Text(stringResource(R.string.ekagra_tutorial_done)) }
+        Button(onClick = onExit, modifier = Modifier.fillMaxWidth().testTag("goals.tutorial.done")) { Text(stringResource(R.string.feature_tutorial_finish)) }
     }
 }
 

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="gk5_tracker_title">परमार GK 5.0 बैच ट्रैकर</string>
+    <string name="gk5_tracker_subtitle">GK की कक्षाएँ, रिविज़न और प्रगति</string>
+    <string name="gk5_switch_to_gk">GK 5.0 खोलें</string>
+    <string name="gk5_switch_to_toppers">टॉपर्स बैच खोलें</string>
+    <string name="gk5_opening">GK 5.0 खोल रहे हैं…</string>
+    <string name="gk5_premium">GK 5.0 के लिए SAFAR Premium चाहिए।</string>
+    <string name="gk5_unavailable">इस खाते के लिए GK 5.0 अभी उपलब्ध नहीं है।</string>
+    <string name="gk5_could_not_open">GK 5.0 खोल नहीं सके।</string>
+    <string name="gk5_official_schedule_note">आपकी रोज़ की सूची परमार GK 5.0 की आधिकारिक समय-सारणी के अनुसार है।</string>
+</resources>

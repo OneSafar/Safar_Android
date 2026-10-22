@@ -1,0 +1,515 @@
+HabitBatchRequest
+            -
+  Class descriptor  : 'Lcom/safarparmar/app/feature/habits/data/HabitBatchRequest;'
+  Access flags      : 0x0011 (PUBLIC FINAL)
+  Superclass        : 'Ljava/lang/Object;'
+  Interfaces        -
+  Static fields     -
+    #0              : (in Lcom/safarparmar/app/feature/habits/data/HabitBatchRequest;)
+      name          : '$stable'
+      type          : 'I'
+      access        : 0x0019 (PUBLIC STATIC FINAL)
+      value         : 8
+  Instance fields   -
+    #0              : (in Lcom/safarparmar/app/feature/habits/data/HabitBatchRequest;)
+      name          : 'mutations'
+      type          : 'Ljava/util/List;'
+      access        : 0x0012 (PRIVATE FINAL)
+  Direct methods    -
+    #0              : (in Lcom/safarparmar/app/feature/habits/data/HabitBatchRequest;)
+      name          : '<init>'
+      type          : '(Ljava/util/List;)V'
+      access        : 0x10001 (PUBLIC CONSTRUCTOR)
+      code          -
+      registers     : 2
+      ins           : 2
+      outs          : 1
+      insns size    : 9 16-bit code units
+      catches       : (none)
+      positions     :
+        0x0000 line=1
+        0x0001 line=2
+        0x0002 line=3
+        0x0003 line=4
+        0x0004 line=5
+        0x0005 line=6
+        0x0006 line=7
+        0x0007 line=8
+        0x0008 line=9
+      locals        :
+        0x0000 - 0x0009 reg=0 this Lcom/safarparmar/app/feature/habits/data/HabitBatchRequest;
+        0x0000 - 0x0009 reg=1 (null) Ljava/util/List;
+    #1              : (in Lcom/safarparmar/app/feature/habits/data/HabitBatchRequest;)
+      name          : 'copy$default'
+      type          : '(Lcom/safarparmar/app/feature/habits/data/HabitBatchRequest;Ljava/util/List;ILjava/lang/Object;)Lcom/safarparmar/app/feature/habits/data/HabitBatchRequest;'
+      access        : 0x1009 (PUBLIC STATIC SYNTHETIC)
+      code          -
+      registers     : 4
+      ins           : 4
+      outs          : 2
+      insns size    : 11 16-bit code units
+      catches       : (none)
+      positions     :
+        0x0000 line=1
+        0x0001 line=2
+        0x0002 line=3
+        0x0003 line=4
+        0x0004 line=5
+        0x0005 line=6
+        0x0006 line=7
+        0x0007 line=8
+        0x0008 line=9
+        0x0009 line=10
+        0x000a line=11
+      locals        :
+        0x0000 - 0x000b reg=0 (null) Lcom/safarparmar/app/feature/habits/data/HabitBatchRequest;
+        0x0000 - 0x000b reg=1 (null) Ljava/util/List;
+        0x0000 - 0x000b reg=2 (null) I
+        0x0000 - 0x000b reg=3 (null) Ljava/lang/Object;
+  Virtual methods   -
+    #0              : (in Lcom/safarparmar/app/feature/habits/data/HabitBatchRequest;)
+      name          : 'component1'
+      type          : '()Ljava/util/List;'
+      access        : 0x0011 (PUBLIC FINAL)
+      code          -
+      registers     : 1
+      ins           : 1
+      outs          : 0
+      insns size    : 3 16-bit code units
+      catches       : (none)
+      positions     :
+        0x0000 line=1
+        0x0001 line=2
+        0x0002 line=3
+      locals        :
+        0x0000 - 0x0003 reg=0 this Lcom/safarparmar/app/feature/habits/data/HabitBatchRequest;
+    #1              : (in Lcom/safarparmar/app/feature/habits/data/HabitBatchRequest;)
+      name          : 'copy'
+      type          : '(Ljava/util/List;)Lcom/safarparmar/app/feature/habits/data/HabitBatchRequest;'
+      access        : 0x0011 (PUBLIC FINAL)
+      code          -
+      registers     : 2
+      ins           : 2
+      outs          : 2
+      insns size    : 9 16-bit code units
+      catches       : (none)
+      positions     :
+        0x0000 line=1
+        0x0001 line=2
+        0x0002 line=3
+        0x0003 line=4
+        0x0004 line=5
+        0x0005 line=6
+        0x0006 line=7
+        0x0007 line=8
+        0x0008 line=9
+      locals        :
+        0x0000 - 0x0009 reg=0 this Lcom/safarparmar/app/feature/habits/data/HabitBatchRequest;
+        0x0000 - 0x0009 reg=1 (null) Ljava/util/List;
+    #2              : (in Lcom/safarparmar/app/feature/habits/data/HabitBatchRequest;)
+      name          : 'equals'
+      type          : '(Ljava/lang/Object;)Z'
+      access        : 0x0001 (PUBLIC)
+      code          -
+      registers     : 5
+      ins           : 2
+      outs          : 2
+      insns size    : 24 16-bit code units
+      catches       : (none)
+      positions     :
+        0x0000 line=1
+        0x0001 line=2
+        0x0002 line=3
+        0x0003 line=4
+        0x0004 line=5
+        0x0005 line=6
+        0x0006 line=7
+        0x0007 line=8
+        0x0008 line=9
+        0x0009 line=10
+        0x000a line=11
+        0x000b line=12
+        0x000c line=13
+        0x000d line=14
+        0x000e line=15
+        0x000f line=16
+        0x0010 line=17
+        0x0011 line=18
+        0x0012 line=19
+        0x0013 line=20
+        0x0014 line=21
+        0x0015 line=22
+        0x0016 line=23
+        0x0017 line=24
+      locals        :
+        0x0000 - 0x0018 reg=3 this Lcom/safarparmar/app/feature/habits/data/HabitBatchRequest;
+        0x0000 - 0x0018 reg=4 (null) Ljava/lang/Object;
+    #3              : (in Lcom/safarparmar/app/feature/habits/data/HabitBatchRequest;)
+      name          : 'getMutations'
+      type          : '()Ljava/util/List;'
+      access        : 0x0011 (PUBLIC FINAL)
+      code          -
+      registers     : 1
+      ins           : 1
+      outs          : 0
+      insns size    : 3 16-bit code units
+      catches       : (none)
+      positions     :
+        0x0000 line=1
+        0x0001 line=2
+        0x0002 line=3
+      locals        :
+        0x0000 - 0x0003 reg=0 this Lcom/safarparmar/app/feature/habits/data/HabitBatchRequest;
+    #4              : (in Lcom/safarparmar/app/feature/habits/data/HabitBatchRequest;)
+      name          : 'hashCode'
+      type          : '()I'
+      access        : 0x0001 (PUBLIC)
+      code          -
+      registers     : 1
+      ins           : 1
+      outs          : 1
+      insns size    : 7 16-bit code units
+      catches       : (none)
+      positions     :
+        0x0000 line=1
+        0x0001 line=2
+        0x0002 line=3
+        0x0003 line=4
+        0x0004 line=5
+        0x0005 line=6
+        0x0006 line=7
+      locals        :
+        0x0000 - 0x0007 reg=0 this Lcom/safarparmar/app/feature/habits/data/HabitBatchRequest;
+    #5              : (in Lcom/safarparmar/app/feature/habits/data/HabitBatchRequest;)
+      name          : 'toString'
+      type          : '()Ljava/lang/String;'
+      access        : 0x0001 (PUBLIC)
+      code          -
+      registers     : 3
+      ins           : 1
+      outs          : 2
+      insns size    : 22 16-bit code units
+      catches       : (none)
+      positions     :
+        0x0000 line=1
+        0x0001 line=2
+        0x0002 line=3
+        0x0003 line=4
+        0x0004 line=5
+        0x0005 line=6
+        0x0006 line=7
+        0x0007 line=8
+        0x0008 line=9
+        0x0009 line=10
+        0x000a line=11
+        0x000b line=12
+        0x000c line=13
+        0x000d line=14
+        0x000e line=15
+        0x000f line=16
+        0x0010 line=17
+        0x0011 line=18
+        0x0012 line=19
+        0x0013 line=20
+        0x0014 line=21
+        0x0015 line=22
+      locals        :
+        0x0000 - 0x0016 reg=2 this Lcom/safarparmar/app/feature/habits/data/HabitBatchRequest;
+  source_file_idx   : 44208 (r8-map-id-867da8b72a45828a5be4700ba49ba1854ab305262310b17bdf61c35bf26446bb)
+
+
+
+HabitBatchResponse
+            -
+  Class descriptor  : 'Lcom/safarparmar/app/feature/habits/data/HabitBatchResponse;'
+  Access flags      : 0x0011 (PUBLIC FINAL)
+  Superclass        : 'Ljava/lang/Object;'
+  Interfaces        -
+  Static fields     -
+    #0              : (in Lcom/safarparmar/app/feature/habits/data/HabitBatchResponse;)
+      name          : '$stable'
+      type          : 'I'
+      access        : 0x0019 (PUBLIC STATIC FINAL)
+      value         : 8
+  Instance fields   -
+    #0              : (in Lcom/safarparmar/app/feature/habits/data/HabitBatchResponse;)
+      name          : 'acknowledged'
+      type          : 'Ljava/util/List;'
+      access        : 0x0012 (PRIVATE FINAL)
+    #1              : (in Lcom/safarparmar/app/feature/habits/data/HabitBatchResponse;)
+      name          : 'version'
+      type          : 'J'
+      access        : 0x0012 (PRIVATE FINAL)
+  Direct methods    -
+    #0              : (in Lcom/safarparmar/app/feature/habits/data/HabitBatchResponse;)
+      name          : '<init>'
+      type          : '(JLjava/util/List;)V'
+      access        : 0x10001 (PUBLIC CONSTRUCTOR)
+      code          -
+      registers     : 4
+      ins           : 4
+      outs          : 1
+      insns size    : 11 16-bit code units
+      catches       : (none)
+      positions     :
+        0x0000 line=1
+        0x0001 line=2
+        0x0002 line=3
+        0x0003 line=4
+        0x0004 line=5
+        0x0005 line=6
+        0x0006 line=7
+        0x0007 line=8
+        0x0008 line=9
+        0x0009 line=10
+        0x000a line=11
+      locals        :
+        0x0000 - 0x000b reg=0 this Lcom/safarparmar/app/feature/habits/data/HabitBatchResponse;
+        0x0000 - 0x000b reg=1 (null) J
+        0x0000 - 0x000b reg=3 (null) Ljava/util/List;
+    #1              : (in Lcom/safarparmar/app/feature/habits/data/HabitBatchResponse;)
+      name          : 'copy$default'
+      type          : '(Lcom/safarparmar/app/feature/habits/data/HabitBatchResponse;JLjava/util/List;ILjava/lang/Object;)Lcom/safarparmar/app/feature/habits/data/HabitBatchResponse;'
+      access        : 0x1009 (PUBLIC STATIC SYNTHETIC)
+      code          -
+      registers     : 6
+      ins           : 6
+      outs          : 4
+      insns size    : 17 16-bit code units
+      catches       : (none)
+      positions     :
+        0x0000 line=1
+        0x0001 line=2
+        0x0002 line=3
+        0x0003 line=4
+        0x0004 line=5
+        0x0005 line=6
+        0x0006 line=7
+        0x0007 line=8
+        0x0008 line=9
+        0x0009 line=10
+        0x000a line=11
+        0x000b line=12
+        0x000c line=13
+        0x000d line=14
+        0x000e line=15
+        0x000f line=16
+        0x0010 line=17
+      locals        :
+        0x0000 - 0x0011 reg=0 (null) Lcom/safarparmar/app/feature/habits/data/HabitBatchResponse;
+        0x0000 - 0x0011 reg=1 (null) J
+        0x0000 - 0x0011 reg=3 (null) Ljava/util/List;
+        0x0000 - 0x0011 reg=4 (null) I
+        0x0000 - 0x0011 reg=5 (null) Ljava/lang/Object;
+  Virtual methods   -
+    #0              : (in Lcom/safarparmar/app/feature/habits/data/HabitBatchResponse;)
+      name          : 'component1'
+      type          : '()J'
+      access        : 0x0011 (PUBLIC FINAL)
+      code          -
+      registers     : 3
+      ins           : 1
+      outs          : 0
+      insns size    : 3 16-bit code units
+      catches       : (none)
+      positions     :
+        0x0000 line=1
+        0x0001 line=2
+        0x0002 line=3
+      locals        :
+        0x0000 - 0x0003 reg=2 this Lcom/safarparmar/app/feature/habits/data/HabitBatchResponse;
+    #1              : (in Lcom/safarparmar/app/feature/habits/data/HabitBatchResponse;)
+      name          : 'component2'
+      type          : '()Ljava/util/List;'
+      access        : 0x0011 (PUBLIC FINAL)
+      code          -
+      registers     : 1
+      ins           : 1
+      outs          : 0
+      insns size    : 3 16-bit code units
+      catches       : (none)
+      positions     :
+        0x0000 line=1
+        0x0001 line=2
+        0x0002 line=3
+      locals        :
+        0x0000 - 0x0003 reg=0 this Lcom/safarparmar/app/feature/habits/data/HabitBatchResponse;
+    #2              : (in Lcom/safarparmar/app/feature/habits/data/HabitBatchResponse;)
+      name          : 'copy'
+      type          : '(JLjava/util/List;)Lcom/safarparmar/app/feature/habits/data/HabitBatchResponse;'
+      access        : 0x0011 (PUBLIC FINAL)
+      code          -
+      registers     : 4
+      ins           : 4
+      outs          : 4
+      insns size    : 9 16-bit code units
+      catches       : (none)
+      positions     :
+        0x0000 line=1
+        0x0001 line=2
+        0x0002 line=3
+        0x0003 line=4
+        0x0004 line=5
+        0x0005 line=6
+        0x0006 line=7
+        0x0007 line=8
+        0x0008 line=9
+      locals        :
+        0x0000 - 0x0009 reg=0 this Lcom/safarparmar/app/feature/habits/data/HabitBatchResponse;
+        0x0000 - 0x0009 reg=1 (null) J
+        0x0000 - 0x0009 reg=3 (null) Ljava/util/List;
+    #3              : (in Lcom/safarparmar/app/feature/habits/data/HabitBatchResponse;)
+      name          : 'equals'
+      type          : '(Ljava/lang/Object;)Z'
+      access        : 0x0001 (PUBLIC)
+      code          -
+      registers     : 9
+      ins           : 2
+      outs          : 2
+      insns size    : 33 16-bit code units
+      catches       : (none)
+      positions     :
+        0x0000 line=1
+        0x0001 line=2
+        0x0002 line=3
+        0x0003 line=4
+        0x0004 line=5
+        0x0005 line=6
+        0x0006 line=7
+        0x0007 line=8
+        0x0008 line=9
+        0x0009 line=10
+        0x000a line=11
+        0x000b line=12
+        0x000c line=13
+        0x000d line=14
+        0x000e line=15
+        0x000f line=16
+        0x0010 line=17
+        0x0011 line=18
+        0x0012 line=19
+        0x0013 line=20
+        0x0014 line=21
+        0x0015 line=22
+        0x0016 line=23
+        0x0017 line=24
+        0x0018 line=25
+        0x0019 line=26
+        0x001a line=27
+        0x001b line=28
+        0x001c line=29
+        0x001d line=30
+        0x001e line=31
+        0x001f line=32
+        0x0020 line=33
+      locals        :
+        0x0000 - 0x0021 reg=7 this Lcom/safarparmar/app/feature/habits/data/HabitBatchResponse;
+        0x0000 - 0x0021 reg=8 (null) Ljava/lang/Object;
+    #4              : (in Lcom/safarparmar/app/feature/habits/data/HabitBatchResponse;)
+      name          : 'getAcknowledged'
+      type          : '()Ljava/util/List;'
+      access        : 0x0011 (PUBLIC FINAL)
+      code          -
+      registers     : 1
+      ins           : 1
+      outs          : 0
+      insns size    : 3 16-bit code units
+      catches       : (none)
+      positions     :
+        0x0000 line=1
+        0x0001 line=2
+        0x0002 line=3
+      locals        :
+        0x0000 - 0x0003 reg=0 this Lcom/safarparmar/app/feature/habits/data/HabitBatchResponse;
+    #5              : (in Lcom/safarparmar/app/feature/habits/data/HabitBatchResponse;)
+      name          : 'getVersion'
+      type          : '()J'
+      access        : 0x0011 (PUBLIC FINAL)
+      code          -
+      registers     : 3
+      ins           : 1
+      outs          : 0
+      insns size    : 3 16-bit code units
+      catches       : (none)
+      positions     :
+        0x0000 line=1
+        0x0001 line=2
+        0x0002 line=3
+      locals        :
+        0x0000 - 0x0003 reg=2 this Lcom/safarparmar/app/feature/habits/data/HabitBatchResponse;
+    #6              : (in Lcom/safarparmar/app/feature/habits/data/HabitBatchResponse;)
+      name          : 'hashCode'
+      type          : '()I'
+      access        : 0x0001 (PUBLIC)
+      code          -
+      registers     : 3
+      ins           : 1
+      outs          : 2
+      insns size    : 16 16-bit code units
+      catches       : (none)
+      positions     :
+        0x0000 line=1
+        0x0001 line=2
+        0x0002 line=3
+        0x0003 line=4
+        0x0004 line=5
+        0x0005 line=6
+        0x0006 line=7
+        0x0007 line=8
+        0x0008 line=9
+        0x0009 line=10
+        0x000a line=11
+        0x000b line=12
+        0x000c line=13
+        0x000d line=14
+        0x000e line=15
+        0x000f line=16
+      locals        :
+        0x0000 - 0x0010 reg=2 this Lcom/safarparmar/app/feature/habits/data/HabitBatchResponse;
+    #7              : (in Lcom/safarparmar/app/feature/habits/data/HabitBatchResponse;)
+      name          : 'toString'
+      type          : '()Ljava/lang/String;'
+      access        : 0x0001 (PUBLIC)
+      code          -
+      registers     : 5
+      ins           : 1
+      outs          : 3
+      insns size    : 32 16-bit code units
+      catches       : (none)
+      positions     :
+        0x0000 line=1
+        0x0001 line=2
+        0x0002 line=3
+        0x0003 line=4
+        0x0004 line=5
+        0x0005 line=6
+        0x0006 line=7
+        0x0007 line=8
+        0x0008 line=9
+        0x0009 line=10
+        0x000a line=11
+        0x000b line=12
+        0x000c line=13
+        0x000d line=14
+        0x000e line=15
+        0x000f line=16
+        0x0010 line=17
+        0x0011 line=18
+        0x0012 line=19
+        0x0013 line=20
+        0x0014 line=21
+        0x0015 line=22
+        0x0016 line=23
+        0x0017 line=24
+        0x0018 line=25
+        0x0019 line=26
+        0x001a line=27
+        0x001b line=28
+        0x001c line=29
+        0x001d line=30
+        0x001e line=31
+        0x001f line=32
+      locals        :
+        0x0000 - 0x0020 reg=4 this Lcom/safarparmar/app/feature/habits/data/HabitBatchResponse;
+  source_file_idx   : 44208 (r8-map-id-867da8b72a45828a5be4700ba49ba1854ab305262310b17bdf61c35bf26446bb)
+

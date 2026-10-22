@@ -1,0 +1,27 @@
+{
+  "artifact": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/Outputs/Safar-prod-release-v1.6.81-81.aab",
+  "package": "com.safarparmar.app",
+  "versionCode": 81,
+  "versionName": "1.6.81",
+  "bytes": 25338666,
+  "sha256": "759a08b20cf561b0c096162c68209558eb0cadfbcb946300adce22eb88acfce1",
+  "signingCertificateSha256": "7F:C5:E6:0E:58:55:CE:8D:D7:A2:75:4C:F0:62:01:1B:AC:D4:7C:F1:48:DE:AE:2D:F8:DB:11:45:C7:1B:B6:2B",
+  "signingMatchesVersion80": true,
+  "bundletoolValidation": "passed",
+  "jarSignatureVerification": "passed",
+  "debuggable": false,
+  "debugProbeActivitiesAbsent": true,
+  "animatedGk5ButtonPresent": true,
+  "mapping": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/Outputs/Safar-prod-release-v1.6.81-81-mapping.txt.gz",
+  "habitBatchModelsAndWireNamesRetained": true,
+  "storeUploadPerformed": false,
+  "releaseLint": "passed",
+  "lintIssueCounts": {
+    "Fatal": 0,
+    "Error": 0,
+    "Warning": 890,
+    "Information": 0
+  },
+  "releaseSourcesUnchangedDuringBuild": true,
+  "deviceTestsPerformed": false
+}

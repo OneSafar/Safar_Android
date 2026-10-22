@@ -52,6 +52,16 @@ internal fun PlannerPosterEntry(onClick: () -> Unit) {
 }
 
 @Composable
+internal fun PlannerGk5Entry(onClick: () -> Unit) {
+    val strings = rememberBatchStrings()
+    PlannerGk5Button(
+        title = strings.text(R.string.gk5_tracker_title),
+        subtitle = strings.text(R.string.gk5_tracker_subtitle),
+        onClick = onClick,
+    )
+}
+
+@Composable
 internal fun PlannerEntryAction(title: String, subtitle: String, icon: ImageVector, primary: Boolean = false, onClick: () -> Unit) {
     val coral = Color(0xFFFF6555)
     val ink = if (primary) Color.White else MaterialTheme.colorScheme.onSurface

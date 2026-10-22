@@ -80,7 +80,7 @@ internal fun ToppersBatchDashboard(state: BatchUiState, vm: ToppersBatchViewMode
                 }, height = 8.dp, indicatorColor = MaterialTheme.colorScheme.primary, trackColor = MaterialTheme.colorScheme.primaryContainer)
             }
         }
-        StudyModePicker(state.studyMode, vm::selectStudyMode)
+        StudyModePicker(state.studyMode, vm::selectStudyMode, isGk5 = vm.isGk5)
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(strings.text(R.string.toppers_batch_continue_learning), style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
@@ -132,7 +132,7 @@ internal fun TodaySubjectFocus(state: BatchUiState, subject: BatchSubject, vm: T
         if (completed && next != null && next.id != shown?.id) {
             UiButton(onClick = batchFeatureAction({ vm.continueTodayLecture(subject.id) }), style = ButtonStyle.Primary,
                 modifier = Modifier.fillMaxWidth(), enabled = shown?.id !in state.busyIds) {
-                Text(strings.text(R.string.toppers_batch_continue_to_lecture_count, next.lectureNumber.toString().padStart(2, '0')))
+                Text(strings.text(R.string.toppers_batch_continue_to_lecture_count, next.shownLectureNumber.toString().padStart(2, '0')))
             }
         }
         UiButton(onClick = batchFeatureAction({ vm.selectSubject(subject.id) }), style = ButtonStyle.Secondary,
@@ -195,7 +195,7 @@ private fun TodayLecturePanel(
                             fontSize = 22.sp, fontWeight = FontWeight.Medium)
                     }
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(strings.text(R.string.toppers_batch_count_lecture_count_2, strings.subject(subject), lecture.lectureNumber),
+                        Text(strings.text(R.string.toppers_batch_count_lecture_count_2, strings.subject(subject), lecture.shownLectureNumber),
                             fontSize = 15.sp,
                             color = subjectAccent)
                         Text(lecture.displayTopic, fontSize = 15.sp,

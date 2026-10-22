@@ -7,6 +7,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -82,6 +84,8 @@ fun SafarDrawerScaffold(
 ) {
     val drawerState = rememberViewportDrawerState(resetDrawerOnViewportChange)
     val scope = rememberCoroutineScope()
+    var tutorialActionsWidth by remember { mutableIntStateOf(0) }
+    val tutorialActionsEnd = with(LocalDensity.current) { tutorialActionsWidth.toDp() } + 16.dp
     val appName = stringResource(R.string.app_name)
 
     // Obtain the Activity so we can scope ThemeViewModel to it.
@@ -248,7 +252,7 @@ fun SafarDrawerScaffold(
                             trailing = {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.padding(end = 4.dp),
+                                    modifier = Modifier.padding(end = 4.dp).onSizeChanged { tutorialActionsWidth = it.width },
                                 ) {
                                     com.safarparmar.app.ui.tutorial.TitliGuideButton()
                                     topBarActions()
@@ -260,7 +264,7 @@ fun SafarDrawerScaffold(
                                 modifier = Modifier.align(Alignment.Center).then(
                                     if (wrapTopBarTitle) Modifier.fillMaxWidth().padding(
                                         start = if (secondaryNavigationIcon != null) 104.dp else 56.dp,
-                                        end = 16.dp,
+                                        end = maxOf(64.dp, tutorialActionsEnd),
                                         top = 12.dp,
                                         bottom = 12.dp,
                                     ) else Modifier.padding(horizontal = if (secondaryNavigationIcon != null) 112.dp else 56.dp),

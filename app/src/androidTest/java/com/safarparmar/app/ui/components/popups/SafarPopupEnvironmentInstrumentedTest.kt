@@ -21,7 +21,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
@@ -107,10 +107,10 @@ class SafarPopupEnvironmentInstrumentedTest {
                                 // This slot intentionally has no content provider: the
                                 // native window's own density must already be correct.
                                 val density = LocalDensity.current
-                                val resources = LocalContext.current.resources
+                                val configuration = LocalConfiguration.current
                                 SideEffect {
                                     windowDensity = density
-                                    resourceDensityDpi = resources.configuration.densityDpi
+                                    resourceDensityDpi = configuration.densityDpi
                                 }
                                 Text("Popup title")
                             },

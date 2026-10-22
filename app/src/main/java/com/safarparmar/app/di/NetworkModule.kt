@@ -184,8 +184,8 @@ object NetworkModule {
     @Provides @Singleton fun provideMehfilApi(r: Retrofit): MehfilApi = r.create(MehfilApi::class.java)
     @Provides @Singleton fun provideThoughtsApi(r: Retrofit): ThoughtsApi = r.create(ThoughtsApi::class.java)
     @Provides @Singleton fun provideNotificationApi(r: Retrofit): NotificationApi = r.create(NotificationApi::class.java)
-    @Provides @Singleton fun provideToppersBatchApi(r: Retrofit): com.safarparmar.app.feature.toppersbatch.ToppersBatchApi =
-        r.create(com.safarparmar.app.feature.toppersbatch.ToppersBatchApi::class.java)
+    @Provides @Singleton fun provideToppersBatchApi(factory: com.safarparmar.app.feature.toppersbatch.BatchApiFactory): com.safarparmar.app.feature.toppersbatch.ToppersBatchApi =
+        factory.forCourse("toppers-batch-2026")
     @Provides @Singleton fun providePlannerApi(r: Retrofit): PlannerApi = r.create(PlannerApi::class.java)
     @Provides @Singleton fun provideSyllabusApi(r: Retrofit): SyllabusApi = r.create(SyllabusApi::class.java)
     @Provides @Singleton fun provideLiveSessionApi(r: Retrofit): LiveSessionApi = r.create(LiveSessionApi::class.java)

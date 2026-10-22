@@ -10,6 +10,12 @@ import org.junit.Test
 import retrofit2.Response
 
 class ToppersBatchWireTest {
+    @Test fun displaysChapterNumberWithoutChangingReleaseIdentity() {
+        val row = Gson().fromJson("""{"id":"series-7","lectureNumber":23,"displayLectureNumber":7,"displayTopic":"Series"}""", BatchLecture::class.java)
+        assertEquals(7, row.shownLectureNumber)
+        assertEquals(23, row.lectureNumber)
+        assertEquals(23, row.copy(displayLectureNumber = null).shownLectureNumber)
+    }
     @Test fun decodesStatusAndNestedSyllabusUsingServerFieldNames() {
         val gson = Gson()
         val status = gson.fromJson("{\"available\":true,\"enabled\":true}", BatchStatus::class.java)

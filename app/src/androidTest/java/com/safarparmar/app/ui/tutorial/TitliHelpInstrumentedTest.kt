@@ -22,8 +22,11 @@ class TitliHelpInstrumentedTest {
         compose.setContent { SafarTheme { TitliHelpMenu("Sam", selected::add, { queries++ }, {}) } }
         compose.onNodeWithText("Hi, Sam! How can I help you?").assertIsDisplayed()
         TitliFeature.entries.forEach { feature -> compose.onNodeWithTag("titli.menu.${feature.name}").performScrollTo().performClick() }
-        compose.onNodeWithTag("titli.menu.other").performScrollTo().performClick()
+        compose.onNodeWithTag("titli.menu.other").assertIsDisplayed().performClick()
         compose.runOnIdle { assertEquals(TitliFeature.entries.toList(), selected); assertEquals(1, queries) }
+        compose.onNodeWithTag("titli.menu.queries").assertIsDisplayed().performClick()
+        compose.onNodeWithTag("titli.menu.close").assertIsDisplayed()
+        compose.runOnIdle { assertEquals(2, queries) }
     }
     @Test fun selectingFeatureAutomaticallyStartsItsRegisteredGuide() {
         org.junit.Assume.assumeTrue(com.safarparmar.app.BuildConfig.TITLI_TUTORIALS_ENABLED)

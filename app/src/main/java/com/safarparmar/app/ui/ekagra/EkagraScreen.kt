@@ -150,6 +150,10 @@ fun EkagraScreen(
     val totalSeconds      by (timerService?.totalSeconds       ?: fallbackTotalSeconds).collectAsStateWithLifecycle()
     val timerRunning      by (timerService?.isRunning          ?: fallbackTimerRunning).collectAsStateWithLifecycle()
     val timerMode         by (timerService?.timerMode          ?: fallbackTimerMode).collectAsStateWithLifecycle()
+    EkagraBackgroundAccessPrompt(
+        sessionId = timerService?.currentSessionId(),
+        runningStudy = timerRunning && timerMode != TimerMode.BREAK,
+    )
     val isMuted           by (timerService?.isMuted            ?: MutableStateFlow(false)).collectAsStateWithLifecycle()
     val rankedStatus by (timerService?.rankedStatus ?: remember { MutableStateFlow<RankedFocusStatus>(RankedFocusStatus.ConnectionNeeded) }).collectAsStateWithLifecycle()
     val completedSession by (timerService?.completedSession ?: remember { MutableStateFlow<PendingEkagraSessionSave?>(null) }).collectAsStateWithLifecycle()

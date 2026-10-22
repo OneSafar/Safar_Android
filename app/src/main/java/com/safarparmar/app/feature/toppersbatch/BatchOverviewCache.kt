@@ -22,37 +22,38 @@ class BatchOverviewCache @Inject constructor(@ApplicationContext context: Contex
     private val revision = AtomicLong()
     fun version() = revision.get()
     suspend fun account(): String? = accounts.userId.first()?.takeIf { it.isNotBlank() }
-    suspend fun studyMode(): BatchStudyMode? = withContext(Dispatchers.IO) {
+    suspend fun studyMode(courseId: String = TOPPERS_COURSE_ID): BatchStudyMode? = withContext(Dispatchers.IO) {
         val user = account() ?: return@withContext null
-        val value = prefs.getString("study-mode:$user", null)
+        val value = prefs.getString("study-mode:${cacheKey(user, courseId)}", null)
         if (account() != user) return@withContext null
         BatchStudyMode.entries.firstOrNull { it.name == value }
     }
-    suspend fun saveStudyMode(mode: BatchStudyMode) = withContext(Dispatchers.IO) {
+    suspend fun saveStudyMode(mode: BatchStudyMode, courseId: String = TOPPERS_COURSE_ID) = withContext(Dispatchers.IO) {
         val user = account() ?: return@withContext
         writes.withLock {
-            if (account() == user) prefs.edit().putString("study-mode:$user", mode.name).apply()
+            if (account() == user) prefs.edit().putString("study-mode:${cacheKey(user, courseId)}", mode.name).apply()
         }
     }
-    suspend fun load(): BatchOverview? = withContext(Dispatchers.IO) {
+    suspend fun load(courseId: String = TOPPERS_COURSE_ID): BatchOverview? = withContext(Dispatchers.IO) {
         val user = account() ?: return@withContext null
-        val saved = prefs.getString(user, null) ?: return@withContext null
+        val saved = prefs.getString(cacheKey(user, courseId), null) ?: return@withContext null
         val snapshot = runCatching { gson.fromJson(saved, Snapshot::class.java) }.getOrNull() ?: return@withContext null
         if (account() != user || System.currentTimeMillis() - snapshot.savedAt !in 0..MAX_AGE_MS) return@withContext null
-        runCatching { snapshot.overview.officialOnly() }.getOrNull()
+        runCatching { snapshot.overview.takeIf { it.course.id.ifBlank { TOPPERS_COURSE_ID } == courseId }?.officialOnly() }.getOrNull()
     }
     suspend fun save(user: String?, overview: BatchOverview, version: Long) = withContext(Dispatchers.IO) {
         writes.withLock {
             if (user != null && account() == user && version == revision.get())
-                prefs.edit().putString(user, gson.toJson(Snapshot(System.currentTimeMillis(), overview))).apply()
+                prefs.edit().putString(cacheKey(user, overview.course.id), gson.toJson(Snapshot(System.currentTimeMillis(), overview))).apply()
         }
     }
-    suspend fun clear() = withContext(Dispatchers.IO) {
+    suspend fun clear(courseId: String = TOPPERS_COURSE_ID) = withContext(Dispatchers.IO) {
         writes.withLock {
             revision.incrementAndGet()
-            account()?.let { prefs.edit().remove(it).apply() }
+            account()?.let { prefs.edit().remove(cacheKey(it, courseId)).apply() }
         }
     }
+    private fun cacheKey(user: String, courseId: String) = if (courseId.isBlank() || courseId == TOPPERS_COURSE_ID) user else "$user:$courseId"
     private data class Snapshot(val savedAt: Long, val overview: BatchOverview)
     private companion object { const val MAX_AGE_MS = 24 * 60 * 60 * 1000L }
 }

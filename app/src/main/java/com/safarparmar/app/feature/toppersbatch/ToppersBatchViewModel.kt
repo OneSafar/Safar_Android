@@ -1,6 +1,7 @@
 package com.safarparmar.app.feature.toppersbatch
 
 import com.safarparmar.app.R
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.safarparmar.app.util.Resource
@@ -53,7 +54,9 @@ data class BatchUiState(
 )
 
 @HiltViewModel
-class ToppersBatchViewModel @Inject constructor(private val repository: ToppersBatchRepository) : ViewModel() {
+class ToppersBatchViewModel @Inject constructor(repository: ToppersBatchRepository, savedState: SavedStateHandle = SavedStateHandle()) : ViewModel() {
+    private val repository = repository.forCourse(if (savedState.get<String>("batch") == "gk-5") GK5_COURSE_ID else TOPPERS_COURSE_ID)
+    val isGk5: Boolean get() = repository.courseId == GK5_COURSE_ID
     private val _state = MutableStateFlow(BatchUiState())
     private val subjectColourRevision = AtomicLong()
     val state = _state.asStateFlow()

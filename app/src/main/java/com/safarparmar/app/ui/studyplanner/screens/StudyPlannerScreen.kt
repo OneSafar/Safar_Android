@@ -749,7 +749,10 @@ fun StudyPlannerScreen(
                     if (!canUsePremiumPlannerFeatures) {
                         Column(Modifier.fillMaxSize()) {
                             Box(Modifier.padding(16.dp)) {
-                                PlannerPosterEntry(onClick = { onNavigate(Routes.TOPPERS_BATCH) })
+                                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    PlannerPosterEntry(onClick = { onNavigate(Routes.TOPPERS_BATCH) })
+                                    PlannerGk5Entry(onClick = { onNavigate(Routes.GK5_BATCH) })
+                                }
                             }
                             StudyPlannerPremiumLockOverlay(
                                 modifier = Modifier.weight(1f).fillMaxWidth(),
@@ -916,6 +919,9 @@ private fun StudyPlansScreen(
             ) {
                 item(key = "toppers_batch") {
                     PlannerPosterEntry(onClick = { onNavigate(Routes.TOPPERS_BATCH) })
+                }
+                item(key = "gk5_batch") {
+                    PlannerGk5Entry(onClick = { onNavigate(Routes.GK5_BATCH) })
                 }
                 item(key = "new_plan") {
                     PlannerEntryAction(

@@ -16,6 +16,8 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.font.FontWeight
 import com.safarparmar.app.ui.components.popups.SafarDialog as Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.DialogWindowProvider
@@ -60,24 +62,31 @@ internal fun FeatureTutorialPracticeWindow(
             }
         }
         BackHandler(onBack = onExit)
-        Surface(Modifier.fillMaxSize().testTag(practiceTag), color = backgroundColor, contentColor = contentColor) {
-            Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
-                if (showHeader) Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f).padding(vertical = 8.dp)) {
-                        Text(stringResource(titleRes), style = MaterialTheme.typography.titleMedium)
-                        Text(stringResource(practiceLabelRes), modifier = Modifier.testTag(labelTag),
-                            style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+        val windowContent: @Composable () -> Unit = {
+            val canvas = if (showHeader) MaterialTheme.colorScheme.background else backgroundColor
+            val ink = if (showHeader) MaterialTheme.colorScheme.onSurface else contentColor
+            Surface(Modifier.fillMaxSize().testTag(practiceTag), color = canvas, contentColor = ink) {
+                Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
+                    if (showHeader) Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(top = 8.dp, bottom = 4.dp)) {
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Text(stringResource(titleRes), modifier = Modifier.weight(1f).padding(end = 12.dp),
+                                fontSize = 24.sp, lineHeight = 30.sp, fontWeight = FontWeight.Bold)
+                            TitliIcon(Modifier.size(32.dp).padding(end = 4.dp))
+                            if (onHelp != null) IconButton(onClick = onHelp, modifier = Modifier.testTag("tutorial.help"), colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f))) {
+                                Icon(Icons.AutoMirrored.Filled.HelpOutline, contentDescription = stringResource(R.string.feature_help_title))
+                            }
+                            IconButton(onClick = onExit, modifier = Modifier.testTag(closeTag), colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f))) {
+                                Icon(Icons.Default.Close, contentDescription = stringResource(R.string.ekagra_tutorial_done))
+                            }
+                        }
+                        Text(stringResource(practiceLabelRes), modifier = Modifier.testTag(labelTag).padding(top = 4.dp, bottom = 8.dp),
+                            fontSize = 13.sp, lineHeight = 18.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    if (onHelp != null) IconButton(onClick = onHelp, modifier = Modifier.testTag("tutorial.help")) {
-                        Icon(Icons.AutoMirrored.Filled.HelpOutline, contentDescription = stringResource(R.string.feature_help_title))
-                    }
-                    IconButton(onClick = onExit, modifier = Modifier.testTag(closeTag)) {
-                        Icon(Icons.Default.Close, contentDescription = stringResource(R.string.ekagra_tutorial_done))
-                    }
+                    content()
                 }
-                content()
             }
         }
+        if (showHeader) TutorialVisualStyle { windowContent() } else windowContent()
         }
     }
     }

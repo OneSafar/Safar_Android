@@ -188,7 +188,7 @@ internal fun LectureCardContent(lecture: BatchLecture, subject: BatchSubject?, s
             uri.host in setOf("parmaracademy.in", "www.parmaracademy.in") } == true
     }
     val haptics = LocalHapticFeedback.current
-    val shownNumber = lecture.lectureNumber
+    val shownNumber = lecture.shownLectureNumber
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),

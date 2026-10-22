@@ -22,7 +22,7 @@ internal fun BatchOverview.libraryRows(query: String, filter: LibraryFilter, tod
     return lectures.filter { lecture ->
         val subject = active[lecture.subjectId]
         subject != null && (query.isBlank() ||
-            "${subject.name} ${lecture.displayTopic} ${lecture.lectureNumber} ${lecture.sourceMonth} ${lecture.sourceWeek}"
+            "${subject.name} ${lecture.displayTopic} ${lecture.shownLectureNumber} ${lecture.sourceMonth} ${lecture.sourceWeek}"
                 .contains(query.trim(), ignoreCase = true)) && when (filter) {
             LibraryFilter.ALL -> true
             LibraryFilter.PENDING -> lecture.completedAt == null

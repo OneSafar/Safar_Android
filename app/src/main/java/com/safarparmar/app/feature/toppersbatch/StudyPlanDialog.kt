@@ -155,15 +155,15 @@ internal fun PriorProgressDialog(state: BatchUiState, vm: ToppersBatchViewModel,
                 rows.forEachIndexed { index, row ->
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Checkbox(checked = row.id in selected, onCheckedChange = batchFeatureChange({ if (!busy) selected = if (it) selected + row.id else selected - row.id }), accessibilityLabel = strings.text(R.string.toppers_batch_select_lecture_count, row.lectureNumber))
+                            Checkbox(checked = row.id in selected, onCheckedChange = batchFeatureChange({ if (!busy) selected = if (it) selected + row.id else selected - row.id }), accessibilityLabel = strings.text(R.string.toppers_batch_select_lecture_count, row.shownLectureNumber))
                             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                                Text(strings.text(R.string.toppers_batch_lecture_count, row.lectureNumber), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(strings.text(R.string.toppers_batch_lecture_count, row.shownLectureNumber), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 Text(row.displayTopic, style = MaterialTheme.typography.bodyMedium)
                             }
                         }
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                             Button(enabled = !busy, onClick = batchFeatureAction({ selected = selected + rows.take(index + 1).map { it.id } }), style = ButtonStyle.Ghost) {
-                                Text(strings.text(R.string.toppers_batch_mark_all_done_till_count, row.lectureNumber), style = MaterialTheme.typography.labelMedium)
+                                Text(strings.text(R.string.toppers_batch_mark_all_done_till_count, row.shownLectureNumber), style = MaterialTheme.typography.labelMedium)
                             }
                         }
                     }
@@ -179,7 +179,7 @@ internal fun PriorProgressDialog(state: BatchUiState, vm: ToppersBatchViewModel,
             }
             if (preview && selected.isNotEmpty()) Column(Modifier.heightIn(max = 120.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 overview.lectures.filter { it.id in selected }.forEach { row ->
-                    Text(strings.text(R.string.toppers_batch_count_lecture_count_n_count, overview.subjects.firstOrNull { it.id == row.subjectId }?.let(strings::subject).orEmpty(), row.lectureNumber, row.displayTopic), style = MaterialTheme.typography.bodySmall)
+                    Text(strings.text(R.string.toppers_batch_count_lecture_count_n_count, overview.subjects.firstOrNull { it.id == row.subjectId }?.let(strings::subject).orEmpty(), row.shownLectureNumber, row.displayTopic), style = MaterialTheme.typography.bodySmall)
                 }
             }
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {

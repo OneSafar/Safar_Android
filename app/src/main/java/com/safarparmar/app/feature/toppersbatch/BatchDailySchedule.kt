@@ -5,8 +5,12 @@ internal fun BatchOverview.applyBackendControls(): BatchOverview {
     if (lectureControls.isEmpty()) return this
     val controls = lectureControls.associateBy { it.subjectKey to it.lectureNumber }
     fun apply(row: BatchLecture): BatchLecture {
-        val control = controls[row.subjectKey to row.lectureNumber] ?: return row
+        val control = controls[row.subjectKey to row.controlSlotNumber] ?: return row
+        val officialTopic = control.topic ?: row.originalTopic
         return row.copy(scheduledFor = control.scheduledDate, classTime = control.classTime,
+            displayLectureNumber = control.displayLectureNumber ?: row.displayLectureNumber,
+            originalTopic = officialTopic,
+            displayTopic = if (row.displayTopic == row.originalTopic) officialTopic else row.displayTopic,
             releaseState = control.releaseState, isAvailable = control.isAvailable)
     }
     val controlled = copy(lectures = lectures.map(::apply), removedLectures = removedLectures.map(::apply))

@@ -39,9 +39,7 @@ internal fun ScreenPracticeEntry(feature: TitliFeature, isDarkTheme: Boolean, el
     val store = progress.dataStore
     val key = "practice.${feature.name.lowercase(java.util.Locale.ROOT)}"
     var busy by remember { mutableStateOf(false) }
-    fun start() { if (eligible) model.start(PracticeLesson.forFeature(feature).first()) else busy = true }
-    fun lessons() { if (eligible) model.open() else busy = true }
-    RegisterTitliGuide(::start, ::lessons, feature, ready = eligible)
+    RegisterScreenPracticeGuide(feature, eligible, model, onBusy = { busy = true })
     val completed by remember(store, key) { store.featureTutorialCompletedLessons(key, 1) }
         .collectAsStateWithLifecycle(initialValue = emptySet())
     LaunchedEffect(model.isOpen, eligible) {
@@ -51,10 +49,29 @@ internal fun ScreenPracticeEntry(feature: TitliFeature, isDarkTheme: Boolean, el
     LaunchedEffect(model.completedLesson) {
         model.completedLesson?.let { store.completeFeatureTutorialLesson(key, 1, it.name); model.acknowledgeCompletion() }
     }
-    if (busy) AlertDialog(onDismissRequest = { busy = false }, title = { Text(stringResource(feature.practiceTitle())) },
+    if (busy) TutorialVisualStyle { AlertDialog(onDismissRequest = { busy = false }, title = { Text(stringResource(feature.practiceTitle())) },
         text = { Text(stringResource(R.string.practice_busy)) },
-        confirmButton = { TextButton(onClick = { busy = false }) { Text(stringResource(R.string.feature_tutorial_finish)) } })
+        confirmButton = { TextButton(onClick = { busy = false }) { Text(stringResource(R.string.feature_tutorial_finish)) } }) }
     if (model.isOpen && eligible) ScreenPracticeTutorial(feature, isDarkTheme, model, completed)
+}
+
+/** Read eligibility at tap time, including callbacks retained while the screen loads. */
+@Composable
+internal fun RegisterScreenPracticeGuide(feature: TitliFeature, eligible: Boolean,
+    model: ScreenPracticeViewModel, onBusy: () -> Unit) {
+    val currentEligible = rememberUpdatedState(eligible)
+    val currentBusy = rememberUpdatedState(onBusy)
+    RegisterTitliGuide(
+        start = {
+            if (currentEligible.value) model.start(PracticeLesson.forFeature(feature).first())
+            else currentBusy.value()
+        },
+        lessons = {
+            if (currentEligible.value) model.open()
+            else currentBusy.value()
+        },
+        feature = feature, ready = eligible,
+    )
 }
 
 @Composable
@@ -69,27 +86,23 @@ internal fun ScreenPracticeTutorial(feature: TitliFeature, isDarkTheme: Boolean,
                 TitliFeature.EXAM_PLANNER -> com.safarparmar.app.ui.theme.SafarSemanticColors.plannerBackground()
                 else -> MaterialTheme.colorScheme.background
             }
-            FeatureTutorialPracticeWindow(titleRes = feature.practiceTitle(), practiceLabelRes = R.string.goals_tutorial_practice,
+            FeatureTutorialPracticeWindow(titleRes = feature.practiceTitle(), practiceLabelRes = R.string.ekagra_tutorial_practice,
                 isDarkTheme = isDarkTheme, onExit = model::close, practiceTag = "practice.${feature.name}",
                 labelTag = "practice.label", closeTag = "practice.close", showHeader = model.state == null,
                 backgroundColor = background, onHelp = model::open) {
                 val state = model.state
                 if (state == null) {
-                    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text(stringResource(R.string.practice_choose), style = MaterialTheme.typography.headlineSmall)
+                    TutorialLessonMenu(feature) {
+                        Text(stringResource(R.string.practice_choose), style = MaterialTheme.typography.headlineSmall, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
                         PracticeLesson.forFeature(feature).forEach { lesson ->
-                            OutlinedCard(onClick = { model.start(lesson) }, modifier = Modifier.fillMaxWidth().testTag("practice.lesson.${lesson.name}")) {
-                                Column(Modifier.padding(16.dp)) {
-                                    Text(stringResource(lesson.title), style = MaterialTheme.typography.titleMedium)
-                                    if (lesson.name in completed) Text(stringResource(R.string.ekagra_tutorial_completed), style = MaterialTheme.typography.labelMedium)
-                                }
-                            }
+                            TutorialLessonCard(stringResource(lesson.title), lesson.name in completed, lesson.lessonIcon(),
+                                modifier = Modifier.testTag("practice.lesson.${lesson.name}"), onClick = { model.start(lesson) })
                         }
-                        TextButton(onClick = model::close, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.feature_tutorial_finish)) }
+                        Button(onClick = model::close, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text(stringResource(R.string.feature_tutorial_finish)) }
                     }
                 } else FeatureTutorialHost(state, model::complete, model::close,
                     modifier = Modifier.weight(1f).background(background), onHelp = model::open,
-                    practiceLabelRes = R.string.goals_tutorial_practice, practiceLabelTag = "practice.label", closeTag = "practice.close") { step ->
+                    practiceLabelRes = R.string.ekagra_tutorial_practice, practiceLabelTag = "practice.label", closeTag = "practice.close") { step ->
                     ScreenPracticeStage(feature, PracticeScene.valueOf(step.id), isDarkTheme)
                 }
             }

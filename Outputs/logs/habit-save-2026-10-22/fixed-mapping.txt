@@ -1,0 +1,18 @@
+# compiler: R8
+# compiler_version: 9.3.16
+# common_typos_disable
+# {"id":"com.android.tools.r8.mapping","version":"2.2"}
+# pg_map_id: d695225ebb5f9f0c373cbbbb370d5477e5751f8c223b0ddb5c09c61626a11906
+# pg_map_hash: SHA-256 d695225ebb5f9f0c373cbbbb370d5477e5751f8c223b0ddb5c09c61626a11906
+HabitWireProbe -> HabitWireProbe:
+# {"id":"sourceFile","fileName":"HabitWireProbe.java"}
+    1:16:void main(java.lang.String[]):7:22 -> main
+com.safarparmar.app.feature.habits.data.HabitBatchRequest -> com.safarparmar.app.feature.habits.data.HabitBatchRequest:
+# {"id":"sourceFile","fileName":"HabitApi.kt"}
+    1:3:void <init>(java.util.List):13:15 -> <init>
+    1:1:java.util.List getMutations():15:15 -> getMutations
+com.safarparmar.app.feature.habits.data.HabitBatchResponse -> com.safarparmar.app.feature.habits.data.HabitBatchResponse:
+# {"id":"sourceFile","fileName":"HabitApi.kt"}
+    1:4:void <init>(long,java.util.List):17:20 -> <init>
+    1:1:java.util.List getAcknowledged():20:20 -> getAcknowledged
+    1:1:long getVersion():19:19 -> getVersion

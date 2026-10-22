@@ -190,44 +190,56 @@ object FocusShieldPermissionHelper {
         return powerManager.isIgnoringBatteryOptimizations(context.packageName)
     }
 
+    /** Kavach and Ekagra share the app-wide grant; explicit OS restriction also needs removal. */
+    fun hasBackgroundRunningAccess(context: Context): Boolean =
+        isIgnoringBatteryOptimizations(context) && !isBackgroundRestricted(context)
+
+    internal fun isBackgroundRestricted(context: Context): Boolean =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) readBackgroundRestriction(context) else false
+
+    @androidx.annotation.RequiresApi(Build.VERSION_CODES.P)
+    internal fun readBackgroundRestriction(context: Context): Boolean =
+        (context.getSystemService(Context.ACTIVITY_SERVICE) as? android.app.ActivityManager)?.isBackgroundRestricted ?: false
+
     fun openBatterySaverSettings(context: Context) {
+        tryOpenBatterySaverSettings(context)
+    }
+
+    fun tryOpenBatterySaverSettings(context: Context): Boolean {
         val packageName = context.packageName
-        val intents = listOf(
-            // 1. Direct system prompt to ignore battery optimizations (Stock / Pixel / Samsung etc.)
-            Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
-                data = Uri.parse("package:$packageName")
-            },
-            // 2. Xiaomi / MIUI Powerkeeper "No restrictions" screen
-            Intent().apply {
-                component = ComponentName(
-                    "com.miui.powerkeeper",
-                    "com.miui.powerkeeper.ui.HiddenAppsConfigActivity",
-                )
+        val intents = buildList {
+            // A granted exemption dialog cannot remove a separate background restriction.
+            if (!isIgnoringBatteryOptimizations(context)) {
+                add(Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                    data = Uri.parse("package:$packageName")
+                })
+            }
+            // Reuse Kavach's OEM and standard Android fallbacks.
+            add(Intent().apply {
+                component = ComponentName("com.miui.powerkeeper", "com.miui.powerkeeper.ui.HiddenAppsConfigActivity")
                 putExtra("package_name", packageName)
                 putExtra("package_label", runCatching {
                     context.applicationInfo.loadLabel(context.packageManager).toString()
                 }.getOrDefault("SAFAR"))
-            },
-            // 3. Android 12+ per-app battery usage detail
-            Intent("android.settings.APP_BATTERY_USAGE_SETTINGS").apply {
+            })
+            add(Intent("android.settings.APP_BATTERY_USAGE_SETTINGS").apply {
                 data = Uri.parse("package:$packageName")
-            },
-            // 4. System-wide ignore battery optimizations settings list
-            Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS),
-            // 5. Standard App Info Details (where Battery / Battery Saver is accessible)
-            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+            })
+            add(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+            add(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
                 data = Uri.parse("package:$packageName")
-            },
-        )
+            })
+        }
 
         for (intent in intents) {
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             val resolved = intent.resolveActivity(context.packageManager) != null
             if (resolved) {
                 val opened = runCatching { context.startActivity(intent) }.isSuccess
-                if (opened) return
+                if (opened) return true
             }
         }
+        return false
     }
 
     /** Whether [target] is currently granted on this device. */

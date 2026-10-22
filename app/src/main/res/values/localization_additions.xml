@@ -1515,7 +1515,7 @@ You will automatically enter the chat room once accepted.</string>
     <string name="live_search_sessions">Search sessions</string>
     <string name="live_clear_search">Clear search</string>
     <string name="live_reload">Reload</string>
-    <string name="live_not_live_now">Parmar sir isn\'t live right now</string>
+    <string name="live_not_live_now">Parmar Sir Is Not Live Currently</string>
     <string name="live_play">Play</string>
     <string name="live_now">Live now</string>
     <string name="live_started_at">Started: %1$s</string>

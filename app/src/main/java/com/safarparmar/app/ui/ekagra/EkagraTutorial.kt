@@ -1,5 +1,14 @@
 package com.safarparmar.app.ui.ekagra
 
+import androidx.compose.ui.text.font.FontWeight
+import com.safarparmar.app.ui.tutorial.TitliFeature
+import com.safarparmar.app.ui.tutorial.TutorialVisualStyle
+import com.safarparmar.app.ui.tutorial.TutorialLessonCard
+import com.safarparmar.app.ui.tutorial.TutorialLessonMenu
+import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.filled.Groups
+import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -55,7 +64,7 @@ internal fun EkagraTutorialEntry(
     selectedTheme: VisualTheme = selectableVisualThemes.first(),
 ) {
     if (!com.safarparmar.app.BuildConfig.TITLI_TUTORIALS_ENABLED) return
-    com.safarparmar.app.ui.tutorial.RegisterTitliGuide(start = { model.start(EkagraTutorialLesson.CORE) }, lessons = model::open, feature = com.safarparmar.app.ui.tutorial.TitliFeature.EKAGRA)
+    com.safarparmar.app.ui.tutorial.RegisterTitliGuide(start = { model.start(EkagraTutorialLesson.CORE) }, lessons = model::open, feature = TitliFeature.EKAGRA)
     val invitationSeen by remember(dataStore, progressFeature) { dataStore.featureTutorialInvitationSeen(progressFeature, 1) }
         .collectAsStateWithLifecycle(initialValue = null)
     val completed by remember(dataStore, progressFeature) { dataStore.featureTutorialCompletedLessons(progressFeature, 1) }
@@ -89,7 +98,7 @@ internal fun EkagraTutorialEntry(
             invitationHandled = true
             scope.launch { dataStore.setFeatureTutorialInvitationSeen(progressFeature, 1) }
         }
-        AlertDialog(
+        TutorialVisualStyle { AlertDialog(
             onDismissRequest = ::dismissInvitation,
             title = { Text(stringResource(R.string.ekagra_tutorial_invite)) },
             text = { Text(stringResource(R.string.ekagra_tutorial_invite_body)) },
@@ -99,14 +108,14 @@ internal fun EkagraTutorialEntry(
                 }
             },
             dismissButton = { TextButton(onClick = ::dismissInvitation) { Text(stringResource(R.string.ekagra_tutorial_later)) } },
-        )
+        ) }
     }
-    if (showBusy) AlertDialog(
+    if (showBusy) TutorialVisualStyle { AlertDialog(
         onDismissRequest = { showBusy = false },
         title = { Text(stringResource(R.string.ekagra_tutorial_learn)) },
         text = { Text(stringResource(R.string.ekagra_tutorial_busy)) },
         confirmButton = { TextButton(onClick = { showBusy = false }) { Text(stringResource(R.string.ekagra_tutorial_done)) } },
-    )
+    ) }
     if (model.isOpen && eligible) EkagraTutorialPractice(model, completed, isDarkTheme, selectedTheme)
 }
 
@@ -148,21 +157,19 @@ internal fun EkagraTutorialPractice(
 
 @Composable
 private fun LessonPicker(completed: Set<String>, onStart: (EkagraTutorialLesson) -> Unit, onDone: () -> Unit) {
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(stringResource(if (completed.contains(EkagraTutorialLesson.CORE.name)) R.string.ekagra_tutorial_complete else R.string.ekagra_tutorial_invite), style = MaterialTheme.typography.headlineSmall)
+    TutorialLessonMenu(TitliFeature.EKAGRA) {
+        Text(stringResource(if (completed.contains(EkagraTutorialLesson.CORE.name)) R.string.ekagra_tutorial_complete else R.string.ekagra_tutorial_invite), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
         Text(stringResource(R.string.ekagra_tutorial_lessons), style = MaterialTheme.typography.bodyMedium)
         EkagraTutorialLesson.entries.forEach { lesson ->
-            OutlinedCard(onClick = { onStart(lesson) }, modifier = Modifier.fillMaxWidth().testTag("tutorial.lesson.${lesson.name}")) {
-                Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text(stringResource(lesson.titleRes), style = MaterialTheme.typography.titleMedium)
-                        if (lesson.name in completed) Text(stringResource(R.string.ekagra_tutorial_completed), style = MaterialTheme.typography.labelMedium)
-                    }
-                    if (lesson.name in completed) Icon(Icons.Default.CheckCircle, null, tint = MaterialTheme.colorScheme.primary)
-                }
-            }
+            TutorialLessonCard(stringResource(lesson.titleRes), lesson.name in completed,
+                icon = when (lesson) {
+                    EkagraTutorialLesson.CORE -> Icons.Filled.PlayArrow
+                    EkagraTutorialLesson.PROTECTION -> Icons.Filled.Shield
+                    EkagraTutorialLesson.TOGETHER -> Icons.Filled.Groups
+                    EkagraTutorialLesson.ORGANIZE -> Icons.Filled.BarChart
+                }, modifier = Modifier.testTag("tutorial.lesson.${lesson.name}"), onClick = { onStart(lesson) })
         }
-        Button(onClick = onDone, modifier = Modifier.fillMaxWidth().testTag("tutorial.done")) { Text(stringResource(R.string.ekagra_tutorial_done)) }
+        Button(onClick = onDone, modifier = Modifier.fillMaxWidth().testTag("tutorial.done")) { Text(stringResource(R.string.feature_tutorial_finish)) }
     }
 }
 

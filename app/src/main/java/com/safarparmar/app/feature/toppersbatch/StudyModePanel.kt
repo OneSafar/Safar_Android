@@ -38,7 +38,7 @@ import com.composables.ui.components.ProgressIndicator
 import com.composables.ui.components.Text
 
 @Composable
-internal fun StudyModePicker(mode: BatchStudyMode, onMode: (BatchStudyMode) -> Unit) {
+internal fun StudyModePicker(mode: BatchStudyMode, onMode: (BatchStudyMode) -> Unit, isGk5: Boolean = false) {
     val strings = rememberBatchStrings()
     var helpMode by remember { mutableStateOf<BatchStudyMode?>(null) }
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -66,7 +66,7 @@ internal fun StudyModePicker(mode: BatchStudyMode, onMode: (BatchStudyMode) -> U
                 BatchStudyMode.entries.forEach { choice(it, Modifier.weight(1f)) }
             }
         }
-        Text(if (mode == BatchStudyMode.OFFICIAL) strings.text(R.string.toppers_batch_your_daily_list_follows_official_parmar_topper_batch_schedule)
+        Text(if (mode == BatchStudyMode.OFFICIAL) strings.text(if (isGk5) R.string.gk5_official_schedule_note else R.string.toppers_batch_your_daily_list_follows_official_parmar_topper_batch_schedule)
             else strings.text(R.string.toppers_batch_your_dates_your_daily_workload),
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
@@ -116,9 +116,9 @@ internal fun LecturePlanSummary(lecture: BatchLecture, subject: BatchSubject?, m
             Box(Modifier.size(7.dp).background(subject?.let(::subjectProgressColor) ?: MaterialTheme.colorScheme.primary, CircleShape))
             Text(subject?.let(strings::subject).orEmpty(), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
         }
-        Text(strings.text(R.string.toppers_batch_count_lecture_count, lecture.displayTopic, lecture.lectureNumber.toString().padStart(2, '0')), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium,
+        Text(strings.text(R.string.toppers_batch_count_lecture_count, lecture.displayTopic, lecture.shownLectureNumber.toString().padStart(2, '0')), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium,
             color = if (completed) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface)
-        val detail = meta.replace(strings.text(R.string.toppers_batch_lecture_count, lecture.lectureNumber), "").trim(' ', '·')
+        val detail = meta.replace(strings.text(R.string.toppers_batch_lecture_count, lecture.shownLectureNumber), "").trim(' ', '·')
         if (detail.isNotBlank()) Text(detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
@@ -154,10 +154,10 @@ internal fun OfficialSchedulePanel(state: BatchUiState, vm: ToppersBatchViewMode
                         if (!reference) Checkbox(checked = lecture.completedAt != null,
                             enabled = lecture.id !in state.busyIds && !lecture.isLocked(today), onCheckedChange = batchFeatureChange({ vm.toggleDone(lecture) }),
                             modifier = Modifier.size(48.dp).semantics {
-                                contentDescription = strings.text(if (lecture.completedAt != null) R.string.toppers_batch_undo_subject_lecture else R.string.toppers_batch_complete_subject_lecture, subject?.let(strings::subject).orEmpty(), lecture.lectureNumber)
+                                contentDescription = strings.text(if (lecture.completedAt != null) R.string.toppers_batch_undo_subject_lecture else R.string.toppers_batch_complete_subject_lecture, subject?.let(strings::subject).orEmpty(), lecture.shownLectureNumber)
                             })
                         LecturePlanSummary(lecture, subject,
-                            strings.text(R.string.toppers_batch_lecture_count, lecture.lectureNumber) + (lecture.classTime?.let { strings.text(R.string.toppers_batch_count_ist_2, strings.time(it)) } ?: ""), Modifier.weight(1f),
+                            strings.text(R.string.toppers_batch_lecture_count, lecture.shownLectureNumber) + (lecture.classTime?.let { strings.text(R.string.toppers_batch_count_ist_2, strings.time(it)) } ?: ""), Modifier.weight(1f),
                             completed = lecture.completedAt != null) { detailId = lecture.id }
                     }
                 }
@@ -167,7 +167,7 @@ internal fun OfficialSchedulePanel(state: BatchUiState, vm: ToppersBatchViewMode
             if (nextRows.isEmpty()) Text(strings.text(R.string.toppers_batch_no_upcoming_classes_scheduled), color = MaterialTheme.colorScheme.onSurfaceVariant)
             nextRows.forEach { lecture ->
                 LecturePlanSummary(lecture, overview.subjects.firstOrNull { it.id == lecture.subjectId },
-                    strings.text(R.string.toppers_batch_lecture_count_count, lecture.lectureNumber, calendarDateLabel(lecture.scheduledFor, strings)) + (lecture.classTime?.let { strings.text(R.string.toppers_batch_count_ist_2, strings.time(it)) } ?: "")) { detailId = lecture.id }
+                    strings.text(R.string.toppers_batch_lecture_count_count, lecture.shownLectureNumber, calendarDateLabel(lecture.scheduledFor, strings)) + (lecture.classTime?.let { strings.text(R.string.toppers_batch_count_ist_2, strings.time(it)) } ?: "")) { detailId = lecture.id }
             }
         }
     }

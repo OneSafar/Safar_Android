@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="gk5_tracker_title">Parmar GK 5.0 Batch Tracker</string>
+    <string name="gk5_tracker_subtitle">GK classes, revision aur progress</string>
+    <string name="gk5_switch_to_gk">GK 5.0 kholen</string>
+    <string name="gk5_switch_to_toppers">Toppers Batch kholen</string>
+    <string name="gk5_opening">GK 5.0 khol rahe hain…</string>
+    <string name="gk5_premium">GK 5.0 ke liye SAFAR Premium chahiye.</string>
+    <string name="gk5_unavailable">Is account ke liye GK 5.0 abhi available nahi hai.</string>
+    <string name="gk5_could_not_open">GK 5.0 khol nahi sake.</string>
+    <string name="gk5_official_schedule_note">Aapki daily list Parmar GK 5.0 ke official schedule ko follow karti hai.</string>
+</resources>

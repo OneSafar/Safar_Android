@@ -42,6 +42,7 @@ import androidx.compose.ui.semantics.*
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
+import com.safarparmar.app.ui.theme.isLightBackground
 import com.safarparmar.app.R
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
@@ -150,13 +151,14 @@ fun FeatureTutorialHost(
     val spotlight: State<Rect> = resolvedBounds?.let {
         animateRectAsState(it, tween(350, easing = FastOutSlowInEasing), label = "tutorialSpotlight")
     } ?: remember { mutableStateOf(Rect.Zero) }
-    val accent = MaterialTheme.colorScheme.primary
+    val accent = tutorialVisualColors(!MaterialTheme.colorScheme.background.isLightBackground()).action
 
     BoxWithConstraints(modifier) {
         background()
         val availableWidth = maxWidth
         val availableHeight = maxHeight
         val guidanceContent: @Composable (Modifier) -> Unit = { guidanceModifier ->
+            TutorialVisualStyle {
             Surface(
                 color = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
                 contentColor = MaterialTheme.colorScheme.onSurface,
@@ -214,6 +216,7 @@ fun FeatureTutorialHost(
                 }
             }
         }
+        }
         val stageContent: @Composable (Modifier) -> Unit = { stageModifier ->
             Box(stageModifier.clipToBounds().testTag("tutorial.stage").semantics {
                 stateDescription = if (ready) step.id else if (failed) "unavailable" else "loading"
@@ -256,6 +259,7 @@ fun FeatureTutorialHost(
     }
     if (showInfo) {
         val featureDensity = LocalDensity.current
+        TutorialVisualStyle {
         AlertDialog(
             onDismissRequest = { showInfo = false },
             title = { CompositionLocalProvider(LocalDensity provides featureDensity) {
@@ -278,5 +282,6 @@ fun FeatureTutorialHost(
                 }
             },
         )
+        }
     }
 }

@@ -30,7 +30,7 @@ object NotificationDeepLinkHandler {
     }
 
     fun isExternalWebLink(uri: Uri?): Boolean =
-        uri?.scheme.equals("https", ignoreCase = true) && !uri?.host.isNullOrBlank() && !isToppersBatchLink(uri)
+        uri?.scheme.equals("https", ignoreCase = true) && !uri?.host.isNullOrBlank() && !isToppersBatchLink(uri) && !isGk5BatchLink(uri)
 
     fun isExternalWebLink(urlStr: String?): Boolean {
         val trimmed = urlStr?.trim().orEmpty()
@@ -39,6 +39,7 @@ object NotificationDeepLinkHandler {
 
     fun routeFor(deepLink: String?): String {
         val trimmed = deepLink?.trim().orEmpty()
+        if (isGk5BatchLink(runCatching { Uri.parse(trimmed) }.getOrNull())) return Routes.GK5_BATCH
         if (isToppersBatchLink(runCatching { Uri.parse(trimmed) }.getOrNull())) return Routes.TOPPERS_BATCH
         if (!trimmed.startsWith("safar://")) return Routes.HOME
 
@@ -63,6 +64,7 @@ object NotificationDeepLinkHandler {
                 "app_picker" -> Routes.APP_PICKER
                 else -> Routes.EKAGRA
             }
+            "gk_5", "gk-5" -> Routes.GK5_BATCH
             "toppers_batch" -> Routes.TOPPERS_BATCH
             "titli" -> if (firstSegment == "queries") Routes.TITLI_QUERIES else Routes.HOME
             "habits" -> Routes.HABIT_TRACKER
@@ -132,6 +134,11 @@ object NotificationDeepLinkHandler {
             else -> Routes.HOME
         }
     }
+
+    private fun isGk5BatchLink(uri: Uri?): Boolean =
+        uri?.scheme.equals("https", ignoreCase = true) &&
+            uri?.host.equals("safar.parmarssc.in", ignoreCase = true) &&
+            uri?.path?.trimEnd('/') == "/study/gk-5"
 
     private fun isToppersBatchLink(uri: Uri?): Boolean =
         uri?.scheme.equals("https", ignoreCase = true) &&

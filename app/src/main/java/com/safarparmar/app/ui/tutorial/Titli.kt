@@ -9,14 +9,10 @@ import com.safarparmar.app.ui.components.popups.SafarMaterialAlertDialog as Aler
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
@@ -28,6 +24,7 @@ import androidx.compose.ui.semantics.hideFromAccessibility
 import kotlin.math.sin
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.safarparmar.app.ui.theme.isLightBackground
 import com.safarparmar.app.R
 import com.safarparmar.app.data.local.SafarDataStore
 import com.safarparmar.app.performance.LocalMotionPolicy
@@ -35,45 +32,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
 
-/** All geometry is Kotlin vector drawing; the toolbar icon never animates. */
+/** User-supplied vector, shared by toolbar icons, portraits and the spotlight companion. */
 @Composable
-internal fun TitliIcon(modifier: Modifier = Modifier) {
-    Box(modifier.drawWithCache {
-        val wing = Path().apply {
-            moveTo(49f, 45f)
-            cubicTo(31f, 1f, 2f, 4f, 8f, 32f)
-            cubicTo(10f, 47f, 28f, 53f, 44f, 51f)
-            cubicTo(18f, 49f, 10f, 66f, 20f, 83f)
-            cubicTo(30f, 96f, 43f, 76f, 49f, 55f)
-            close()
-        }
-        val antenna = Path().apply { moveTo(49f, 29f); cubicTo(46f, 16f, 39f, 18f, 37f, 12f) }
-        val pink = Color(0xFFFF1685)
-        val spots = listOf(Offset(18f, 25f) to 3.3f, Offset(30f, 33f) to 4.2f,
-            Offset(25f, 69f) to 3.6f, Offset(39f, 59f) to 2.2f)
-        onDrawBehind {
-            scale(size.width / 100f, size.height / 100f, pivot = Offset.Zero) {
-                fun androidx.compose.ui.graphics.drawscope.DrawScope.wingAndSpots() {
-                    drawPath(wing, pink.copy(alpha = 0.12f), style = Stroke(8f))
-                    drawPath(wing, pink.copy(alpha = 0.24f), style = Stroke(4f))
-                    drawPath(wing, Color(0xFF09070B))
-                    drawPath(wing, pink, style = Stroke(1.5f))
-                    spots.forEach { (position, radius) ->
-                        drawCircle(pink.copy(alpha = 0.10f), radius + 3f, position)
-                        drawCircle(pink.copy(alpha = 0.25f), radius + 1.5f, position)
-                        drawCircle(pink, radius, position)
-                    }
-                    drawPath(antenna, Color.Black, style = Stroke(1.7f))
-                    drawCircle(pink, 1.4f, Offset(37f, 12f))
-                }
-                wingAndSpots()
-                scale(-1f, 1f, pivot = Offset(50f, 50f)) { wingAndSpots() }
-                drawOval(Color.Black, Offset(47f, 31f), Size(6f, 38f))
-                drawOval(pink.copy(alpha = 0.6f), Offset(47f, 31f), Size(6f, 38f), style = Stroke(0.6f))
-                drawCircle(Color.Black, 4.1f, Offset(50f, 29f))
-            }
-        }
-    })
+internal fun TitliIcon(modifier: Modifier = Modifier, animate: Boolean = false) {
+    AnimatedTitliButterfly(modifier = modifier, size = 48.dp, baseAngleDegrees = 12f,
+        enableHoverBob = false, animate = animate)
 }
 
 /** Decorative guide follows the measured spotlight, without intercepting practice controls. */
@@ -96,7 +59,7 @@ internal fun TitliSpotlightCompanion(target: () -> Rect, stageSize: Size, positi
             translationX = anchor.x
             translationY = anchor.y + if (enabled) sin(phase.value) * amplitude else 0f
         }.testTag("titli.companion").semantics { hideFromAccessibility() }) {
-        TitliIcon(Modifier.align(Alignment.BottomStart).size(46.dp))
+        TitliIcon(Modifier.align(Alignment.BottomStart).size(46.dp), animate = true)
 
     }
 }
@@ -112,7 +75,7 @@ internal fun TitliSpeechBubble(
 ) {
     var measured by remember { mutableStateOf(Size.Zero) }
     val gap = with(LocalDensity.current) { 12.dp.toPx() }
-    val surface = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f)
+    val surface = tutorialVisualColors(!MaterialTheme.colorScheme.background.isLightBackground()).card.copy(alpha = 0.96f)
     val enabled = LocalMotionPolicy.current.animationsEnabled
     val position = remember { Animatable(Offset.Zero, Offset.VectorConverter) }
     var positioned by remember { mutableStateOf(false) }
@@ -201,6 +164,11 @@ internal fun TitliGuideButton(onClick: (() -> Unit)? = null, modifier: Modifier 
 
 @Composable
 internal fun TitliIntroduction(onContinue: () -> Unit, onDismiss: () -> Unit) {
+    TutorialVisualStyle { TitliIntroductionContent(onContinue, onDismiss) }
+}
+
+@Composable
+private fun TitliIntroductionContent(onContinue: () -> Unit, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = {
@@ -211,7 +179,7 @@ internal fun TitliIntroduction(onContinue: () -> Unit, onDismiss: () -> Unit) {
             } else remember { mutableFloatStateOf(0f) }
             val amplitude = with(LocalDensity.current) { 5.dp.toPx() }
             Box(Modifier.fillMaxWidth().height(140.dp), contentAlignment = Alignment.Center) {
-                TitliIcon(Modifier.size(120.dp).testTag("titli.portrait").graphicsLayer { translationY = lift.value * amplitude })
+                TitliIcon(Modifier.size(120.dp).testTag("titli.portrait").graphicsLayer { translationY = lift.value * amplitude }, animate = true)
             }
         },
         title = { Text(stringResource(R.string.titli_hello)) },
@@ -281,35 +249,14 @@ internal fun TitliHost(dataStore: SafarDataStore, onOpenEkagra: () -> Unit, onOp
         }, onQueries = { showAvailable = false; onOpenQueries() }, onDismiss = { showAvailable = false })
 }
 
-@Composable
-internal fun TitliHelpMenu(name: String?, onFeature: (TitliFeature) -> Unit, onQueries: () -> Unit, onDismiss: () -> Unit) {
-    val displayName = name?.trim()?.takeIf { it.isNotBlank() }
-    AlertDialog(onDismissRequest = onDismiss, icon = { TitliIcon(Modifier.size(64.dp)) },
-        title = { Text(if (displayName == null) stringResource(R.string.titli_greeting) else stringResource(R.string.titli_greeting_name, displayName)) },
-        text = {
-            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                listOf(TitliFeature.EKAGRA to R.string.titli_help_ekagra, TitliFeature.GOALS to R.string.titli_help_goals,
-                    TitliFeature.YOUTUBE to R.string.titli_help_youtube, TitliFeature.HABITS to R.string.titli_help_habits,
-                    TitliFeature.TOPPERS_BATCH to R.string.practice_batch, TitliFeature.MEHFIL to R.string.practice_mehfil,
-                    TitliFeature.DHYAN to R.string.practice_dhyan,
-                    TitliFeature.STUDY_CIRCLE to R.string.practice_next_circle,
-                    TitliFeature.CHECK_IN to R.string.practice_next_checkin,
-                    TitliFeature.JOURNAL to R.string.practice_next_journal,
-                    TitliFeature.STREAKS to R.string.practice_next_streaks,
-                    TitliFeature.ANALYTICS to R.string.practice_next_analytics,
-                    TitliFeature.EXAM_PLANNER to R.string.practice_next_planner).forEach { (feature, label) ->
-                    TextButton(onClick = { onFeature(feature) }, modifier = Modifier.fillMaxWidth().testTag("titli.menu.${feature.name}")) { Text(stringResource(label), modifier = Modifier.fillMaxWidth()) }
-                }
-                HorizontalDivider()
-                TextButton(onClick = onQueries, modifier = Modifier.fillMaxWidth().testTag("titli.menu.other")) { Text(stringResource(R.string.titli_other), modifier = Modifier.fillMaxWidth()) }
-                TextButton(onClick = onQueries, modifier = Modifier.fillMaxWidth().testTag("titli.menu.queries")) { Text(stringResource(R.string.titli_your_queries), modifier = Modifier.fillMaxWidth()) }
-            }
-        }, confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_close)) } })
-}
-
 /** Brief feature-specific help; permission setup keeps its existing separate walkthrough. */
 @Composable
 internal fun TitliFeatureHelp(feature: TitliFeature, onDone: () -> Unit) {
+    TutorialVisualStyle { TitliFeatureHelpContent(feature, onDone) }
+}
+
+@Composable
+private fun TitliFeatureHelpContent(feature: TitliFeature, onDone: () -> Unit) {
     if (!com.safarparmar.app.BuildConfig.TITLI_TUTORIALS_ENABLED) return
     val youtube = feature == TitliFeature.YOUTUBE
     AlertDialog(onDismissRequest = onDone, icon = { TitliIcon(Modifier.size(64.dp)) },

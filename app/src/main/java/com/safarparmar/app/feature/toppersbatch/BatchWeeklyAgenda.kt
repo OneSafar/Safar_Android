@@ -151,6 +151,9 @@ private fun BatchWeeklyAgendaContent(state: BatchUiState, vm: ToppersBatchViewMo
                 }
             }
         }
+        overview.content.copy["${subject.key}ScheduleNotice"]?.let { notice ->
+            Text(notice, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
         if (state.lectureTab != LectureTab.LECTURES && visible.isEmpty()) {
             val emptyMessage = if (state.lectureTab == LectureTab.OLDER) {
                 strings.text(R.string.toppers_batch_there_are_no_backlogs_yet)
@@ -196,16 +199,16 @@ private fun BatchWeeklyAgendaContent(state: BatchUiState, vm: ToppersBatchViewMo
                             modifier = Modifier.size(24.dp))
                     } else Checkbox(checked = false, onCheckedChange = batchFeatureChange({ vm.toggleDone(row) }),
                         enabled = !row.isLocked(today.toString()) && row.id !in state.busyIds,
-                        modifier = Modifier.semantics { contentDescription = strings.text(R.string.toppers_batch_count_count_lecture_count_2, if (row.completedAt == null) strings.text(R.string.toppers_batch_complete) else strings.text(R.string.toppers_batch_undo_completion_2), row.displayTopic, row.lectureNumber) })
+                        modifier = Modifier.semantics { contentDescription = strings.text(R.string.toppers_batch_count_count_lecture_count_2, if (row.completedAt == null) strings.text(R.string.toppers_batch_complete) else strings.text(R.string.toppers_batch_undo_completion_2), row.displayTopic, row.shownLectureNumber) })
                     Button(onClick = batchFeatureAction({ detailId = row.id }), style = ButtonStyle.Ghost,
                         contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp),
                         modifier = Modifier.weight(1f)) {
                         Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Text(row.displayTopic, fontSize = 14.sp, lineHeight = 20.sp, fontWeight = FontWeight.SemiBold, maxLines = 3)
-                            Text(strings.text(R.string.toppers_batch_lecture_count_count, row.lectureNumber.toString().padStart(2, '0'), if (row.completedAt != null) strings.text(R.string.toppers_batch_done) else if (row.isLocked(today.toString())) strings.text(R.string.toppers_batch_class_not_started) else strings.text(R.string.toppers_batch_to_do)), fontSize = 12.sp, lineHeight = 18.sp)
+                            Text(strings.text(R.string.toppers_batch_lecture_count_count, row.shownLectureNumber.toString().padStart(2, '0'), if (row.completedAt != null) strings.text(R.string.toppers_batch_done) else if (row.isLocked(today.toString())) strings.text(R.string.toppers_batch_class_not_started) else strings.text(R.string.toppers_batch_to_do)), fontSize = 12.sp, lineHeight = 18.sp)
                         }
                     }
-                    Button(onClick = batchFeatureAction({ detailId = row.id }), style = ButtonStyle.Ghost, modifier = Modifier.semantics { contentDescription = strings.text(R.string.toppers_batch_actions_for_lecture_count, row.lectureNumber) }) { Text("⋯") }
+                    Button(onClick = batchFeatureAction({ detailId = row.id }), style = ButtonStyle.Ghost, modifier = Modifier.semantics { contentDescription = strings.text(R.string.toppers_batch_actions_for_lecture_count, row.shownLectureNumber) }) { Text("⋯") }
                 }
                 HorizontalSeparator()
             }

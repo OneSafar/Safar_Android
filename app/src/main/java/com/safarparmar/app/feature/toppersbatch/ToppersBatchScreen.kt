@@ -199,7 +199,7 @@ private fun ToppersBatchScreenContent(
         it.id == (state.todaySubjectId ?: state.selectedSubjectId)
     }
     val pageTitle = selectedSubject?.let(strings::subject) ?: when (state.section) {
-        BatchSection.TODAY -> (state.overview?.course?.name?.takeIf { strings.isEnglish && it.isNotBlank() } ?: strings.text(R.string.toppers_batch_parmar_toppers_batch))
+        BatchSection.TODAY -> if (viewModel.isGk5) strings.text(R.string.gk5_tracker_title) else (state.overview?.course?.name?.takeIf { strings.isEnglish && it.isNotBlank() } ?: strings.text(R.string.toppers_batch_parmar_toppers_batch))
         else -> strings.text(state.section.titleRes)
     }
     val navigateBack = {
@@ -258,16 +258,22 @@ private fun ToppersBatchScreenContent(
                 ) { padding ->
                     Box(Modifier.fillMaxSize().padding(padding)) {
                     Column(Modifier.fillMaxSize()) {
+                        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedButton(onClick = { onNavigate(if (viewModel.isGk5) Routes.TOPPERS_BATCH else Routes.GK5_BATCH) },
+                                enabled = state.busyIds.isEmpty()) {
+                                Text(strings.text(if (viewModel.isGk5) R.string.gk5_switch_to_toppers else R.string.gk5_switch_to_gk))
+                            }
+                        }
                         state.completionFeedback?.let { bannerFeedback ->
                             Box(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
                                 BatchCompletionBanner(bannerFeedback, bannerFeedback.lectureId !in state.busyIds) { viewModel.undoCompletion(bannerFeedback) }
                             }
                         }
                         when (state.gate) {
-                            BatchGate.LOADING -> CenterMessage(strings.text(R.string.toppers_batch_opening_your_toppers_batch))
-                            BatchGate.PREMIUM -> GateMessage(strings.text(R.string.toppers_batch_safar_premium_is_needed_for_toppers_batch), strings.text(R.string.toppers_batch_see_premium)) { onNavigate(Routes.PREMIUM) }
-                            BatchGate.UNAVAILABLE -> GateMessage(strings.text(R.string.toppers_batch_toppers_batch_is_not_available_for_this_account_yet), strings.text(R.string.toppers_batch_try_again), viewModel::open)
-                            BatchGate.ERROR -> GateMessage(state.error?.let(strings::notice) ?: strings.text(R.string.toppers_batch_could_not_open_toppers_batch), strings.text(R.string.toppers_batch_try_again), viewModel::open)
+                            BatchGate.LOADING -> CenterMessage(strings.text(if (viewModel.isGk5) R.string.gk5_opening else R.string.toppers_batch_opening_your_toppers_batch))
+                            BatchGate.PREMIUM -> GateMessage(strings.text(if (viewModel.isGk5) R.string.gk5_premium else R.string.toppers_batch_safar_premium_is_needed_for_toppers_batch), strings.text(R.string.toppers_batch_see_premium)) { onNavigate(Routes.PREMIUM) }
+                            BatchGate.UNAVAILABLE -> GateMessage(strings.text(if (viewModel.isGk5) R.string.gk5_unavailable else R.string.toppers_batch_toppers_batch_is_not_available_for_this_account_yet), strings.text(R.string.toppers_batch_try_again), viewModel::open)
+                            BatchGate.ERROR -> GateMessage(state.error?.let(strings::notice) ?: strings.text(if (viewModel.isGk5) R.string.gk5_could_not_open else R.string.toppers_batch_could_not_open_toppers_batch), strings.text(R.string.toppers_batch_try_again), viewModel::open)
                             BatchGate.READY -> androidx.compose.runtime.key(state.section, state.selectedSubjectId, state.todaySubjectId) {
                                 CompositionLocalProvider(LocalBatchFeatureAccess provides BatchFeatureAccess(
                                     allowed = state.overview?.canUseFeatures == true,

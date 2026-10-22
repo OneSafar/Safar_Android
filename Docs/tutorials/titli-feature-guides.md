@@ -1,5 +1,8 @@
 # Titli feature guides
 
+> Current build behavior (20 October 2026): Titli and tutorials are enabled by default in debug and release builds. No preview flag is required. The older hidden-build notes below describe historical validation. An explicit `-PtitliTutorialsEnabled=false` remains available for intentional opt-out builds.
+
+
 Four features now use the same spotlight, speech bubble, Back/Next/Skip, information dialog, and OK action as Ekagra and Goals. Each feature has two independent lessons. More detail stays behind the information button.
 
 | Feature | Lesson | Steps |
@@ -107,3 +110,7 @@ The Android 17/API 37.1 emulator was used; no physical phone was installed. Phys
 After the shared validation fixes, compared all 911 files under `app/src/main`, `app/src/test`, and `app/src/androidTest` with `/tmp/safar-habit-checks-20261020`: zero differences. Preserved the Study Circle theme import and Exam Planner observable locale fix.
 
 The matching source passed 774 JVM tests across 130 suites, full instrumentation-source compilation, debug/release compilation including Hilt, and release lint with zero errors (906 warnings and eight hints remain). Evidence: `Outputs/logs/habit-reminders-2026-10-20/verified-checks.log` and its `jvm-results` directory. This follow-up did not rebuild APK/AAB files or open an emulator. Earlier preview APKs predate these final shared validation fixes.
+
+### Titli enabled in normal builds
+
+Removed the release-only `false` override and changed the shared default to `true`. Verified the generated Prod Debug and Prod Release BuildConfig constants are both `true` without any `titliTutorialsEnabled` flag. Debug/release compilation, instrumentation-source compilation, and 18 relevant tutorial JVM tests passed. No APK/AAB rebuild or device run was performed. Validation log: `Outputs/logs/titli-enabled-default-2026-10-20/verified-checks.log`.

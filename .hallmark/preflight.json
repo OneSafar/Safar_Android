@@ -1,0 +1,9 @@
+{
+  "scope": "GK 5.0 planner entry button",
+  "framework": "Jetpack Compose / existing SafarButton and Composables UI interactions",
+  "fonts": "Existing MaterialTheme.typography, Hanken Grotesk",
+  "palette": "Existing SAFAR theme with local named pink/plum tokens from the user reference",
+  "motion": "Existing MotionPolicy and shared DecorationClock",
+  "spacing": "Existing dp spacing; 12dp row gaps, 16dp horizontal inset",
+  "macrostructure": "Component scope; no page changes"
+}

@@ -9,8 +9,16 @@ import retrofit2.http.Header
 import retrofit2.http.POST
 import retrofit2.http.Query
 
-data class HabitBatchRequest(val mutations: List<JsonObject>)
-data class HabitBatchResponse(val version: Long, val acknowledged: List<String>)
+// Gson reads these DTOs reflectively; retain both the types and their wire names in release builds.
+@Keep
+data class HabitBatchRequest(
+    @SerializedName("mutations") val mutations: List<JsonObject>
+)
+@Keep
+data class HabitBatchResponse(
+    @SerializedName("version") val version: Long,
+    @SerializedName("acknowledged") val acknowledged: List<String>
+)
 @Keep
 data class HabitSnapshotResponse(
     val version: Long,

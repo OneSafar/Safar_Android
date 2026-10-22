@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Read-only coverage gate for the Android Toppers Batch translation resources."""
+"""Read-only coverage gate for the Android Toppers and GK 5.0 tracker resources."""
 import re
 import sys
 import xml.etree.ElementTree as ET
@@ -26,7 +26,7 @@ EXCEPTIONS = {
     "calendarCompleted", "calendarScheduled", "calendarPlanned", "calendarRevision",
     "calendarMilestones", "calendarCompletedEmpty", "calendarScheduledEmpty",
     "liveAcademyOnly", "liveUpcoming", "liveEnded", "openYoutube", "liveUnavailable",
-    "openAcademy", "openLecture",
+    "openAcademy", "openLecture", "{}ScheduleNotice",
 }
 
 
@@ -99,7 +99,7 @@ def main():
         for path in (RES / locale).glob("*.xml"):
             for node in ET.parse(path).getroot():
                 name = node.get("name", "")
-                if node.tag not in ("string", "plurals") or not name.startswith("toppers_batch_"):
+                if node.tag not in ("string", "plurals") or not name.startswith(("toppers_batch_", "gk5_")):
                     continue
                 key = (node.tag, name)
                 if key in entries:
@@ -129,7 +129,7 @@ def main():
                 if expected.count("%%") != actual.count("%%"):
                     issues.append(f"{locale}: literal percent mismatch {key}/{quantity}")
     for path in FEATURE.glob("*.kt"):
-        for kind, key in re.findall(r"R\.(string|plurals)\.(toppers_batch_\w+)", path.read_text()):
+        for kind, key in re.findall(r"R\.(string|plurals)\.((?:toppers_batch_|gk5_)\w+)", path.read_text()):
             if (kind, key) not in base:
                 issues.append(f"{path.name}: missing {kind} {key}")
         if path.stem not in UI_FILES:
@@ -150,7 +150,7 @@ def main():
         return 1
     strings = sum(kind == "string" for kind, _ in base)
     plurals = sum(kind == "plurals" for kind, _ in base)
-    print(f"Toppers Batch: {strings} strings + {plurals} plurals; all three locales match; source audit passed.")
+    print(f"Toppers + GK 5.0: {strings} strings + {plurals} plurals; all three locales match; source audit passed.")
     return 0
 
 

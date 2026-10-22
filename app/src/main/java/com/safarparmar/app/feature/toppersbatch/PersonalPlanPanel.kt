@@ -97,7 +97,7 @@ internal fun PersonalPlanPanel(state: BatchUiState, vm: ToppersBatchViewModel) {
                             val busy = lecture.id in state.busyIds
                             Button(onClick = batchFeatureAction({ vm.addToToday(lecture) }), enabled = !busy,
                                 modifier = Modifier.heightIn(min = 48.dp).semantics {
-                                    contentDescription = strings.text(R.string.toppers_batch_add_count_lecture_count_to_today, strings.subject(subject), lecture.lectureNumber)
+                                    contentDescription = strings.text(R.string.toppers_batch_add_count_lecture_count_to_today, strings.subject(subject), lecture.shownLectureNumber)
                                 }, style = ButtonStyle.Primary) {
                                 Text(if (busy) strings.text(R.string.toppers_batch_adding) else strings.text(R.string.toppers_batch_add), maxLines = 1, color = MaterialTheme.colorScheme.onPrimary)
                             }
@@ -150,7 +150,7 @@ private fun PersonalTaskRow(task: TodayPlanTask, subject: BatchSubject, state: B
                 task.kind == "revision" -> R.string.toppers_batch_complete_subject_revision
                 task.completed -> R.string.toppers_batch_undo_subject_lecture
                 else -> R.string.toppers_batch_complete_subject_lecture
-            }, strings.subject(subject), lecture.lectureNumber)
+            }, strings.subject(subject), lecture.shownLectureNumber)
         })
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             LecturePlanSummary(lecture, subject, if (task.kind == "watch") "" else strings.text(R.string.toppers_batch_revise),
@@ -169,7 +169,7 @@ private fun PersonalTaskRow(task: TodayPlanTask, subject: BatchSubject, state: B
                 DropdownMenuItem(text = { Text(strings.text(if (task.kind == "revision") R.string.toppers_batch_remove_revision_plan else R.string.toppers_batch_remove_from_today), color = MaterialTheme.colorScheme.onSurface) },
                     onClick = batchFeatureAction({ showActions = false; if (task.kind == "revision") confirmRevisionRemoval = true else vm.removeTodayTask(task) }),
                     modifier = Modifier.semantics {
-                        contentDescription = strings.text(if (task.kind == "revision") R.string.toppers_batch_remove_subject_revision else R.string.toppers_batch_remove_subject_today, strings.subject(subject), lecture.lectureNumber)
+                        contentDescription = strings.text(if (task.kind == "revision") R.string.toppers_batch_remove_subject_revision else R.string.toppers_batch_remove_subject_today, strings.subject(subject), lecture.shownLectureNumber)
                     })
             }
         }
@@ -179,7 +179,7 @@ private fun PersonalTaskRow(task: TodayPlanTask, subject: BatchSubject, state: B
         onDismissRequest = { if (!busy) confirmRevisionRemoval = false },
         title = { Text(strings.text(R.string.toppers_batch_remove_revision_plan_2), color = MaterialTheme.colorScheme.onSurface) },
         text = { Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(strings.text(R.string.toppers_batch_this_removes_all_pending_revision_dates_for_lecture_count_includi, lecture.lectureNumber), color = MaterialTheme.colorScheme.onSurface)
+            Text(strings.text(R.string.toppers_batch_this_removes_all_pending_revision_dates_for_lecture_count_includi, lecture.shownLectureNumber), color = MaterialTheme.colorScheme.onSurface)
             state.error?.let { Text(strings.notice(it), color = MaterialTheme.colorScheme.error) }
         } },
         confirmButton = { Button(enabled = !busy, onClick = batchFeatureAction({ vm.removeTodayTask(task) { confirmRevisionRemoval = false } })) {

@@ -248,7 +248,7 @@ private fun CalendarRevisionMenu(date: String, today: String, revisions: List<Pa
                 revisions.forEach { (event, sessions) ->
                     UiDropdownMenuItem(onClick = batchFeatureAction({ expanded = false; onLecture(event.lecture!!) })) {
                         Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            UiText(strings.text(R.string.toppers_batch_count_lecture_count_2, event.subject?.let(strings::subject).orEmpty(), event.lecture!!.lectureNumber))
+                            UiText(strings.text(R.string.toppers_batch_count_lecture_count_2, event.subject?.let(strings::subject).orEmpty(), event.lecture!!.shownLectureNumber))
                             UiText(event.title)
                             if (sessions > 1) UiText(strings.quantity(R.plurals.toppers_batch_count_revision_sessions, sessions, sessions))
                         }
@@ -327,7 +327,7 @@ private fun CalendarDay(overview: BatchOverview, day: String, today: String, row
                             Row(Modifier.padding(14.dp), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                        event.subject?.let { Text(strings.text(R.string.toppers_batch_count_lecture_count_2, strings.subject(it), event.lecture?.lectureNumber ?: ""), style = MaterialTheme.typography.labelMedium, color = subjectProgressColor(it)) }
+                                        event.subject?.let { Text(strings.text(R.string.toppers_batch_count_lecture_count_2, strings.subject(it), event.lecture?.shownLectureNumber ?: ""), style = MaterialTheme.typography.labelMedium, color = subjectProgressColor(it)) }
                                         if (kind == BatchEventKind.CLASS && (event.lecture?.classTime != null || event.lecture?.classStartsAt != null)) Text(event.lecture?.calendarTime(strings).orEmpty(), style = MaterialTheme.typography.labelMedium, color = colors.onSurfaceVariant)
                                     }
                                     Text(if (kind == BatchEventKind.MILESTONE) milestoneLabel(event, strings) else event.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
@@ -373,7 +373,7 @@ private fun NextClassCard(info: BatchSubjectDates, today: String, now: Instant, 
                 Text(next.displayTopic, style = MaterialTheme.typography.bodyMedium)
                 Text("${if (date == today) strings.text(R.string.toppers_batch_today) else calendarDateLabel(date, strings, "d MMM yyyy")} · ${next.calendarTime(strings)}", style = MaterialTheme.typography.bodySmall, color = colors.primary)
             } else Text(strings.text(R.string.toppers_batch_date_not_set), style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
-            info.nextPersonal?.let { Text(strings.text(R.string.toppers_batch_next_to_study_lecture_count, it.lectureNumber), style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant) }
+            info.nextPersonal?.let { Text(strings.text(R.string.toppers_batch_next_to_study_lecture_count, it.shownLectureNumber), style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant) }
         }
     }
 }

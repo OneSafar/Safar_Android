@@ -68,6 +68,10 @@ class NotificationDeepLinkHandlerTest {
                     every { path } returns parsed.path
                 }
             }
+            assertEquals(Routes.GK5_BATCH, NotificationDeepLinkHandler.routeFor("https://safar.parmarssc.in/study/gk-5"))
+            assertFalse(NotificationDeepLinkHandler.isExternalWebLink("https://safar.parmarssc.in/study/gk-5"))
+            assertEquals(Routes.TOPPERS_BATCH, NotificationDeepLinkHandler.routeFor("https://safar.parmarssc.in/study/toppers-batch"))
+            assertTrue(NotificationDeepLinkHandler.isExternalWebLink("https://example.test/study/gk-5"))
             assertTrue(NotificationDeepLinkHandler.isExternalWebLink("https://safar.parmarssc.in/updates"))
             assertFalse(NotificationDeepLinkHandler.isExternalWebLink("http://safar.parmarssc.in/updates"))
             assertFalse(NotificationDeepLinkHandler.isExternalWebLink("javascript:alert(1)"))

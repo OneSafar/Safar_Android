@@ -9,13 +9,20 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import javax.inject.Inject
 
-class ToppersBatchRepository @Inject constructor(private val api: ToppersBatchApi, private val gk: GkLectureStore? = null, private val cache: BatchOverviewCache? = null) {
+class ToppersBatchRepository private constructor(
+    private val api: ToppersBatchApi, private val gk: GkLectureStore?, private val cache: BatchOverviewCache?,
+    private val factory: BatchApiFactory?, val courseId: String,
+) {
+    @Inject constructor(api: ToppersBatchApi, gk: GkLectureStore? = null, cache: BatchOverviewCache? = null, factory: BatchApiFactory? = null) :
+        this(api, gk, cache, factory, TOPPERS_COURSE_ID)
+    fun forCourse(courseId: String): ToppersBatchRepository = if (courseId == this.courseId) this else
+        ToppersBatchRepository(requireNotNull(factory).forCourse(courseId), null, cache, factory, courseId)
     private var planActionAvailable = true
-    suspend fun studyMode() = cache?.studyMode()
-    suspend fun saveStudyMode(mode: BatchStudyMode) { cache?.saveStudyMode(mode) }
+    suspend fun studyMode() = cache?.studyMode(courseId)
+    suspend fun saveStudyMode(mode: BatchStudyMode) { cache?.saveStudyMode(mode, courseId) }
     suspend fun status() = safeApiCall { api.status() }
-    suspend fun cachedOverview() = cache?.load()
-    suspend fun clearCache() { cache?.clear() }
+    suspend fun cachedOverview() = cache?.load(courseId)
+    suspend fun clearCache() { cache?.clear(courseId) }
     suspend fun open(): Resource<BatchOverview> {
         val result = overview()
         return if (result is Resource.Error && result.errorCode == "PLANNER_V2_NOT_ENABLED") activate() else result
@@ -25,13 +32,14 @@ class ToppersBatchRepository @Inject constructor(private val api: ToppersBatchAp
         val version = cache?.version() ?: 0L
         return safeApiCall(request).mapSuccess {
             check(cache == null || cache.account() == account) { "Your account changed. Please reopen the tracker." }
+            check(it.course.id.ifBlank { TOPPERS_COURSE_ID } == courseId) { "The server returned a different batch. Please try again." }
             val overview = gk?.attach(it.officialOnly()) ?: it.officialOnly()
             cache?.save(account, overview, version)
             overview
         }
     }
     private suspend fun <T> mutation(request: suspend () -> Resource<T>): Resource<T> {
-        cache?.clear() // Never replay an older snapshot after a student's edit.
+        cache?.clear(courseId) // Never replay an older snapshot after a student's edit.
         return request()
     }
     suspend fun activate() = fetchOverview { api.activate() }
@@ -69,7 +77,7 @@ class ToppersBatchRepository @Inject constructor(private val api: ToppersBatchAp
             safeApiCall { api.editSubject(id, jsonBody(body)) }
         } finally {
             // A read started during the save may still carry the old subject colour.
-            cache?.clear()
+            cache?.clear(courseId)
         }
     }
     suspend fun addLecture(id: String, title: String) = mutation { safeApiCall { api.addLecture(id, jsonBody(mapOf("displayTopic" to title))) } }

@@ -1,0 +1,259 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.3.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+Warning: SDK processing. This version only understands SDK XML versions up to 3 but an SDK XML file of version 4 was encountered. This can happen if you use versions of Android Studio and the command-line tools that were released at different times.
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preProdDebugBuild UP-TO-DATE
+> Task :app:generateProdDebugBuildConfig
+> Task :app:generateProdDebugResValues UP-TO-DATE
+> Task :app:generateProdDebugResources
+> Task :app:injectCrashlyticsMappingFileIdProdDebug UP-TO-DATE
+> Task :app:injectCrashlyticsVersionControlInfoProdDebug UP-TO-DATE
+> Task :app:processProdDebugGoogleServices UP-TO-DATE
+> Task :app:packageProdDebugResources
+> Task :app:processProdDebugNavigationResources
+> Task :app:parseProdDebugLocalResources
+> Task :app:generateProdDebugRFile
+> Task :app:kspProdDebugKotlin
+
+> Task :app:compileProdDebugKotlin
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/SafarApplication.kt:159:58 'static field TRIM_MEMORY_RUNNING_LOW: Int' is deprecated. Deprecated in Java.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/data/remote/maintenance/MaintenanceStateManager.kt:128:59 Java type mismatch: inferred type is 'Nothing?', but 'String' was expected.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/data/remote/maintenance/MaintenanceStateManager.kt:129:79 Java type mismatch: inferred type is 'Nothing?', but 'String' was expected.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/data/remote/maintenance/MaintenanceStateManager.kt:144:59 Java type mismatch: inferred type is 'Nothing?', but 'String' was expected.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/data/remote/maintenance/MaintenanceStateManager.kt:145:79 Java type mismatch: inferred type is 'Nothing?', but 'String' was expected.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/data/repository/HomeRepositoryImpl.kt:231:17 Expression is unused.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/data/repository/HomeRepositoryImpl.kt:242:17 Expression is unused.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/feature/kavachanalytics/data/KavachUsageCollector.kt:160:67 'static field MOVE_TO_FOREGROUND: Int' is deprecated. Deprecated in Java.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/feature/kavachanalytics/data/KavachUsageCollector.kt:163:67 'static field MOVE_TO_BACKGROUND: Int' is deprecated. Deprecated in Java.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/feature/youtubestudyv2/YoutubeStudyV2AccessibilityService.kt:1442:17 Unnecessary safe call on a non-null receiver of type 'AccessibilityNodeInfo'.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/feature/youtubestudyv2/YoutubeStudyV2AccessibilityService.kt:1443:17 Unnecessary safe call on a non-null receiver of type 'AccessibilityNodeInfo'.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/feature/youtubestudyv2/YoutubeStudyV2AccessibilityService.kt:1444:24 Unnecessary safe call on a non-null receiver of type 'AccessibilityNodeInfo'.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/feature/youtubestudyv2/YoutubeStudyV2AccessibilityService.kt:1465:26 Unnecessary safe call on a non-null receiver of type 'AccessibilityNodeInfo'.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/feature/youtubestudyv2/YoutubeStudyV2AccessibilityService.kt:1467:17 Unnecessary safe call on a non-null receiver of type 'AccessibilityNodeInfo'.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/feature/youtubestudyv2/YoutubeStudyV2AccessibilityService.kt:1468:17 Unnecessary safe call on a non-null receiver of type 'AccessibilityNodeInfo'.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/feature/youtubestudyv2/YoutubeStudyV2AccessibilityService.kt:1469:24 Unnecessary safe call on a non-null receiver of type 'AccessibilityNodeInfo'.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/ui/auth/AuthScreen.kt:357:29 'typealias MenuAnchorType = ExposedDropdownMenuAnchorType' is deprecated. Renamed to ExposedDropdownMenuAnchorType.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:412:35 Unnecessary safe call on a non-null receiver of type 'TimerService'.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:435:29 Unnecessary safe call on a non-null receiver of type 'TimerService'.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:501:135 Unnecessary safe call on a non-null receiver of type 'TimerService'.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:502:25 Unnecessary safe call on a non-null receiver of type 'TimerService'.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:1253:60 Unnecessary safe call on a non-null receiver of type 'VisualTheme'.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:1384:149 Unnecessary safe call on a non-null receiver of type 'TimerService'.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:1435:90 'val Icons.Filled.HelpOutline: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.HelpOutline.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:1440:103 'val Icons.Filled.VolumeUp: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.VolumeUp.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:1440:163 'val Icons.Filled.VolumeOff: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.VolumeOff.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:1607:65 Unnecessary safe call on a non-null receiver of type 'TimerService'.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:1617:61 Unnecessary safe call on a non-null receiver of type 'TimerService'.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:1620:196 Unnecessary safe call on a non-null receiver of type 'TimerService'.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:1739:61 Unnecessary safe call on a non-null receiver of type 'TimerService'.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraSessionSaveWorker.kt:81:124 Unnecessary safe call on a non-null receiver of type 'String'.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/ui/ekagra/TimerService.kt:588:22 No cast needed.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/ui/ekagra/TimerService.kt:720:22 No cast needed.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/ui/ekagra/focusshield/KavachAlwaysOnService.kt:518:67 'static field MOVE_TO_FOREGROUND: Int' is deprecated. Deprecated in Java.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/ui/ekagra/focusshield/KavachAlwaysOnService.kt:521:67 'static field MOVE_TO_BACKGROUND: Int' is deprecated. Deprecated in Java.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/ui/ekagra/focusshield/UsageAccessHelper.kt:27:20 'fun unsafeCheckOpNoThrow(p0: String, p1: Int, p2: String): Int' is deprecated. Deprecated in Java.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/ui/navigation/SafarNavGraph.kt:189:81 Unnecessary safe call on a non-null receiver of type 'String'.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/ui/navigation/SafarNavGraph.kt:204:21 Unnecessary safe call on a non-null receiver of type 'MainActivity'.
+
+> Task :app:javaPreCompileProdDebug UP-TO-DATE
+> Task :app:compileProdDebugJavaWithJavac
+> Task :app:hiltSyncProdDebug
+> Task :app:hiltAggregateDepsProdDebug UP-TO-DATE
+> Task :app:hiltJavaCompileProdDebug UP-TO-DATE
+> Task :app:checkProdDebugAarMetadata UP-TO-DATE
+> Task :app:mapProdDebugSourceSetPaths
+> Task :app:compileProdDebugNavigationResources UP-TO-DATE
+> Task :app:mergeProdDebugResources
+> Task :app:createProdDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksProdDebug UP-TO-DATE
+> Task :app:processProdDebugMainManifest UP-TO-DATE
+> Task :app:processProdDebugManifest UP-TO-DATE
+> Task :app:processProdDebugManifestForPackage UP-TO-DATE
+> Task :app:processProdDebugResources
+> Task :app:transformProdDebugClassesWithAsm
+> Task :app:bundleProdDebugClassesToRuntimeJar
+> Task :app:preProdDebugUnitTestBuild UP-TO-DATE
+> Task :app:processProdDebugJavaRes
+> Task :app:bundleProdDebugClassesToCompileJar
+> Task :app:kspProdDebugUnitTestKotlin
+> Task :app:compileProdDebugUnitTestKotlin
+> Task :app:processProdDebugUnitTestJavaRes UP-TO-DATE
+> Task :app:javaPreCompileProdDebugUnitTest UP-TO-DATE
+> Task :app:compileProdDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :app:hiltSyncProdDebugUnitTest
+> Task :app:hiltAggregateDepsProdDebugUnitTest UP-TO-DATE
+> Task :app:hiltJavaCompileProdDebugUnitTest NO-SOURCE
+> Task :app:transformProdDebugUnitTestClassesWithAsm
+> Task :app:testProdDebugUnitTest
+> Task :app:preProdDebugAndroidTestBuild SKIPPED
+> Task :app:processProdDebugAndroidTestManifest UP-TO-DATE
+> Task :app:generateProdDebugAndroidTestBuildConfig
+> Task :app:generateProdDebugAndroidTestResValues UP-TO-DATE
+> Task :app:generateProdDebugAndroidTestResources UP-TO-DATE
+> Task :app:packageProdDebugAndroidTestResources UP-TO-DATE
+> Task :app:processProdDebugAndroidTestNavigationResources UP-TO-DATE
+> Task :app:parseProdDebugAndroidTestLocalResources UP-TO-DATE
+> Task :app:generateProdDebugAndroidTestRFile UP-TO-DATE
+> Task :app:kspProdDebugAndroidTestKotlin
+
+> Task :app:compileProdDebugAndroidTestKotlin
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/androidTest/java/com/safarparmar/app/feature/toppersbatch/BatchCalendarLayoutTest.kt:35:29 'fun createComposeRule(effectContext: CoroutineContext = ...): ComposeContentTestRule' is deprecated. Use `androidx.compose.ui.test.junit4.v2.createComposeRule` instead. The v2 APIs use StandardTestDispatcher instead of UnconfinedTestDispatcher, which aligns with standard coroutine behavior by queuing tasks rather than executing them immediately. Tests relying on immediate execution may require explicit synchronization. Please refer to the migration guide for more details.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/androidTest/java/com/safarparmar/app/feature/toppersbatch/BatchLocalizationTest.kt:39:29 'fun createComposeRule(effectContext: CoroutineContext = ...): ComposeContentTestRule' is deprecated. Use `androidx.compose.ui.test.junit4.v2.createComposeRule` instead. The v2 APIs use StandardTestDispatcher instead of UnconfinedTestDispatcher, which aligns with standard coroutine behavior by queuing tasks rather than executing them immediately. Tests relying on immediate execution may require explicit synchronization. Please refer to the migration guide for more details.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/androidTest/java/com/safarparmar/app/feature/toppersbatch/TodayPlanFlowTest.kt:32:29 'fun <reified A : ComponentActivity> createAndroidComposeRule(effectContext: CoroutineContext = ...): AndroidComposeTestRule<ActivityScenarioRule<A>, A>' is deprecated. Use `androidx.compose.ui.test.junit4.v2.createAndroidComposeRule` instead. The v2 APIs use StandardTestDispatcher instead of UnconfinedTestDispatcher, which aligns with standard coroutine behavior by queuing tasks rather than executing them immediately. Tests relying on immediate execution may require explicit synchronization. Please refer to the migration guide for more details.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/androidTest/java/com/safarparmar/app/feature/toppersbatch/TodayPlanLayoutTest.kt:40:29 'fun createComposeRule(effectContext: CoroutineContext = ...): ComposeContentTestRule' is deprecated. Use `androidx.compose.ui.test.junit4.v2.createComposeRule` instead. The v2 APIs use StandardTestDispatcher instead of UnconfinedTestDispatcher, which aligns with standard coroutine behavior by queuing tasks rather than executing them immediately. Tests relying on immediate execution may require explicit synchronization. Please refer to the migration guide for more details.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/androidTest/java/com/safarparmar/app/ui/components/SafarAdaptiveLayoutTest.kt:37:29 'fun createComposeRule(effectContext: CoroutineContext = ...): ComposeContentTestRule' is deprecated. Use `androidx.compose.ui.test.junit4.v2.createComposeRule` instead. The v2 APIs use StandardTestDispatcher instead of UnconfinedTestDispatcher, which aligns with standard coroutine behavior by queuing tasks rather than executing them immediately. Tests relying on immediate execution may require explicit synchronization. Please refer to the migration guide for more details.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/androidTest/java/com/safarparmar/app/ui/ekagra/EkagraTutorialInstrumentedTest.kt:25:29 'fun createComposeRule(effectContext: CoroutineContext = ...): ComposeContentTestRule' is deprecated. Use `androidx.compose.ui.test.junit4.v2.createComposeRule` instead. The v2 APIs use StandardTestDispatcher instead of UnconfinedTestDispatcher, which aligns with standard coroutine behavior by queuing tasks rather than executing them immediately. Tests relying on immediate execution may require explicit synchronization. Please refer to the migration guide for more details.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/androidTest/java/com/safarparmar/app/ui/nishtha/goals/GoalsTutorialInstrumentedTest.kt:24:29 'fun createComposeRule(effectContext: CoroutineContext = ...): ComposeContentTestRule' is deprecated. Use `androidx.compose.ui.test.junit4.v2.createComposeRule` instead. The v2 APIs use StandardTestDispatcher instead of UnconfinedTestDispatcher, which aligns with standard coroutine behavior by queuing tasks rather than executing them immediately. Tests relying on immediate execution may require explicit synchronization. Please refer to the migration guide for more details.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/androidTest/java/com/safarparmar/app/ui/tutorial/FeatureTutorialInstrumentedTest.kt:26:29 'fun createComposeRule(effectContext: CoroutineContext = ...): ComposeContentTestRule' is deprecated. Use `androidx.compose.ui.test.junit4.v2.createComposeRule` instead. The v2 APIs use StandardTestDispatcher instead of UnconfinedTestDispatcher, which aligns with standard coroutine behavior by queuing tasks rather than executing them immediately. Tests relying on immediate execution may require explicit synchronization. Please refer to the migration guide for more details.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/androidTest/java/com/safarparmar/app/ui/tutorial/FeatureTutorialScalingInstrumentedTest.kt:21:29 'fun createComposeRule(effectContext: CoroutineContext = ...): ComposeContentTestRule' is deprecated. Use `androidx.compose.ui.test.junit4.v2.createComposeRule` instead. The v2 APIs use StandardTestDispatcher instead of UnconfinedTestDispatcher, which aligns with standard coroutine behavior by queuing tasks rather than executing them immediately. Tests relying on immediate execution may require explicit synchronization. Please refer to the migration guide for more details.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/androidTest/java/com/safarparmar/app/ui/tutorial/FeatureTutorialScalingInstrumentedTest.kt:53:49 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Density'.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/androidTest/java/com/safarparmar/app/ui/tutorial/ScreenPracticeInstrumentedTest.kt:28:29 'fun createComposeRule(effectContext: CoroutineContext = ...): ComposeContentTestRule' is deprecated. Use `androidx.compose.ui.test.junit4.v2.createComposeRule` instead. The v2 APIs use StandardTestDispatcher instead of UnconfinedTestDispatcher, which aligns with standard coroutine behavior by queuing tasks rather than executing them immediately. Tests relying on immediate execution may require explicit synchronization. Please refer to the migration guide for more details.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/androidTest/java/com/safarparmar/app/ui/tutorial/TitliHelpInstrumentedTest.kt:19:29 'fun createComposeRule(effectContext: CoroutineContext = ...): ComposeContentTestRule' is deprecated. Use `androidx.compose.ui.test.junit4.v2.createComposeRule` instead. The v2 APIs use StandardTestDispatcher instead of UnconfinedTestDispatcher, which aligns with standard coroutine behavior by queuing tasks rather than executing them immediately. Tests relying on immediate execution may require explicit synchronization. Please refer to the migration guide for more details.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/androidTest/java/com/safarparmar/app/ui/tutorial/TitliInstrumentedTest.kt:26:29 'fun createComposeRule(effectContext: CoroutineContext = ...): ComposeContentTestRule' is deprecated. Use `androidx.compose.ui.test.junit4.v2.createComposeRule` instead. The v2 APIs use StandardTestDispatcher instead of UnconfinedTestDispatcher, which aligns with standard coroutine behavior by queuing tasks rather than executing them immediately. Tests relying on immediate execution may require explicit synchronization. Please refer to the migration guide for more details.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/androidTest/java/com/safarparmar/app/ui/tutorial/TitliReleaseGateInstrumentedTest.kt:20:29 'fun createComposeRule(effectContext: CoroutineContext = ...): ComposeContentTestRule' is deprecated. Use `androidx.compose.ui.test.junit4.v2.createComposeRule` instead. The v2 APIs use StandardTestDispatcher instead of UnconfinedTestDispatcher, which aligns with standard coroutine behavior by queuing tasks rather than executing them immediately. Tests relying on immediate execution may require explicit synchronization. Please refer to the migration guide for more details.
+
+> Task :app:preProdReleaseBuild UP-TO-DATE
+> Task :app:generateProdReleaseBuildConfig UP-TO-DATE
+> Task :app:generateProdReleaseResValues UP-TO-DATE
+> Task :app:generateProdReleaseResources
+> Task :app:injectCrashlyticsMappingFileIdProdRelease
+> Task :app:extractProdReleaseVersionControlInfo UP-TO-DATE
+> Task :app:injectCrashlyticsVersionControlInfoProdRelease UP-TO-DATE
+> Task :app:processProdReleaseGoogleServices UP-TO-DATE
+> Task :app:packageProdReleaseResources
+> Task :app:processProdReleaseNavigationResources
+> Task :app:parseProdReleaseLocalResources
+> Task :app:generateProdReleaseRFile
+> Task :app:kspProdReleaseKotlin
+
+> Task :app:compileProdReleaseKotlin
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:412:35 Unnecessary safe call on a non-null receiver of type 'TimerService'.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:435:29 Unnecessary safe call on a non-null receiver of type 'TimerService'.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:501:135 Unnecessary safe call on a non-null receiver of type 'TimerService'.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:502:25 Unnecessary safe call on a non-null receiver of type 'TimerService'.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:1253:60 Unnecessary safe call on a non-null receiver of type 'VisualTheme'.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:1384:149 Unnecessary safe call on a non-null receiver of type 'TimerService'.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:1435:90 'val Icons.Filled.HelpOutline: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.HelpOutline.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:1440:103 'val Icons.Filled.VolumeUp: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.VolumeUp.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:1440:163 'val Icons.Filled.VolumeOff: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.VolumeOff.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:1607:65 Unnecessary safe call on a non-null receiver of type 'TimerService'.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:1617:61 Unnecessary safe call on a non-null receiver of type 'TimerService'.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:1620:196 Unnecessary safe call on a non-null receiver of type 'TimerService'.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:1739:61 Unnecessary safe call on a non-null receiver of type 'TimerService'.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/ui/ekagra/focusshield/UsageAccessHelper.kt:27:20 'fun unsafeCheckOpNoThrow(p0: String, p1: Int, p2: String): Int' is deprecated. Deprecated in Java.
+
+> Task :app:javaPreCompileProdRelease UP-TO-DATE
+> Task :app:compileProdReleaseJavaWithJavac UP-TO-DATE
+> Task :app:hiltSyncProdRelease
+> Task :app:hiltAggregateDepsProdRelease UP-TO-DATE
+> Task :app:hiltJavaCompileProdRelease UP-TO-DATE
+> Task :app:extractProguardFiles UP-TO-DATE
+> Task :app:extractDeepLinksProdRelease UP-TO-DATE
+> Task :app:processProdReleaseMainManifest UP-TO-DATE
+> Task :app:generateProdReleaseLintReportModel
+> Task :app:lintAnalyzeProdRelease
+
+> Task :app:lintReportProdRelease
+Wrote HTML report to file:///private/tmp/safar-habit-checks-20261020/app/build/reports/lint-results-prodRelease.html
+Lint found 1 error, 906 warnings and 8 hints. First failure:
+/private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/ui/ekagra/focusshield/UsageAccessHelper.kt:199: Error: Call requires API level 28 (current min is 26): android.app.ActivityManager#isBackgroundRestricted [NewApi]
+            (context.getSystemService(Context.ACTIVITY_SERVICE) as? android.app.ActivityManager)?.isBackgroundRestricted ?: false
+                                                                                                  ~~~~~~~~~~~~~~~~~~~~~~
+
+
+> Task :app:lintProdRelease FAILED
+Lint found 1 error, 906 warnings, 8 hints. First failure:
+
+/private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/ui/ekagra/focusshield/UsageAccessHelper.kt:199: Error: Call requires API level 28 (current min is 26): android.app.ActivityManager#isBackgroundRestricted [NewApi]
+            (context.getSystemService(Context.ACTIVITY_SERVICE) as? android.app.ActivityManager)?.isBackgroundRestricted ?: false
+                                                                                                  ~~~~~~~~~~~~~~~~~~~~~~
+
+   Explanation for issues of type "NewApi":
+   This check scans through all the Android API calls in the application and
+   warns about any calls that are not available on all versions targeted by
+   this application (according to its minimum SDK attribute in the manifest).
+
+   If you really want to use this API and don't need to support older devices
+   just set the minSdkVersion in your build.gradle or AndroidManifest.xml
+   files.
+
+   If your code is deliberately accessing newer APIs, and you have ensured
+   (e.g. with conditional execution) that this code will only ever be called
+   on a supported platform, then you can annotate your class or method with
+   the @TargetApi annotation specifying the local minimum SDK to apply, such
+   as @TargetApi(11), such that this check considers 11 rather than your
+   manifest file's minimum SDK as the required API level.
+
+   If you are deliberately setting android: attributes in style definitions,
+   make sure you place this in a values-vNN folder in order to avoid running
+   into runtime conflicts on certain devices where manufacturers have added
+   custom attributes whose ids conflict with the new ones on later platforms.
+
+   Similarly, you can use tools:targetApi="11" in an XML file to indicate that
+   the element will only be inflated in an adequate context.
+
+
+The full lint text report is located at:
+  /private/tmp/safar-habit-checks-20261020/app/build/intermediates/lint_intermediate_text_report/prodRelease/lintReportProdRelease/lint-results-prodRelease.txt
+
+[Incubating] Problems report is available at: file:///private/tmp/safar-habit-checks-20261020/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:lintProdRelease'.
+> Lint found errors in the project; aborting build.
+  
+  Fix the issues identified by lint, or create a baseline to see only new errors.
+  To create a baseline, run `gradlew updateLintBaseline` after adding the following to the module's build.gradle file:
+  ```
+  android {
+      lint {
+          baseline = file("lint-baseline.xml")
+      }
+  }
+  ```
+  For more details, see https://developer.android.com/studio/write/lint#snapshot
+  
+  Lint found 1 error, 906 warnings, 8 hints. First failure:
+  
+  /private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/ui/ekagra/focusshield/UsageAccessHelper.kt:199: Error: Call requires API level 28 (current min is 26): android.app.ActivityManager#isBackgroundRestricted [NewApi]
+              (context.getSystemService(Context.ACTIVITY_SERVICE) as? android.app.ActivityManager)?.isBackgroundRestricted ?: false
+                                                                                                    ~~~~~~~~~~~~~~~~~~~~~~
+  
+     Explanation for issues of type "NewApi":
+     This check scans through all the Android API calls in the application and
+     warns about any calls that are not available on all versions targeted by
+     this application (according to its minimum SDK attribute in the manifest).
+  
+     If you really want to use this API and don't need to support older devices
+     just set the minSdkVersion in your build.gradle or AndroidManifest.xml
+     files.
+  
+     If your code is deliberately accessing newer APIs, and you have ensured
+     (e.g. with conditional execution) that this code will only ever be called
+     on a supported platform, then you can annotate your class or method with
+     the @TargetApi annotation specifying the local minimum SDK to apply, such
+     as @TargetApi(11), such that this check considers 11 rather than your
+     manifest file's minimum SDK as the required API level.
+  
+     If you are deliberately setting android: attributes in style definitions,
+     make sure you place this in a values-vNN folder in order to avoid running
+     into runtime conflicts on certain devices where manufacturers have added
+     custom attributes whose ids conflict with the new ones on later platforms.
+  
+     Similarly, you can use tools:targetApi="11" in an XML file to indicate that
+     the element will only be inflated in an adequate context.
+  
+  
+  The full lint text report is located at:
+    /private/tmp/safar-habit-checks-20261020/app/build/intermediates/lint_intermediate_text_report/prodRelease/lintReportProdRelease/lint-results-prodRelease.txt
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 2m 23s
+71 actionable tasks: 35 executed, 36 up-to-date

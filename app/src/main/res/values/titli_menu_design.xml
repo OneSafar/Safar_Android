@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="titli_menu_choose">Choose a feature. Titli will guide you.</string>
+    <string name="titli_menu_tutorials">Tutorials</string>
+</resources>

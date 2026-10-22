@@ -470,6 +470,18 @@ fun SafarNavGraph(
             )
         }
 
+        composable(
+            route = Routes.GK5_BATCH,
+            arguments = listOf(navArgument("batch") { type = NavType.StringType; defaultValue = "gk-5" }),
+            deepLinks = listOf(navDeepLink { uriPattern = "https://safar.parmarssc.in/study/gk-5" }),
+        ) {
+            ToppersBatchScreen(
+                isDarkTheme = isDarkTheme, onNavigate = ::navigate,
+                onBack = { if (!navController.popBackStack()) navigate(Routes.STUDY_PLANNER) },
+                onToggleDarkTheme = onToggleDarkTheme,
+            )
+        }
+
         composable(Routes.STUDY_PLANNER) {
             StudyPlannerScreen(
                 currentRoute = currentRoute,

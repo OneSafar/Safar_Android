@@ -81,7 +81,8 @@ class BatchLocalizationTest(private val tag: String, private val wide: Boolean) 
             page = remember { mutableStateOf(0) }
             language = remember { mutableStateOf(tag) }
             vm = remember { ToppersBatchViewModel(ToppersBatchRepository(api)) }
-            val configuration = remember(language.value) { Configuration(base.resources.configuration).apply { setLocale(Locale.forLanguageTag(language.value)) } }
+            val baseConfiguration = LocalConfiguration.current
+            val configuration = remember(language.value, baseConfiguration) { Configuration(baseConfiguration).apply { setLocale(Locale.forLanguageTag(language.value)) } }
             val context = remember(configuration) { android.view.ContextThemeWrapper(base, 0).apply { applyOverrideConfiguration(configuration) } }
             CompositionLocalProvider(LocalActivityResultRegistryOwner provides registryOwner, LocalContext provides context, LocalConfiguration provides configuration,
                 LocalDensity provides Density(if (wide) 1f else LocalDensity.current.density, if (wide) 1.6f else 1f)) {

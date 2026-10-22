@@ -121,9 +121,6 @@ fun LiveSessionsScreen(
     val activeLiveSessions = remember(allSessions) {
         allSessions.filter { it.status.equals("live", ignoreCase = true) }
     }
-    val scheduledSessions = remember(allSessions) {
-        allSessions.filter { it.status.equals("scheduled", ignoreCase = true) }
-    }
     val completedSessions = remember(allSessions) {
         allSessions.filter {
             it.status.equals("ended", ignoreCase = true) || it.status.equals("cancelled", ignoreCase = true)
@@ -131,7 +128,6 @@ fun LiveSessionsScreen(
     }
 
     val liveSession = activeLiveSessions.firstOrNull()
-    val nextScheduledSession = scheduledSessions.firstOrNull()
 
     val filteredCompletedSessions = remember(completedSessions, searchQuery) {
         val q = searchQuery.trim().lowercase()
@@ -266,7 +262,6 @@ fun LiveSessionsScreen(
                     // Parmar Sir isn't live right now card
                     item(key = "not_live_card") {
                         TeacherNotLiveCard(
-                            nextSession = nextScheduledSession,
                             isReloading = uiState.isLoading,
                             onReload = onReloadSessions,
                             isDarkTheme = isDark,

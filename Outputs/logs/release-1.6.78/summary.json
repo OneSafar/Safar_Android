@@ -1,0 +1,13 @@
+{
+  "versionName": "1.6.78",
+  "versionCode": 78,
+  "jvmTests": 790,
+  "failures": 0,
+  "lintErrors": 0,
+  "lintWarnings": 906,
+  "releaseCertificateVerified": true,
+  "aab": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/Outputs/Safar-prod-release-v1.6.78-78.aab",
+  "bytes": 24946805,
+  "sha256": "2db589b17ad6077861c75b2d88a7058e0db1175b23dbe8585d0b070e2bffcde2",
+  "emulatorOpened": false
+}

@@ -48,10 +48,29 @@ class BatchOverviewCacheTest {
     }
     @Test fun corruptAndExpiredSnapshotsAreIgnored() = runBlocking {
         val cache = BatchOverviewCache(context, accounts)
+        saved["alice"] = """{"savedAt":${System.currentTimeMillis()},"overview":{"course":null}}"""
+        assertNull(cache.load())
         saved["alice"] = "not json"
         assertNull(cache.load())
         saved["alice"] = """{"savedAt":1,"overview":{}}"""
         assertNull(cache.load())
+    }
+    @Test fun snapshotsAndStudyModesStaySeparateBetweenBatches() = runBlocking {
+        val cache = BatchOverviewCache(context, accounts)
+        val toppers = BatchOverview(course = BatchCourse(id = TOPPERS_COURSE_ID))
+        val gk5 = BatchOverview(course = BatchCourse(id = GK5_COURSE_ID))
+        cache.save("alice", toppers, cache.version())
+        cache.save("alice", gk5, cache.version())
+        cache.saveStudyMode(BatchStudyMode.OFFICIAL)
+        cache.saveStudyMode(BatchStudyMode.PERSONAL, GK5_COURSE_ID)
+        assertEquals(TOPPERS_COURSE_ID, cache.load()!!.course.id)
+        assertEquals(GK5_COURSE_ID, cache.load(GK5_COURSE_ID)!!.course.id)
+        assertEquals(BatchStudyMode.OFFICIAL, cache.studyMode())
+        assertEquals(BatchStudyMode.PERSONAL, cache.studyMode(GK5_COURSE_ID))
+        cache.clear(GK5_COURSE_ID)
+        assertNull(cache.load(GK5_COURSE_ID))
+        assertNotNull(cache.load())
+        assertEquals(BatchStudyMode.PERSONAL, cache.studyMode(GK5_COURSE_ID))
     }
     @Test fun todayEventsComeFromTheOverviewWithoutMixingDisabledSubjects() {
         val subject = BatchSubject(id = "english", key = "english", enabled = true)

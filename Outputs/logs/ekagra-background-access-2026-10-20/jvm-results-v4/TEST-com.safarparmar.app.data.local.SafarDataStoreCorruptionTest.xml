@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.data.local.SafarDataStoreCorruptionTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-20T05:52:03.528Z" hostname="Shashanks-MacBook-Air.local" time="0.099">
+  <properties/>
+  <testcase name="malformedPreferencesRecoverOnWriteAndRemainWritable" classname="com.safarparmar.app.data.local.SafarDataStoreCorruptionTest" time="0.097"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
