@@ -4,6 +4,7 @@ import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
 
+@androidx.annotation.Keep
 data class YoutubeV2Node(
     val text: String? = null,
     val contentDescription: String? = null,
@@ -23,6 +24,7 @@ data class YoutubeV2Node(
     val centerY: Int get() = top + height / 2
 }
 
+@androidx.annotation.Keep
 data class YoutubeV2Snapshot(
     val packageName: String,
     val density: Float,
@@ -35,6 +37,7 @@ enum class YoutubeV2ContentKind { VIDEO, SHORTS, MINI_PLAYER, NON_PLAYBACK }
 
 enum class YoutubeFullscreenSidePanel { NONE, SPONSORED, LIVE_CHAT }
 
+@androidx.annotation.Keep
 data class YoutubeV2Observation(
     val kind: YoutubeV2ContentKind,
     val watchScreenConfirmed: Boolean = false,
@@ -184,11 +187,16 @@ object YoutubeStudyV2Parser {
 
         if (isRegularWatchScreen) {
             val fullscreen = regularWatchMarker.viewId.orEmpty().contains("fullscreen", true) ||
+                visible.any { index ->
+                    sequenceOf(nodes[index].text, nodes[index].contentDescription).filterNotNull()
+                        .any { it.trim().lowercase() in setOf("exit fullscreen", "exit full screen") }
+                } ||
                 (snapshot.screenWidth > snapshot.screenHeight &&
                     regularPlaybackRegion.width >= snapshot.screenWidth * 0.85f &&
                     regularPlaybackRegion.height >= snapshot.screenHeight * 0.85f)
-            val fullscreenSidePanel = if (fullscreen) detectFullscreenSidePanel(snapshot, visible) else YoutubeFullscreenSidePanel.NONE
-            val watchMetadata = watchHeaderMetadata(nodes)
+            val fullscreenSidePanel = detectFullscreenSidePanel(snapshot, visible)
+            val metadataNodes = watchMetadataNodes(snapshot, visible, regularWatchMarker)
+            val watchMetadata = watchHeaderMetadata(nodes, metadataNodes)
             val hudMetadata = if (fullscreen) fullscreenHudMetadata(snapshot, visible) else null
             // YouTube can leave a visible title-only portrait watch header in
             // the tree after rotation. Merge that partial result with the
@@ -201,7 +209,7 @@ object YoutubeStudyV2Parser {
                     handle = hudMetadata.handle ?: watchMetadata.handle,
                 )
             }
-            val title = if (metadata != null) metadata.title else visible.asSequence()
+            val title = if (metadata != null || nodes.any { it.viewId?.substringAfterLast('/') == "watch_list" }) metadata?.title else metadataNodes.asSequence()
                 .map(nodes::get)
                 .firstOrNull { node -> titleIds.any(node.viewId.orEmpty().lowercase()::contains) }
                 ?.let { cleanText(it.text ?: it.contentDescription) }
@@ -210,7 +218,7 @@ object YoutubeStudyV2Parser {
                     // Some builds expose the title with no resource id at all. Fall back to
                     // the first substantial text node directly under the player that isn't
                     // itself uploader/engagement metadata.
-                    visible.asSequence()
+                    metadataNodes.asSequence()
                         .map(nodes::get)
                         .filter { node ->
                             node.top >= regularPlaybackRegion!!.bottom - 8 * snapshot.density &&
@@ -226,8 +234,8 @@ object YoutubeStudyV2Parser {
                         }
                 }
 
-            val owner = findOwnerRow(snapshot, visible.filterNot { isExcludedMetadataNode(nodes, it) }, regularPlaybackRegion!!.bottom, title)
-            val ownerChannelIds = visible.asSequence().filter { index ->
+            val owner = findOwnerRow(snapshot, metadataNodes, regularPlaybackRegion!!.bottom, title)
+            val ownerChannelIds = metadataNodes.asSequence().filter { index ->
                 val node = nodes[index]
                 node.top >= regularPlaybackRegion.bottom - 24 * snapshot.density &&
                     node.top <= regularPlaybackRegion.bottom + 260 * snapshot.density &&
@@ -244,7 +252,7 @@ object YoutubeStudyV2Parser {
                 watchScreenConfirmed = true,
                 fullscreen = fullscreen,
                 title = title,
-                exactHandle = if (metadata != null) metadata.handle else owner?.handle,
+                exactHandle = metadata?.handle ?: owner?.handle,
                 exactChannelId = ownerChannelId,
                 displayName = owner?.displayName,
                 adPlaying = isAdPlayback(nodes, visible, regularPlaybackRegion),
@@ -269,7 +277,12 @@ object YoutubeStudyV2Parser {
     ): YoutubeFullscreenSidePanel {
         val rightSideLabels = visible.asSequence()
             .map(snapshot.nodes::get)
-            .filter { node -> node.right > snapshot.screenWidth * FULLSCREEN_SIDE_PANEL_LEFT_RATIO }
+            .filter { node ->
+                node.right > snapshot.screenWidth * FULLSCREEN_SIDE_PANEL_LEFT_RATIO &&
+                    // Sponsored recommendations and comments are watch-list content,
+                    // not an open panel covering the player or its metadata.
+                    !hasAncestorWithId(snapshot.nodes, node, listOf("watch_list"))
+            }
             .flatMap { node -> sequenceOf(node.text, node.contentDescription, node.viewId).filterNotNull() }
             .map { it.trim().lowercase() }
             .toList()
@@ -330,16 +343,23 @@ object YoutubeStudyV2Parser {
             .maxByOrNull { it.title?.length ?: 0 }
     }
 
-    /** The first watch-list item is the expandable title/uploader header.
-     * Its descendants remain owner metadata even when the drawing surface
-     * overlaps them. Later list items are actions, comments or recommendations.
-     */
-    private fun watchHeaderMetadata(nodes: List<YoutubeV2Node>): WatchHeaderMetadata? {
+    /** Read bounded watch-header items, allowing leading spacers and separate wrappers. */
+    private fun watchHeaderMetadata(nodes: List<YoutubeV2Node>, metadataNodes: List<Int>): WatchHeaderMetadata? {
         val list = nodes.indexOfFirst { it.viewId?.substringAfterLast('/') == "watch_list" }
         if (list < 0) return null
-        val header = nodes.indices.firstOrNull { nodes[it].parentIndex == list } ?: return null
-        if (!nodes[header].visibleToUser || nodes[header].height <= 0) return null
-        val members = nodes.indices.filter { index ->
+        val candidates = nodes.indices.asSequence()
+            .filter { nodes[it].parentIndex == list && nodes[it].visibleToUser && nodes[it].height > 0 }
+            .mapNotNull { watchHeaderItemMetadata(nodes, metadataNodes, it) }
+            .toList()
+        val handles = candidates.mapNotNull { it.handle }.distinct()
+        if (handles.size > 1) return null
+        return candidates.firstOrNull { it.handle != null } ?: candidates.firstOrNull()
+    }
+
+    private fun watchHeaderItemMetadata(
+        nodes: List<YoutubeV2Node>, metadataNodes: List<Int>, header: Int,
+    ): WatchHeaderMetadata? {
+        val members = metadataNodes.filter { index ->
             var ancestor: Int? = index
             var found = false
             repeat(8) {
@@ -359,12 +379,16 @@ object YoutubeStudyV2Parser {
                     overlap > 0 && overlap.toFloat() / min(node.height, sibling.height).coerceAtLeast(1) >= MIN_VERTICAL_OVERLAP &&
                         sequenceOf(sibling.text, sibling.contentDescription).filterNotNull().any(::hasUploaderMetadataProof)
                 }
-            }) bare else verifiedUploaderHandle(label)
+            }) bare else verifiedUploaderHandle(label) ?: mergedWatchUploader(label)?.second
             handle?.let { index to YoutubeStudyV2Repository.normalizeHandle(it) }
         }
         val handle = handles.map { it.second }.distinct().singleOrNull()
         val handleTop = handles.minOfOrNull { nodes[it.first].top }
-        val title = members.asSequence().map(nodes::get)
+        val mergedTitle = members.asSequence().map(nodes::get)
+            .flatMap { sequenceOf(it.text, it.contentDescription).filterNotNull() }
+            .mapNotNull(::mergedWatchUploader)
+            .firstOrNull { it.second == handle }?.first
+        val title = mergedTitle ?: members.asSequence().map(nodes::get)
             .filter { node -> handleTop == null || node.bottom <= handleTop }
             .mapNotNull { cleanText(it.text ?: it.contentDescription) }
             .firstOrNull { value -> value.length > 8 && !handleRegex.containsMatchIn(value) &&
@@ -373,6 +397,23 @@ object YoutubeStudyV2Parser {
         if (handle == null && title == null) return null
         return WatchHeaderMetadata(title, handle)
     }
+
+    // Only used inside the bounded watch header. Require statistics immediately
+    // after the handle so a title mention or an arbitrary control is insufficient.
+    private fun mergedWatchUploader(value: String): Pair<String, String>? {
+        val label = cleanText(value) ?: return null
+        val match = handleRegex.findAll(label).lastOrNull() ?: return null
+        val statistics = label.substring(match.range.last + 1).trimStart()
+        if (!WATCH_UPLOADER_STATISTICS.containsMatchIn(statistics)) return null
+        val title = label.substring(0, match.range.first).trim()
+        if (title.length <= 8 || isDisallowedTitleText(title.lowercase())) return null
+        return title to YoutubeStudyV2Repository.normalizeHandle(match.value)
+    }
+
+    private val WATCH_UPLOADER_STATISTICS = Regex(
+        "^\\d[\\d.,]*\\s*(?:k|m|b|lakh|crore)?\\s+(?:likes?\\s+\\d[\\d.,]*\\s*(?:k|m|b|lakh|crore)?\\s+)?(?:views?|watching)\\b",
+        RegexOption.IGNORE_CASE,
+    )
 
     private fun isExcludedMetadataNode(nodes: List<YoutubeV2Node>, index: Int): Boolean {
         var ancestor: Int? = index
@@ -383,6 +424,77 @@ object YoutubeStudyV2Parser {
         }
         return false
     }
+
+    /** Exclude whole recommendation items, even when their thumbnails scroll offscreen. */
+    private fun watchMetadataNodes(
+        snapshot: YoutubeV2Snapshot,
+        visible: List<Int>,
+        player: YoutubeV2Node,
+    ): List<Int> {
+        val nodes = snapshot.nodes
+        val listItems = nodes.indices.filter { index ->
+            nodes[index].parentIndex?.let { nodes[it].viewId?.substringAfterLast('/') == "watch_list" } == true
+        }.toSet()
+        fun listItem(index: Int): Int? {
+            var current: Int? = index
+            repeat(32) {
+                val at = current?.takeIf(nodes.indices::contains) ?: return null
+                if (at in listItems) return at
+                current = nodes[at].parentIndex
+            }
+            return null
+        }
+        val itemByNode = nodes.indices.associateWith(::listItem)
+        val recommendationItems = nodes.indices.filter { index ->
+            val node = nodes[index]
+            val id = node.viewId.orEmpty().lowercase()
+            METADATA_SECTION_IDS.any(id::contains) || id.contains("thumbnail") ||
+                (node.className.orEmpty().contains("ImageView", true) &&
+                    node.width >= snapshot.screenWidth * 0.45f &&
+                    node.height >= 90 * snapshot.density)
+        }.mapNotNull { itemByNode[it] }.toSet()
+        // Compose-based YouTube often omits resource IDs on comments and cards.
+        // Their labels and avatars can occupy the same band as the uploader after
+        // scrolling. Stop at the first engagement section or recommendation
+        // thumbnail, using offscreen thumbnails too when their card is recycled.
+        val metadataEnd = nodes.indices.filter { index ->
+            val node = nodes[index]
+            if (hasAncestorWithId(nodes, node, regularWatchIds)) return@filter false
+            val id = node.viewId.orEmpty().lowercase()
+            val thumbnail = id.contains("thumbnail") ||
+                (node.className.orEmpty().contains("ImageView", true) &&
+                    node.width >= snapshot.screenWidth * 0.45f && node.height >= 90 * snapshot.density)
+            // YouTube keeps this empty overlay host across the whole screen,
+            // including when no engagement panel is open. Its bounds cannot
+            // delimit the watch header; actual panel children still can.
+            val overlayHost = id.substringAfterLast('/') == "engagement_panel_wrapper"
+            val section = !overlayHost && node.visibleToUser && (METADATA_SECTION_IDS.any(id::contains) ||
+                sequenceOf(node.text, node.contentDescription).filterNotNull().any(::isWatchSectionLabel))
+            (thumbnail || section) && node.bottom >= player.bottom - 8 * snapshot.density
+        }.minOfOrNull { nodes[it].top.coerceAtLeast(player.bottom) }
+        return visible.filter { index ->
+            val node = nodes[index]
+            !isExcludedMetadataNode(nodes, index) && itemByNode[index] !in recommendationItems &&
+                (metadataEnd == null || (node.top < metadataEnd &&
+                    // A merged parent label must not bring lower-screen text
+                    // back into the otherwise bounded metadata region.
+                    (node.bottom <= metadataEnd || (node.text.isNullOrBlank() && node.contentDescription.isNullOrBlank()))))
+        }
+    }
+
+    private fun isWatchEngagementLabel(value: String): Boolean {
+        val lower = value.trim().lowercase()
+        return isWatchSectionLabel(value) ||
+            (isActionButtonText(lower) && lower !in setOf("subscribe", "subscribed", "join", "सदस्यता लें", "सदस्यता ली गई") &&
+                !lower.startsWith("subscribe to ") && !lower.startsWith("सदस्यता लें ")) ||
+            COMMENT_AND_VIDEO_REACTION_LABELS.any { lower == it || lower.startsWith("$it ") }
+    }
+
+    // Buttons such as "more", Share and Like can share the uploader's row.
+    // They are invalid identities, but must not cut off nearby channel metadata.
+    private fun isWatchSectionLabel(value: String): Boolean =
+        Regex("^(?:comments?|टिप्पणियाँ|टिप्पणियां)(?:$|[\\s·•]+[\\d.,km]+$)")
+            .matches(value.trim().lowercase())
 
     private data class OwnerEvidence(val handle: String?, val displayName: String?)
 
@@ -506,7 +618,7 @@ object YoutubeStudyV2Parser {
             // A same-row sibling can supply the engagement/time proof that a
             // bare-handle node lacks on its own. Only siblings vertically aligned
             // with this node (same metadata row) count — never the whole band.
-            val siblingProof = hasSiblingUploaderMetadataProof(nodes, index, node)
+            val siblingProof = hasSiblingUploaderMetadataProof(nodes, visible, index, node)
             val valueAndHandle = values.mapNotNull { value ->
                 verifiedUploaderHandle(value, semanticOwnerProof || siblingProof)?.let { value to it }
             }.firstOrNull() ?: return@mapNotNull null
@@ -536,11 +648,12 @@ object YoutubeStudyV2Parser {
      */
     private fun hasSiblingUploaderMetadataProof(
         nodes: List<YoutubeV2Node>,
+        metadataNodes: List<Int>,
         index: Int,
         node: YoutubeV2Node,
     ): Boolean {
         val parent = node.parentIndex ?: return false
-        return nodes.indices.any { siblingIndex ->
+        return metadataNodes.any { siblingIndex ->
             if (siblingIndex == index) return@any false
             val sibling = nodes[siblingIndex]
             if (sibling.parentIndex != parent) return@any false
@@ -687,7 +800,8 @@ object YoutubeStudyV2Parser {
     internal fun isPlausibleOwnerLabel(value: String): Boolean {
         if (value.length !in 2..120) return false
         val lower = value.lowercase()
-        if (lower in setOf("exit full screen", "enter full screen", "full screen", "fullscreen", "play", "pause", "next video", "previous video", "close player")) return false
+        if (isWatchEngagementLabel(value) || isActionButtonText(lower)) return false
+        if (lower in setOf("exit full screen", "enter full screen", "full screen", "fullscreen", "play", "pause", "next video", "previous video", "close player", "close", "dismiss", "back", "quote", "description", "बंद करें", "वापस")) return false
         return INVALID_OWNER_WORDS.none(lower::contains)
     }
 
@@ -742,7 +856,8 @@ object YoutubeStudyV2Parser {
     private val LIVE_CHAT_PANEL_MARKERS = listOf(
         "live chat", "live_chat", "chat panel", "chat_panel",
     )
-    private val NON_OWNER_TEXT_IDS = listOf("comment", "recommend", "suggest", "transcript")
+    private val METADATA_SECTION_IDS = listOf("comment", "recommend", "suggest", "transcript", "description_panel", "description_sheet", "engagement_panel", "video_card", "compact_video", "chip_cloud")
+    private val NON_OWNER_TEXT_IDS = METADATA_SECTION_IDS
     private val UPLOADER_ENGAGEMENT_MARKERS = listOf(" view", " views", " like", " likes")
     private val UPLOADER_CONTEXT_MARKERS = listOf(" ago", " watching", " subscriber", " subscribers")
     private val METADATA_SUFFIX = Regex(
@@ -757,8 +872,12 @@ object YoutubeStudyV2Parser {
         "subscribe", "subscribed", "join", "share", "download", "thanks", "remix", "save", "clip", "more",
         "सदस्यता लें", "सदस्यता ली गई", "शेयर करें", "डाउनलोड करें", "धन्यवाद",
     )
+    private val COMMENT_AND_VIDEO_REACTION_LABELS = setOf(
+        "like this video", "dislike this video", "like this comment", "dislike this comment", "reply to this comment",
+    )
     private val PLAYER_CONTROL_LABELS = setOf(
-        "like this video", "dislike this video", "exit full screen", "enter full screen",
+        "like this video", "dislike this video", "like this comment", "dislike this comment",
+        "reply to this comment", "exit full screen", "enter full screen",
         "play video", "pause video", "next video", "previous video", "close player",
     )
     private val DISALLOWED_TITLE_WORDS = setOf(

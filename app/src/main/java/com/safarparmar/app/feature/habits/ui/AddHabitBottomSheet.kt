@@ -6,7 +6,7 @@ import java.time.DayOfWeek
 @Composable
 fun AddHabitBottomSheet(
     onDismiss: () -> Unit,
-    onCreate: suspend (String, Set<DayOfWeek>, Boolean) -> Unit,
+    onCreate: suspend (String, Set<DayOfWeek>, Boolean, String?) -> Unit,
     onCreated: (String, Set<DayOfWeek>) -> Unit = { _, _ -> }
 ) {
     HabitFormBottomSheet(onDismiss = onDismiss, onSubmit = onCreate, onSuccess = onCreated)

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.feature.live.LiveSessionComponentsTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-10-19T19:59:38.894Z" hostname="Shashanks-MacBook-Air.local" time="0.011">
+  <properties/>
+  <testcase name="next session subtitle formats today properly" classname="com.safarparmar.app.feature.live.LiveSessionComponentsTest" time="0.002"/>
+  <testcase name="relative date formatting handles multiple days ago" classname="com.safarparmar.app.feature.live.LiveSessionComponentsTest" time="0.001"/>
+  <testcase name="relative date formatting handles yesterday" classname="com.safarparmar.app.feature.live.LiveSessionComponentsTest" time="0.0"/>
+  <testcase name="relative date formatting handles today and duration" classname="com.safarparmar.app.feature.live.LiveSessionComponentsTest" time="0.0"/>
+  <testcase name="next session subtitle with null or blank start time" classname="com.safarparmar.app.feature.live.LiveSessionComponentsTest" time="0.001"/>
+  <testcase name="theme colors provide distinct light and dark palettes" classname="com.safarparmar.app.feature.live.LiveSessionComponentsTest" time="0.007"/>
+  <testcase name="relative dates use local calendar days across midnight" classname="com.safarparmar.app.feature.live.LiveSessionComponentsTest" time="0.0"/>
+  <testcase name="filter mappings match backend values" classname="com.safarparmar.app.feature.live.LiveSessionComponentsTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

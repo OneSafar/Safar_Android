@@ -1,0 +1,6 @@
+<resources>
+    <string name="ekagra_restoring_title">Ekagra phir se shuru ho raha hai</string>
+    <string name="ekagra_restoring_body">Aapka padhai ka timer wapas laaya ja raha hai.</string>
+    <string name="ekagra_resume_available_title">Aapka padhai ka session jaari rakhne ke liye taiyaar hai</string>
+    <string name="ekagra_resume_available_body">Apna save kiya hua timer jaari rakhne ke liye Ekagra kholein.</string>
+</resources>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.feature.kavachanalytics.KavachAnalyticsPresentationTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-19T19:59:38.869Z" hostname="Shashanks-MacBook-Air.local" time="0.003">
+  <properties/>
+  <testcase name="an ended-early session is never labelled a failure" classname="com.safarparmar.app.feature.kavachanalytics.KavachAnalyticsPresentationTest" time="0.0"/>
+  <testcase name="search filters by label case-insensitively" classname="com.safarparmar.app.feature.kavachanalytics.KavachAnalyticsPresentationTest" time="0.001"/>
+  <testcase name="percentages never divide by zero" classname="com.safarparmar.app.feature.kavachanalytics.KavachAnalyticsPresentationTest" time="0.0"/>
+  <testcase name="uncategorised apps are surfaced first" classname="com.safarparmar.app.feature.kavachanalytics.KavachAnalyticsPresentationTest" time="0.0"/>
+  <testcase name="durations read the way a student would say them" classname="com.safarparmar.app.feature.kavachanalytics.KavachAnalyticsPresentationTest" time="0.001"/>
+  <testcase name="wire values round-trip and unknown ones fall back to unclassified" classname="com.safarparmar.app.feature.kavachanalytics.KavachAnalyticsPresentationTest" time="0.0"/>
+  <testcase name="category totals add and combine without losing unclassified time" classname="com.safarparmar.app.feature.kavachanalytics.KavachAnalyticsPresentationTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

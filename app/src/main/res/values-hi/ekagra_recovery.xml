@@ -1,0 +1,6 @@
+<resources>
+    <string name="ekagra_restoring_title">एकाग्र फिर से शुरू हो रहा है</string>
+    <string name="ekagra_restoring_body">आपका पढ़ाई का टाइमर बहाल किया जा रहा है।</string>
+    <string name="ekagra_resume_available_title">आपका पढ़ाई का सत्र जारी रखने के लिए तैयार है</string>
+    <string name="ekagra_resume_available_body">अपना सहेजा हुआ टाइमर जारी रखने के लिए एकाग्र खोलें।</string>
+</resources>

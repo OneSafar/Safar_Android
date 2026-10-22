@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.feature.toppersbatch.BatchCompletionFeedbackTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-20T02:12:55.738Z" hostname="Shashanks-MacBook-Air.local" time="0.0">
+  <properties/>
+  <testcase name="backlogGetsCloserMessageEvenIfTodayWasAlreadyCompleted" classname="com.safarparmar.app.feature.toppersbatch.BatchCompletionFeedbackTest" time="0.0"/>
+  <testcase name="remainingTodaysLectureGetsNormalMessage" classname="com.safarparmar.app.feature.toppersbatch.BatchCompletionFeedbackTest" time="0.0"/>
+  <testcase name="lastTodaysLectureCelebratesAllDoneWithoutCountingFutureLectures" classname="com.safarparmar.app.feature.toppersbatch.BatchCompletionFeedbackTest" time="0.0"/>
+  <testcase name="noScheduleDoesNotClaimAllTodaysLecturesDone" classname="com.safarparmar.app.feature.toppersbatch.BatchCompletionFeedbackTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

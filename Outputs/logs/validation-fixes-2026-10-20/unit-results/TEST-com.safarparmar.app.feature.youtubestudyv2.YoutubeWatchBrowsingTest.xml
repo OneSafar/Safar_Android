@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.feature.youtubestudyv2.YoutubeWatchBrowsingTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-19T19:59:40.312Z" hostname="Shashanks-MacBook-Air.local" time="0.001">
+  <properties/>
+  <testcase name="comments and watch actions do not arm a new video tap" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeWatchBrowsingTest" time="0.0"/>
+  <testcase name="comment reaction accessibility label is never a channel name" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeWatchBrowsingTest" time="0.0"/>
+  <testcase name="anonymous recommendation channel cannot become the playing owner" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeWatchBrowsingTest" time="0.0"/>
+  <testcase name="scroll and comments retain decision but new tap does not" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeWatchBrowsingTest" time="0.0"/>
+  <testcase name="recommendation with offscreen thumbnail cannot supply metadata" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeWatchBrowsingTest" time="0.001"/>
+  <testcase name="watch uploader remains valid before comments and recommendations" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeWatchBrowsingTest" time="0.0"/>
+  <testcase name="anonymous comments panel cannot supply uploader or video title" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeWatchBrowsingTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

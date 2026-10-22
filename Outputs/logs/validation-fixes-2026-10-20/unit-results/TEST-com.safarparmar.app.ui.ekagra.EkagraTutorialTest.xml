@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.ui.ekagra.EkagraTutorialTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-19T19:59:40.633Z" hostname="Shashanks-MacBook-Air.local" time="0.008">
+  <properties/>
+  <testcase name="processRecreationStartsClosedInsteadOfResurrectingPractice" classname="com.safarparmar.app.ui.ekagra.EkagraTutorialTest" time="0.005"/>
+  <testcase name="fourShortGuidesCoverTheMainTasks" classname="com.safarparmar.app.ui.ekagra.EkagraTutorialTest" time="0.0"/>
+  <testcase name="completingAndSkippingHaveDifferentBookkeeping" classname="com.safarparmar.app.ui.ekagra.EkagraTutorialTest" time="0.0"/>
+  <testcase name="onlyIdleReadyTimersWithoutPendingFlowsAreEligible" classname="com.safarparmar.app.ui.ekagra.EkagraTutorialTest" time="0.0"/>
+  <testcase name="timerSnapshotsRepresentStartPauseBreakAndReturn" classname="com.safarparmar.app.ui.ekagra.EkagraTutorialTest" time="0.001"/>
+  <testcase name="everyLessonHasStableUniqueStepsAndCanGoBackAndReplay" classname="com.safarparmar.app.ui.ekagra.EkagraTutorialTest" time="0.0"/>
+  <testcase name="retainedViewModelStoreKeepsPracticeStepAcrossOwnerRecreation" classname="com.safarparmar.app.ui.ekagra.EkagraTutorialTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

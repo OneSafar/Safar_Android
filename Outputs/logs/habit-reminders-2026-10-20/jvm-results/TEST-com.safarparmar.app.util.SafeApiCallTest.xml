@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.util.SafeApiCallTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-10-20T02:13:05.756Z" hostname="Shashanks-MacBook-Air.local" time="0.006">
+  <properties/>
+  <testcase name="closes rate limited response before retry" classname="com.safarparmar.app.util.SafeApiCallTest" time="0.001"/>
+  <testcase name="rethrows cancellation" classname="com.safarparmar.app.util.SafeApiCallTest" time="0.001"/>
+  <testcase name="maps io error" classname="com.safarparmar.app.util.SafeApiCallTest" time="0.001"/>
+  <testcase name="maps timeout" classname="com.safarparmar.app.util.SafeApiCallTest" time="0.0"/>
+  <testcase name="returns api error message and code" classname="com.safarparmar.app.util.SafeApiCallTest" time="0.001"/>
+  <testcase name="maps unknown host" classname="com.safarparmar.app.util.SafeApiCallTest" time="0.001"/>
+  <testcase name="returns success body" classname="com.safarparmar.app.util.SafeApiCallTest" time="0.0"/>
+  <testcase name="returns error for empty success body" classname="com.safarparmar.app.util.SafeApiCallTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

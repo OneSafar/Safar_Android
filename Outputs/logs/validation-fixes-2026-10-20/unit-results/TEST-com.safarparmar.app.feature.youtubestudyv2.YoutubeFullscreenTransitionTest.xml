@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.feature.youtubestudyv2.YoutubeFullscreenTransitionTest" tests="15" skipped="0" failures="0" errors="0" timestamp="2026-10-19T19:59:39.639Z" hostname="Shashanks-MacBook-Air.local" time="0.001">
+  <properties/>
+  <testcase name="autoplay metadata replaces the previous portrait owner" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeFullscreenTransitionTest" time="0.0"/>
+  <testcase name="hidden metadata does not inherit owner indefinitely" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeFullscreenTransitionTest" time="0.0"/>
+  <testcase name="new title cannot inherit productive owner" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeFullscreenTransitionTest" time="0.0"/>
+  <testcase name="new video tap clears even an identical title" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeFullscreenTransitionTest" time="0.0"/>
+  <testcase name="scrolling portrait recommendations preserves the playing video" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeFullscreenTransitionTest" time="0.0"/>
+  <testcase name="same owner does not lose title when live metadata partially updates" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeFullscreenTransitionTest" time="0.0"/>
+  <testcase name="verification is discarded on tap title change and conflicting owner" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeFullscreenTransitionTest" time="0.0"/>
+  <testcase name="verified live class survives hidden fullscreen HUD for a whole lesson" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeFullscreenTransitionTest" time="0.0"/>
+  <testcase name="instant fullscreen preserves pending owner and decision key" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeFullscreenTransitionTest" time="0.0"/>
+  <testcase name="new tap or leaving playback cannot inherit hidden portrait owner" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeFullscreenTransitionTest" time="0.001"/>
+  <testcase name="fullscreen rotation can rebuild an empty tree without losing verified owner" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeFullscreenTransitionTest" time="0.0"/>
+  <testcase name="fullscreen owner first seen without portrait can be verified" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeFullscreenTransitionTest" time="0.0"/>
+  <testcase name="unrelated handle cannot borrow an allowed display alias" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeFullscreenTransitionTest" time="0.0"/>
+  <testcase name="rotation grace expires and never authorizes shorts or a newly selected video" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeFullscreenTransitionTest" time="0.0"/>
+  <testcase name="portrait title change without owner clears old identity" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeFullscreenTransitionTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

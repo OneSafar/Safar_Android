@@ -118,6 +118,7 @@ class LiveSessionViewModel @Inject constructor(
     private var currentUserId: String = ""
     private var pollingJob: Job? = null
     private var socketWatchJob: Job? = null
+    private val sessionCollectorJobs = mutableListOf<Job>()
     private var cooldownJob: Job? = null
 
     fun loadSessions(courseId: String, status: String?) {
@@ -173,13 +174,13 @@ class LiveSessionViewModel @Inject constructor(
             isChatOpen = isChatOpen(_liveSessionState.value.session),
         )
 
-        viewModelScope.launch {
+        sessionCollectorJobs += viewModelScope.launch {
             currentUserName = dataStore.userName.first() ?: "Student"
             currentUserId = dataStore.userId.first().orEmpty()
 
             if (socketManager.isConnected()) {
-                // Already connected — join immediately
-                socketManager.emitLiveJoin(sessionId)
+                // The connected-state watcher owns joining, including its
+                // initial true value. Emitting here too doubled join/API work.
                 _liveChatState.update { it.copy(isConnecting = false) }
             } else {
                 // Nothing else opens the socket for this screen. It used to be
@@ -208,7 +209,7 @@ class LiveSessionViewModel @Inject constructor(
         }
 
         // Collect incoming chat messages from the server
-        viewModelScope.launch {
+        sessionCollectorJobs += viewModelScope.launch {
             socketManager.liveMessage.collect { msg ->
                 if (activeSocketSessionId == null) return@collect
                 // Matched on user id, not display name: two students called
@@ -231,7 +232,7 @@ class LiveSessionViewModel @Inject constructor(
         }
 
         // Collect live:status_changed — reload session data so the player URL updates
-        viewModelScope.launch {
+        sessionCollectorJobs += viewModelScope.launch {
             socketManager.liveStatusChanged.collect { change ->
                 if (change.sessionId != activeSocketSessionId) return@collect
                 // Ending the broadcast ends the conversation: nothing is persisted
@@ -249,7 +250,7 @@ class LiveSessionViewModel @Inject constructor(
         }
 
         // Collect live:chat_state — the server's authoritative open/closed verdict
-        viewModelScope.launch {
+        sessionCollectorJobs += viewModelScope.launch {
             socketManager.liveChatState.collect { state ->
                 if (state.sessionId != activeSocketSessionId) return@collect
                 if (!state.isChatOpen) cooldownJob?.cancel()
@@ -266,7 +267,7 @@ class LiveSessionViewModel @Inject constructor(
         }
 
         // Collect live:viewers — how many people are watching right now
-        viewModelScope.launch {
+        sessionCollectorJobs += viewModelScope.launch {
             socketManager.liveViewerCount.collect { viewers ->
                 if (viewers.sessionId != activeSocketSessionId) return@collect
                 _liveChatState.update { it.copy(viewerCount = viewers.count) }
@@ -274,7 +275,7 @@ class LiveSessionViewModel @Inject constructor(
         }
 
         // Collect live:error and surface as a dismissible UI message
-        viewModelScope.launch {
+        sessionCollectorJobs += viewModelScope.launch {
             socketManager.liveError.collect { error ->
                 if (activeSocketSessionId == null) return@collect
                 when (error.code) {
@@ -402,6 +403,8 @@ class LiveSessionViewModel @Inject constructor(
 
     /** Called when the Live Session screen becomes invisible / user navigates away. */
     fun leaveLiveSession() {
+        sessionCollectorJobs.forEach { it.cancel() }
+        sessionCollectorJobs.clear()
         pollingJob?.cancel()
         pollingJob = null
         socketWatchJob?.cancel()

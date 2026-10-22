@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.ui.ekagra.EkagraDiagnosticsTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-20T02:12:56.935Z" hostname="Shashanks-MacBook-Air.local" time="0.0">
+  <properties/>
+  <testcase name="unrelatedHistoricalExitDoesNotExplainTheActiveSession" classname="com.safarparmar.app.ui.ekagra.EkagraDiagnosticsTest" time="0.0"/>
+  <testcase name="childProcessCrashDoesNotExplainTheInProcessTimerStop" classname="com.safarparmar.app.ui.ekagra.EkagraDiagnosticsTest" time="0.0"/>
+  <testcase name="firstMainProcessExitAfterCheckpointIsTheInterruption" classname="com.safarparmar.app.ui.ekagra.EkagraDiagnosticsTest" time="0.0"/>
+  <testcase name="futureTimestampIsNotAttributedAcrossAClockChange" classname="com.safarparmar.app.ui.ekagra.EkagraDiagnosticsTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

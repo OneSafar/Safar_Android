@@ -1,0 +1,15 @@
+[
+  {
+    "case": "focus",
+    "interruption": "kill",
+    "seedPid": 14949,
+    "verificationPid": 15130,
+    "clientSessionId": "local-7e8ecca4-07c9-4c61-82ae-fba28095aa75",
+    "initialFocusSeconds": 720,
+    "finalFocusSeconds": 726,
+    "rowCount": 1,
+    "passed": true,
+    "backgroundPid": 15130,
+    "backgroundRestarted": true
+  }
+]

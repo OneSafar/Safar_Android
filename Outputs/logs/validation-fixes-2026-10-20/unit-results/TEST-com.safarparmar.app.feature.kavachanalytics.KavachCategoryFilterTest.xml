@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.feature.kavachanalytics.KavachCategoryFilterTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-19T19:59:38.874Z" hostname="Shashanks-MacBook-Air.local" time="0.0">
+  <properties/>
+  <testcase name="Others keeps uncategorised time visible rather than dropping it" classname="com.safarparmar.app.feature.kavachanalytics.KavachCategoryFilterTest" time="0.0"/>
+  <testcase name="Others covers neutral and uncategorised together" classname="com.safarparmar.app.feature.kavachanalytics.KavachCategoryFilterTest" time="0.0"/>
+  <testcase name="All apps matches everything" classname="com.safarparmar.app.feature.kavachanalytics.KavachCategoryFilterTest" time="0.0"/>
+  <testcase name="the four chips add up to the whole day with nothing double counted" classname="com.safarparmar.app.feature.kavachanalytics.KavachCategoryFilterTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

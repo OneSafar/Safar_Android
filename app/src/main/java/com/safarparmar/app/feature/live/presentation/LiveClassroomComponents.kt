@@ -304,6 +304,7 @@ fun LiveClassroomTopBar(
             }
         },
         actions = {
+                com.safarparmar.app.ui.tutorial.TitliGuideButton()
             if (onReload != null) {
                 IconButton(onClick = onReload) {
                     if (isReloading) {
@@ -530,13 +531,11 @@ fun LiveClassroomFilterChips(
 /**
  * The center hero card when Parmar sir is not live right now:
  * - Avatar with "PS" (Parmar Sir)
- * - Headline: "Parmar sir isn't live right now"
- * - Subtitle: "Next session: today, 6:00 PM · Quant"
+ * - Headline: "Parmar Sir Is Not Live Currently"
  * - Action button: androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.live_reload) (fetches from backend to check if admin went live)
  */
 @Composable
 fun TeacherNotLiveCard(
-    nextSession: LiveSession?,
     isReloading: Boolean = false,
     onReload: () -> Unit = {},
     isDarkTheme: Boolean,
@@ -546,7 +545,6 @@ fun TeacherNotLiveCard(
     val cardBorder = LiveThemeColors.cardBorder(isDarkTheme)
     val primaryColor = LiveThemeColors.primary(isDarkTheme)
     val textPrimary = LiveThemeColors.textPrimary(isDarkTheme)
-    val textSecondary = LiveThemeColors.textSecondary(isDarkTheme)
     val avatarBg = LiveThemeColors.avatarBg(isDarkTheme)
     val avatarText = LiveThemeColors.avatarText(isDarkTheme)
 
@@ -588,22 +586,6 @@ fun TeacherNotLiveCard(
                 fontWeight = FontWeight.Bold,
                 color = textPrimary,
                 textAlign = TextAlign.Center,
-            )
-
-            Spacer(Modifier.height(6.dp))
-
-            // Subtitle
-            val subtitleText = formatNextSessionSubtitle(
-                nextSession?.scheduledStartAt,
-                nextSession?.title,
-            )
-            Text(
-                text = subtitleText,
-                fontSize = 13.sp,
-                color = textSecondary,
-                textAlign = TextAlign.Center,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
             )
 
             Spacer(Modifier.height(18.dp))
@@ -722,6 +704,7 @@ fun LiveHeroSessionCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .aspectRatio(16f / 9f)
+                    .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
                     .clickable(onClick = onPlay),
             ) {
                 if (!session.thumbnailUrl.isNullOrBlank()) {

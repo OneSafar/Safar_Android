@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.data.remote.TemplateTopicDeserializerTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-19T19:59:37.324Z" hostname="Shashanks-MacBook-Air.local" time="0.012">
+  <properties/>
+  <testcase name="maps uniform sizes onto the matching chapter rating" classname="com.safarparmar.app.data.remote.TemplateTopicDeserializerTest" time="0.01"/>
+  <testcase name="ignores an unknown size instead of crashing" classname="com.safarparmar.app.data.remote.TemplateTopicDeserializerTest" time="0.0"/>
+  <testcase name="parses a hand-weighted template whose topics are objects" classname="com.safarparmar.app.data.remote.TemplateTopicDeserializerTest" time="0.001"/>
+  <testcase name="parses a chapter that mixes both shapes" classname="com.safarparmar.app.data.remote.TemplateTopicDeserializerTest" time="0.001"/>
+  <testcase name="parses an unweighted template whose topics are plain strings" classname="com.safarparmar.app.data.remote.TemplateTopicDeserializerTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

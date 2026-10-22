@@ -40,7 +40,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ModalBottomSheet
+import com.safarparmar.app.ui.components.popups.SafarModalBottomSheet as ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Switch
@@ -65,6 +65,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.safarparmar.app.R
+import com.safarparmar.app.ui.tutorial.tutorialTarget
 import com.safarparmar.app.domain.model.Comment
 import com.safarparmar.app.domain.model.MehfilPost
 import com.safarparmar.app.domain.model.Sandesh
@@ -546,18 +547,15 @@ internal fun CreatePostSheet(
     isPosting: Boolean,
     onPost: (String, String, Boolean) -> Unit,
     onDismiss: () -> Unit,
+    inlinePreview: Boolean = false,
+    initialContent: String = "",
 ) {
-    var content by remember { mutableStateOf("") }
+    var content by remember { mutableStateOf(initialContent) }
     var space by remember { mutableStateOf(if (selectedSpace == "ALL") "REFLECTIVE" else selectedSpace) }
     var isAnonymous by remember { mutableStateOf(false) }
     val canPost = content.isNotBlank() && !isPosting
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        containerColor = MehfilFlatColors.Bg,
-        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-        dragHandle = { BottomSheetDefaults.DragHandle(color = MehfilFlatColors.Hairline) },
-    ) {
+    val form: @Composable () -> Unit = {
         Column(
             Modifier
                 .fillMaxWidth()
@@ -581,66 +579,74 @@ internal fun CreatePostSheet(
                 value = content,
                 onValueChange = { content = it },
                 placeholder = { Text(stringResource(R.string.mehfil_whats_on_mind), color = MehfilFlatColors.Muted) },
-                modifier = Modifier.fillMaxWidth().heightIn(min = 120.dp),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 120.dp).tutorialTarget("mehfil.write"),
                 minLines = 4,
                 shape = RoundedCornerShape(12.dp),
                 colors = mehfilFlatFieldColors(),
             )
-            Text(stringResource(R.string.mehfil_space), fontSize = 13.sp, fontWeight = FontWeight.Medium, color = MehfilFlatColors.Muted)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf("REFLECTIVE", "ACADEMIC").forEach { item ->
-                    val selected = space == item
-                    Box(
-                        modifier = Modifier
-                            .clip(CircleShape)
-                            .then(
-                                if (selected) {
-                                    Modifier.background(MehfilFlatColors.Primary)
-                                } else {
-                                    Modifier.border(1.dp, MehfilFlatColors.Hairline, CircleShape)
-                                },
+            Column(Modifier.tutorialTarget("mehfil.share"), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(stringResource(R.string.mehfil_space), fontSize = 13.sp, fontWeight = FontWeight.Medium, color = MehfilFlatColors.Muted)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf("REFLECTIVE", "ACADEMIC").forEach { item ->
+                        val selected = space == item
+                        Box(
+                            modifier = Modifier
+                                .clip(CircleShape)
+                                .then(
+                                    if (selected) {
+                                        Modifier.background(MehfilFlatColors.Primary)
+                                    } else {
+                                        Modifier.border(1.dp, MehfilFlatColors.Hairline, CircleShape)
+                                    },
+                                )
+                                .clickable { space = item }
+                                .padding(horizontal = 14.dp, vertical = 8.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                if (item == "REFLECTIVE") stringResource(R.string.mehfil_reflective) else stringResource(R.string.mehfil_academic),
+                                fontSize = 12.sp,
+                                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                                color = if (selected) Color.White else MehfilFlatColors.Muted,
                             )
-                            .clickable { space = item }
-                            .padding(horizontal = 14.dp, vertical = 8.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
+                        }
+                    }
+                }
+                AnonymousPostToggle(isAnonymous = isAnonymous, onCheckedChange = { isAnonymous = it })
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(
+                            if (canPost) MehfilFlatColors.Primary
+                            else MehfilFlatColors.Hairline.copy(alpha = 0.55f),
+                        )
+                        .clickable(enabled = canPost) {
+                            if (content.isNotBlank()) onPost(content, space, isAnonymous)
+                        }
+                        .padding(vertical = 14.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    if (isPosting) {
+                        CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp, color = Color.White)
+                    } else {
                         Text(
-                            if (item == "REFLECTIVE") stringResource(R.string.mehfil_reflective) else stringResource(R.string.mehfil_academic),
-                            fontSize = 12.sp,
-                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                            color = if (selected) Color.White else MehfilFlatColors.Muted,
+                            if (isAnonymous) stringResource(R.string.mehfil_post_anonymously) else stringResource(R.string.mehfil_share_post),
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 14.sp,
+                            color = if (canPost) Color.White else MehfilFlatColors.Muted,
                         )
                     }
                 }
             }
-            AnonymousPostToggle(isAnonymous = isAnonymous, onCheckedChange = { isAnonymous = it })
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(
-                        if (canPost) MehfilFlatColors.Primary
-                        else MehfilFlatColors.Hairline.copy(alpha = 0.55f),
-                    )
-                    .clickable(enabled = canPost) {
-                        if (content.isNotBlank()) onPost(content, space, isAnonymous)
-                    }
-                    .padding(vertical = 14.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                if (isPosting) {
-                    CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp, color = Color.White)
-                } else {
-                    Text(
-                        if (isAnonymous) stringResource(R.string.mehfil_post_anonymously) else stringResource(R.string.mehfil_share_post),
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 14.sp,
-                        color = if (canPost) Color.White else MehfilFlatColors.Muted,
-                    )
-                }
-            }
         }
     }
+    if (inlinePreview) form() else ModalBottomSheet(
+        onDismissRequest = onDismiss, containerColor = MehfilFlatColors.Bg,
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+        dragHandle = { BottomSheetDefaults.DragHandle(color = MehfilFlatColors.Hairline) },
+    ) { form() }
+
 }
 
 @Composable

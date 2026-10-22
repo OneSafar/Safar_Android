@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.feature.youtubestudyv2.YoutubeBlockDismissalTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-19T19:59:39.593Z" hostname="Shashanks-MacBook-Air.local" time="0.001">
+  <properties/>
+  <testcase name="return home suppresses repeated mini player and pip sheets until a new video" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeBlockDismissalTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_title">Safar · आज</string>
+    <string name="widget_description">आज का एकाग्र समय, कवच सुरक्षा और लक्ष्य प्रगति।</string>
+    <string name="widget_focus">एकाग्र समय</string>
+    <string name="widget_kavach">कवच सुरक्षा</string>
+    <string name="widget_goals">आज के लक्ष्य</string>
+    <string name="widget_done">पूरे</string>
+    <string name="widget_pending">बाकी</string>
+    <string name="widget_refresh">विजेट रीफ़्रेश करें</string>
+    <string name="widget_sign_in">Safar खोलकर साइन इन करें</string>
+    <string name="widget_loading">अपडेट हो रहा है…</string>
+    <string name="widget_stale">पिछला डेटा · रीफ़्रेश करें</string>
+    <string name="widget_updated">अपडेट %1$s</string>
+    <string name="widget_minutes">%1$d मिनट</string>
+    <string name="widget_hours_minutes">%1$d घं %2$d मि</string>
+    <string name="widget_under_minute">&lt; 1 मिनट</string>
+    <string name="widget_goal_summary">%1$s पूरे · %2$s बाकी</string>
+    <string name="widget_goals_compact">लक्ष्य</string>
+    <string name="widget_goal_fraction">%1$s/%2$s</string>
+</resources>

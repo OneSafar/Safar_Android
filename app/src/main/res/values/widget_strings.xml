@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_title">Safar · Today</string>
+    <string name="widget_description">Your daily focus, Kavach protection, and goal progress.</string>
+    <string name="widget_focus">Ekagra</string>
+    <string name="widget_kavach">Kavach protected</string>
+    <string name="widget_goals">Today’s goals</string>
+    <string name="widget_done">Done</string>
+    <string name="widget_pending">Pending</string>
+    <string name="widget_refresh">Refresh widget</string>
+    <string name="widget_sign_in">Tap to open Safar and sign in</string>
+    <string name="widget_loading">Updating…</string>
+    <string name="widget_stale">Last loaded data · tap refresh</string>
+    <string name="widget_updated">Updated %1$s</string>
+    <string name="widget_minutes">%1$d min</string>
+    <string name="widget_hours_minutes">%1$dh %2$dm</string>
+    <string name="widget_under_minute">&lt; 1 min</string>
+    <string name="widget_goal_summary">%1$s done · %2$s pending</string>
+    <string name="widget_goals_compact">Goals</string>
+    <string name="widget_goal_fraction">%1$s/%2$s</string>
+</resources>

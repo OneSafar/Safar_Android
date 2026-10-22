@@ -1,0 +1,92 @@
+ACTIVITY MANAGER SERVICES (dumpsys activity services)
+  User 0 active services:
+  * ServiceRecord{114d9cf u0 com.safarparmar.app/.ui.ekagra.TimerService c:com.safarparmar.app}
+    intent={cmp=com.safarparmar.app/.ui.ekagra.TimerService}
+    packageName=com.safarparmar.app
+    processName=com.safarparmar.app
+    targetSdkVersion=36
+    baseDir=/data/app/~~c6gRCHZoAHbeBsu0pjjOzA==/com.safarparmar.app-QPLoJRvjbXAvPDUYxSsruQ==/base.apk
+    dataDir=/data/user/0/com.safarparmar.app
+    app=ProcessRecord{8a7dd44 16281:com.safarparmar.app/u0a273}
+    useNewWiuLogic_forCapabilities()=true
+    useNewWiuLogic_forStart()=true
+    useNewBfslLogic()=true
+    mAllowWiu_noBinding=PROC_STATE_TOP
+    mAllowWiu_inBindService=PROC_STATE_TOP
+    mAllowWiu_byBindings=DENIED
+    getFgsAllowWiu_legacy=PROC_STATE_TOP
+    getFgsAllowWiu_new=PROC_STATE_TOP
+    getFgsAllowWiu_forStart=PROC_STATE_TOP
+    getFgsAllowWiu_forCapabilities=PROC_STATE_TOP
+    allowUiJobScheduling=false
+    recentCallingPackage=com.safarparmar.app
+    recentCallingUid=10273
+    mAllowStart_noBinding=PROC_STATE_TOP
+    mAllowStart_inBindService=PROC_STATE_TOP
+    mAllowStart_byBindings=DENIED
+    getFgsAllowStart_legacy=PROC_STATE_TOP
+    getFgsAllowStart_new=PROC_STATE_TOP
+    getFgsAllowStart=PROC_STATE_TOP
+    startForegroundCount=1
+    infoAllowStartForeground=[callingPackage: com.safarparmar.app; callingUid: 10273; uidState: TOP ; uidBFSL: [BFSL]; BFGS denied: false; intent: Intent { xflg=0x4 cmp=com.safarparmar.app/.ui.ekagra.TimerService }; code:PROC_STATE_TOP; tempAllowListReason:<null>; allowWiu:12; targetSdkVersion:36; callerTargetSdkVersion:36; startForegroundCount:0; bindFromPackage:null; isBindService:true]
+    isForeground=true foregroundId=1001 types=0x40000000 foregroundNoti=Notification(channel=focus_timer shortcut=null contentView=null vibrate=null sound=null defaults=0 flags=ONGOING_EVENT|ONLY_ALERT_ONCE|FOREGROUND_SERVICE color=0x00000000 vis=PRIVATE template=null)
+    createTime=-2s676ms startingBgTimeout=--
+    lastActivity=-85ms restartTime=-85ms createdFromFg=false
+    startRequested=true delayedStop=false stopIfKilled=false callStart=true lastStartId=2
+ startCommandResult=1
+    restartCount=1 restartDelay=-2h33m4s297ms nextRestartTime=-698ms crashCount=0
+    Bindings:
+    * IntentBindRecord{ff67652}:
+      intent={xflg=0x4 cmp=com.safarparmar.app/.ui.ekagra.TimerService}
+      binder=null
+      requested=false received=false hasBound=false doRebind=false
+
+  * ServiceRecord{88c5a13 u0 com.safarparmar.app.qa/com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2AccessibilityService c:android}
+    intent={cmp=com.safarparmar.app.qa/com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2AccessibilityService}
+    packageName=com.safarparmar.app.qa
+    processName=com.safarparmar.app.qa
+    targetSdkVersion=36
+    permission=android.permission.BIND_ACCESSIBILITY_SERVICE
+    baseDir=/data/app/~~ScmS06mwGTu-k7g_prL_7g==/com.safarparmar.app.qa-NtDF5MXg69iAt2ysMcbR-w==/base.apk
+    dataDir=/data/user/0/com.safarparmar.app.qa
+    app=ProcessRecord{71c32da 1592:com.safarparmar.app.qa/u0a268}
+    mIsAllowedBgActivityStartsByBinding=true
+    useNewWiuLogic_forCapabilities()=true
+    useNewWiuLogic_forStart()=true
+    useNewBfslLogic()=true
+    mAllowWiu_noBinding=DENIED
+    mAllowWiu_inBindService=PROC_STATE_PERSISTENT
+    mAllowWiu_byBindings=DENIED
+    getFgsAllowWiu_legacy=PROC_STATE_PERSISTENT
+    getFgsAllowWiu_new=DENIED
+    getFgsAllowWiu_forStart=DENIED
+    getFgsAllowWiu_forCapabilities=DENIED
+    allowUiJobScheduling=false
+    recentCallingPackage=android
+    recentCallingUid=1000
+    mAllowStart_noBinding=DENIED
+    mAllowStart_inBindService=PROC_STATE_PERSISTENT
+    mAllowStart_byBindings=DENIED
+    getFgsAllowStart_legacy=PROC_STATE_PERSISTENT
+    getFgsAllowStart_new=DENIED
+    getFgsAllowStart=DENIED
+    startForegroundCount=0
+    infoAllowStartForeground=[callingPackage: android; callingUid: 1000; uidState: PER ; uidBFSL: [BFSL]; BFGS denied: false; intent: Intent { cmp=com.safarparmar.app.qa/com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2AccessibilityService }; code:PROC_STATE_PERSISTENT; tempAllowListReason:<keychain,reasonCode:KEY_CHAIN,duration:30000,callingUid:1000>; allowWiu:10; targetSdkVersion:36; callerTargetSdkVersion:37; startForegroundCount:0; bindFromPackage:null; isBindService:true]
+    createTime=-24m50s528ms startingBgTimeout=--
+    lastActivity=-24m50s528ms restartTime=-24m50s528ms createdFromFg=true
+    Bindings:
+    * IntentBindRecord{c65a086 CREATE}:
+      intent={cmp=com.safarparmar.app.qa/com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2AccessibilityService}
+      binder=android.os.BinderProxy@bd25d47
+      requested=true received=true hasBound=true doRebind=false
+      * Client AppBindRecord{ce78974 ProcessRecord{218012f 651:system/1000}}
+        Per-process Connections:
+          ConnectionRecord{441a102 u0 CR FGSA CAPS com.safarparmar.app.qa/com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2AccessibilityService:@f9b024d flags=0x2101001}
+    All Connections:
+      ConnectionRecord{441a102 u0 CR FGSA CAPS com.safarparmar.app.qa/com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2AccessibilityService:@f9b024d flags=0x2101001}
+
+  Connection bindings to services:
+  * ConnectionRecord{441a102 u0 CR FGSA CAPS com.safarparmar.app.qa/com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2AccessibilityService:@f9b024d flags=0x2101001}
+    binding=AppBindRecord{ce78974 com.safarparmar.app.qa/com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2AccessibilityService:system}
+    conn=android.app.LoadedApk$ServiceDispatcher$InnerConnection@f9b024d flags=0x2101001
+    ongoingCalls=false

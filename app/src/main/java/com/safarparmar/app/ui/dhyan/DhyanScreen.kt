@@ -1,5 +1,7 @@
 
 package com.safarparmar.app.ui.dhyan
+import com.composables.ui.components.ButtonStyle
+import com.composables.ui.components.IconButton as ComposablesIconButton
 
 import android.media.MediaPlayer
 import android.net.Uri
@@ -51,6 +53,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.safarparmar.app.R
+import com.safarparmar.app.ui.tutorial.tutorialTarget
 import com.safarparmar.app.ui.drawer.SafarDrawerScaffold
 import com.safarparmar.app.ui.navigation.Routes
 import com.safarparmar.app.ui.studyplanner.components.LocalPlannerIsDarkTheme
@@ -69,7 +72,7 @@ import kotlinx.coroutines.delay
 
 // ─── Data ──────────────────────────────────────────────────────────────────────
 
-private data class BreathingTechnique(
+internal data class BreathingTechnique(
     val nameRes: Int,
     val iconRes: Int,
     val descriptionRes: Int,
@@ -169,7 +172,7 @@ private fun Modifier.dhyanMacOSPanel(
 
 /** Pink gradient canvas (plan: keep Dhyan brand atmosphere). */
 @Composable
-private fun DhyanMockBackdrop() {
+internal fun DhyanMockBackdrop() {
     Box(Modifier.fillMaxSize().background(DhyanFlatColors.CanvasBrush))
 }
 
@@ -195,7 +198,7 @@ private fun DhyanGlassPill(
 
 /** Pink glass meditation sphere — brand hero tile (visualizer inside untouched). */
 @Composable
-private fun DhyanMeditationOrb(
+internal fun DhyanMeditationOrb(
     isDarkTheme: Boolean,
     modifier: Modifier = Modifier,
     content: @Composable BoxScope.() -> Unit,
@@ -288,7 +291,7 @@ private fun DhyanMeditationOrb(
 
 
 @Composable
-private fun DhyanSessionSlider(
+internal fun DhyanSessionSlider(
     value: Float,
     onValueChange: (Float) -> Unit,
     isDarkTheme: Boolean,
@@ -391,7 +394,7 @@ private fun DhyanFlatActionButton(
 }
 
 @Composable
-private fun DhyanControlButton(
+internal fun DhyanControlButton(
     icon: ImageVector,
     isDarkTheme: Boolean,
     onClick: () -> Unit,
@@ -446,7 +449,7 @@ private fun DhyanControlButton(
     }
 }
 
-private enum class DhyanControlStyle { Reset, Play, Volume }
+internal enum class DhyanControlStyle { Reset, Play, Volume }
 
 @Composable
 private fun DhyanStatusBar(
@@ -514,6 +517,11 @@ fun DhyanScreen(
 
     var showAudioLibraryPanel by remember { mutableStateOf(false) }
     var showTechniquesSheet   by remember { mutableStateOf(false) }
+    var sessionActive by remember { mutableStateOf(false) }
+    com.safarparmar.app.ui.tutorial.ScreenPracticeEntry(
+        com.safarparmar.app.ui.tutorial.TitliFeature.DHYAN, isDarkTheme,
+        eligible = !sessionActive && !showAudioLibraryPanel && !showTechniquesSheet && selectedTab == DhyanTab.DHYAN)
+
     val context = LocalContext.current
     var selectedMusicTrack    by remember { mutableStateOf(com.safarparmar.app.ui.audio.AudioLibrary.getPersistedTrack(context)) }
     var selectedBreathingSound by remember { mutableStateOf(breathingSounds.first()) }
@@ -532,21 +540,18 @@ fun DhyanScreen(
     val dhyanVm: DhyanViewModel = hiltViewModel()
     val liveSessionVm: com.safarparmar.app.feature.live.presentation.LiveSessionViewModel = hiltViewModel()
     val premiumVm: PremiumViewModel = hiltViewModel()
-    val premiumStatus by premiumVm.premiumStatus.collectAsStateWithLifecycle()
-    val dhyanPricing by premiumVm.dhyanPricing.collectAsStateWithLifecycle()
-    val isPremium = premiumStatus.isPremium || premiumStatus.hasAnyPaidAccess
-    val hasDhyanLiveAccess = dhyanPricing.accessState == "DHYAN_INCLUDED"
+    val liveAccess by premiumVm.dhyanLiveAccess.collectAsStateWithLifecycle()
+    // Course and live screens share the server-confirmed Dhyan entitlement.
+    val hasCourseAccess = liveAccess == "ALLOWED"
+    androidx.lifecycle.compose.LifecycleResumeEffect(premiumVm) {
+        premiumVm.refreshDhyanAccess()
+        onPauseOrDispose {}
+    }
 
     CompositionLocalProvider(LocalPlannerIsDarkTheme provides isDarkTheme) {
     Box(Modifier.fillMaxSize()) {
         SafarDrawerScaffold(
-            title = stringResource(
-                when (selectedTab) {
-                    DhyanTab.DHYAN -> R.string.module_dhyan
-                    DhyanTab.COURSES -> R.string.dhyan_courses_tab
-                    DhyanTab.LIVE -> R.string.dhyan_live_tab
-                }
-            ),
+            title = stringResource(R.string.module_dhyan),
             subtitle = null,
             currentRoute      = currentRoute,
             isDarkTheme       = isDarkTheme,
@@ -558,11 +563,12 @@ fun DhyanScreen(
             topBarActions = {
                 if (selectedTab == DhyanTab.LIVE) {
                     val liveUiState by liveSessionVm.liveSessionsState.collectAsStateWithLifecycle()
-                    IconButton(
+                    ComposablesIconButton(
                         onClick = { liveSessionVm.loadSessions(courseId, status = null) },
+                        style = ButtonStyle.Ghost,
                     ) {
                         if (liveUiState.isLoading) {
-                            CircularProgressIndicator(
+                            com.safarparmar.app.ui.components.SafarCircularProgressIndicator(
                                 modifier = Modifier.size(19.dp),
                                 strokeWidth = 2.dp,
                                 color = if (isDarkTheme) Color(0xFFC084FC) else Color(0xFF6B21A8),
@@ -614,12 +620,13 @@ fun DhyanScreen(
                                     onBreatheWithMe   = { showTechniquesSheet = true },
                                     onOpenAudioLibrary = { showAudioLibraryPanel = true },
                                     onSessionComplete = { minutes -> dhyanVm.trackCompletedSession(minutes) },
+                                    onSessionActiveChange = { sessionActive = it },
                                 )
                             }
                             DhyanTab.COURSES -> {
                                 DhyanCoursesContent(
                                     isDarkTheme = isDarkTheme,
-                                    isPremiumActive = hasDhyanLiveAccess,
+                                    isPremiumActive = hasCourseAccess,
                                     onNavigate = onNavigate,
                                     onGoToLive = { selectedTab = DhyanTab.LIVE },
                                 )
@@ -635,13 +642,13 @@ fun DhyanScreen(
                                         showTopBar = false,
                                         isDarkTheme = isDarkTheme,
                                     )
-                                    if (!hasDhyanLiveAccess) {
-                                        DhyanLiveLockOverlay(
+                                    com.safarparmar.app.feature.live.presentation.DhyanLiveAccessOverlay(
+                                            accessState = if (hasCourseAccess) "ALLOWED" else liveAccess,
+                                            onRetry = premiumVm::refreshDhyanAccess,
                                             modifier = Modifier.fillMaxSize(),
                                             isDarkTheme = isDarkTheme,
                                             onEnrollClick = { onNavigate(Routes.PREMIUM) },
                                         )
-                                    }
                                 }
                             }
                         }
@@ -693,6 +700,7 @@ private fun BreathingTab(
     onBreatheWithMe: () -> Unit,
     onOpenAudioLibrary: () -> Unit,
     onSessionComplete: (Int) -> Unit,
+    onSessionActiveChange: (Boolean) -> Unit,
 ) {
     var sessionLengthMin    by remember { mutableIntStateOf(5) }
     var isRunning           by remember { mutableStateOf(false) }
@@ -700,6 +708,11 @@ private fun BreathingTab(
     var phaseSecondsLeft    by remember { mutableIntStateOf(selectedTechnique?.inhale ?: 4) }
     var sessionSecondsLeft  by remember { mutableIntStateOf(sessionLengthMin * 60) }
     var isSessionAudioMuted by remember { mutableStateOf(false) }
+    LaunchedEffect(isRunning, sessionSecondsLeft, sessionLengthMin) {
+        onSessionActiveChange(isRunning || sessionSecondsLeft != sessionLengthMin * 60)
+    }
+    DisposableEffect(Unit) { onDispose { onSessionActiveChange(false) } }
+
 
     val context = LocalContext.current
     val mediaPlayer = remember { mutableStateOf<MediaPlayer?>(null) }
@@ -1018,7 +1031,7 @@ private fun BreathingTab(
  * Flat-hairline guidance chrome + glass row for the tappable technique picker.
  */
 @Composable
-private fun DhyanGuidanceSheet(
+internal fun DhyanGuidanceSheet(
     isDarkTheme: Boolean,
     technique: BreathingTechnique?,
     onEdit: () -> Unit,
@@ -1070,7 +1083,7 @@ private fun DhyanGuidanceSheet(
                     .clip(CircleShape)
                     .background(DhyanFlatColors.PrimaryContainer)
                     .border(width = 0.5.dp, color = DhyanFlatColors.BorderHairline, shape = CircleShape)
-                    .clickable(onClick = onOpenAudioLibrary),
+                    .tutorialTarget("dhyan.sound").clickable(onClick = onOpenAudioLibrary),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
@@ -1088,7 +1101,7 @@ private fun DhyanGuidanceSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .dhyanMacOSPanel(isLight = isLight, shape = DhyanFlatShape)
-                .clickable(onClick = onEdit)
+                .tutorialTarget("dhyan.guidance").clickable(onClick = onEdit)
                 .padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -1129,14 +1142,7 @@ private fun BreathingOptionsSheet(
 ) {
     val isDarkTheme = !MaterialTheme.colorScheme.background.isLightBackground()
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        containerColor = DhyanFlatColors.Bg,
-        scrimColor = Color.Black.copy(alpha = 0.45f),
-        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        dragHandle = { BottomSheetDefaults.DragHandle(color = DhyanFlatColors.Hairline) },
-    ) {
+    DhyanSheet(onDismiss = onDismiss) {
         Column(
             Modifier
                 .fillMaxWidth()
@@ -1225,14 +1231,7 @@ private fun BreathingSoundSheet(
 ) {
     val isDarkTheme = !MaterialTheme.colorScheme.background.isLightBackground()
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        containerColor = DhyanFlatColors.Bg,
-        scrimColor = Color.Black.copy(alpha = 0.45f),
-        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        dragHandle = { BottomSheetDefaults.DragHandle(color = DhyanFlatColors.Hairline) },
-    ) {
+    DhyanSheet(onDismiss = onDismiss) {
         Column(
             Modifier
                 .fillMaxWidth()
@@ -1297,6 +1296,27 @@ private fun BreathingSoundSheet(
                     PlanHairline(alpha = 0.55f)
                 }
             }
+        }
+    }
+}
+
+
+/** Composables UI sheet with Dhyan's existing black 45% scrim. */
+@Composable
+private fun DhyanSheet(onDismiss: () -> Unit, content: @Composable () -> Unit) {
+    CompositionLocalProvider(
+        com.safarparmar.app.ui.theme.LocalSafarComposablesScrim provides Color.Black.copy(alpha = 0.45f),
+    ) {
+        com.safarparmar.app.ui.theme.SafarComposablesTheme {
+            com.safarparmar.app.ui.components.popups.SafarComposablesBottomSheet(
+                onDismissRequest = onDismiss,
+                state = com.composables.ui.components.rememberBottomSheetState(
+                    initialDetent = com.composables.ui.components.BottomSheetDetent.FullyExpanded,
+                ),
+                backgroundColor = DhyanFlatColors.Bg,
+                contentColor = DhyanFlatColors.Text,
+                shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+            ) { content() }
         }
     }
 }

@@ -80,4 +80,11 @@ class YoutubeStudyV2RepositoryTest {
         assertEquals(YoutubeChannelClassification.OTHERS, repository.evaluateChannelId(id).classification)
     }
 
+    @Test fun `exact channel ID identifies an allowed class without handle or display`() = runTest {
+        val id = "UC-teacher"
+        coEvery { dao.isAllowed(id) } returns true
+        val result = repository.evaluate(null, null, id)
+        assertEquals(YoutubeV2RuntimeDecision.ALLOW, result.decision)
+        assertEquals(id, result.channelId)
+    }
 }

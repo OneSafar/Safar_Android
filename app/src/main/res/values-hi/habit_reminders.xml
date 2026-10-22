@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="habit_reminder_label">आदत का रिमाइंडर</string>
+    <string name="habit_reminder_time">रिमाइंडर का समय: %1$s</string>
+    <string name="habit_reminder_help">तय दिनों में अधूरी आदतों के लिए याद दिलाता है। Android और SAFAR की सेटिंग में सूचनाएँ चालू रखें। बैटरी बचत के कारण सूचना देर से आ सकती है।</string>
+    <string name="habit_reminder_settings">Android की सूचना सेटिंग</string>
+    <string name="habit_reminder_body">अपनी आदत पूरी करने का समय है। पूरा होने पर आदत ट्रैकर में दर्ज करें।</string>
+</resources>

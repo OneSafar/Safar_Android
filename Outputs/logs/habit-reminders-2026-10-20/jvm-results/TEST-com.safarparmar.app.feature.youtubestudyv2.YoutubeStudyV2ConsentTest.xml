@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ConsentTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-20T02:12:56.582Z" hostname="Shashanks-MacBook-Air.local" time="0.008">
+  <properties/>
+  <testcase name="unrecognized consent version cannot enable collection" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ConsentTest" time="0.004"/>
+  <testcase name="legacy consent cannot restore or enable collection" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ConsentTest" time="0.003"/>
+  <testcase name="current consent restores enabled feature and allows disabling" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ConsentTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

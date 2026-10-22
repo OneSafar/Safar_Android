@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.ui.ekagra.focusshield.ShieldPrefsStudyBreakTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-10-20T02:13:05.195Z" hostname="Shashanks-MacBook-Air.local" time="0.323">
+  <properties/>
+  <testcase name="stopping Kavach keeps Study break and its notification" classname="com.safarparmar.app.ui.ekagra.focusshield.ShieldPrefsStudyBreakTest" time="0.046"/>
+  <testcase name="stopping Kavach clears legacy grace and its expiration marker" classname="com.safarparmar.app.ui.ekagra.focusshield.ShieldPrefsStudyBreakTest" time="0.038"/>
+  <testcase name="scoped Kavach clear removes app grace without changing blocking settings" classname="com.safarparmar.app.ui.ekagra.focusshield.ShieldPrefsStudyBreakTest" time="0.039"/>
+  <testcase name="scoped Kavach clear preserves Study break" classname="com.safarparmar.app.ui.ekagra.focusshield.ShieldPrefsStudyBreakTest" time="0.04"/>
+  <testcase name="starting a strict Kavach session keeps Study break and clears app-only unlock" classname="com.safarparmar.app.ui.ekagra.focusshield.ShieldPrefsStudyBreakTest" time="0.039"/>
+  <testcase name="expired Study break metadata survives a Kavach reset until it is consumed" classname="com.safarparmar.app.ui.ekagra.focusshield.ShieldPrefsStudyBreakTest" time="0.04"/>
+  <testcase name="Kavach session reset clears Kavach and legacy grace" classname="com.safarparmar.app.ui.ekagra.focusshield.ShieldPrefsStudyBreakTest" time="0.042"/>
+  <testcase name="explicit Study break ending still clears grace and cancels notification" classname="com.safarparmar.app.ui.ekagra.focusshield.ShieldPrefsStudyBreakTest" time="0.039"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

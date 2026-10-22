@@ -28,13 +28,17 @@ def read_locale(directory):
     for path in sorted(directory.glob("*.xml")):
         tree = ET.parse(path)
         for node in tree.getroot():
-            if node.tag != "string" or not node.get("name") or node.get("translatable") == "false":
+            if node.tag not in ("string", "plurals") or not node.get("name") or node.get("translatable") == "false":
                 continue
-            key = node.attrib["name"]
-            value = "".join(node.itertext()).strip()
-            if key in entries:
-                duplicates.append(key)
-            entries[key] = (value, path.relative_to(ROOT).as_posix())
+            base_key = node.attrib["name"]
+            items = [(base_key, node)] if node.tag == "string" else [
+                (f"{base_key}[{item.attrib['quantity']}]", item) for item in node if item.tag == "item"
+            ]
+            for key, item in items:
+                value = "".join(item.itertext()).strip()
+                if key in entries:
+                    duplicates.append(key)
+                entries[key] = (value, path.relative_to(ROOT).as_posix())
     return entries, duplicates
 
 
@@ -43,7 +47,7 @@ def screens_by_key():
     source = ROOT / "app/src/main/java"
     for path in source.rglob("*.kt"):
         body = path.read_text(encoding="utf-8")
-        for key in re.findall(r"\bR\.string\.([A-Za-z0-9_]+)", body):
+        for key in re.findall(r"\bR\.(?:string|plurals)\.([A-Za-z0-9_]+)", body):
             screens[key].add(path.stem)
     return screens
 
@@ -81,7 +85,7 @@ def main():
                 flags.append("likely Hinglish spelling")
             if flags:
                 flagged += 1
-            writer.writerow([key, "; ".join(sorted(screens[key])), values["English"],
+            writer.writerow([key, "; ".join(sorted(screens[key.split("[")[0]])), values["English"],
                              values["Hindi"], values["Hinglish"], "; ".join(flags), "Needs human review"])
     for locale, names in duplicates.items():
         if names:

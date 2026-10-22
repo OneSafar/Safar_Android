@@ -9,6 +9,11 @@ import com.safarparmar.app.feature.live.presentation.LiveSessionViewModel
 import com.safarparmar.app.ui.auth.MainDispatcherRule
 import com.safarparmar.app.util.Resource
 import io.mockk.mockk
+import io.mockk.every
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -16,9 +21,40 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
+@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class LiveSessionViewModelTest {
     @get:Rule
     val dispatcherRule = MainDispatcherRule()
+
+    @Test
+    fun `leaving cancels listeners and rejoining subscribes only once`() = runTest {
+        val messages = MutableSharedFlow<MehfilSocketManager.LiveChatMessage>()
+        val statuses = MutableSharedFlow<MehfilSocketManager.LiveStatusChange>()
+        val chat = MutableSharedFlow<MehfilSocketManager.LiveChatState>()
+        val viewers = MutableSharedFlow<MehfilSocketManager.LiveViewerCount>()
+        val errors = MutableSharedFlow<MehfilSocketManager.LiveError>()
+        val socket = mockk<MehfilSocketManager>(relaxed = true)
+        every { socket.liveMessage } returns messages
+        every { socket.liveStatusChanged } returns statuses
+        every { socket.liveChatState } returns chat
+        every { socket.liveViewerCount } returns viewers
+        every { socket.liveError } returns errors
+        every { socket.connected } returns MutableStateFlow(true)
+        every { socket.isConnected() } returns true
+        val store = mockk<SafarDataStore>(relaxed = true)
+        every { store.userName } returns flowOf("Student")
+        every { store.userId } returns flowOf("u1")
+        val vm = LiveSessionViewModel(FakeRepo(Resource.Success(emptyList())), socket, store, mockk(relaxed = true))
+        val flows = listOf(messages, statuses, chat, viewers, errors)
+        repeat(3) {
+            vm.joinLiveSession("live-1")
+            runCurrent()
+            flows.forEach { assertEquals(1, it.subscriptionCount.value) }
+            vm.leaveLiveSession()
+            runCurrent()
+            flows.forEach { assertEquals(0, it.subscriptionCount.value) }
+        }
+    }
 
     @Test
     fun `sessions success state`() = runTest {

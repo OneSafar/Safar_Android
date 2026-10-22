@@ -100,20 +100,14 @@ fun LiveSessionsScreen(
     }
 
     val openTelegramCommunity: () -> Unit = {
-        val telegramUrl = uiState.telegramCommunityUrl
-        if (telegramUrl.isNullOrBlank()) {
+        val telegramUrl = uiState.telegramCommunityUrl?.takeIf { it.isNotBlank() }
+            ?: "https://t.me/+5bUB1-LKP8ZjOTE1"
+        runCatching {
+            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(telegramUrl)))
+        }.onFailure {
             scope.launch {
-                snackbarHostState.showSnackbar("The Telegram group link is unavailable right now.")
+                snackbarHostState.showSnackbar("Could not open Telegram on this device.")
             }
-        } else {
-            runCatching {
-                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(telegramUrl)))
-            }.onFailure {
-                scope.launch {
-                    snackbarHostState.showSnackbar("Could not open Telegram on this device.")
-                }
-            }
-            Unit
         }
     }
 
@@ -127,9 +121,6 @@ fun LiveSessionsScreen(
     val activeLiveSessions = remember(allSessions) {
         allSessions.filter { it.status.equals("live", ignoreCase = true) }
     }
-    val scheduledSessions = remember(allSessions) {
-        allSessions.filter { it.status.equals("scheduled", ignoreCase = true) }
-    }
     val completedSessions = remember(allSessions) {
         allSessions.filter {
             it.status.equals("ended", ignoreCase = true) || it.status.equals("cancelled", ignoreCase = true)
@@ -137,7 +128,6 @@ fun LiveSessionsScreen(
     }
 
     val liveSession = activeLiveSessions.firstOrNull()
-    val nextScheduledSession = scheduledSessions.firstOrNull()
 
     val filteredCompletedSessions = remember(completedSessions, searchQuery) {
         val q = searchQuery.trim().lowercase()
@@ -145,21 +135,8 @@ fun LiveSessionsScreen(
         else completedSessions.filter { it.title.lowercase().contains(q) }
     }
 
-    val onSessionClick: (LiveSession) -> Unit = { session ->
-        val embedUrl = session.youtubeEmbedUrl?.takeIf { it.isNotBlank() }
-            ?: session.recordingVideoId?.takeIf { it.isNotBlank() }?.let { "https://www.youtube.com/embed/$it" }
-            ?: session.youtubeVideoId?.takeIf { it.isNotBlank() }?.let { "https://www.youtube.com/embed/$it" }
-
-        if (embedUrl != null) {
-            VideoPlayerActivity.start(
-                context = context,
-                embedUrl = embedUrl,
-                videoTitle = session.title,
-            )
-        } else {
-            onOpenSession(session.id)
-        }
-    }
+    // Enter the classroom so live video and comments share the same screen.
+    val onSessionClick: (LiveSession) -> Unit = { session -> onOpenSession(session.id) }
 
     Scaffold(
         topBar = {
@@ -285,7 +262,6 @@ fun LiveSessionsScreen(
                     // Parmar Sir isn't live right now card
                     item(key = "not_live_card") {
                         TeacherNotLiveCard(
-                            nextSession = nextScheduledSession,
                             isReloading = uiState.isLoading,
                             onReload = onReloadSessions,
                             isDarkTheme = isDark,

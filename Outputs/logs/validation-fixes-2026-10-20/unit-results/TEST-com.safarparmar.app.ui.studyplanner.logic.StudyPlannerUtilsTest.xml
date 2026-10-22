@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.ui.studyplanner.logic.StudyPlannerUtilsTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-19T19:59:48.502Z" hostname="Shashanks-MacBook-Air.local" time="0.001">
+  <properties/>
+  <testcase name="findDuplicateSiblingName is case-insensitive and trims" classname="com.safarparmar.app.ui.studyplanner.logic.StudyPlannerUtilsTest" time="0.001"/>
+  <testcase name="daysUntil returns null for missing date" classname="com.safarparmar.app.ui.studyplanner.logic.StudyPlannerUtilsTest" time="0.0"/>
+  <testcase name="daysUntil handles today future and past" classname="com.safarparmar.app.ui.studyplanner.logic.StudyPlannerUtilsTest" time="0.0"/>
+  <testcase name="deleteImpact computes chapter and topic counts including scheduled topics" classname="com.safarparmar.app.ui.studyplanner.logic.StudyPlannerUtilsTest" time="0.0"/>
+  <testcase name="validateSyllabusNodeName blocks blank and whitespace-only names" classname="com.safarparmar.app.ui.studyplanner.logic.StudyPlannerUtilsTest" time="0.0"/>
+  <testcase name="plannerExamSubtitle has reliability-safe fallback labels" classname="com.safarparmar.app.ui.studyplanner.logic.StudyPlannerUtilsTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

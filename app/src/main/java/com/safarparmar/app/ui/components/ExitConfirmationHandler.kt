@@ -2,6 +2,7 @@ package com.safarparmar.app.ui.components
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.material3.*
+import com.safarparmar.app.ui.components.popups.SafarMaterialAlertDialog as AlertDialog
 import androidx.compose.runtime.*
 import androidx.compose.ui.res.stringResource
 import com.safarparmar.app.R

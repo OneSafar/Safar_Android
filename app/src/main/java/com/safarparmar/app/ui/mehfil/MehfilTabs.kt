@@ -1,5 +1,7 @@
 package com.safarparmar.app.ui.mehfil
 
+import androidx.compose.ui.platform.LocalResources
+
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
@@ -81,6 +83,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.safarparmar.app.R
+import com.safarparmar.app.ui.tutorial.tutorialTarget
 import com.safarparmar.app.domain.model.ActivityItem
 import com.safarparmar.app.domain.model.MehfilPost
 import com.safarparmar.app.domain.model.Sandesh
@@ -348,7 +351,7 @@ private fun RoomSelector(selectedSpace: String, onJoinRoom: (String) -> Unit) {
     )
     Row(
         Modifier
-            .fillMaxWidth()
+            .fillMaxWidth().tutorialTarget("mehfil.space")
             .padding(horizontal = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
@@ -413,7 +416,11 @@ private fun StudyCircleShelf(
                 CircularProgressIndicator(Modifier.size(24.dp), color = Color(0xFF6B168D), strokeWidth = 2.dp)
             }
             visibleCircles.isEmpty() -> Row(
-                Modifier.fillMaxWidth().clickable(onClick = onViewAll).padding(vertical = 10.dp),
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .clickable(onClick = onViewAll)
+                    .padding(vertical = 10.dp, horizontal = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
@@ -629,7 +636,10 @@ private fun SandeshAnnouncementCard(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Spacer(Modifier.weight(1f))
             Row(
-                Modifier.clickable { onReact(sandesh.id) }.padding(end = 16.dp),
+                Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable { onReact(sandesh.id) }
+                    .padding(horizontal = 6.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(5.dp),
             ) {
@@ -641,7 +651,15 @@ private fun SandeshAnnouncementCard(
                 )
                 Text("${sandesh.reactionCount}", fontSize = 11.sp, color = if (isReacted) MehfilFlatColors.Like else MehfilFlatColors.Muted)
             }
-            Row(Modifier.clickable { onCommentClick(sandesh.id) }, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+            Spacer(Modifier.width(8.dp))
+            Row(
+                Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable { onCommentClick(sandesh.id) }
+                    .padding(horizontal = 6.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(5.dp),
+            ) {
                 Icon(Icons.Default.ChatBubbleOutline, contentDescription = null, modifier = Modifier.size(14.dp), tint = MehfilFlatColors.Primary)
                 Text("${sandesh.commentCount}", fontSize = 11.sp, color = MehfilFlatColors.Primary)
             }
@@ -652,6 +670,7 @@ private fun SandeshAnnouncementCard(
 @Composable
 private fun SandeshMedia(sandesh: Sandesh) {
     val context = LocalContext.current
+    val localizedResources by rememberUpdatedState(LocalResources.current)
     val youtubeRegex = Regex("""(?:https?://)?(?:www\.)?(?:youtube\.com/(?:[^/\n\s]+/\S+/|(?:v|e(?:mbed)?)/|\S*?[?&]v=)|youtu\.be/)([a-zA-Z0-9_-]{11})""")
     val imageVideoId = if (sandesh.imageUrl.contains("img.youtube.com")) {
         Regex("""img\.youtube\.com/vi/([a-zA-Z0-9_-]{11})""").find(sandesh.imageUrl)?.groupValues?.get(1)
@@ -672,7 +691,7 @@ private fun SandeshMedia(sandesh: Sandesh) {
                 try {
                     context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(videoUrl)))
                 } catch (e: android.content.ActivityNotFoundException) {
-                    android.widget.Toast.makeText(context, context.getString(R.string.mehfil_cannot_open_video), android.widget.Toast.LENGTH_SHORT).show()
+                    android.widget.Toast.makeText(context, localizedResources.getString(R.string.mehfil_cannot_open_video), android.widget.Toast.LENGTH_SHORT).show()
                 }
             },
             contentAlignment = Alignment.Center,
@@ -703,7 +722,7 @@ private fun SandeshMedia(sandesh: Sandesh) {
                     try {
                         context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(directImageUrl)))
                     } catch (e: android.content.ActivityNotFoundException) {
-                        android.widget.Toast.makeText(context, context.getString(R.string.mehfil_cannot_open_image), android.widget.Toast.LENGTH_SHORT).show()
+                        android.widget.Toast.makeText(context, localizedResources.getString(R.string.mehfil_cannot_open_image), android.widget.Toast.LENGTH_SHORT).show()
                     }
                 },
             contentScale = ContentScale.Crop,
@@ -729,7 +748,7 @@ private fun PostCard(
 
     Column(
         modifier = Modifier
-            .fillMaxWidth()
+            .fillMaxWidth().tutorialTarget("mehfil.react")
             .clip(RoundedCornerShape(14.dp))
             .background(MehfilFlatColors.Surface)
             .border(1.dp, MehfilFlatColors.Hairline, RoundedCornerShape(14.dp))

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.feature.live.LiveChatGateTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-20T02:12:55.511Z" hostname="Shashanks-MacBook-Air.local" time="0.001">
+  <properties/>
+  <testcase name="a fresh chat state starts closed so the composer is never shown too early" classname="com.safarparmar.app.feature.live.LiveChatGateTest" time="0.0"/>
+  <testcase name="status casing from the API does not close chat" classname="com.safarparmar.app.feature.live.LiveChatGateTest" time="0.0"/>
+  <testcase name="no session means no chat" classname="com.safarparmar.app.feature.live.LiveChatGateTest" time="0.0"/>
+  <testcase name="sending needs both an open chat and an elapsed cooldown" classname="com.safarparmar.app.feature.live.LiveChatGateTest" time="0.0"/>
+  <testcase name="chat is open only while the session is live" classname="com.safarparmar.app.feature.live.LiveChatGateTest" time="0.001"/>
+  <testcase name="the default gap matches the server's seven seconds" classname="com.safarparmar.app.feature.live.LiveChatGateTest" time="0.0"/>
+  <testcase name="a host can switch comments off without ending the broadcast" classname="com.safarparmar.app.feature.live.LiveChatGateTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

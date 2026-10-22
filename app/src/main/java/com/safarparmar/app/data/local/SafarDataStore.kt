@@ -16,7 +16,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -136,6 +138,7 @@ class SafarDataStore @Inject constructor(
         val PREMIUM_FEATURE_STUDY_PLANNER_INSIGHTS = booleanPreferencesKey("premium_feature_study_planner_insights")
         val PREMIUM_FEATURE_NISHTHA_ANALYTICS = booleanPreferencesKey("premium_feature_nishtha_analytics")
         val PREMIUM_FEATURE_FOCUS_ANALYTICS = booleanPreferencesKey("premium_feature_focus_analytics")
+        val PREMIUM_FEATURE_LIVE_SESSIONS = booleanPreferencesKey("premium_feature_live_sessions")
 
         // Referral & Attribution
         val REFERRAL_UTM_SOURCE   = stringPreferencesKey("referral_utm_source")
@@ -193,10 +196,12 @@ class SafarDataStore @Inject constructor(
     val authToken: Flow<String?> = context.dataStore.data
         .catch { emit(emptyPreferences()) }
         .map { prefs -> securePrefs.getString(SecureKeys.AUTH_TOKEN, null) ?: prefs[Keys.AUTH_TOKEN] }
+        .flowOn(Dispatchers.IO)
 
     val refreshToken: Flow<String?> = context.dataStore.data
         .catch { emit(emptyPreferences()) }
         .map { prefs -> securePrefs.getString(SecureKeys.REFRESH_TOKEN, null) ?: prefs[Keys.REFRESH_TOKEN] }
+        .flowOn(Dispatchers.IO)
 
     val userId: Flow<String?> = context.dataStore.data
         .catch { emit(emptyPreferences()) }
@@ -298,6 +303,32 @@ class SafarDataStore @Inject constructor(
     fun isTourDone(section: String): Flow<Boolean> = context.dataStore.data
         .catch { emit(emptyPreferences()) }
         .map { it[tourDoneKey(section)] ?: false }
+
+    fun titliIntroductionSeen(key: String = "titli_introduction_v1"): Flow<Boolean> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[booleanPreferencesKey(key)] ?: false }
+
+    suspend fun setTitliIntroductionSeen(key: String = "titli_introduction_v1") {
+        context.dataStore.edit { it[booleanPreferencesKey(key)] = true }
+    }
+
+    /** Feature guides are versioned independently of the retired butterfly tours. */
+    fun featureTutorialInvitationSeen(feature: String, version: Int): Flow<Boolean> =
+        context.dataStore.data.catch { emit(emptyPreferences()) }
+            .map { it[booleanPreferencesKey("feature_tutorial_${feature}_v${version}_invitation")] ?: false }
+
+    fun featureTutorialCompletedLessons(feature: String, version: Int): Flow<Set<String>> =
+        context.dataStore.data.catch { emit(emptyPreferences()) }
+            .map { it[stringSetPreferencesKey("feature_tutorial_${feature}_v${version}_lessons")] ?: emptySet() }
+
+    suspend fun setFeatureTutorialInvitationSeen(feature: String, version: Int) {
+        context.dataStore.edit { it[booleanPreferencesKey("feature_tutorial_${feature}_v${version}_invitation")] = true }
+    }
+
+    suspend fun completeFeatureTutorialLesson(feature: String, version: Int, lesson: String) {
+        val key = stringSetPreferencesKey("feature_tutorial_${feature}_v${version}_lessons")
+        context.dataStore.edit { it[key] = (it[key] ?: emptySet()) + lesson }
+    }
 
     val isWelcomeSeen: Flow<Boolean> = context.dataStore.data
         .catch { emit(emptyPreferences()) }
@@ -544,6 +575,10 @@ class SafarDataStore @Inject constructor(
         .catch { emit(emptyPreferences()) }
         .map { it[Keys.PREMIUM_FEATURE_FOCUS_ANALYTICS] ?: false }
 
+    val premiumFeatureLiveSessions: Flow<Boolean> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[Keys.PREMIUM_FEATURE_LIVE_SESSIONS] ?: false }
+
     val overlayPermissionAsked: Flow<Boolean> = context.dataStore.data
         .catch { emit(emptyPreferences()) }
         .map { it[Keys.OVERLAY_PERMISSION_ASKED] ?: false }
@@ -556,12 +591,16 @@ class SafarDataStore @Inject constructor(
 
     suspend fun setLoggedIn(value: Boolean) = context.dataStore.edit { it[Keys.IS_LOGGED_IN] = value }
     suspend fun setAuthToken(token: String) {
-        securePrefs.edit().putString(SecureKeys.AUTH_TOKEN, token).apply()
+        withContext(Dispatchers.IO) {
+            securePrefs.edit().putString(SecureKeys.AUTH_TOKEN, token).apply()
+        }
         context.dataStore.edit { it.remove(Keys.AUTH_TOKEN) }
     }
 
     suspend fun setRefreshToken(token: String) {
-        securePrefs.edit().putString(SecureKeys.REFRESH_TOKEN, token).apply()
+        withContext(Dispatchers.IO) {
+            securePrefs.edit().putString(SecureKeys.REFRESH_TOKEN, token).apply()
+        }
         context.dataStore.edit { it.remove(Keys.REFRESH_TOKEN) }
     }
     suspend fun setOnboardingDone(done: Boolean) = context.dataStore.edit { it[Keys.IS_ONBOARDING_DONE] = done }
@@ -669,6 +708,7 @@ class SafarDataStore @Inject constructor(
         studyPlannerInsights: Boolean = false,
         nishthaAnalytics: Boolean = false,
         focusAnalytics: Boolean = false,
+        liveSessions: Boolean = false,
     ) = context.dataStore.edit { prefs ->
         prefs[Keys.IS_PREMIUM] = isPremium
         if (planType.isNullOrBlank()) prefs.remove(Keys.PREMIUM_PLAN_TYPE) else prefs[Keys.PREMIUM_PLAN_TYPE] = planType
@@ -677,6 +717,7 @@ class SafarDataStore @Inject constructor(
         prefs[Keys.PREMIUM_FEATURE_STUDY_PLANNER_INSIGHTS] = studyPlannerInsights
         prefs[Keys.PREMIUM_FEATURE_NISHTHA_ANALYTICS] = nishthaAnalytics
         prefs[Keys.PREMIUM_FEATURE_FOCUS_ANALYTICS] = focusAnalytics
+        prefs[Keys.PREMIUM_FEATURE_LIVE_SESSIONS] = liveSessions
     }
 
     suspend fun addNotifiedAchievement(achievementId: String) = context.dataStore.edit { prefs ->
@@ -892,10 +933,12 @@ class SafarDataStore @Inject constructor(
     }
 
     suspend fun clearSession() {
-        securePrefs.edit()
-            .remove(SecureKeys.AUTH_TOKEN)
-            .remove(SecureKeys.REFRESH_TOKEN)
-            .apply()
+        withContext(Dispatchers.IO) {
+            securePrefs.edit()
+                .remove(SecureKeys.AUTH_TOKEN)
+                .remove(SecureKeys.REFRESH_TOKEN)
+                .apply()
+        }
         context.dataStore.edit {
             it.remove(Keys.IS_LOGGED_IN)
             it.remove(Keys.AUTH_TOKEN)
@@ -910,6 +953,7 @@ class SafarDataStore @Inject constructor(
             it.remove(Keys.PREMIUM_FEATURE_STUDY_PLANNER_INSIGHTS)
             it.remove(Keys.PREMIUM_FEATURE_NISHTHA_ANALYTICS)
             it.remove(Keys.PREMIUM_FEATURE_FOCUS_ANALYTICS)
+            it.remove(Keys.PREMIUM_FEATURE_LIVE_SESSIONS)
         }
     }
 

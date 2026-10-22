@@ -64,6 +64,7 @@ interface HomeRepository {
     suspend fun respondToRollover(id: String, action: String): Resource<GoalRolloverResult>
     suspend fun getGoalFocusSummary(goalIds: List<String>, dayKey: String?): Resource<GoalFocusSummary>
     suspend fun getEkagraAnalytics(): Resource<EkagraAnalyticsStats>
+    suspend fun getDashboardMonthlySummary(): Resource<DashboardMonthlySummary> = getMonthlyReport().toDashboardSummary()
     suspend fun getMonthlyReport(): Resource<MonthlyReport>
     suspend fun generateMonthlyReport(month: String): Resource<MonthlyReport>
     suspend fun getActiveTitle(): Resource<ActiveTitle>

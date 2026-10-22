@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.ui.auth.AuthViewModelTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-10-19T19:59:40.423Z" hostname="Shashanks-MacBook-Air.local" time="0.01">
+  <properties/>
+  <testcase name="submit reset password confirm success resets to login mode" classname="com.safarparmar.app.ui.auth.AuthViewModelTest" time="0.005"/>
+  <testcase name="signup rejects unsupported email domain" classname="com.safarparmar.app.ui.auth.AuthViewModelTest" time="0.0"/>
+  <testcase name="login error exposes repository message" classname="com.safarparmar.app.ui.auth.AuthViewModelTest" time="0.002"/>
+  <testcase name="login requires email and password" classname="com.safarparmar.app.ui.auth.AuthViewModelTest" time="0.0"/>
+  <testcase name="submit forgot password email success with token transitions to reset step" classname="com.safarparmar.app.ui.auth.AuthViewModelTest" time="0.002"/>
+  <testcase name="login success marks success and stops loading" classname="com.safarparmar.app.ui.auth.AuthViewModelTest" time="0.0"/>
+  <testcase name="forgot password clicked transitions to email step" classname="com.safarparmar.app.ui.auth.AuthViewModelTest" time="0.0"/>
+  <testcase name="submit forgot password email success without token transitions to email sent step" classname="com.safarparmar.app.ui.auth.AuthViewModelTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

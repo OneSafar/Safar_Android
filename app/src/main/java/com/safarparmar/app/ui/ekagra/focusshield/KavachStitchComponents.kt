@@ -116,6 +116,7 @@ fun KavachStitchBackHeader(
                 .height(56.dp),
             contentAlignment = Alignment.CenterStart,
         ) {
+            com.safarparmar.app.ui.tutorial.TitliGuideButton(modifier = Modifier.align(Alignment.CenterEnd).padding(end = 8.dp))
             KavachCircularBackButton(
                 onClick = onBack,
                 modifier = Modifier.padding(start = 12.dp),
@@ -123,6 +124,7 @@ fun KavachStitchBackHeader(
         }
     } else {
         TopAppBar(
+                actions = { com.safarparmar.app.ui.tutorial.TitliGuideButton() },
             modifier = modifier.statusBarsPadding(),
             title = {
                 Text(
@@ -188,6 +190,7 @@ fun KavachStitchSecondaryButton(
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = 48.dp)
+            .clip(RoundedCornerShape(16.dp))
             .glassSurface(shape = RoundedCornerShape(16.dp), isDarkTheme = isDark)
             .clickable(
                 enabled = enabled,
@@ -279,6 +282,7 @@ fun KavachStitchPillToggle(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
 ) {
     val thumbOffset by animateFloatAsState(
         targetValue = if (checked) 20f else 2f,
@@ -290,6 +294,7 @@ fun KavachStitchPillToggle(
             .clip(RoundedCornerShape(999.dp))
             .background(if (checked) KavachDesign.Primary else KavachDesign.SearchFieldBg)
             .clickable(
+                enabled = enabled,
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
             ) { onCheckedChange(!checked) },

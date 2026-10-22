@@ -1,6 +1,10 @@
 package com.safarparmar.app.util
 
 import java.io.IOException
+import okhttp3.ResponseBody
+import okio.BufferedSource
+import okio.Buffer
+import okio.buffer
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 import kotlinx.coroutines.test.runTest
@@ -12,6 +16,28 @@ import org.junit.Test
 import retrofit2.Response
 
 class SafeApiCallTest {
+
+    @Test
+    fun `closes rate limited response before retry`() = runTest {
+        var closed = false
+        val source = object : okio.ForwardingSource(Buffer().writeUtf8("rate limited")) {
+            override fun close() { closed = true; super.close() }
+        }
+        val body = object : ResponseBody() {
+            override fun contentType() = "text/plain".toMediaType()
+            override fun contentLength() = -1L
+            override fun source(): BufferedSource = source.buffer()
+        }
+        var calls = 0
+        val result = safeApiCall {
+            calls++
+            if (calls == 1) Response.error<String>(429, body)
+            else { assertTrue(closed); Response.success("ok") }
+        }
+        assertEquals(Resource.Success("ok"), result)
+        assertEquals(2, calls)
+        assertTrue(closed)
+    }
 
     @Test
     fun `returns success body`() = runTest {

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ekagra_background_access_title">Ekagra को बैकग्राउंड में चलने दें</string>
+    <string name="ekagra_background_access_body">SAFAR पर बैटरी की पाबंदी हटाएँ ताकि Android आपके अध्ययन सत्र को बीच में बंद करने की संभावना कम हो। Kavach भी इसी ऐप की सेटिंग का उपयोग करता है।</string>
+    <string name="ekagra_background_access_steps">Android के अनुरोध में अनुमति दें चुनें। बैटरी सेटिंग खुले तो अप्रतिबंधित या कोई पाबंदी नहीं चुनें और बैकग्राउंड गतिविधि चालू करें। फिर SAFAR पर लौटें। सेटिंग बदलते समय आपका टाइमर चलता रहेगा।</string>
+    <string name="ekagra_background_access_unavailable">बैटरी सेटिंग नहीं खुल सकी। Android सेटिंग → ऐप्स → SAFAR → बैटरी खोलें और अप्रतिबंधित या कोई पाबंदी नहीं चुनें।</string>
+</resources>

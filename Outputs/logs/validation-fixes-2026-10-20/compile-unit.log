@@ -1,0 +1,62 @@
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preProdDebugBuild UP-TO-DATE
+> Task :app:generateProdDebugBuildConfig UP-TO-DATE
+> Task :app:generateProdDebugResValues UP-TO-DATE
+> Task :app:generateProdDebugResources
+> Task :app:injectCrashlyticsMappingFileIdProdDebug UP-TO-DATE
+> Task :app:injectCrashlyticsVersionControlInfoProdDebug UP-TO-DATE
+> Task :app:processProdDebugGoogleServices UP-TO-DATE
+> Task :app:packageProdDebugResources
+> Task :app:processProdDebugNavigationResources
+> Task :app:javaPreCompileProdDebug UP-TO-DATE
+> Task :app:checkProdDebugAarMetadata UP-TO-DATE
+> Task :app:mapProdDebugSourceSetPaths
+> Task :app:compileProdDebugNavigationResources UP-TO-DATE
+> Task :app:parseProdDebugLocalResources
+> Task :app:generateProdDebugRFile UP-TO-DATE
+> Task :app:mergeProdDebugResources
+> Task :app:createProdDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksProdDebug UP-TO-DATE
+> Task :app:processProdDebugMainManifest UP-TO-DATE
+> Task :app:processProdDebugManifest UP-TO-DATE
+> Task :app:processProdDebugManifestForPackage UP-TO-DATE
+> Task :app:preProdDebugAndroidTestBuild SKIPPED
+> Task :app:processProdDebugAndroidTestManifest UP-TO-DATE
+> Task :app:generateProdDebugAndroidTestBuildConfig UP-TO-DATE
+> Task :app:generateProdDebugAndroidTestResValues UP-TO-DATE
+> Task :app:generateProdDebugAndroidTestResources UP-TO-DATE
+> Task :app:packageProdDebugAndroidTestResources UP-TO-DATE
+> Task :app:processProdDebugAndroidTestNavigationResources UP-TO-DATE
+> Task :app:parseProdDebugAndroidTestLocalResources UP-TO-DATE
+> Task :app:generateProdDebugAndroidTestRFile UP-TO-DATE
+> Task :app:preProdDebugUnitTestBuild UP-TO-DATE
+> Task :app:javaPreCompileProdDebugUnitTest UP-TO-DATE
+> Task :app:processProdDebugResources
+> Task :app:kspProdDebugKotlin
+
+> Task :app:compileProdDebugKotlin
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/feature/kavachanalytics/ui/KavachAnalyticsSection.kt:673:19 runCatching call is not allowed to contain @Composable function invocations
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/leaderboard/LeaderboardScreen.kt:87:12 runCatching call is not allowed to contain @Composable function invocations
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/navigation/SafarNavGraph.kt:3:34 Unresolved reference 'LocalActivity'.
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/navigation/SafarNavGraph.kt:194:20 Unresolved reference 'LocalActivity'.
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/nishtha/goals/GoalsScreen.kt:323:28 runCatching call is not allowed to contain @Composable function invocations
+
+> Task :app:compileProdDebugKotlin FAILED
+
+[Incubating] Problems report is available at: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:compileProdDebugKotlin'.
+> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.btapi.BuildToolsApiCompilationWork
+   > Compilation error. See log for more details
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 15s
+32 actionable tasks: 9 executed, 23 up-to-date

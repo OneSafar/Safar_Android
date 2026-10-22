@@ -1,0 +1,10 @@
+ACTIVITY MANAGER PROCESS EXIT INFO (dumpsys activity exit-info)
+Last Timestamp of Persistence Into Persistent Storage: 2026-10-17 11:43:37.958
+  package: com.safarparmar.app
+    Historical Process Exit for uid=10275
+        ApplicationExitInfo #0:
+          timestamp=2026-10-17 11:44:16.824 pid=4490 realUid=10275 packageUid=10275 definingUid=10275 user=0
+          process=com.safarparmar.app reason=2 (SIGNALED) subreason=0 (UNKNOWN) status=9
+          importance=100 pss=0.00 rss=0.00 state=empty trace=null
+          description=null
+          anrInfo=null

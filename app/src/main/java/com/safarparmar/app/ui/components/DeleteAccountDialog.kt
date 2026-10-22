@@ -26,7 +26,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
+import com.safarparmar.app.ui.components.popups.SafarDialog as Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.safarparmar.app.ui.studyplanner.components.PlannerFlatColors
 import com.safarparmar.app.ui.theme.SafarSemanticColors
@@ -57,8 +57,8 @@ fun DeleteAccountDialog(
         ) {
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
                     .widthIn(max = 380.dp)
+                    .fillMaxWidth()
                     .clip(RoundedCornerShape(18.dp))
                     .background(SafarSemanticColors.plannerBackground())
                     .border(1.dp, PlannerFlatColors.BorderSoft, RoundedCornerShape(18.dp))

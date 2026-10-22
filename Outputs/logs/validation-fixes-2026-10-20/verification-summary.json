@@ -1,0 +1,19 @@
+{
+  "unit_tests": {
+    "tests": 741,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "lint": {
+    "Warning": 904,
+    "Hint": 8
+  },
+  "ui_test_sources_compiled": true,
+  "ui_tests_executed": false,
+  "emulator_verification_performed": false,
+  "ui_compile_exclusion": "HabitReminderInstrumentedTest.kt: empty production scheduler/receiver stubs",
+  "release_build": "assembleProdRelease and bundleProdRelease succeeded",
+  "suppression_added": false,
+  "tutorials_enabled": false
+}

@@ -1,0 +1,87 @@
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preProdDebugBuild UP-TO-DATE
+> Task :app:generateProdDebugBuildConfig UP-TO-DATE
+> Task :app:generateProdDebugResValues UP-TO-DATE
+> Task :app:generateProdDebugResources UP-TO-DATE
+> Task :app:injectCrashlyticsMappingFileIdProdDebug UP-TO-DATE
+> Task :app:injectCrashlyticsVersionControlInfoProdDebug UP-TO-DATE
+> Task :app:processProdDebugGoogleServices UP-TO-DATE
+> Task :app:packageProdDebugResources UP-TO-DATE
+> Task :app:processProdDebugNavigationResources UP-TO-DATE
+> Task :app:parseProdDebugLocalResources UP-TO-DATE
+> Task :app:generateProdDebugRFile UP-TO-DATE
+> Task :app:javaPreCompileProdDebug UP-TO-DATE
+> Task :app:checkProdDebugAarMetadata UP-TO-DATE
+> Task :app:mapProdDebugSourceSetPaths UP-TO-DATE
+> Task :app:compileProdDebugNavigationResources UP-TO-DATE
+> Task :app:mergeProdDebugResources UP-TO-DATE
+> Task :app:createProdDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksProdDebug UP-TO-DATE
+> Task :app:processProdDebugMainManifest UP-TO-DATE
+> Task :app:processProdDebugManifest UP-TO-DATE
+> Task :app:processProdDebugManifestForPackage UP-TO-DATE
+> Task :app:processProdDebugResources UP-TO-DATE
+> Task :app:preProdDebugUnitTestBuild UP-TO-DATE
+> Task :app:javaPreCompileProdDebugUnitTest UP-TO-DATE
+> Task :app:preProdDebugAndroidTestBuild SKIPPED
+> Task :app:processProdDebugAndroidTestManifest UP-TO-DATE
+> Task :app:generateProdDebugAndroidTestBuildConfig UP-TO-DATE
+> Task :app:generateProdDebugAndroidTestResValues UP-TO-DATE
+> Task :app:generateProdDebugAndroidTestResources UP-TO-DATE
+> Task :app:packageProdDebugAndroidTestResources UP-TO-DATE
+> Task :app:processProdDebugAndroidTestNavigationResources UP-TO-DATE
+> Task :app:parseProdDebugAndroidTestLocalResources UP-TO-DATE
+> Task :app:generateProdDebugAndroidTestRFile UP-TO-DATE
+> Task :app:preProdReleaseBuild UP-TO-DATE
+> Task :app:generateProdReleaseBuildConfig UP-TO-DATE
+> Task :app:generateProdReleaseResValues UP-TO-DATE
+> Task :app:generateProdReleaseResources UP-TO-DATE
+> Task :app:injectCrashlyticsMappingFileIdProdRelease
+> Task :app:extractProdReleaseVersionControlInfo UP-TO-DATE
+> Task :app:injectCrashlyticsVersionControlInfoProdRelease UP-TO-DATE
+> Task :app:processProdReleaseGoogleServices UP-TO-DATE
+> Task :app:packageProdReleaseResources
+> Task :app:processProdReleaseNavigationResources UP-TO-DATE
+> Task :app:javaPreCompileProdRelease UP-TO-DATE
+> Task :app:extractProguardFiles UP-TO-DATE
+> Task :app:extractDeepLinksProdRelease UP-TO-DATE
+> Task :app:processProdReleaseMainManifest UP-TO-DATE
+> Task :app:parseProdReleaseLocalResources
+> Task :app:generateProdReleaseRFile UP-TO-DATE
+> Task :app:kspProdReleaseKotlin
+> Task :app:kspProdDebugKotlin
+> Task :app:compileProdReleaseKotlin
+> Task :app:compileProdDebugKotlin
+> Task :app:compileProdReleaseJavaWithJavac UP-TO-DATE
+> Task :app:compileProdDebugJavaWithJavac UP-TO-DATE
+> Task :app:hiltSyncProdDebug
+> Task :app:hiltAggregateDepsProdDebug UP-TO-DATE
+> Task :app:hiltJavaCompileProdDebug UP-TO-DATE
+> Task :app:processProdDebugJavaRes UP-TO-DATE
+> Task :app:generateProdReleaseLintReportModel
+> Task :app:transformProdDebugClassesWithAsm
+> Task :app:bundleProdDebugClassesToCompileJar
+> Task :app:bundleProdDebugClassesToRuntimeJar
+> Task :app:kspProdDebugUnitTestKotlin
+> Task :app:kspProdDebugAndroidTestKotlin
+> Task :app:compileProdDebugUnitTestKotlin
+> Task :app:processProdDebugUnitTestJavaRes UP-TO-DATE
+> Task :app:compileProdDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :app:hiltSyncProdDebugUnitTest
+> Task :app:hiltAggregateDepsProdDebugUnitTest UP-TO-DATE
+> Task :app:hiltJavaCompileProdDebugUnitTest NO-SOURCE
+
+> Task :app:compileProdDebugAndroidTestKotlin
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/androidTest/java/com/safarparmar/app/feature/toppersbatch/BatchCalendarLayoutTest.kt:35:29 'fun createComposeRule(effectContext: CoroutineContext = ...): ComposeContentTestRule' is deprecated. Use `androidx.compose.ui.test.junit4.v2.createComposeRule` instead. The v2 APIs use StandardTestDispatcher instead of UnconfinedTestDispatcher, which aligns with standard coroutine behavior by queuing tasks rather than executing them immediately. Tests relying on immediate execution may require explicit synchronization. Please refer to the migration guide for more details.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/androidTest/java/com/safarparmar/app/feature/toppersbatch/BatchLocalizationTest.kt:39:29 'fun createComposeRule(effectContext: CoroutineContext = ...): ComposeContentTestRule' is deprecated. Use `androidx.compose.ui.test.junit4.v2.createComposeRule` instead. The v2 APIs use StandardTestDispatcher instead of UnconfinedTestDispatcher, which aligns with standard coroutine behavior by queuing tasks rather than executing them immediately. Tests relying on immediate execution may require explicit synchronization. Please refer to the migration guide for more details.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/androidTest/java/com/safarparmar/app/feature/toppersbatch/TodayPlanFlowTest.kt:32:29 'fun <reified A : ComponentActivity> createAndroidComposeRule(effectContext: CoroutineContext = ...): AndroidComposeTestRule<ActivityScenarioRule<A>, A>' is deprecated. Use `androidx.compose.ui.test.junit4.v2.createAndroidComposeRule` instead. The v2 APIs use StandardTestDispatcher instead of UnconfinedTestDispatcher, which aligns with standard coroutine behavior by queuing tasks rather than executing them immediately. Tests relying on immediate execution may require explicit synchronization. Please refer to the migration guide for more details.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/androidTest/java/com/safarparmar/app/feature/toppersbatch/TodayPlanLayoutTest.kt:40:29 'fun createComposeRule(effectContext: CoroutineContext = ...): ComposeContentTestRule' is deprecated. Use `androidx.compose.ui.test.junit4.v2.createComposeRule` instead. The v2 APIs use StandardTestDispatcher instead of UnconfinedTestDispatcher, which aligns with standard coroutine behavior by queuing tasks rather than executing them immediately. Tests relying on immediate execution may require explicit synchronization. Please refer to the migration guide for more details.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/androidTest/java/com/safarparmar/app/ui/components/popups/SafarPopupEnvironmentInstrumentedTest.kt:41:29 'fun createComposeRule(effectContext: CoroutineContext = ...): ComposeContentTestRule' is deprecated. Use `androidx.compose.ui.test.junit4.v2.createComposeRule` instead. The v2 APIs use StandardTestDispatcher instead of UnconfinedTestDispatcher, which aligns with standard coroutine behavior by queuing tasks rather than executing them immediately. Tests relying on immediate execution may require explicit synchronization. Please refer to the migration guide for more details.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/androidTest/java/com/safarparmar/app/ui/components/popups/SafarPopupEnvironmentInstrumentedTest.kt:146:49 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Density'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/androidTest/java/com/safarparmar/app/ui/components/popups/SafarPopupEnvironmentInstrumentedTest.kt:148:55 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Density'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/androidTest/java/com/safarparmar/app/ui/ekagra/focusshield/KavachProgressiveUiTest.kt:38:45 'var isChecked: Boolean' is deprecated. Deprecated in Java.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/androidTest/java/com/safarparmar/app/ui/ekagra/focusshield/KavachProgressiveUiTest.kt:163:99 'var isChecked: Boolean' is deprecated. Deprecated in Java.
+
+> Task :app:transformProdDebugUnitTestClassesWithAsm
+> Task :app:testProdDebugUnitTest
+> Task :app:lintAnalyzeProdRelease

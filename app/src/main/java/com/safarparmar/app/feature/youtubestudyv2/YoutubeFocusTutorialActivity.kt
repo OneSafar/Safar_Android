@@ -12,9 +12,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
+import com.safarparmar.app.ui.theme.SafarTheme
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
@@ -27,13 +25,14 @@ import androidx.compose.ui.unit.Density
 class YoutubeFocusTutorialActivity : ComponentActivity() {
     private var startedGuide = false
     private var enteredPip = false
+    private var settingsLaunchPending = false
     private var expandedGuide by mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val light = intent.getBooleanExtra("light", true)
         setContent {
-            MaterialTheme(colorScheme = if (light) lightColorScheme() else darkColorScheme()) {
+            SafarTheme(darkTheme = !light) {
                 if (expandedGuide) {
                     YoutubeFocusAccessibilityTutorialSheet(
                         onDismiss = { finish() },
@@ -48,7 +47,7 @@ class YoutubeFocusTutorialActivity : ComponentActivity() {
                 BoxWithConstraints(Modifier.fillMaxSize()) {
                     // Render the same 320dp illustration at every PiP size instead
                     // of reflowing its labels into the tiny window.
-                    val pixels = constraints.maxWidth.toFloat()
+                    val pixels = constraints.maxWidth.coerceAtLeast(1).toFloat()
                     CompositionLocalProvider(LocalDensity provides Density(pixels / 320f, 1f)) {
                         PhoneMockup(light, Modifier.fillMaxSize())
                     }
@@ -69,27 +68,51 @@ class YoutubeFocusTutorialActivity : ComponentActivity() {
     }
 
     private fun openGuideInSettings() {
-            enteredPip = runCatching {
-                enterPictureInPictureMode(
-                    PictureInPictureParams.Builder().setAspectRatio(Rational(320, 430)).build()
-                )
-            }.getOrDefault(false)
-            runCatching {
-                startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-            }.onFailure { finish() }
-            if (!enteredPip) finish()
+        if (settingsLaunchPending || isFinishing || isDestroyed) return
+        settingsLaunchPending = true
+        val accepted = runCatching {
+            enterPictureInPictureMode(
+                PictureInPictureParams.Builder().setAspectRatio(Rational(320, 430)).build()
+            )
+        }.getOrDefault(false)
+        if (!accepted) {
+            launchSettings()
+            finish()
+        } else {
+            // Wait for the asynchronous PiP transition before opening Settings.
+            window.decorView.postDelayed({
+                if (settingsLaunchPending && !isFinishing && !isDestroyed) {
+                    launchSettings()
+                    if (!isInPictureInPictureMode) finish()
+                }
+            }, 1500L)
+        }
+    }
+
+    private fun launchSettings() {
+        if (!settingsLaunchPending || isFinishing || isDestroyed) return
+        settingsLaunchPending = false
+        runCatching {
+            startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        }.onFailure { finish() }
     }
 
     override fun onPictureInPictureModeChanged(inPictureInPictureMode: Boolean, newConfig: Configuration) {
         super.onPictureInPictureModeChanged(inPictureInPictureMode, newConfig)
         // The system expand control restores the instructions and large preview.
-        if (enteredPip) expandedGuide = !inPictureInPictureMode
+        if (inPictureInPictureMode) {
+            enteredPip = true
+            expandedGuide = false
+            window.decorView.post { launchSettings() }
+        } else if (enteredPip) {
+            expandedGuide = true
+        }
     }
 
     override fun onStop() {
         super.onStop()
         // System Close removes the guide completely; never restart it in background.
-        if (startedGuide && !isChangingConfigurations) finish()
+        if (startedGuide && !isInPictureInPictureMode && !settingsLaunchPending && !isChangingConfigurations) finish()
     }
 
     companion object {

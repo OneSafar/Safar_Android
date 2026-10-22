@@ -1,5 +1,6 @@
 package com.safarparmar.app.ui.ekagra
 
+import com.safarparmar.app.ui.tutorial.tutorialTarget
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.*
@@ -9,6 +10,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import com.safarparmar.app.ui.components.popups.SafarMaterialAlertDialog as AlertDialog
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -85,6 +87,7 @@ internal fun DurationTab(
     onTimerAlertStyleChange: (com.safarparmar.app.data.local.TimerAlertStyle) -> Unit,
     onStartPomodoro: (PomodoroStartRequest) -> Unit,
     onSave: () -> Unit,
+    alarmAccessContent: @Composable () -> Unit = { EkagraAlarmAccessRow() },
 ) {
     val scheme = MaterialTheme.colorScheme
     val ink = rememberEkagraInk(onCanvas = false)
@@ -109,6 +112,7 @@ internal fun DurationTab(
         Spacer(Modifier.height(22.dp))
 
         DurationSection(
+            modifier = Modifier.tutorialTarget("ekagra.focusDuration"),
             label         = stringResource(R.string.ekagra_title),
             value         = focusMinutes,
             range         = 1f..120f,
@@ -121,6 +125,7 @@ internal fun DurationTab(
             overLimitMessage = stringResource(R.string.ekagra_take_break_buddy),
         )
         DurationSection(
+            modifier = Modifier.tutorialTarget("ekagra.breakDuration"),
             label         = stringResource(R.string.ekagra_break),
             value         = breakMinutes,
             range         = 1f..60f,
@@ -131,6 +136,7 @@ internal fun DurationTab(
 
         EkagraHairline(ink.hairline)
         SettingToggleRow(
+            modifier = Modifier.tutorialTarget("ekagra.mute"),
             title    = stringResource(R.string.ekagra_audio),
             subtitle = if (isMuted) stringResource(R.string.ekagra_audio_muted) else stringResource(R.string.ekagra_audio_playing),
             checked  = !isMuted,
@@ -140,6 +146,7 @@ internal fun DurationTab(
 
         EkagraHairline(ink.hairline)
         SettingToggleRow(
+            modifier = Modifier.tutorialTarget("ekagra.autoBreak"),
             title    = stringResource(R.string.ekagra_auto_start_breaks),
             subtitle = if (autoStartBreak) stringResource(R.string.ekagra_break_auto_help) else stringResource(R.string.ekagra_break_manual_help),
             checked  = autoStartBreak,
@@ -148,12 +155,14 @@ internal fun DurationTab(
         )
 
         EkagraHairline(ink.hairline)
-        EkagraAlarmAccessRow()
+        alarmAccessContent()
+        Box(Modifier.tutorialTarget("ekagra.alerts")) {
         TimerAlertStyleRow(
             selectedStyle = timerAlertStyle,
             ink = ink,
             onStyleSelected = onTimerAlertStyleChange,
         )
+        }
         EkagraHairline(ink.hairline)
 
         Spacer(Modifier.height(28.dp))
@@ -167,10 +176,12 @@ internal fun DurationTab(
                 label   = stringResource(R.string.goals_save_changes),
                 accent  = scheme.primary,
                 onClick = onSave,
+                modifier = Modifier.tutorialTarget("ekagra.settingsSave"),
             )
             EkagraGhostAction(
                 label   = stringResource(R.string.ekagra_pomodoro),
                 ink     = ink,
+                modifier = Modifier.tutorialTarget("ekagra.pomodoroEntry"),
                 onClick = {
                     pomodoroFocusInput = focusMinutes.toString()
                     pomodoroBreakInput = breakMinutes.toString()
@@ -204,81 +215,14 @@ internal fun DurationTab(
                 }
             },
             text = {
-                Column(
-                    modifier = Modifier.verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        listOf(
-                            PomodoroStyle.TRADITIONAL to stringResource(R.string.ekagra_pomodoro_traditional),
-                            PomodoroStyle.CUSTOM to stringResource(R.string.ekagra_pomodoro_custom),
-                        ).forEach { (style, label) ->
-                            val selected = pomodoroStyle == style
-                            if (selected) {
-                                Button(
-                                    onClick = { pomodoroStyle = style },
-                                    modifier = Modifier.weight(1f),
-                                ) { Text(label) }
-                            } else {
-                                OutlinedButton(
-                                    onClick = { pomodoroStyle = style },
-                                    modifier = Modifier.weight(1f),
-                                ) { Text(label) }
-                            }
-                        }
-                    }
-                    if (pomodoroStyle == PomodoroStyle.TRADITIONAL) {
-                        Text(
-                            stringResource(R.string.ekagra_pomodoro_traditional_summary),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = scheme.onSurfaceVariant,
-                        )
-                    } else {
-                        Text(
-                            stringResource(R.string.ekagra_pomodoro_custom_summary),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = scheme.onSurfaceVariant,
-                        )
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            OutlinedTextField(
-                                value = pomodoroFocusInput,
-                                onValueChange = { pomodoroFocusInput = it.filter(Char::isDigit).take(3) },
-                                label = { Text(stringResource(R.string.ekagra_pomodoro_focus_minutes)) },
-                                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
-                                singleLine = true,
-                                modifier = Modifier.weight(1f),
-                            )
-                            OutlinedTextField(
-                                value = pomodoroBreakInput,
-                                onValueChange = { pomodoroBreakInput = it.filter(Char::isDigit).take(2) },
-                                label = { Text(stringResource(R.string.ekagra_pomodoro_break_minutes)) },
-                                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
-                                singleLine = true,
-                                modifier = Modifier.weight(1f),
-                            )
-                        }
-                    Text(
-                        stringResource(R.string.ekagra_pomodoro_loops_question),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = scheme.onSurfaceVariant
-                    )
-                    OutlinedTextField(
-                        value = pomodoroLoopsInput,
-                        onValueChange = { pomodoroLoopsInput = it.filter { c -> c.isDigit() } },
-                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = scheme.primary,
-                            unfocusedBorderColor = ink.hairline
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    }
-                }
+                PomodoroSettingsContent(
+                    style = pomodoroStyle, focusInput = pomodoroFocusInput,
+                    breakInput = pomodoroBreakInput, loopsInput = pomodoroLoopsInput,
+                    onStyleChange = { pomodoroStyle = it },
+                    onFocusChange = { pomodoroFocusInput = it.filter(Char::isDigit).take(3) },
+                    onBreakChange = { pomodoroBreakInput = it.filter(Char::isDigit).take(2) },
+                    onLoopsChange = { pomodoroLoopsInput = it.filter(Char::isDigit) },
+                )
             },
             confirmButton = {
                 EkagraPrimaryAction(
@@ -314,6 +258,7 @@ internal fun DurationTab(
  */
 @Composable
 internal fun DurationSection(
+    modifier: Modifier = Modifier,
     label: String,
     value: Int,
     range: ClosedFloatingPointRange<Float>,
@@ -336,7 +281,7 @@ internal fun DurationSection(
 
     EkagraHairline(ink.hairline)
     Column(
-        modifier = Modifier.fillMaxWidth().alpha(alpha).padding(vertical = 20.dp),
+        modifier = modifier.fillMaxWidth().alpha(alpha).padding(vertical = 20.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         // Label ↔ serif value, sharing a baseline
@@ -471,8 +416,9 @@ private fun TimerAlertStyleRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
             .clickable { showSelector = true }
-            .padding(vertical = 18.dp),
+            .padding(vertical = 14.dp, horizontal = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
@@ -501,11 +447,12 @@ private fun TimerAlertStyleRow(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .clip(RoundedCornerShape(10.dp))
                                 .clickable {
                                     onStyleSelected(style)
                                     showSelector = false
                                 }
-                                .padding(vertical = 10.dp),
+                                .padding(vertical = 10.dp, horizontal = 8.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             RadioButton(
@@ -536,12 +483,14 @@ internal fun SettingToggleRow(
     checked: Boolean,
     ink: EkagraInk,
     onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
             .clickable { onCheckedChange(!checked) }
-            .padding(vertical = 14.dp),
+            .padding(vertical = 12.dp, horizontal = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
@@ -580,5 +529,91 @@ private fun EkagraAlarmAccessRow() {
             runCatching { context.startActivity(android.content.Intent(android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,
                 android.net.Uri.parse("package:${context.packageName}"))) }
         }) { Text(stringResource(R.string.ekagra_allow_alarms)) }
+    }
+}
+
+@Composable
+internal fun PomodoroSettingsContent(
+    style: PomodoroStyle, focusInput: String, breakInput: String, loopsInput: String,
+    onStyleChange: (PomodoroStyle) -> Unit, onFocusChange: (String) -> Unit,
+    onBreakChange: (String) -> Unit, onLoopsChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val scheme = MaterialTheme.colorScheme
+    val ink = rememberEkagraInk(onCanvas = false)
+    Column(
+        modifier = modifier.verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            listOf(
+                PomodoroStyle.TRADITIONAL to stringResource(R.string.ekagra_pomodoro_traditional),
+                PomodoroStyle.CUSTOM to stringResource(R.string.ekagra_pomodoro_custom),
+            ).forEach { (option, label) ->
+                val selected = style == option
+                if (selected) {
+                    Button(
+                        onClick = { onStyleChange(option) },
+                        modifier = Modifier.weight(1f),
+                    ) { Text(label) }
+                } else {
+                    OutlinedButton(
+                        onClick = { onStyleChange(option) },
+                        modifier = Modifier.weight(1f),
+                    ) { Text(label) }
+                }
+            }
+        }
+        if (style == PomodoroStyle.TRADITIONAL) {
+            Text(
+                stringResource(R.string.ekagra_pomodoro_traditional_summary),
+                style = MaterialTheme.typography.bodyMedium,
+                color = scheme.onSurfaceVariant,
+            )
+        } else {
+            Text(
+                stringResource(R.string.ekagra_pomodoro_custom_summary),
+                style = MaterialTheme.typography.bodyMedium,
+                color = scheme.onSurfaceVariant,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = focusInput,
+                    onValueChange = onFocusChange,
+                    label = { Text(stringResource(R.string.ekagra_pomodoro_focus_minutes)) },
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                    singleLine = true,
+                    modifier = Modifier.weight(1f),
+                )
+                OutlinedTextField(
+                    value = breakInput,
+                    onValueChange = onBreakChange,
+                    label = { Text(stringResource(R.string.ekagra_pomodoro_break_minutes)) },
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                    singleLine = true,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            Text(
+                stringResource(R.string.ekagra_pomodoro_loops_question),
+                style = MaterialTheme.typography.bodyMedium,
+                color = scheme.onSurfaceVariant
+            )
+            OutlinedTextField(
+                value = loopsInput,
+                onValueChange = onLoopsChange,
+                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                singleLine = true,
+                shape = RoundedCornerShape(12.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = scheme.primary,
+                    unfocusedBorderColor = ink.hairline
+                ),
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
     }
 }

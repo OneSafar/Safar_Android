@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.ui.nishtha.goals.GoalScreenLogicTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-20T02:13:05.523Z" hostname="Shashanks-MacBook-Air.local" time="0.001">
+  <properties/>
+  <testcase name="study time quick add is capped at 99 hours 59 minutes" classname="com.safarparmar.app.ui.nishtha.goals.GoalScreenLogicTest" time="0.001"/>
+  <testcase name="today repeating goal remains a today goal in edit form" classname="com.safarparmar.app.ui.nishtha.goals.GoalScreenLogicTest" time="0.0"/>
+  <testcase name="future repeating goal opens edit form with its schedule enabled" classname="com.safarparmar.app.ui.nishtha.goals.GoalScreenLogicTest" time="0.0"/>
+  <testcase name="study time quick add carries minutes into hours" classname="com.safarparmar.app.ui.nishtha.goals.GoalScreenLogicTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

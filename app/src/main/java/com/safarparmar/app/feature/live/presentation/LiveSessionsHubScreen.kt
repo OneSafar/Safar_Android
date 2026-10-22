@@ -59,15 +59,19 @@ fun LiveSessionsHubScreen(
     premiumViewModel: PremiumViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
-    val activity = context as? Activity
+    val activity = context as? androidx.activity.ComponentActivity
     val themeVm: ThemeViewModel = if (activity != null) {
-        hiltViewModel(activity as androidx.activity.ComponentActivity)
+        hiltViewModel(activity)
     } else {
         hiltViewModel()
     }
     val currentIsDark by themeVm.isDarkTheme.collectAsStateWithLifecycle(initialValue = isDarkTheme)
 
-    val dhyanPricing by premiumViewModel.dhyanPricing.collectAsStateWithLifecycle()
+    val liveAccess by premiumViewModel.dhyanLiveAccess.collectAsStateWithLifecycle()
+    androidx.lifecycle.compose.LifecycleResumeEffect(premiumViewModel) {
+        premiumViewModel.refreshDhyanAccess()
+        onPauseOrDispose {}
+    }
     val bgColor = LiveThemeColors.background(currentIsDark)
 
     SafarDrawerScaffold(
@@ -93,13 +97,13 @@ fun LiveSessionsHubScreen(
                 showTopBar = false,
                 isDarkTheme = currentIsDark,
             )
-            if (dhyanPricing.accessState != "DHYAN_INCLUDED") {
-                DhyanLiveLockOverlay(
+            DhyanLiveAccessOverlay(
+                    accessState = liveAccess,
+                    onRetry = premiumViewModel::refreshDhyanAccess,
                     modifier = Modifier.fillMaxSize(),
                     isDarkTheme = currentIsDark,
                     onEnrollClick = { onNavigate(Routes.PREMIUM) },
                 )
-            }
         }
     }
 }
@@ -186,6 +190,35 @@ fun DhyanLiveLockOverlay(
                         fontSize = 14.sp,
                     )
                 }
+            }
+        }
+    }
+}
+
+
+@Composable
+fun DhyanLiveAccessOverlay(
+    accessState: String,
+    onRetry: () -> Unit,
+    modifier: Modifier = Modifier,
+    isDarkTheme: Boolean = false,
+    onEnrollClick: () -> Unit = {},
+) {
+    if (accessState == "ALLOWED") return
+    if (accessState == "DENIED") {
+        DhyanLiveLockOverlay(modifier, isDarkTheme, onEnrollClick)
+        return
+    }
+    Box(modifier.background(LiveThemeColors.background(isDarkTheme)).clickable {}, contentAlignment = Alignment.Center) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            if (accessState == "LOADING") {
+                androidx.compose.material3.CircularProgressIndicator()
+                Text("Checking Dhyan Live access…", color = LiveThemeColors.textPrimary(isDarkTheme))
+            } else {
+                Text("Could not check Dhyan Live access. Please try again.",
+                    modifier = Modifier.padding(24.dp), textAlign = TextAlign.Center,
+                    color = LiveThemeColors.textPrimary(isDarkTheme))
+                androidx.compose.material3.Button(onClick = onRetry) { Text("Retry") }
             }
         }
     }

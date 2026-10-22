@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.ui.dashboard.DashboardStudyPlanStateTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-10-19T19:59:40.614Z" hostname="Shashanks-MacBook-Air.local" time="0.002">
+  <properties/>
+  <testcase name="resolveDashboardStudyPlan prefers persisted active plan id" classname="com.safarparmar.app.ui.dashboard.DashboardStudyPlanStateTest" time="0.0"/>
+  <testcase name="active plan with one topic returns visible progress" classname="com.safarparmar.app.ui.dashboard.DashboardStudyPlanStateTest" time="0.002"/>
+  <testcase name="resolveDashboardStudyPlan falls back when active id not in list" classname="com.safarparmar.app.ui.dashboard.DashboardStudyPlanStateTest" time="0.0"/>
+  <testcase name="all topics done still shows today's plan" classname="com.safarparmar.app.ui.dashboard.DashboardStudyPlanStateTest" time="0.0"/>
+  <testcase name="active plan with more than three topics summarizes overflow" classname="com.safarparmar.app.ui.dashboard.DashboardStudyPlanStateTest" time="0.0"/>
+  <testcase name="no plan returns no active plan state" classname="com.safarparmar.app.ui.dashboard.DashboardStudyPlanStateTest" time="0.0"/>
+  <testcase name="resolveDashboardStudyPlan falls back to first plan when active id missing" classname="com.safarparmar.app.ui.dashboard.DashboardStudyPlanStateTest" time="0.0"/>
+  <testcase name="active plan with no topics today returns no topics state" classname="com.safarparmar.app.ui.dashboard.DashboardStudyPlanStateTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

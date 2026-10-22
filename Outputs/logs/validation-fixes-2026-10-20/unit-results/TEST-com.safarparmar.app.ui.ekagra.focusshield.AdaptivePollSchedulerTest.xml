@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.ui.ekagra.focusshield.AdaptivePollSchedulerTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-10-19T19:59:40.681Z" hostname="Shashanks-MacBook-Air.local" time="0.002">
+  <properties/>
+  <testcase name="never backs off past the slow ceiling" classname="com.safarparmar.app.ui.ekagra.focusshield.AdaptivePollSchedulerTest" time="0.0"/>
+  <testcase name="stays fast while the foreground app keeps changing" classname="com.safarparmar.app.ui.ekagra.focusshield.AdaptivePollSchedulerTest" time="0.0"/>
+  <testcase name="backs off once the same app has been in front for a while" classname="com.safarparmar.app.ui.ekagra.focusshield.AdaptivePollSchedulerTest" time="0.001"/>
+  <testcase name="starts fast" classname="com.safarparmar.app.ui.ekagra.focusshield.AdaptivePollSchedulerTest" time="0.0"/>
+  <testcase name="snaps back to fast the moment the app changes" classname="com.safarparmar.app.ui.ekagra.focusshield.AdaptivePollSchedulerTest" time="0.0"/>
+  <testcase name="an unknown foreground app is treated as a change, not as stability" classname="com.safarparmar.app.ui.ekagra.focusshield.AdaptivePollSchedulerTest" time="0.0"/>
+  <testcase name="an idle hour costs far fewer polls than fixed fast polling would" classname="com.safarparmar.app.ui.ekagra.focusshield.AdaptivePollSchedulerTest" time="0.001"/>
+  <testcase name="never backs off while a blocked app is in front" classname="com.safarparmar.app.ui.ekagra.focusshield.AdaptivePollSchedulerTest" time="0.0"/>
+  <testcase name="reset returns it to the attentive state" classname="com.safarparmar.app.ui.ekagra.focusshield.AdaptivePollSchedulerTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

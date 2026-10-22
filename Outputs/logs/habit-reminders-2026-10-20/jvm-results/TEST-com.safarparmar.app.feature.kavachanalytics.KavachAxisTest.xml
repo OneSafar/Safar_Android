@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.feature.kavachanalytics.KavachAxisTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-20T02:12:55.488Z" hostname="Shashanks-MacBook-Air.local" time="0.001">
+  <properties/>
+  <testcase name="daily scale stays close to visible usage" classname="com.safarparmar.app.feature.kavachanalytics.KavachAxisTest" time="0.001"/>
+  <testcase name="axis labels read cleanly as 10h 5h 0" classname="com.safarparmar.app.feature.kavachanalytics.KavachAxisTest" time="0.0"/>
+  <testcase name="usage exceeding 10 hours scales up in even hour increments" classname="com.safarparmar.app.feature.kavachanalytics.KavachAxisTest" time="0.0"/>
+  <testcase name="week keeps the stable ten hour comparison scale" classname="com.safarparmar.app.feature.kavachanalytics.KavachAxisTest" time="0.0"/>
+  <testcase name="an empty period still gets a readable baseline" classname="com.safarparmar.app.feature.kavachanalytics.KavachAxisTest" time="0.0"/>
+  <testcase name="the midpoint tick is always a familiar whole minute value" classname="com.safarparmar.app.feature.kavachanalytics.KavachAxisTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

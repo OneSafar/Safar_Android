@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.ui.ekagra.EkagraTimerRecoveryTest" tests="25" skipped="0" failures="0" errors="0" timestamp="2026-10-19T19:59:40.631Z" hostname="Shashanks-MacBook-Air.local" time="0.001">
+  <properties/>
+  <testcase name="quick unlock completion timestamp includes its uncredited pause" classname="com.safarparmar.app.ui.ekagra.EkagraTimerRecoveryTest" time="0.0"/>
+  <testcase name="automatic pomodoro cannot exceed its configured rounds after a long absence" classname="com.safarparmar.app.ui.ekagra.EkagraTimerRecoveryTest" time="0.001"/>
+  <testcase name="quick unlock gap is excluded and its authorized automatic resume continues study" classname="com.safarparmar.app.ui.ekagra.EkagraTimerRecoveryTest" time="0.0"/>
+  <testcase name="reboot drops stale elapsed presence and quick unlock deadlines" classname="com.safarparmar.app.ui.ekagra.EkagraTimerRecoveryTest" time="0.0"/>
+  <testcase name="same boot process restart resumes countdown after exact monotonic gap" classname="com.safarparmar.app.ui.ekagra.EkagraTimerRecoveryTest" time="0.0"/>
+  <testcase name="already reached running deadline is completed even with no new tick" classname="com.safarparmar.app.ui.ekagra.EkagraTimerRecoveryTest" time="0.0"/>
+  <testcase name="monotonic clock regression cannot be mistaken for the same boot" classname="com.safarparmar.app.ui.ekagra.EkagraTimerRecoveryTest" time="0.0"/>
+  <testcase name="presence deadline crosses only focus time and retains intervening breaks" classname="com.safarparmar.app.ui.ekagra.EkagraTimerRecoveryTest" time="0.0"/>
+  <testcase name="two hour focus killed after twelve minutes still finishes at its original deadline" classname="com.safarparmar.app.ui.ekagra.EkagraTimerRecoveryTest" time="0.0"/>
+  <testcase name="reboot or unavailable boot identity pauses exactly at the durable checkpoint" classname="com.safarparmar.app.ui.ekagra.EkagraTimerRecoveryTest" time="0.0"/>
+  <testcase name="paused checkpoints never earn a missing process gap" classname="com.safarparmar.app.ui.ekagra.EkagraTimerRecoveryTest" time="0.0"/>
+  <testcase name="unexpired quick unlock keeps study paused" classname="com.safarparmar.app.ui.ekagra.EkagraTimerRecoveryTest" time="0.0"/>
+  <testcase name="invalid pomodoro configuration pauses rather than inventing rounds" classname="com.safarparmar.app.ui.ekagra.EkagraTimerRecoveryTest" time="0.0"/>
+  <testcase name="stopwatch continues elapsed time across process death without countdown clamp" classname="com.safarparmar.app.ui.ekagra.EkagraTimerRecoveryTest" time="0.0"/>
+  <testcase name="reboot cannot automatically resume an old quick unlock" classname="com.safarparmar.app.ui.ekagra.EkagraTimerRecoveryTest" time="0.0"/>
+  <testcase name="wall clock changes cannot add or remove running study time" classname="com.safarparmar.app.ui.ekagra.EkagraTimerRecoveryTest" time="0.0"/>
+  <testcase name="manual pomodoro break never starts an unapproved focus round" classname="com.safarparmar.app.ui.ekagra.EkagraTimerRecoveryTest" time="0.0"/>
+  <testcase name="later reopen never credits more than the selected focus duration" classname="com.safarparmar.app.ui.ekagra.EkagraTimerRecoveryTest" time="0.0"/>
+  <testcase name="manual break restores suspended focus paused without crediting the break or absent time" classname="com.safarparmar.app.ui.ekagra.EkagraTimerRecoveryTest" time="0.0"/>
+  <testcase name="expired presence reminder never pauses personal study on process recovery" classname="com.safarparmar.app.ui.ekagra.EkagraTimerRecoveryTest" time="0.0"/>
+  <testcase name="automatic pomodoro recovery counts only scheduled focus across later rounds" classname="com.safarparmar.app.ui.ekagra.EkagraTimerRecoveryTest" time="0.0"/>
+  <testcase name="paused recovery expires an existing monotonic presence deadline" classname="com.safarparmar.app.ui.ekagra.EkagraTimerRecoveryTest" time="0.0"/>
+  <testcase name="paused manual break keeps its suspended study checkpoint unchanged" classname="com.safarparmar.app.ui.ekagra.EkagraTimerRecoveryTest" time="0.0"/>
+  <testcase name="stopwatch overflow saturates instead of becoming negative" classname="com.safarparmar.app.ui.ekagra.EkagraTimerRecoveryTest" time="0.0"/>
+  <testcase name="manual pomodoro transition stops at the first unstarted break" classname="com.safarparmar.app.ui.ekagra.EkagraTimerRecoveryTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ekagra_background_access_title">Keep Ekagra running in the background</string>
+    <string name="ekagra_background_access_body">Allow SAFAR to run without battery restrictions so Android is less likely to interrupt your study session. This is the same app-wide setting used by Kavach.</string>
+    <string name="ekagra_background_access_steps">Choose Allow in the Android request. If a battery settings page opens, choose Unrestricted or No restrictions and allow background activity. Return to SAFAR afterwards. Your timer keeps running while you change this setting.</string>
+    <string name="ekagra_background_access_unavailable">Could not open battery settings. Open Android Settings → Apps → SAFAR → Battery and choose Unrestricted or No restrictions.</string>
+</resources>

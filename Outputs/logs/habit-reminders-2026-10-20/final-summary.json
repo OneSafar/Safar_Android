@@ -1,0 +1,18 @@
+{
+  "jvm": {
+    "tests": 774,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "jvm_suites": 130,
+  "lint": {
+    "Warning": 906,
+    "Hint": 8
+  },
+  "source_differences": [],
+  "forbidden_tasks": [],
+  "generated_apk_aab": [],
+  "instrumentation_executed": false,
+  "build_successful": true
+}

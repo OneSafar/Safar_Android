@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.feature.habits.HabitReminderSchedulerTest" tests="12" skipped="0" failures="0" errors="0" timestamp="2026-10-20T02:12:52.672Z" hostname="Shashanks-MacBook-Air.local" time="2.328">
+  <properties/>
+  <testcase name="permissionRevocationDuringPostingStillRequeues" classname="com.safarparmar.app.feature.habits.HabitReminderSchedulerTest" time="0.824"/>
+  <testcase name="globalOptOutCancelsAlarmsAndRetainsCacheForReenable" classname="com.safarparmar.app.feature.habits.HabitReminderSchedulerTest" time="0.15"/>
+  <testcase name="deliveryMarkerDiskFailureDoesNotLoseNextAlarm" classname="com.safarparmar.app.feature.habits.HabitReminderSchedulerTest" time="0.158"/>
+  <testcase name="nextAlarmIsPersistedBeforeNotificationPostingStarts" classname="com.safarparmar.app.feature.habits.HabitReminderSchedulerTest" time="0.142"/>
+  <testcase name="staleAlarmAfterTimeEditCannotNotify" classname="com.safarparmar.app.feature.habits.HabitReminderSchedulerTest" time="0.142"/>
+  <testcase name="differentAccountCancelsOldAlarmAndNotification" classname="com.safarparmar.app.feature.habits.HabitReminderSchedulerTest" time="0.137"/>
+  <testcase name="deliveryPostsOnceAndRequeuesNextOccurrence" classname="com.safarparmar.app.feature.habits.HabitReminderSchedulerTest" time="0.134"/>
+  <testcase name="blockedNotificationChannelDoesNotPostButStillRequeues" classname="com.safarparmar.app.feature.habits.HabitReminderSchedulerTest" time="0.129"/>
+  <testcase name="accountChangeDuringPostingRemovesNotificationImmediately" classname="com.safarparmar.app.feature.habits.HabitReminderSchedulerTest" time="0.136"/>
+  <testcase name="completedHabitSuppressesNotificationAndStillSchedulesNextDay" classname="com.safarparmar.app.feature.habits.HabitReminderSchedulerTest" time="0.132"/>
+  <testcase name="logoutClearsReminderProjectionAndCancelsAlarms" classname="com.safarparmar.app.feature.habits.HabitReminderSchedulerTest" time="0.125"/>
+  <testcase name="deletingHabitCancelsPendingAlarmAndPostedNotification" classname="com.safarparmar.app.feature.habits.HabitReminderSchedulerTest" time="0.119"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

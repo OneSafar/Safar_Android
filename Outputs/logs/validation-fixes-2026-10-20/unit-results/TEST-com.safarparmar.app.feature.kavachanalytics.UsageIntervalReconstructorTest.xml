@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.feature.kavachanalytics.UsageIntervalReconstructorTest" tests="13" skipped="0" failures="0" errors="0" timestamp="2026-10-19T19:59:38.887Z" hostname="Shashanks-MacBook-Air.local" time="0.005">
+  <properties/>
+  <testcase name="a visit spanning several days produces one segment per day" classname="com.safarparmar.app.feature.kavachanalytics.UsageIntervalReconstructorTest" time="0.001"/>
+  <testcase name="SAFAR launcher system UI and permission screens are excluded" classname="com.safarparmar.app.feature.kavachanalytics.UsageIntervalReconstructorTest" time="0.0"/>
+  <testcase name="events before the window are ignored so a collection gap invents no screen time" classname="com.safarparmar.app.feature.kavachanalytics.UsageIntervalReconstructorTest" time="0.001"/>
+  <testcase name="repeated foreground events for the same app do not split the visit" classname="com.safarparmar.app.feature.kavachanalytics.UsageIntervalReconstructorTest" time="0.0"/>
+  <testcase name="a visit crossing midnight is split so each day is credited correctly" classname="com.safarparmar.app.feature.kavachanalytics.UsageIntervalReconstructorTest" time="0.0"/>
+  <testcase name="closes an interval when the next app comes forward" classname="com.safarparmar.app.feature.kavachanalytics.UsageIntervalReconstructorTest" time="0.0"/>
+  <testcase name="overlap counts only the part of a visit inside a Kavach session" classname="com.safarparmar.app.feature.kavachanalytics.UsageIntervalReconstructorTest" time="0.001"/>
+  <testcase name="a daylight-saving spring-forward day still splits at local midnight" classname="com.safarparmar.app.feature.kavachanalytics.UsageIntervalReconstructorTest" time="0.001"/>
+  <testcase name="excluded packages never produce intervals" classname="com.safarparmar.app.feature.kavachanalytics.UsageIntervalReconstructorTest" time="0.0"/>
+  <testcase name="a background event ends the visit and no time is invented afterwards" classname="com.safarparmar.app.feature.kavachanalytics.UsageIntervalReconstructorTest" time="0.0"/>
+  <testcase name="closes a still-open visit at the end of the collection window" classname="com.safarparmar.app.feature.kavachanalytics.UsageIntervalReconstructorTest" time="0.0"/>
+  <testcase name="overlapping session windows are merged so no second is counted twice" classname="com.safarparmar.app.feature.kavachanalytics.UsageIntervalReconstructorTest" time="0.0"/>
+  <testcase name="a visit entirely outside every session contributes no Kavach time" classname="com.safarparmar.app.feature.kavachanalytics.UsageIntervalReconstructorTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

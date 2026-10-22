@@ -1,0 +1,13 @@
+// Explicit opt-in for the tutorial suites while unrelated legacy androidTests are being updated.
+// Usage: ./gradlew -I tools/gradle/tutorial-tests.init.gradle :app:connectedProdDebugAndroidTest ...
+allprojects {
+    afterEvaluate { project ->
+        if (project.path == ':app') {
+            def base = project.file('src/androidTest/java/com/safarparmar/app/ui')
+            def sources = ['tutorial', 'ekagra', 'nishtha/goals'].collect { new File(base, it) }
+            def tests = project.android.sourceSets.getByName('androidTest')
+            tests.java.setSrcDirs(sources)
+            tests.kotlin.setSrcDirs(sources)
+        }
+    }
+}

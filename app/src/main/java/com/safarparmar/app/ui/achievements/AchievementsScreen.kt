@@ -52,6 +52,7 @@ fun AchievementsScreen(
         contentWindowInsets = WindowInsets.safeDrawing,
         topBar = {
             TopAppBar(
+                actions = { com.safarparmar.app.ui.tutorial.TitliGuideButton() },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
                 navigationIcon = {
                     Box(modifier = Modifier.padding(start = 12.dp)) {

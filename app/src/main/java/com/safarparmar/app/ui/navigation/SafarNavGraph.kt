@@ -1,5 +1,8 @@
 package com.safarparmar.app.ui.navigation
 
+import android.content.Context
+import android.content.ContextWrapper
+
 import androidx.compose.runtime.*
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -35,6 +38,7 @@ import com.safarparmar.app.ui.profile.ProfileScreen
 import com.safarparmar.app.ui.settings.SettingsScreen
 import com.safarparmar.app.ui.splash.SplashScreen
 import com.safarparmar.app.ui.studyplanner.StudyPlannerScreen
+import com.safarparmar.app.feature.toppersbatch.ToppersBatchScreen
 import com.safarparmar.app.ui.launch.LaunchUsageQuestionnaireScreen
 import com.safarparmar.app.ui.studyplanner.screens.SyllabusSubjectsScreen
 import com.safarparmar.app.ui.ekagra.focusshield.FocusShieldStandaloneScreen
@@ -108,6 +112,7 @@ fun SafarNavGraph(
         Routes.STUDY_PLANNER,
         Routes.FOCUS_SHIELD,
         Routes.NISHTHA,
+        Routes.ANALYTICS,
         Routes.EKAGRA,
         Routes.MEHFIL,
         Routes.STUDY_CIRCLES,
@@ -164,8 +169,10 @@ fun SafarNavGraph(
     // feature directly from the drawer with nothing behind it), go Home instead
     // of letting the system close the app.
     fun safeBack() {
-        val popped = navController.popBackStack()
-        if (!popped) navigate(Routes.HOME)
+        // Don't pop the only destination: a direct entry has no screen behind it.
+        if (navController.previousBackStackEntry == null || !navController.popBackStack()) {
+            navigateAndClear(Routes.HOME)
+        }
     }
 
     fun navigateTowardHomeAfterLogin() {
@@ -185,7 +192,8 @@ fun SafarNavGraph(
     }
 
     // ── PiP restore: navigate to Ekagra when user taps the PiP window ────────
-    val activity = LocalContext.current as? MainActivity
+    val activityContext = LocalContext.current
+    val activity = remember(activityContext) { activityContext.findMainActivity() }
     val navigateToEkagra = activity?.navigateToEkagra ?: false
     LaunchedEffect(navigateToEkagra) {
         if (navigateToEkagra) {
@@ -207,6 +215,15 @@ fun SafarNavGraph(
         activity.resetNotificationRoute()
     }
 
+    com.safarparmar.app.ui.tutorial.TitliHost(dataStore,
+        onOpenEkagra = { navigate(Routes.EKAGRA) }, onOpenGoals = { navigate(Routes.nishthaTab(2)) },
+        onOpenYoutube = { navigate(Routes.YOUTUBE_STUDY_MODE_V2) }, onOpenHabits = { navigate(Routes.HABIT_TRACKER) },
+        onOpenBatch = { navigate(Routes.TOPPERS_BATCH) }, onOpenMehfil = { navigate(Routes.MEHFIL) },
+        onOpenDhyan = { navigate(Routes.DHYAN) },
+        onOpenCircle = { navigate(Routes.STUDY_CIRCLES) },
+        onOpenCheckIn = { navigate(Routes.nishthaTab(0)) }, onOpenJournal = { navigate(Routes.nishthaTab(1)) },
+        onOpenStreaks = { navigate(Routes.nishthaTab(3)) }, onOpenAnalytics = { navigate(Routes.ANALYTICS) },
+        onOpenPlanner = { navigate(Routes.STUDY_PLANNER) }, onOpenQueries = { navigate(Routes.TITLI_QUERIES) }) {
     NavHost(
         navController = navController,
         startDestination = Routes.SPLASH,
@@ -286,15 +303,14 @@ fun SafarNavGraph(
             )
         }
 
-        composable(Routes.ACHIEVEMENTS) {
-            // getBackStackEntry(DASHBOARD) throws IllegalArgumentException if the parent
-            // isn't on the back stack (stack cleared by an auth redirect, a direct deep
-            // link, or a final recompose during the exit animation). Bail out of rendering
-            // rather than crashing — the screen is on its way out in that state anyway.
-            val parentEntry = remember(currentEntry) {
+        composable(Routes.ACHIEVEMENTS) { achievementsEntry ->
+            // Reuse Dashboard state when available. Analytics and direct entry also
+            // open this screen, so absence of Dashboard must not suppress rendering.
+            val stateOwner = remember(achievementsEntry) {
                 runCatching { navController.getBackStackEntry(Routes.DASHBOARD) }.getOrNull()
-            } ?: return@composable
-            val dashVm = androidx.hilt.navigation.compose.hiltViewModel<com.safarparmar.app.ui.dashboard.DashboardViewModel>(parentEntry)
+                    ?: achievementsEntry
+            }
+            val dashVm = androidx.hilt.navigation.compose.hiltViewModel<com.safarparmar.app.ui.dashboard.DashboardViewModel>(stateOwner)
             val uiState by dashVm.uiState.collectAsStateWithLifecycle()
             AchievementsScreen(
                 achievements = uiState.allAchievements,
@@ -334,6 +350,20 @@ fun SafarNavGraph(
                 onToggleDarkTheme = onToggleDarkTheme,
                 initialTab = entry.arguments?.getInt("tab") ?: 0,
                 analyticsInitialSection = entry.arguments?.getString("section") ?: "overview",
+            )
+        }
+
+        composable(
+            route = Routes.ANALYTICS_ROUTE,
+            arguments = listOf(
+                navArgument("section") { type = NavType.StringType; defaultValue = "overview" },
+            ),
+        ) { entry ->
+            com.safarparmar.app.ui.nishtha.analytics.AnalyticsScreen(
+                isDarkTheme = isDarkTheme,
+                onNavigate = ::navigate,
+                onToggleDarkTheme = onToggleDarkTheme,
+                initialSection = entry.arguments?.getString("section") ?: "overview",
             )
         }
 
@@ -425,6 +455,32 @@ fun SafarNavGraph(
         }
 
         // ── Study Planner ─────────────────────────────────────────────────────
+
+        composable(
+            route = Routes.TOPPERS_BATCH,
+            deepLinks = listOf(navDeepLink { uriPattern = "$DEEP_LINK_BASE/toppers_batch" }),
+        ) {
+            ToppersBatchScreen(
+                isDarkTheme = isDarkTheme,
+                onNavigate = ::navigate,
+                onBack = {
+                    if (!navController.popBackStack()) navigate(Routes.STUDY_PLANNER)
+                },
+                onToggleDarkTheme = onToggleDarkTheme,
+            )
+        }
+
+        composable(
+            route = Routes.GK5_BATCH,
+            arguments = listOf(navArgument("batch") { type = NavType.StringType; defaultValue = "gk-5" }),
+            deepLinks = listOf(navDeepLink { uriPattern = "https://safar.parmarssc.in/study/gk-5" }),
+        ) {
+            ToppersBatchScreen(
+                isDarkTheme = isDarkTheme, onNavigate = ::navigate,
+                onBack = { if (!navController.popBackStack()) navigate(Routes.STUDY_PLANNER) },
+                onToggleDarkTheme = onToggleDarkTheme,
+            )
+        }
 
         composable(Routes.STUDY_PLANNER) {
             StudyPlannerScreen(
@@ -778,6 +834,13 @@ fun SafarNavGraph(
             }
         }
 
+        composable(Routes.TITLI_QUERIES, deepLinks = listOf(navDeepLink { uriPattern = "$DEEP_LINK_BASE/titli/queries" })) {
+            if (com.safarparmar.app.BuildConfig.TITLI_TUTORIALS_ENABLED) {
+                com.safarparmar.app.ui.tutorial.TitliQueriesScreen(onBack = ::safeBack)
+            } else {
+                LaunchedEffect(Unit) { navigate(Routes.HOME) }
+            }
+        }
         composable(Routes.SUPPORT) {
             SupportScreen(onBack = ::safeBack)
         }
@@ -792,6 +855,13 @@ fun SafarNavGraph(
             )
         }
     }
+    }
+}
+
+private tailrec fun Context.findMainActivity(): MainActivity? = when (this) {
+    is MainActivity -> this
+    is ContextWrapper -> if (baseContext !== this) baseContext.findMainActivity() else null
+    else -> null
 }
 
 private fun safeDecodeParam(value: String?): String? {

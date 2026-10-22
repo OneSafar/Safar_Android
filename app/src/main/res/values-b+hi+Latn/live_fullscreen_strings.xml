@@ -1,0 +1,4 @@
+<resources>
+    <string name="live_show_comments">Comments dikhao</string>
+    <string name="live_hide_comments">Comments chhupao</string>
+</resources>

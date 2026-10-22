@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.ui.studyplanner.logic.StudyPlannerProgressTest" tests="13" skipped="0" failures="0" errors="0" timestamp="2026-10-19T19:59:48.500Z" hostname="Shashanks-MacBook-Air.local" time="0.002">
+  <properties/>
+  <testcase name="course map prioritises late work and ignores partial progress for lateness" classname="com.safarparmar.app.ui.studyplanner.logic.StudyPlannerProgressTest" time="0.001"/>
+  <testcase name="revision immediately counts as completed study while appointments remain" classname="com.safarparmar.app.ui.studyplanner.logic.StudyPlannerProgressTest" time="0.0"/>
+  <testcase name="node percent uses shared weighted completion formula" classname="com.safarparmar.app.ui.studyplanner.logic.StudyPlannerProgressTest" time="0.0"/>
+  <testcase name="all done chapter is finished" classname="com.safarparmar.app.ui.studyplanner.logic.StudyPlannerProgressTest" time="0.0"/>
+  <testcase name="completion is effort-weighted but treats progress as done or not (partial hidden)" classname="com.safarparmar.app.ui.studyplanner.logic.StudyPlannerProgressTest" time="0.0"/>
+  <testcase name="stored partial value does not make a todo chapter doing" classname="com.safarparmar.app.ui.studyplanner.logic.StudyPlannerProgressTest" time="0.0"/>
+  <testcase name="daily todo completion does not inflate exam progress or stale cache" classname="com.safarparmar.app.ui.studyplanner.logic.StudyPlannerProgressTest" time="0.001"/>
+  <testcase name="course map shows todays unfinished focus when nothing is late" classname="com.safarparmar.app.ui.studyplanner.logic.StudyPlannerProgressTest" time="0.0"/>
+  <testcase name="course map reassures student when scheduled work is not late" classname="com.safarparmar.app.ui.studyplanner.logic.StudyPlannerProgressTest" time="0.0"/>
+  <testcase name="course map celebrates when all of todays work is finished" classname="com.safarparmar.app.ui.studyplanner.logic.StudyPlannerProgressTest" time="0.0"/>
+  <testcase name="empty chapter is not started" classname="com.safarparmar.app.ui.studyplanner.logic.StudyPlannerProgressTest" time="0.0"/>
+  <testcase name="chapter with some but not all topics done is doing" classname="com.safarparmar.app.ui.studyplanner.logic.StudyPlannerProgressTest" time="0.0"/>
+  <testcase name="course map asks for a schedule when no topic has a date" classname="com.safarparmar.app.ui.studyplanner.logic.StudyPlannerProgressTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

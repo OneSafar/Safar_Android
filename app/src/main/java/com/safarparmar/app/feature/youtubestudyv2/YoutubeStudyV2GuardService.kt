@@ -15,15 +15,43 @@ import com.safarparmar.app.notifications.SafarNotificationChannels
 /** Process-lifetime support for the user-enabled accessibility monitor. */
 class YoutubeStudyV2GuardService : Service() {
     private var isForegroundStarted = false
+    private var isActiveStatusShown = false
 
     override fun onCreate() {
         super.onCreate()
-        if (!promote()) stopSelf()
+        // Acknowledge every accepted foreground-service start immediately, including
+        // one invalidated while Android was creating the service. A neutral status
+        // avoids claiming protection before onStartCommand validates the request.
+        if (!promote(active = false)) stopSelf()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (!isForegroundStarted && !promote(active = false)) {
+            stopSelf()
+            return START_NOT_STICKY
+        }
+        val enabled = YoutubeStudyV2Preferences.isEnabled(this)
+        val connected = YoutubeStudyV2AccessibilityService.isConnected
+        if (!startRequests.canRun(
+                request = intent?.getLongExtra(EXTRA_START_REQUEST, -1L) ?: -1L,
+                enabled = enabled,
+                connected = connected,
+            )
+        ) {
+            // An older command must not tear down a newer, valid foreground start.
+            if (!enabled || !connected || !isActiveStatusShown) {
+                if (isActiveStatusShown && !promote(active = false)) {
+                    stopSelf()
+                    return START_NOT_STICKY
+                }
+                // A newer start may make stopSelfResult return false. Keep its
+                // foreground acknowledgement until that command or onDestroy.
+                stopSelfResult(startId)
+            }
+            return START_NOT_STICKY
+        }
         if (!promote()) {
-            stopSelfResult(startId)
+            stopSelf()
             return START_NOT_STICKY
         }
         return START_NOT_STICKY
@@ -32,14 +60,20 @@ class YoutubeStudyV2GuardService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onDestroy() {
-        if (isForegroundStarted) {
-            runCatching { ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE) }
-        }
+        removeForegroundNotification()
         super.onDestroy()
     }
 
-    private fun promote(): Boolean {
-        if (isForegroundStarted) return true
+    private fun removeForegroundNotification() {
+        if (isForegroundStarted) {
+            runCatching { ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE) }
+            isForegroundStarted = false
+            isActiveStatusShown = false
+        }
+    }
+
+    private fun promote(active: Boolean = true): Boolean {
+        if (isForegroundStarted && isActiveStatusShown == active) return true
         return runCatching {
             SafarNotificationChannels.ensureYoutubeStudyV2StatusChannel(this)
             val pendingIntent = android.app.PendingIntent.getActivity(
@@ -51,8 +85,8 @@ class YoutubeStudyV2GuardService : Service() {
             val notification = try {
                 NotificationCompat.Builder(this, SafarNotificationChannels.YOUTUBE_STUDY_V2_STATUS)
                     .setSmallIcon(R.drawable.ic_safar_notification_sparkle)
-                    .setContentTitle(getString(R.string.youtube_focus_is_on))
-                    .setContentText(getString(R.string.youtube_focus_protection_active))
+                    .setContentTitle(getString(if (active) R.string.youtube_focus_is_on else R.string.kavach_youtube_focus))
+                    .setContentText(getString(if (active) R.string.youtube_focus_protection_active else R.string.common_loading))
                     .setContentIntent(pendingIntent)
                     .setOngoing(true)
                     .setSilent(true)
@@ -61,8 +95,8 @@ class YoutubeStudyV2GuardService : Service() {
             } catch (t: Throwable) {
                 NotificationCompat.Builder(this, SafarNotificationChannels.YOUTUBE_STUDY_V2_STATUS)
                     .setSmallIcon(R.drawable.ic_safar_notification_sparkle)
-                    .setContentTitle(getString(R.string.youtube_focus_is_on))
-                    .setContentText(getString(R.string.youtube_focus_protection_active))
+                    .setContentTitle(getString(if (active) R.string.youtube_focus_is_on else R.string.kavach_youtube_focus))
+                    .setContentText(getString(if (active) R.string.youtube_focus_protection_active else R.string.common_loading))
                     .setPriority(NotificationCompat.PRIORITY_LOW)
                     .setOngoing(true)
                     .build()
@@ -79,6 +113,7 @@ class YoutubeStudyV2GuardService : Service() {
                 startForeground(NOTIFICATION_ID, notification)
             }
             isForegroundStarted = true
+            isActiveStatusShown = active
             true
         }.getOrElse { error ->
             android.util.Log.e("YoutubeStudyV2", "Failed to promote guard service", error)
@@ -88,9 +123,16 @@ class YoutubeStudyV2GuardService : Service() {
 
     companion object {
         private const val NOTIFICATION_ID = 2122
+        private const val EXTRA_START_REQUEST = "youtube_focus_guard_start_request"
+        private val startRequests = YoutubeGuardStartRequests()
 
         fun start(context: Context) {
             val appContext = context.applicationContext
+            // A permission toggle can precede the actual accessibility connection.
+            // The connection callback retries once protection can really run.
+            if (!YoutubeStudyV2Preferences.isEnabled(appContext) ||
+                !YoutubeStudyV2AccessibilityService.isConnected
+            ) return
             // Do not start foreground service from background on Android 12+
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
                 !com.safarparmar.app.util.AppForegroundTracker.isAppInForeground
@@ -100,6 +142,7 @@ class YoutubeStudyV2GuardService : Service() {
             }
 
             val intent = Intent(appContext, YoutubeStudyV2GuardService::class.java)
+                .putExtra(EXTRA_START_REQUEST, startRequests.requestStart())
             runCatching {
                 SafarNotificationChannels.ensureYoutubeStudyV2StatusChannel(appContext)
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) appContext.startForegroundService(intent)
@@ -110,6 +153,8 @@ class YoutubeStudyV2GuardService : Service() {
         }
 
         fun stop(context: Context) {
+            // Invalidate queued start commands before asking Android to stop the service.
+            startRequests.invalidate()
             context.stopService(Intent(context, YoutubeStudyV2GuardService::class.java))
         }
     }

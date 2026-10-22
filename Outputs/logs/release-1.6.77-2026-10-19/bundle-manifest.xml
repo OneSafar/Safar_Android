@@ -1,0 +1,528 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" android:compileSdkVersion="37" android:compileSdkVersionCodename="17" android:versionCode="77" android:versionName="1.6.77" package="com.safarparmar.app" platformBuildVersionCode="37" platformBuildVersionName="17">
+      
+  <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="36"/>
+      
+  <uses-permission android:name="android.permission.INTERNET"/>
+      
+  <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS"/>
+      
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+      
+  <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+      
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"/>
+      
+    
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE"/>
+      
+  <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+      
+  <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
+      
+  <uses-permission android:name="android.permission.VIBRATE"/>
+      
+  <uses-permission android:name="android.permission.WAKE_LOCK"/>
+      
+  <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
+      
+  <uses-permission android:name="android.permission.KILL_BACKGROUND_PROCESSES"/>
+      
+  <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>
+      
+    
+  <queries>
+            
+    <intent>
+                  
+      <action android:name="android.intent.action.MAIN"/>
+                  
+      <category android:name="android.intent.category.LAUNCHER"/>
+              
+    </intent>
+            
+    <intent>
+                  
+      <action android:name="android.intent.action.VIEW"/>
+                  
+      <data android:mimeType="*/*" android:scheme="*"/>
+              
+    </intent>
+            
+    <intent>
+                  
+      <action android:name="android.intent.action.VIEW"/>
+                  
+      <category android:name="android.intent.category.BROWSABLE"/>
+                  
+      <data android:host="pay" android:mimeType="*/*" android:scheme="upi"/>
+              
+    </intent>
+            
+    <intent>
+                  
+      <action android:name="android.intent.action.MAIN"/>
+              
+    </intent>
+            
+    <intent>
+                  
+      <action android:name="android.intent.action.SEND"/>
+                  
+      <data android:mimeType="*/*"/>
+              
+    </intent>
+            
+    <intent>
+                  
+      <action android:name="rzp.device_token.share"/>
+              
+    </intent>
+        
+  </queries>
+      
+  <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+      
+  <uses-feature android:glEsVersion="0x00020000" android:required="true"/>
+   
+    
+  <uses-permission android:name="com.google.android.c2dm.permission.RECEIVE"/>
+      
+  <uses-permission android:name="com.google.android.providers.gsf.permission.READ_GSERVICES"/>
+      
+  <permission android:name="com.safarparmar.app.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" android:protectionLevel="0x00000002"/>
+      
+  <uses-permission android:name="com.safarparmar.app.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"/>
+      
+  <uses-permission android:name="com.google.android.finsky.permission.BIND_GET_INSTALL_REFERRER_SERVICE"/>
+      
+  <application android:allowBackup="false" android:appComponentFactory="androidx.core.app.CoreComponentFactory" android:extractNativeLibs="false" android:hardwareAccelerated="true" android:icon="@mipmap/ic_safar_launcher" android:label="@string/app_name" android:localeConfig="@xml/locales_config" android:name="com.safarparmar.app.SafarApplication" android:networkSecurityConfig="@xml/network_security_config" android:roundIcon="@mipmap/ic_safar_launcher_round" android:supportsRtl="true" android:theme="@style/Theme.Safar" android:usesCleartextTraffic="false">
+            
+        
+    <activity android:configChanges="0x00000da0" android:enableOnBackInvokedCallback="false" android:exported="true" android:name="com.safarparmar.app.MainActivity" android:screenOrientation="1" android:theme="@style/Theme.App.Starting" android:windowSoftInputMode="0x00000010">
+                  
+      <intent-filter>
+                        
+        <action android:name="android.intent.action.MAIN"/>
+                        
+        <category android:name="android.intent.category.LAUNCHER"/>
+                    
+      </intent-filter>
+                  
+      <intent-filter>
+                        
+        <action android:name="android.intent.action.VIEW"/>
+                        
+        <category android:name="android.intent.category.DEFAULT"/>
+                        
+        <category android:name="android.intent.category.BROWSABLE"/>
+                        
+        <data android:scheme="safar"/>
+                    
+      </intent-filter>
+              
+    </activity>
+            
+    <activity android:configChanges="0x00000d80" android:excludeFromRecents="true" android:exported="false" android:name="com.safarparmar.app.feature.youtubestudyv2.YoutubeFocusTutorialActivity" android:resizeableActivity="true" android:supportsPictureInPicture="true" android:taskAffinity="com.safarparmar.app.youtubeTutorial" android:theme="@style/Theme.Safar"/>
+            
+        
+    <activity android:configChanges="0x00000da0" android:exported="false" android:name="com.safarparmar.app.feature.live.presentation.VideoPlayerActivity" android:screenOrientation="6" android:theme="@style/Theme.Safar"/>
+            
+    <service android:exported="false" android:name="com.safarparmar.app.notifications.SafarFirebaseMessagingService">
+                  
+      <intent-filter>
+                        
+        <action android:name="com.google.firebase.MESSAGING_EVENT"/>
+                    
+      </intent-filter>
+              
+    </service>
+            
+        
+    <meta-data android:name="com.google.firebase.messaging.default_notification_icon" android:resource="@drawable/ic_safar_notification_sparkle"/>
+            
+    <meta-data android:name="com.google.firebase.messaging.default_notification_color" android:resource="@color/safar_notification_color"/>
+            
+    <receiver android:exported="false" android:name="com.safarparmar.app.ui.ekagra.EkagraTimerAlarmReceiver">
+                  
+      <intent-filter>
+                        
+        <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                        
+        <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
+                        
+        <action android:name="android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED"/>
+                    
+      </intent-filter>
+              
+    </receiver>
+            
+    <service android:exported="false" android:foregroundServiceType="0x40000000" android:name="com.safarparmar.app.ui.ekagra.TimerService" android:stopWithTask="false">
+                  
+      <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="User-initiated study timer and stopwatch: maintains the visible ongoing timer, its pause and end controls, completion alerts, and optional distraction blocking while the student studies with the screen off. The timer must continue without audio playback and cannot be deferred to a job."/>
+              
+    </service>
+            
+        
+    <service android:exported="false" android:foregroundServiceType="0x40000000" android:name="com.safarparmar.app.ui.ekagra.focusshield.KavachAlwaysOnService">
+                  
+      <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="Digital wellbeing: the student turns on KAVACH to block distracting apps they chose themselves, for as long as they leave it on. Blocking must continue while SAFAR is in the background, so the check cannot be deferred to a job. No other foregroundServiceType applies."/>
+              
+    </service>
+            
+    <service android:exported="true" android:label="@string/youtube_study_v2_accessibility_label" android:name="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2AccessibilityService" android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+                  
+      <intent-filter>
+                        
+        <action android:name="android.accessibilityservice.AccessibilityService"/>
+                    
+      </intent-filter>
+                  
+      <meta-data android:name="android.accessibilityservice" android:resource="@xml/youtube_study_v2_accessibility_service"/>
+              
+    </service>
+            
+    <service android:exported="false" android:foregroundServiceType="0x40000000" android:name="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2GuardService">
+                  
+      <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="Digital wellbeing: maintains the explicitly enabled YouTube Focus accessibility monitor while SAFAR is backgrounded."/>
+              
+    </service>
+            
+    <receiver android:exported="false" android:name="com.safarparmar.app.ui.ekagra.focusshield.QuickUnlockActionReceiver"/>
+            
+        
+    <service android:enabled="false" android:exported="false" android:name="androidx.appcompat.app.AppLocalesMetadataHolderService">
+                  
+      <intent-filter>
+                        
+        <action android:name="androidx.appcompat.app.AppLocalesMetadataHolderService"/>
+                    
+      </intent-filter>
+                  
+      <meta-data android:name="autoStoreLocales" android:value="true"/>
+              
+    </service>
+            
+    <service android:exported="true" android:label="@string/focus_shield_notification_listener_label" android:name="com.safarparmar.app.ui.ekagra.focusshield.FocusShieldNotificationListenerService" android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+                  
+      <intent-filter>
+                        
+        <action android:name="android.service.notification.NotificationListenerService"/>
+                    
+      </intent-filter>
+              
+    </service>
+            
+        
+    <receiver android:exported="false" android:name="com.safarparmar.app.notifications.NotificationRescheduleReceiver">
+                  
+      <intent-filter>
+                        
+        <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                        
+        <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
+                        
+        <action android:name="android.intent.action.QUICKBOOT_POWERON"/>
+                    
+      </intent-filter>
+              
+    </receiver>
+            
+    <receiver android:exported="true" android:name="com.safarparmar.app.data.repository.TestReferrerReceiver">
+                  
+      <intent-filter>
+                        
+        <action android:name="com.safarparmar.app.TEST_REFERRER"/>
+                    
+      </intent-filter>
+              
+    </receiver>
+            
+    <provider android:authorities="com.safarparmar.app.fileprovider" android:exported="false" android:grantUriPermissions="true" android:name="androidx.core.content.FileProvider">
+                  
+      <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths"/>
+              
+    </provider>
+            
+    <service android:directBootAware="true" android:exported="false" android:name="androidx.room.MultiInstanceInvalidationService"/>
+            
+    <provider android:authorities="com.safarparmar.app.androidx-startup" android:exported="false" android:name="androidx.startup.InitializationProvider">
+                  
+      <meta-data android:name="androidx.work.WorkManagerInitializer" android:value="androidx.startup"/>
+                  
+      <meta-data android:name="androidx.emoji2.text.EmojiCompatInitializer" android:value="androidx.startup"/>
+                  
+      <meta-data android:name="androidx.lifecycle.ProcessLifecycleInitializer" android:value="androidx.startup"/>
+                  
+      <meta-data android:name="androidx.profileinstaller.ProfileInstallerInitializer" android:value="androidx.startup"/>
+              
+    </provider>
+            
+    <service android:directBootAware="false" android:enabled="@bool/enable_system_alarm_service_default" android:exported="false" android:name="androidx.work.impl.background.systemalarm.SystemAlarmService"/>
+            
+    <service android:directBootAware="false" android:enabled="@bool/enable_system_job_service_default" android:exported="true" android:name="androidx.work.impl.background.systemjob.SystemJobService" android:permission="android.permission.BIND_JOB_SERVICE"/>
+            
+    <service android:directBootAware="false" android:enabled="@bool/enable_system_foreground_service_default" android:exported="false" android:name="androidx.work.impl.foreground.SystemForegroundService"/>
+            
+    <receiver android:directBootAware="false" android:enabled="true" android:exported="false" android:name="androidx.work.impl.utils.ForceStopRunnable$BroadcastReceiver"/>
+            
+    <receiver android:directBootAware="false" android:enabled="false" android:exported="false" android:name="androidx.work.impl.background.systemalarm.ConstraintProxy$BatteryChargingProxy">
+                  
+      <intent-filter>
+                        
+        <action android:name="android.intent.action.ACTION_POWER_CONNECTED"/>
+                        
+        <action android:name="android.intent.action.ACTION_POWER_DISCONNECTED"/>
+                    
+      </intent-filter>
+              
+    </receiver>
+            
+    <receiver android:directBootAware="false" android:enabled="false" android:exported="false" android:name="androidx.work.impl.background.systemalarm.ConstraintProxy$BatteryNotLowProxy">
+                  
+      <intent-filter>
+                        
+        <action android:name="android.intent.action.BATTERY_OKAY"/>
+                        
+        <action android:name="android.intent.action.BATTERY_LOW"/>
+                    
+      </intent-filter>
+              
+    </receiver>
+            
+    <receiver android:directBootAware="false" android:enabled="false" android:exported="false" android:name="androidx.work.impl.background.systemalarm.ConstraintProxy$StorageNotLowProxy">
+                  
+      <intent-filter>
+                        
+        <action android:name="android.intent.action.DEVICE_STORAGE_LOW"/>
+                        
+        <action android:name="android.intent.action.DEVICE_STORAGE_OK"/>
+                    
+      </intent-filter>
+              
+    </receiver>
+            
+    <receiver android:directBootAware="false" android:enabled="false" android:exported="false" android:name="androidx.work.impl.background.systemalarm.ConstraintProxy$NetworkStateProxy">
+                  
+      <intent-filter>
+                        
+        <action android:name="android.net.conn.CONNECTIVITY_CHANGE"/>
+                    
+      </intent-filter>
+              
+    </receiver>
+            
+    <receiver android:directBootAware="false" android:enabled="false" android:exported="false" android:name="androidx.work.impl.background.systemalarm.RescheduleReceiver">
+                  
+      <intent-filter>
+                        
+        <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                        
+        <action android:name="android.intent.action.TIME_SET"/>
+                        
+        <action android:name="android.intent.action.TIMEZONE_CHANGED"/>
+                    
+      </intent-filter>
+              
+    </receiver>
+            
+    <receiver android:directBootAware="false" android:enabled="@bool/enable_system_alarm_service_default" android:exported="false" android:name="androidx.work.impl.background.systemalarm.ConstraintProxyUpdateReceiver">
+                  
+      <intent-filter>
+                        
+        <action android:name="androidx.work.impl.background.systemalarm.UpdateProxies"/>
+                    
+      </intent-filter>
+              
+    </receiver>
+            
+    <receiver android:directBootAware="false" android:enabled="true" android:exported="true" android:name="androidx.work.impl.diagnostics.DiagnosticsReceiver" android:permission="android.permission.DUMP">
+                  
+      <intent-filter>
+                        
+        <action android:name="androidx.work.diagnostics.REQUEST_DIAGNOSTICS"/>
+                    
+      </intent-filter>
+              
+    </receiver>
+            
+    <service android:directBootAware="true" android:exported="false" android:name="com.google.firebase.components.ComponentDiscoveryService">
+                  
+      <meta-data android:name="com.google.firebase.components:com.google.firebase.auth.ktx.FirebaseAuthLegacyRegistrar" android:value="com.google.firebase.components.ComponentRegistrar"/>
+                  
+      <meta-data android:name="com.google.firebase.components:com.google.firebase.auth.FirebaseAuthRegistrar" android:value="com.google.firebase.components.ComponentRegistrar"/>
+                  
+      <meta-data android:name="com.google.firebase.components:com.google.firebase.messaging.ktx.FirebaseMessagingLegacyRegistrar" android:value="com.google.firebase.components.ComponentRegistrar"/>
+                  
+      <meta-data android:name="com.google.firebase.components:com.google.firebase.messaging.FirebaseMessagingKtxRegistrar" android:value="com.google.firebase.components.ComponentRegistrar"/>
+                  
+      <meta-data android:name="com.google.firebase.components:com.google.firebase.messaging.FirebaseMessagingRegistrar" android:value="com.google.firebase.components.ComponentRegistrar"/>
+                  
+      <meta-data android:name="com.google.firebase.components:com.google.firebase.crashlytics.FirebaseCrashlyticsKtxRegistrar" android:value="com.google.firebase.components.ComponentRegistrar"/>
+                  
+      <meta-data android:name="com.google.firebase.components:com.google.firebase.crashlytics.CrashlyticsRegistrar" android:value="com.google.firebase.components.ComponentRegistrar"/>
+                  
+      <meta-data android:name="com.google.firebase.components:com.google.firebase.sessions.FirebaseSessionsRegistrar" android:value="com.google.firebase.components.ComponentRegistrar"/>
+                  
+      <meta-data android:name="com.google.firebase.components:com.google.firebase.installations.FirebaseInstallationsKtxRegistrar" android:value="com.google.firebase.components.ComponentRegistrar"/>
+                  
+      <meta-data android:name="com.google.firebase.components:com.google.firebase.installations.FirebaseInstallationsRegistrar" android:value="com.google.firebase.components.ComponentRegistrar"/>
+                  
+      <meta-data android:name="com.google.firebase.components:com.google.firebase.ktx.FirebaseCommonLegacyRegistrar" android:value="com.google.firebase.components.ComponentRegistrar"/>
+                  
+      <meta-data android:name="com.google.firebase.components:com.google.firebase.FirebaseCommonKtxRegistrar" android:value="com.google.firebase.components.ComponentRegistrar"/>
+                  
+      <meta-data android:name="com.google.firebase.components:com.google.firebase.datatransport.TransportRegistrar" android:value="com.google.firebase.components.ComponentRegistrar"/>
+              
+    </service>
+            
+    <activity android:excludeFromRecents="true" android:exported="true" android:launchMode="2" android:name="com.google.firebase.auth.internal.GenericIdpActivity" android:theme="@android:style/Theme.Translucent.NoTitleBar">
+                  
+      <intent-filter>
+                        
+        <action android:name="android.intent.action.VIEW"/>
+                        
+        <category android:name="android.intent.category.DEFAULT"/>
+                        
+        <category android:name="android.intent.category.BROWSABLE"/>
+                        
+        <data android:host="firebase.auth" android:path="/" android:scheme="genericidp"/>
+                    
+      </intent-filter>
+              
+    </activity>
+            
+    <activity android:excludeFromRecents="true" android:exported="true" android:launchMode="2" android:name="com.google.firebase.auth.internal.RecaptchaActivity" android:theme="@android:style/Theme.Translucent.NoTitleBar">
+                  
+      <intent-filter>
+                        
+        <action android:name="android.intent.action.VIEW"/>
+                        
+        <category android:name="android.intent.category.DEFAULT"/>
+                        
+        <category android:name="android.intent.category.BROWSABLE"/>
+                        
+        <data android:host="firebase.auth" android:path="/" android:scheme="recaptcha"/>
+                    
+      </intent-filter>
+              
+    </activity>
+            
+    <service android:enabled="true" android:exported="false" android:name="androidx.credentials.playservices.CredentialProviderMetadataHolder">
+                  
+      <meta-data android:name="androidx.credentials.CREDENTIAL_PROVIDER_KEY" android:value="androidx.credentials.playservices.CredentialProviderPlayServicesImpl"/>
+              
+    </service>
+            
+    <activity android:configChanges="0x000005a0" android:enabled="true" android:exported="false" android:fitsSystemWindows="true" android:name="androidx.credentials.playservices.HiddenActivity" android:theme="@style/Theme.Hidden">
+        </activity>
+            
+    <receiver android:exported="true" android:name="com.razorpay.RzpTokenReceiver">
+                  
+      <intent-filter>
+                        
+        <action android:name="rzp.device_token.share"/>
+                    
+      </intent-filter>
+              
+    </receiver>
+            
+    <activity android:configChanges="0x000004b0" android:exported="false" android:name="com.razorpay.CheckoutActivity" android:theme="@style/CheckoutTheme">
+                  
+      <intent-filter>
+                        
+        <action android:name="android.intent.action.MAIN"/>
+                    
+      </intent-filter>
+              
+    </activity>
+            
+    <meta-data android:name="com.razorpay.plugin.googlepay_all" android:value="com.razorpay.RzpGpayMerged"/>
+            
+    <activity android:excludeFromRecents="true" android:exported="false" android:name="com.google.android.gms.auth.api.signin.internal.SignInHubActivity" android:theme="@android:style/Theme.Translucent.NoTitleBar"/>
+            
+        
+    <service android:exported="true" android:name="com.google.android.gms.auth.api.signin.RevocationBoundService" android:permission="com.google.android.gms.auth.api.signin.permission.REVOCATION_NOTIFICATION" android:visibleToInstantApps="true"/>
+     
+        
+    <uses-library android:name="org.apache.http.legacy" android:required="false"/>
+            
+    <receiver android:exported="true" android:name="com.google.firebase.iid.FirebaseInstanceIdReceiver" android:permission="com.google.android.c2dm.permission.SEND">
+                  
+      <intent-filter>
+                        
+        <action android:name="com.google.android.c2dm.intent.RECEIVE"/>
+                    
+      </intent-filter>
+                  
+      <meta-data android:name="com.google.android.gms.cloudmessaging.FINISHED_AFTER_HANDLED" android:value="true"/>
+              
+    </receiver>
+            
+        
+    <service android:directBootAware="true" android:exported="false" android:name="com.google.firebase.messaging.FirebaseMessagingService">
+                  
+      <intent-filter android:priority="-500">
+                        
+        <action android:name="com.google.firebase.MESSAGING_EVENT"/>
+                    
+      </intent-filter>
+              
+    </service>
+            
+    <activity android:exported="false" android:name="com.google.android.gms.common.api.GoogleApiActivity" android:theme="@android:style/Theme.Translucent.NoTitleBar"/>
+            
+    <service android:enabled="true" android:exported="false" android:name="com.google.firebase.sessions.SessionLifecycleService"/>
+            
+    <provider android:authorities="com.safarparmar.app.firebaseinitprovider" android:directBootAware="true" android:exported="false" android:initOrder="100" android:name="com.google.firebase.provider.FirebaseInitProvider"/>
+            
+    <uses-library android:name="androidx.window.extensions" android:required="false"/>
+            
+    <uses-library android:name="androidx.window.sidecar" android:required="false"/>
+            
+    <meta-data android:name="com.google.android.gms.version" android:value="@integer/google_play_services_version"/>
+            
+    <service android:exported="false" android:name="com.google.android.datatransport.runtime.backends.TransportBackendDiscovery">
+                  
+      <meta-data android:name="backend:com.google.android.datatransport.cct.CctBackendFactory" android:value="cct"/>
+              
+    </service>
+            
+    <receiver android:directBootAware="false" android:enabled="true" android:exported="true" android:name="androidx.profileinstaller.ProfileInstallReceiver" android:permission="android.permission.DUMP">
+                  
+      <intent-filter>
+                        
+        <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE"/>
+                    
+      </intent-filter>
+                  
+      <intent-filter>
+                        
+        <action android:name="androidx.profileinstaller.action.SKIP_FILE"/>
+                    
+      </intent-filter>
+                  
+      <intent-filter>
+                        
+        <action android:name="androidx.profileinstaller.action.SAVE_PROFILE"/>
+                    
+      </intent-filter>
+                  
+      <intent-filter>
+                        
+        <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION"/>
+                    
+      </intent-filter>
+              
+    </receiver>
+            
+    <service android:exported="false" android:name="com.google.android.datatransport.runtime.scheduling.jobscheduling.JobInfoSchedulerService" android:permission="android.permission.BIND_JOB_SERVICE">
+        </service>
+            
+    <receiver android:exported="false" android:name="com.google.android.datatransport.runtime.scheduling.jobscheduling.AlarmManagerSchedulerBroadcastReceiver"/>
+     
+        
+    <activity android:exported="false" android:name="com.google.android.play.core.common.PlayCoreDialogWrapperActivity" android:stateNotNeeded="true" android:theme="@style/Theme.PlayCore.Transparent"/>
+        
+  </application>
+  
+</manifest>

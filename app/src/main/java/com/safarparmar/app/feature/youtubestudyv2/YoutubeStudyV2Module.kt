@@ -18,7 +18,7 @@ object YoutubeStudyV2Module {
     @Singleton
     fun database(@ApplicationContext context: Context): YoutubeStudyV2Database = Room
         .databaseBuilder(context, YoutubeStudyV2Database::class.java, YoutubeStudyV2Database.NAME)
-        .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
+        .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
         .fallbackToDestructiveMigration()
         .build()
 
@@ -120,6 +120,13 @@ object YoutubeStudyV2Module {
     @Provides
     @Singleton
     fun dao(database: YoutubeStudyV2Database): YoutubeStudyV2Dao = database.dao()
+
+    internal val MIGRATION_8_9 = object : Migration(8, 9) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            // Version 9 has the same schema as version 8. Retain the version
+            // for installed databases, without deleting saved channel entries.
+        }
+    }
 
     @Provides
     @Singleton

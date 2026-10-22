@@ -50,9 +50,7 @@ object FocusShieldPermissionHelper {
         }
         val opened = runCatching { context.startActivity(perApp) }.isSuccess
         if (!opened) {
-            context.startActivity(
-                Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-            )
+            openSettingsPage(context, Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
         }
     }
 
@@ -89,8 +87,36 @@ object FocusShieldPermissionHelper {
         }
     }
 
+    /** OEMs can omit individual Settings activities. Keep permission taps recoverable. */
+    fun openNotificationSettings(context: Context) {
+        openSettingsPage(context, Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+            putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+        })
+    }
+
+    private fun openSettingsPage(context: Context, intent: Intent) {
+        try {
+            context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        } catch (error: android.content.ActivityNotFoundException) {
+            openGeneralSettings(context, error)
+        } catch (error: SecurityException) {
+            openGeneralSettings(context, error)
+        }
+    }
+
+    private fun openGeneralSettings(context: Context, cause: Exception) {
+        android.util.Log.w("FocusShieldPermissions", "Permission settings unavailable", cause)
+        try {
+            context.startActivity(Intent(Settings.ACTION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        } catch (error: android.content.ActivityNotFoundException) {
+            android.util.Log.e("FocusShieldPermissions", "Settings unavailable", error)
+        } catch (error: SecurityException) {
+            android.util.Log.e("FocusShieldPermissions", "Settings access denied", error)
+        }
+    }
+
     fun openAccessibilitySettings(context: Context) {
-        context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        openSettingsPage(context, Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
     }
 
     /** Display over other apps ("draw overlay") — required to show the KAVACH block screen. */
@@ -105,9 +131,7 @@ object FocusShieldPermissionHelper {
         runCatching {
             context.startActivity(intent)
         }.getOrElse {
-            context.startActivity(
-                Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-            )
+            openSettingsPage(context, Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION))
         }
     }
 
@@ -147,10 +171,7 @@ object FocusShieldPermissionHelper {
             val opened = runCatching { context.startActivity(detail) }.isSuccess
             if (opened) return
         }
-        context.startActivity(
-            Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-        )
+        openSettingsPage(context, Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
     }
 
     fun requestNotificationListenerRebind(context: Context) {
@@ -169,44 +190,56 @@ object FocusShieldPermissionHelper {
         return powerManager.isIgnoringBatteryOptimizations(context.packageName)
     }
 
+    /** Kavach and Ekagra share the app-wide grant; explicit OS restriction also needs removal. */
+    fun hasBackgroundRunningAccess(context: Context): Boolean =
+        isIgnoringBatteryOptimizations(context) && !isBackgroundRestricted(context)
+
+    internal fun isBackgroundRestricted(context: Context): Boolean =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) readBackgroundRestriction(context) else false
+
+    @androidx.annotation.RequiresApi(Build.VERSION_CODES.P)
+    internal fun readBackgroundRestriction(context: Context): Boolean =
+        (context.getSystemService(Context.ACTIVITY_SERVICE) as? android.app.ActivityManager)?.isBackgroundRestricted ?: false
+
     fun openBatterySaverSettings(context: Context) {
+        tryOpenBatterySaverSettings(context)
+    }
+
+    fun tryOpenBatterySaverSettings(context: Context): Boolean {
         val packageName = context.packageName
-        val intents = listOf(
-            // 1. Direct system prompt to ignore battery optimizations (Stock / Pixel / Samsung etc.)
-            Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
-                data = Uri.parse("package:$packageName")
-            },
-            // 2. Xiaomi / MIUI Powerkeeper "No restrictions" screen
-            Intent().apply {
-                component = ComponentName(
-                    "com.miui.powerkeeper",
-                    "com.miui.powerkeeper.ui.HiddenAppsConfigActivity",
-                )
+        val intents = buildList {
+            // A granted exemption dialog cannot remove a separate background restriction.
+            if (!isIgnoringBatteryOptimizations(context)) {
+                add(Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                    data = Uri.parse("package:$packageName")
+                })
+            }
+            // Reuse Kavach's OEM and standard Android fallbacks.
+            add(Intent().apply {
+                component = ComponentName("com.miui.powerkeeper", "com.miui.powerkeeper.ui.HiddenAppsConfigActivity")
                 putExtra("package_name", packageName)
                 putExtra("package_label", runCatching {
                     context.applicationInfo.loadLabel(context.packageManager).toString()
                 }.getOrDefault("SAFAR"))
-            },
-            // 3. Android 12+ per-app battery usage detail
-            Intent("android.settings.APP_BATTERY_USAGE_SETTINGS").apply {
+            })
+            add(Intent("android.settings.APP_BATTERY_USAGE_SETTINGS").apply {
                 data = Uri.parse("package:$packageName")
-            },
-            // 4. System-wide ignore battery optimizations settings list
-            Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS),
-            // 5. Standard App Info Details (where Battery / Battery Saver is accessible)
-            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+            })
+            add(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+            add(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
                 data = Uri.parse("package:$packageName")
-            },
-        )
+            })
+        }
 
         for (intent in intents) {
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             val resolved = intent.resolveActivity(context.packageManager) != null
             if (resolved) {
                 val opened = runCatching { context.startActivity(intent) }.isSuccess
-                if (opened) return
+                if (opened) return true
             }
         }
+        return false
     }
 
     /** Whether [target] is currently granted on this device. */

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2RepositoryTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-10-20T02:12:56.613Z" hostname="Shashanks-MacBook-Air.local" time="0.022">
+  <properties/>
+  <testcase name="resolved canonical ID uses its existing category" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2RepositoryTest" time="0.004"/>
+  <testcase name="exact channel ID identifies an allowed class without handle or display" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2RepositoryTest" time="0.002"/>
+  <testcase name="unknown runtime handle blocks immediately" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2RepositoryTest" time="0.002"/>
+  <testcase name="different display name remains blocked" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2RepositoryTest" time="0.002"/>
+  <testcase name="local allow rule does not expire" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2RepositoryTest" time="0.002"/>
+  <testcase name="same channel is blocked after local allowlist changes" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2RepositoryTest" time="0.004"/>
+  <testcase name="exact normalized display name is allowed" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2RepositoryTest" time="0.002"/>
+  <testcase name="known distracting handle blocks using local data only" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2RepositoryTest" time="0.002"/>
+  <testcase name="manually verified productive handle is allowed using local data only" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2RepositoryTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

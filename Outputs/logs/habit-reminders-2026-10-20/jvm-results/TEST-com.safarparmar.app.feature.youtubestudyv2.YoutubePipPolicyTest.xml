@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.feature.youtubestudyv2.YoutubePipPolicyTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-20T02:12:56.072Z" hostname="Shashanks-MacBook-Air.local" time="0.0">
+  <properties/>
+  <testcase name="unidentified PiP cannot bypass channel checks" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubePipPolicyTest" time="0.0"/>
+  <testcase name="productive playback continues after break expires" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubePipPolicyTest" time="0.0"/>
+  <testcase name="distracting playback is blocked again when break expires in PiP" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubePipPolicyTest" time="0.0"/>
+  <testcase name="block overlay is scoped to an unlocked YouTube surface" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubePipPolicyTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,7 @@
+Starting: Intent { cmp=com.safarparmar.app/.MainActivity }
+Status: ok
+LaunchState: COLD
+Activity: com.safarparmar.app/.MainActivity
+TotalTime: 997
+WaitTime: 1000
+Complete

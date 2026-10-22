@@ -2,9 +2,20 @@ package com.safarparmar.app.ui.ekagra.focusshield
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class KavachActivationReadinessTest {
+
+    @Test
+    fun `only usage access and overlay are required for activation`() {
+        assertTrue(KavachActivationReadiness.hasRequiredPermissions(true, true))
+        assertFalse(KavachActivationReadiness.hasRequiredPermissions(false, true))
+        assertFalse(KavachActivationReadiness.hasRequiredPermissions(true, false))
+        assertFalse(KavachActivationReadiness.hasRequiredPermissions(false, false))
+    }
+
 
     @Test
     fun `requires at least one selected app`() {

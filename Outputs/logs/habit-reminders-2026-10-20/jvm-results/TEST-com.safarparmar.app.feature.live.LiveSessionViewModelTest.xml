@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.feature.live.LiveSessionViewModelTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-20T02:12:55.530Z" hostname="Shashanks-MacBook-Air.local" time="0.129">
+  <properties/>
+  <testcase name="sessions error state" classname="com.safarparmar.app.feature.live.LiveSessionViewModelTest" time="0.071"/>
+  <testcase name="sessions success state" classname="com.safarparmar.app.feature.live.LiveSessionViewModelTest" time="0.002"/>
+  <testcase name="leaving cancels listeners and rejoining subscribes only once" classname="com.safarparmar.app.feature.live.LiveSessionViewModelTest" time="0.056"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

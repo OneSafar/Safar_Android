@@ -42,7 +42,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
+import com.safarparmar.app.ui.components.popups.SafarDialog as Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
 import com.safarparmar.app.R
@@ -231,6 +231,7 @@ fun DhyanYoutubePromotionDialog(
                         modifier = Modifier
                             .fillMaxWidth()
                             .aspectRatio(16f / 9f)
+                            .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
                             .clickable { openUrl(watchUrl) },
                         contentAlignment = Alignment.Center,
                     ) {

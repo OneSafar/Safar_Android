@@ -184,6 +184,8 @@ object NetworkModule {
     @Provides @Singleton fun provideMehfilApi(r: Retrofit): MehfilApi = r.create(MehfilApi::class.java)
     @Provides @Singleton fun provideThoughtsApi(r: Retrofit): ThoughtsApi = r.create(ThoughtsApi::class.java)
     @Provides @Singleton fun provideNotificationApi(r: Retrofit): NotificationApi = r.create(NotificationApi::class.java)
+    @Provides @Singleton fun provideToppersBatchApi(factory: com.safarparmar.app.feature.toppersbatch.BatchApiFactory): com.safarparmar.app.feature.toppersbatch.ToppersBatchApi =
+        factory.forCourse("toppers-batch-2026")
     @Provides @Singleton fun providePlannerApi(r: Retrofit): PlannerApi = r.create(PlannerApi::class.java)
     @Provides @Singleton fun provideSyllabusApi(r: Retrofit): SyllabusApi = r.create(SyllabusApi::class.java)
     @Provides @Singleton fun provideLiveSessionApi(r: Retrofit): LiveSessionApi = r.create(LiveSessionApi::class.java)
@@ -192,6 +194,7 @@ object NetworkModule {
     @Provides @Singleton fun provideStudyCircleApi(r: Retrofit): StudyCircleApi = r.create(StudyCircleApi::class.java)
     @Provides @Singleton fun provideLeaderboardApi(r: Retrofit): com.safarparmar.app.data.remote.api.LeaderboardApi = r.create(com.safarparmar.app.data.remote.api.LeaderboardApi::class.java)
     @Provides @Singleton fun provideReferralApi(r: Retrofit): com.safarparmar.app.data.remote.api.ReferralApi = r.create(com.safarparmar.app.data.remote.api.ReferralApi::class.java)
+    @Provides @Singleton fun provideTitliApi(r: Retrofit): com.safarparmar.app.data.remote.api.TitliApi = r.create(com.safarparmar.app.data.remote.api.TitliApi::class.java)
     @Provides @Singleton fun provideSupportApi(r: Retrofit): SupportApi = r.create(SupportApi::class.java)
     @Provides @Singleton fun provideGson(): Gson = Gson()
     @Provides @Singleton fun provideMehfilSocketManager(

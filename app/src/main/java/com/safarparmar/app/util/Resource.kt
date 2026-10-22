@@ -64,6 +64,8 @@ suspend fun <T> safeApiCall(call: suspend () -> Response<T>): Resource<T> {
                         "HTTP 429 Too Many Requests on ${response.raw().request.url}; retrying in ${delayMs}ms",
                     )
                 }
+                // Release the previous connection before waiting or retrying.
+                response.errorBody()?.close()
                 attempt += 1
                 delay(delayMs)
                 continue

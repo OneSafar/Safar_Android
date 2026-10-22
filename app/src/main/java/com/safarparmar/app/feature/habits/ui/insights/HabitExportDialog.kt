@@ -15,7 +15,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
+import com.safarparmar.app.ui.components.popups.SafarDialog as Dialog
 import com.safarparmar.app.feature.habits.data.HabitEntity
 import com.safarparmar.app.feature.habits.export.ExportDateRangeOption
 import com.safarparmar.app.feature.habits.ui.HabitColors

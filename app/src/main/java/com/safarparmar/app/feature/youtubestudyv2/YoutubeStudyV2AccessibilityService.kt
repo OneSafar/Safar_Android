@@ -47,7 +47,9 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val session = YoutubeStudyV2Session()
     private var classificationObserver: Job? = null
+    private var enabledObserver: Job? = null
     private val overlay by lazy { KavachBlockOverlay(this, accessibilityOverlay = true) }
+    private var latestDetectionReport: YoutubeDetectionReport? = null
     private var firstStableRead: YoutubeV2Observation? = null
     @Volatile private var lastEvaluatedKey: String? = null
     @Volatile private var evaluationGeneration = 0L
@@ -79,6 +81,7 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
     }
     private var blockOverlayVisible = false
     private var ownerMissingSinceMs: Long? = null
+    private var ownerRecoveryAttempts = 0
     private var pendingYoutubeClickAtMs: Long? = null
     private var analyticsOpen = false
     private var analyticsChannelId: String? = null
@@ -151,20 +154,46 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
 
     override fun onServiceConnected() {
         super.onServiceConnected()
+        isConnected = true
+        enabledObserver?.cancel()
+        enabledObserver = scope.launch(Dispatchers.Main.immediate) {
+            preferences.enabled.collect { enabled ->
+                if (enabled) {
+                    scheduleRead(0L)
+                } else {
+                    clearPlaybackState()
+                    YoutubeStudyV2GuardService.stop(this@YoutubeStudyV2AccessibilityService)
+                }
+            }
+        }
         classificationObserver?.cancel()
         classificationObserver = scope.launch(Dispatchers.Main.immediate) {
             repository.classifications.collect { classifications ->
                 classificationsByChannelId = classifications.associate { entity ->
                     entity.channelId to YoutubeChannelClassification.fromWire(entity.classification)
                 }
-                lastWatchedChannelId?.let { channelId ->
-                    // Keep the already verified playback decision if Room emits
-                    // a transient list that does not contain this entry yet.
-                    classificationsByChannelId[channelId]?.let { lastWatchedClassification = it }
+                val watchedChannelId = lastWatchedChannelId
+                val playbackGeneration = evaluationGeneration
+                val currentClassification = currentYoutubePlaybackClassification(
+                    channelId = watchedChannelId,
+                    previous = lastWatchedClassification,
+                    observedRules = classificationsByChannelId,
+                    reload = { channelId ->
+                        withContext(Dispatchers.IO) { repository.evaluateChannelId(channelId).classification }
+                    },
+                )
+                // A read can suspend while the user disables Focus or selects another video.
+                if (evaluationGeneration != playbackGeneration || lastWatchedChannelId != watchedChannelId) {
+                    return@collect
+                }
+                lastWatchedClassification = currentClassification
+                if (currentClassification != YoutubeChannelClassification.PRODUCTIVE) {
+                    verifiedVideoTitle = null
                 }
                 // Invalidate both cached and in-flight decisions after a saved rule
                 // change. The next stable read uses the updated local allowlist.
                 evaluationGeneration++
+                lastEvaluatedKey = null
                 firstStableRead = null
                 stopAnalytics()
                 if (preferences.enabled.value && isYoutubeVisible()) scheduleRead(0L)
@@ -222,12 +251,20 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
                 return
             }
             val sourceId = event.source?.viewIdResourceName.orEmpty().lowercase()
-            val sourceLabel = (event.source?.contentDescription ?: event.contentDescription)?.toString().orEmpty().lowercase()
+            val sourceLabel = (event.source?.contentDescription ?: event.contentDescription ?: event.source?.text)
+                ?.toString().orEmpty().lowercase()
             if (sourceId.contains("fullscreen") || sourceId.contains("full_screen") ||
                 sourceLabel in setOf("full screen", "fullscreen", "enter full screen", "exit full screen")) {
                 // Capture the owner before YouTube replaces the portrait metadata.
+                // The click event may arrive after rotation has already emptied the tree.
+                fullscreenTransition.beginLayoutTransition(clickAtMs)
                 readObservation()
+                fullscreenTransition.beginLayoutTransition(clickAtMs)
                 scheduleRead(CLICK_TRANSITION_MS)
+                return
+            }
+            if (isCurrentWatchPageInteraction(sourceId, sourceLabel)) {
+                scheduleRead(SHORTS_PROBE_MS)
                 return
             }
             if (isShortsClick(event)) {
@@ -264,32 +301,70 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
         }
     }
 
-    override fun onInterrupt() = stopRuntime()
+    override fun onInterrupt() {
+        // Android interrupts accessibility feedback without unbinding this service.
+        // Retain the verified owner and connection, and resume monitoring afterward.
+        homeNavigationGeneration++
+        returningHome = false
+        evaluationGeneration++
+        evaluationJob?.cancel()
+        pendingEvaluationKey = null
+        confirmation?.let(handler::removeCallbacks)
+        confirmation = null
+        confirmationKey = null
+        lastEvaluatedKey = null
+        dismissBlockOverlaySilently()
+        stopAnalytics()
+        if (preferences.enabled.value) scheduleRead(0L)
+    }
 
     override fun onDestroy() {
+        isConnected = false
         stopRuntime()
         scope.cancel()
         super.onDestroy()
     }
 
+    override fun onUnbind(intent: android.content.Intent?): Boolean {
+        isConnected = false
+        stopRuntime()
+        return super.onUnbind(intent)
+    }
+
     private fun stopRuntime() {
+        isConnected = false
+        YoutubeStudyV2GuardService.stop(this)
+        enabledObserver?.cancel()
+        enabledObserver = null
+        classificationObserver?.cancel()
+        classificationObserver = null
+        handler.removeCallbacks(heartbeat)
+        handler.removeCallbacks(analyticsHeartbeat)
+        handler.removeCallbacks(pipMonitor)
+        clearPlaybackState()
+    }
+
+    /** Disabling Focus clears its overlay and pending decisions without unbinding accessibility. */
+    private fun clearPlaybackState() {
         homeNavigationGeneration++
         evaluationJob?.cancel()
         confirmation?.let(handler::removeCallbacks)
         confirmationKey = null
         returningHome = false
-        classificationObserver?.cancel()
-        classificationObserver = null
         handler.removeCallbacks(debounce)
         scheduledReadAtMs = Long.MAX_VALUE
-        handler.removeCallbacks(heartbeat)
-        handler.removeCallbacks(analyticsHeartbeat)
-        handler.removeCallbacks(pipMonitor)
         evaluationGeneration++
         firstStableRead = null
         lastEvaluatedKey = null
         ownerMissingSinceMs = null
         pendingYoutubeClickAtMs = null
+        fullscreenTransition.clear()
+        verifiedVideoTitle = null
+        lastWatchedChannelId = null
+        lastWatchedDisplayName = null
+        lastWatchedExactHandle = null
+        lastWatchedClassification = null
+        pendingEvaluationKey = null
         fullscreenMissingSinceMs = null
         fullscreenHudRevealAttempts = 0
         fullscreenHudRevealInFlight = false
@@ -325,6 +400,11 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
         // Android PiP is discoverable without walking YouTube's node tree.
         if (enforceYoutubePip()) return
         val observation = readObservation()
+        if (observation.kind == YoutubeV2ContentKind.NON_PLAYBACK &&
+            fullscreenTransition.isLayoutTransitionPending(SystemClock.elapsedRealtime())) {
+            scheduleRead(CLICK_TRANSITION_MS)
+            return
+        }
         if (observation.kind == YoutubeV2ContentKind.SHORTS) {
             blockShorts()
             return
@@ -333,11 +413,15 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
             enforceYoutubeMiniPlayer()
             return
         }
+        if (observation.fullscreen && !observation.hasOwnerEvidence &&
+            canRetainFullscreenPermission(verifiedVideoTitle, observation.title, lastWatchedClassification)) {
+            heartbeatAnalytics()
+            return
+        }
+        if (observation.kind == YoutubeV2ContentKind.VIDEO && !observation.adPlaying &&
+            !observation.hasOwnerEvidence && recoverHiddenOwner(observation)) return
+        if (observation.hasOwnerEvidence) ownerRecoveryAttempts = 0
         if (observation.fullscreen && !observation.hasOwnerEvidence) {
-            if (canRetainFullscreenPermission(verifiedVideoTitle, observation.title, lastWatchedClassification)) {
-                heartbeatAnalytics()
-                return
-            }
             val now = SystemClock.elapsedRealtime()
             val missingSince = fullscreenMissingSinceMs ?: now.also { fullscreenMissingSinceMs = it }
             // Rotation may briefly rebuild the player hierarchy. If metadata
@@ -469,7 +553,12 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
             scheduleRead(DEBOUNCE_MS)
             return
         }
+        session.acceptStable(second, SystemClock.elapsedRealtime())
         if (session.isAlreadyEvaluated(second.stableKey, lastEvaluatedKey)) {
+            if (pausedForFullscreenIdentity && lastWatchedClassification == YoutubeChannelClassification.PRODUCTIVE) {
+                resumeMedia()
+                pausedForFullscreenIdentity = false
+            }
             if (!analyticsOpen && lastWatchedClassification == YoutubeChannelClassification.PRODUCTIVE) {
                 recordAnalytics(lastWatchedChannelId, YoutubeInsightsRepository.CATEGORY_PRODUCTIVE, false)
             }
@@ -492,7 +581,7 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
             val evaluationStartedAtMs = SystemClock.elapsedRealtime()
             var applied = false
             try {
-                val evaluation = repository.evaluate(handle, observation.displayName)
+                val evaluation = repository.evaluate(handle, observation.displayName, observation.exactChannelId)
                 trace(
                     "EVALUATION result=${evaluation.classification} durationMs=" +
                         (SystemClock.elapsedRealtime() - evaluationStartedAtMs),
@@ -508,6 +597,7 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
                     verifiedVideoTitle = observation.title.takeIf { evaluation.decision == YoutubeV2RuntimeDecision.ALLOW }
                     lastEvaluatedKey = observation.stableKey
                     if (evaluation.decision == YoutubeV2RuntimeDecision.ALLOW) {
+                        fullscreenTransition.markVerified(observation)
                         blockOverlayVisible = false
                         overlay.dismiss()
                         if (pausedForFullscreenIdentity) resumeMedia()
@@ -563,6 +653,7 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
         blockOverlayVisible = true
         trace("SHEET not_allowlisted")
         val identifiedReference = allowReference?.takeIf { it.isNotBlank() }
+        val detectionReport = latestDetectionReport
         overlay.showContent(
             title = getString(if (identifiedReference == null) R.string.youtube_focus_channel_unidentified else R.string.youtube_focus_channel_blocked),
             subtitle = if (identifiedReference == null) {
@@ -583,9 +674,51 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
                         dismissOnSelect = false,
                     ),
                 )
+            } ?: detectionReport?.takeIf { SHOW_DETECTION_REPORT_BUTTON }?.let { report ->
+                listOf(KavachBlockOverlay.ClassificationOption(
+                    label = getString(R.string.youtube_focus_share_detection_report),
+                    backgroundColor = Color.TRANSPARENT,
+                    strokeColor = Color.WHITE,
+                    textColor = Color.WHITE,
+                    onSelected = { shareDetectionReport(report) },
+                    dismissOnSelect = false,
+                ))
             }.orEmpty(),
             onDismiss = { dismissToHome() },
         )
+    }
+
+    private fun shareDetectionReport(report: YoutubeDetectionReport) {
+        scope.launch {
+            runCatching {
+                val directory = java.io.File(cacheDir, "exports").apply { mkdirs() }
+                val file = java.io.File(directory, "youtube-detection-report.json")
+                file.writeText(com.google.gson.GsonBuilder().setPrettyPrinting().create().toJson(report))
+                val uri = androidx.core.content.FileProvider.getUriForFile(
+                    this@YoutubeStudyV2AccessibilityService, "$packageName.fileprovider", file,
+                )
+                withContext(Dispatchers.Main) {
+                    val send = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                        type = "application/json"
+                        putExtra(android.content.Intent.EXTRA_STREAM, uri)
+                        clipData = android.content.ClipData.newRawUri("YouTube detection report", uri)
+                        addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    }
+                    // The accessibility overlay otherwise covers Android's share sheet.
+                    // Re-evaluate the paused video when YouTube becomes active again.
+                    lastEvaluatedKey = null
+                    dismissBlockOverlaySilently()
+                    startActivity(android.content.Intent.createChooser(
+                        send, getString(R.string.youtube_focus_detection_report_disclosure),
+                    ).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
+                }
+            }.onFailure {
+                withContext(Dispatchers.Main) {
+                    android.widget.Toast.makeText(this@YoutubeStudyV2AccessibilityService,
+                        R.string.youtube_focus_detection_report_failed, android.widget.Toast.LENGTH_LONG).show()
+                }
+            }
+        }
     }
 
     private fun addBlockedChannelToAllowlist(
@@ -608,6 +741,9 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
                     return@withContext
                 }
                 if (!blockOverlayVisible || returningHome) return@withContext
+                evaluationGeneration++
+                evaluationJob?.cancel()
+                pendingEvaluationKey = null
                 val current = readObservation()
                 val channel = result.getOrThrow().channel
                 lastWatchedChannelId = channel.channelId
@@ -618,6 +754,10 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
                 overlay.dismiss()
                 if (isYoutubeVisible() && expectedVideoKey != null && current.stableKey == expectedVideoKey) {
                     verifiedVideoTitle = current.title
+                    fullscreenTransition.markVerified(current)
+                    val now = SystemClock.elapsedRealtime()
+                    session.onVideoTap(now)
+                    session.acceptStable(current, now)
                     resumeMedia()
                     recordAnalytics(channel.channelId, YoutubeInsightsRepository.CATEGORY_PRODUCTIVE, false)
                     lastEvaluatedKey = current.stableKey
@@ -669,6 +809,57 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
             fullscreenHudRevealInFlight = false
             scheduleRead(FULLSCREEN_HUD_REVEAL_COOLDOWN_MS)
         }
+    }
+
+    /** Reveal the real watch header before showing an unidentified-channel sheet.
+     * Use only semantic controls; never infer a channel from the covering panel.
+     */
+    private fun recoverHiddenOwner(observation: YoutubeV2Observation): Boolean {
+        if (ownerRecoveryAttempts >= 3) return false
+        val root = youtubeWindowRoot() ?: return false
+        val queue = ArrayDeque<AccessibilityNodeInfo>()
+        val nodes = mutableListOf<AccessibilityNodeInfo>()
+        queue.add(root)
+        var inspected = 0
+        while (queue.isNotEmpty() && inspected++ < MAX_NODES) {
+            val node = queue.removeFirst()
+            if (node.isVisibleToUser) nodes += node
+            for (index in 0 until node.childCount) node.getChild(index)?.let(queue::addLast)
+        }
+        fun label(node: AccessibilityNodeInfo) = (node.contentDescription ?: node.text)
+            ?.toString()?.trim()?.lowercase().orEmpty()
+        val panelHeader = nodes.firstOrNull { label(it) in setOf("sponsored", "live chat", "top chat") }
+        val panelBounds = panelHeader?.let { Rect().also(it::getBoundsInScreen) }
+        val close = if (observation.fullscreenSidePanel != YoutubeFullscreenSidePanel.NONE && panelBounds != null) {
+            nodes.firstOrNull { node ->
+                val bounds = Rect().also(node::getBoundsInScreen)
+                node.isClickable && label(node) in FULLSCREEN_SIDE_PANEL_CLOSE_LABELS &&
+                    kotlin.math.abs(bounds.centerY() - panelBounds.centerY()) <= 72 * resources.displayMetrics.density &&
+                    bounds.centerX() > panelBounds.centerX()
+            }
+        } else null
+        val exit = if (observation.fullscreen) nodes.firstOrNull { node ->
+            node.isClickable && label(node) in setOf("exit fullscreen", "exit full screen")
+        } else null
+        val watchList = if (!observation.fullscreen) nodes.firstOrNull { node ->
+            node.viewIdResourceName?.substringAfterLast('/') == "watch_list" && node.isScrollable &&
+                node.actionList.any { it.id == AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD }
+        } else null
+        val target = close ?: exit ?: watchList ?: return false
+        ownerRecoveryAttempts++
+        ignoreHudRevealClickUntilMs = SystemClock.elapsedRealtime() + HUD_REVEAL_CLICK_GUARD_MS
+        if (!pausedForFullscreenIdentity) {
+            pauseMedia()
+            pausedForFullscreenIdentity = true
+        }
+        val action = if (target === watchList) AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD else AccessibilityNodeInfo.ACTION_CLICK
+        val accepted = target.performAction(action)
+        trace("ACTION recover_watch_owner attempt=$ownerRecoveryAttempts accepted=$accepted")
+        if (!accepted) return false
+        ownerMissingSinceMs = null
+        fullscreenMissingSinceMs = SystemClock.elapsedRealtime()
+        scheduleRead(FULLSCREEN_SIDE_PANEL_SETTLE_MS)
+        return true
     }
 
     private fun dismissFullscreenSidePanel(panel: YoutubeFullscreenSidePanel) {
@@ -781,8 +972,8 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
                 overlay.dismiss()
                 navigateToYoutubeHome()
             },
-            quickUnlockMinutes = if (FocusShieldRepository.ShieldPrefs.isActive(this) &&
-                FocusShieldRepository.ShieldPrefs.isStrict(this)) emptyList() else listOf(5, 10, 15, 20),
+            // Focus owns YouTube even when Kavach uses strict blocking for other apps.
+            quickUnlockMinutes = listOf(5, 10, 15, 20),
             blockedPackage = YoutubeStudyV2Parser.YOUTUBE_PACKAGE,
             quickUnlockOrigin = FocusShieldRepository.ShieldPrefs.QUICK_UNLOCK_ORIGIN_YOUTUBE_STUDY,
             onQuickUnlock = { minutes ->
@@ -1174,15 +1365,14 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
         val windowBounds = Rect().also(root::getBoundsInScreen)
         val nodes = readNodes(root)
         val parseStartedNs = SystemClock.elapsedRealtimeNanos()
-        val observation = YoutubeStudyV2Parser.parse(
-            YoutubeV2Snapshot(
-                packageName = YoutubeStudyV2Parser.YOUTUBE_PACKAGE,
-                density = metrics.density,
-                screenWidth = windowBounds.width().takeIf { it > 0 } ?: metrics.widthPixels,
-                screenHeight = windowBounds.height().takeIf { it > 0 } ?: metrics.heightPixels,
-                nodes = nodes,
-            ),
+        val snapshot = YoutubeV2Snapshot(
+            packageName = YoutubeStudyV2Parser.YOUTUBE_PACKAGE,
+            density = metrics.density,
+            screenWidth = windowBounds.width().takeIf { it > 0 } ?: metrics.widthPixels,
+            screenHeight = windowBounds.height().takeIf { it > 0 } ?: metrics.heightPixels,
+            nodes = nodes,
         )
+        val observation = YoutubeStudyV2Parser.parse(snapshot)
         if (BuildConfig.DEBUG && lastLoggedKey != observation.stableKey) {
             val finishedNs = SystemClock.elapsedRealtimeNanos()
             val treeReadMs = (parseStartedNs - observationStartedNs) / 1_000_000.0
@@ -1200,7 +1390,17 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
                     "display='${observation.displayName}' channelId='${observation.exactChannelId}'",
             )
         }
-        return fullscreenTransition.observe(observation, SystemClock.elapsedRealtime())
+        val effectiveObservation = fullscreenTransition.observe(observation, SystemClock.elapsedRealtime())
+        latestDetectionReport = YoutubeDetectionReport(
+            appVersion = BuildConfig.VERSION_NAME,
+            appVersionCode = BuildConfig.VERSION_CODE,
+            capturedAtEpochMs = System.currentTimeMillis(),
+            nodeLimitReached = nodes.size >= MAX_NODES,
+            snapshot = snapshot,
+            parsed = observation,
+            effective = effectiveObservation,
+        )
+        return effectiveObservation
     }
 
     private fun readNodes(root: AccessibilityNodeInfo): List<YoutubeV2Node> {
@@ -1316,6 +1516,7 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
     private fun pauseMedia() = stopMediaPlayback()
 
     private fun beginVideoTap(clickAtMs: Long) {
+        ownerRecoveryAttempts = 0
         evaluationJob?.cancel()
         pendingEvaluationKey = null
         confirmation?.let(handler::removeCallbacks)
@@ -1347,6 +1548,13 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
     }
 
     companion object {
+        // In-process connection state, never restored from a stale preference after a crash.
+        @Volatile
+        var isConnected: Boolean = false
+            private set
+
+        // Retain diagnostics for future investigations, with no visible share action.
+        private const val SHOW_DETECTION_REPORT_BUTTON = false
         private const val PIP_CHECK_MS = 250L
         private const val DEBOUNCE_MS = 120L
         private const val STABILITY_GAP_MS = 120L

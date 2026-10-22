@@ -18,7 +18,14 @@ object IstDateUtils {
 
     fun getDateKey(raw: String?): String? {
         if (raw.isNullOrBlank()) return null
-        if (Regex("\\d{4}-\\d{2}-\\d{2}").matches(raw.take(10))) return raw.take(10)
+        // This runs while composing/sorting goal lists; compiling a Regex for
+        // every comparison can stall the main thread on large lists.
+        if (raw.length >= 10 && (0..9).all { index ->
+                when (index) {
+                    4, 7 -> raw[index] == '-'
+                    else -> raw[index] in '0'..'9'
+                }
+            }) return raw.substring(0, 10)
         return runCatching { getDateKey(Instant.parse(raw)) }.getOrNull()
     }
 

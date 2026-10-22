@@ -1,0 +1,19 @@
+{
+  "bundle": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/Outputs/Safar-v5-1.6.77-prod-release.aab",
+  "size_bytes": 24846238,
+  "sha256": "00f1a71a312a3f3cd9beed6ccddbe956862234818e13b99c71df032f794c7705",
+  "version_name": "1.6.77",
+  "version_code": 77,
+  "signing_certificate_sha256": "7F:C5:E6:0E:58:55:CE:8D:D7:A2:75:4C:F0:62:01:1B:AC:D4:7C:F1:48:DE:AE:2D:F8:DB:11:45:C7:1B:B6:2B",
+  "matches_configured_release_key": true,
+  "bundletool_valid": true,
+  "jar_signature_valid": true,
+  "tutorials_enabled": false,
+  "debuggable": false,
+  "debug_recovery_probe_present": false,
+  "timer_service_type": "0x40000000",
+  "apk_signature_valid": true,
+  "apk_16kb_zip_alignment_valid": true,
+  "sources_unchanged_during_build": true,
+  "smoke_apk": "/tmp/safar-release-validation-20261019/universal.apk"
+}

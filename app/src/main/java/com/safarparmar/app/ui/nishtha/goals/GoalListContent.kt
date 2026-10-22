@@ -1,5 +1,11 @@
 package com.safarparmar.app.ui.nishtha.goals
 
+import com.safarparmar.app.ui.tutorial.tutorialTarget
+
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -28,12 +34,21 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material.icons.filled.Timer
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
+import com.composables.ui.components.ButtonSize
+import com.composables.ui.components.ButtonStyle
+import com.safarparmar.app.ui.components.popups.SafarComposablesDropdownMenu as DropdownMenu
+import com.composables.ui.components.DropdownMenuAlignment
+import com.composables.ui.components.DropdownMenuItem
+import com.composables.ui.components.DropdownMenuItemStyle
+import com.composables.ui.components.DropdownMenuPanel
+import com.composables.ui.components.HorizontalSeparator
+import com.composables.ui.components.IconButton as ComposablesIconButton
+import com.composables.ui.components.Icon as ComposablesIcon
+import com.composables.ui.components.Text as ComposablesText
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.Text
+import com.safarparmar.app.ui.nishtha.goals.GoalProgress as LinearProgressIndicator
+import com.composables.ui.components.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -79,14 +94,21 @@ internal fun GoalsTab(
     onEdit: (Goal) -> Unit,
     onDelete: (Goal) -> Unit,
 ) {
+    val goalListScroll = rememberScrollState()
+    val goalContainerHeight = (LocalConfiguration.current.screenHeightDp * 0.5f).coerceIn(280f, 480f).dp
+    LaunchedEffect(filterMode) { goalListScroll.scrollTo(0) }
     val todayKey = IstDateUtils.todayKey()
     val standardGoals = goals.filter { it.isVisibleInGoals() }
     val pending = standardGoals.filter { it.isTodayGoal(todayKey) }
         .sortedBy { it.startedAt ?: it.createdAt ?: it.scheduledDate ?: "" }
     val scheduled = standardGoals.filter { it.isUpcomingGoal(todayKey) }
-        .sortedBy { it.assignedDateKey() ?: "" }
+        .map { goal -> goal to (goal.assignedDateKey() ?: "") }
+        .sortedBy { it.second }
+        .map { it.first }
     val missed = standardGoals.filter { it.isMissedGoal(todayKey) }
-        .sortedByDescending { it.assignedDateKey() ?: "" }
+        .map { goal -> goal to (goal.assignedDateKey() ?: "") }
+        .sortedByDescending { it.second }
+        .map { it.first }
     val completed = standardGoals.filter { it.isGoalCompleted() }
         .sortedByDescending { it.completedAt ?: it.createdAt ?: "" }
     val manualCompletedGoals = standardGoals.filter { it.isCompletedForStats() && !it.completedViaFocus }
@@ -153,9 +175,11 @@ internal fun GoalsTab(
                 modifier = Modifier
                     .padding(horizontal = 20.dp)
                     .fillMaxWidth()
+                    .height(goalContainerHeight)
                     .clip(RoundedCornerShape(16.dp))
                     .border(1.5.dp, GoalsFlatColors.Primary, RoundedCornerShape(16.dp))
                     .background(GoalsFlatColors.Primary.copy(alpha = 0.03f))
+                    .verticalScroll(goalListScroll)
                     .padding(horizontal = 16.dp, vertical = 8.dp),
             ) {
                 if (filterMode == "today") {
@@ -262,7 +286,9 @@ internal fun EmptyGoalsCard(title: String, subtitle: String) {
             Icon(Icons.Default.CheckCircle, contentDescription = null, tint = GoalsFlatColors.Primary, modifier = Modifier.size(22.dp))
         }
         Text(title, fontFamily = LoraFontFamily, fontSize = 16.sp, color = GoalsFlatColors.Text, textAlign = TextAlign.Center)
-        Text(subtitle, fontSize = 12.sp, color = GoalsFlatColors.Muted, textAlign = TextAlign.Center)
+        if (subtitle.isNotBlank() && !subtitle.equals(title, ignoreCase = true)) {
+            Text(subtitle, fontSize = 12.sp, color = GoalsFlatColors.Muted, textAlign = TextAlign.Center)
+        }
     }
 }
 
@@ -382,6 +408,7 @@ internal fun GoalItem(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     completedViaEkagra: Boolean = goal.completedViaFocus,
+    modifier: Modifier = Modifier,
 ) {
     var showMenu by remember { mutableStateOf(false) }
     val progress = goal.progressPercent()
@@ -395,40 +422,23 @@ internal fun GoalItem(
     }
 
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Box(
-            Modifier
-                .size(22.dp)
-                .clip(CircleShape)
-                .border(
-                    1.5.dp,
-                    if (goal.completed) GoalsFlatColors.Done else GoalsFlatColors.Hairline,
-                    CircleShape,
-                )
-                .background(if (goal.completed) GoalsFlatColors.Done else Color.Transparent)
-                .clickable(
-                    enabled = !goal.completed,
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                ) { onComplete() },
-            contentAlignment = Alignment.Center,
-        ) {
-            if (goal.completed) {
-                Text("✓", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-            }
-        }
+        com.composables.ui.components.Checkbox(checked = goal.completed,
+            enabled = !goal.completed || onReopen != null,
+            onCheckedChange = { checked -> if (checked) onComplete() else onReopen?.invoke() },
+            modifier = Modifier.size(48.dp).tutorialTarget("goals.complete"))
         Column(Modifier.weight(1f)) {
             Text(
                 text = goal.title,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 14.sp,
                 color = if (goal.completed) GoalsFlatColors.Muted else GoalsFlatColors.Text,
-                textDecoration = if (goal.completed) TextDecoration.LineThrough else null,
+                style = androidx.compose.ui.text.TextStyle(textDecoration = if (goal.completed) TextDecoration.LineThrough else null),
             )
             if (!goal.description.isNullOrBlank()) {
                 Text(goal.description, fontSize = 12.sp, color = GoalsFlatColors.Muted, maxLines = 2)
@@ -492,45 +502,97 @@ internal fun GoalItem(
                 )
             }
         }
-        Box {
-            IconButton(onClick = { showMenu = true }, modifier = Modifier.size(28.dp)) {
-                Icon(
-                    Icons.Default.MoreVert,
-                    contentDescription = stringResource(R.string.common_more_options),
-                    modifier = Modifier.size(18.dp),
-                    tint = GoalsFlatColors.Muted,
-                )
-            }
-            DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-                if (!goal.completed) {
+        DropdownMenu(
+            expanded = showMenu,
+            onExpandedChange = { showMenu = it },
+            alignment = DropdownMenuAlignment.End,
+            panel = {
+                DropdownMenuPanel {
+                    if (!goal.completed) {
+                        DropdownMenuItem(
+                            onClick = {
+                                showMenu = false
+                                onComplete()
+                            },
+                            leading = {
+                                ComposablesIcon(
+                                    imageVector = Icons.Default.CheckCircle,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp),
+                                    tint = GoalsFlatColors.Primary,
+                                )
+                            },
+                        ) {
+                            ComposablesText(stringResource(R.string.goals_mark_done))
+                        }
+                        DropdownMenuItem(
+                            onClick = {
+                                showMenu = false
+                                onEdit()
+                            },
+                            leading = {
+                                ComposablesIcon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp),
+                                )
+                            },
+                        ) {
+                            ComposablesText(stringResource(R.string.common_edit))
+                        }
+                    } else if (onReopen != null) {
+                        DropdownMenuItem(
+                            onClick = {
+                                showMenu = false
+                                onReopen()
+                            },
+                            leading = {
+                                ComposablesIcon(
+                                    imageVector = Icons.Default.Restore,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp),
+                                    tint = GoalsFlatColors.Primary,
+                                )
+                            },
+                        ) {
+                            ComposablesText(stringResource(R.string.goals_reopen))
+                        }
+                    }
                     DropdownMenuItem(
-                        text = { Text(stringResource(R.string.goals_mark_done)) },
-                        leadingIcon = { Icon(Icons.Default.CheckCircle, null, tint = GoalsFlatColors.Primary) },
-                        onClick = { showMenu = false; onComplete() },
-                    )
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.common_edit)) },
-                        leadingIcon = { Icon(Icons.Default.Edit, null) },
-                        onClick = { showMenu = false; onEdit() },
-                    )
-                } else if (onReopen != null) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.goals_reopen)) },
-                        leadingIcon = { Icon(Icons.Default.Restore, null, tint = GoalsFlatColors.Primary) },
-                        onClick = { showMenu = false; onReopen() },
+                        onClick = {
+                            showMenu = false
+                            onDelete()
+                        },
+                        style = DropdownMenuItemStyle.Destructive,
+                        leading = {
+                            ComposablesIcon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                                tint = GoalsFlatColors.Danger,
+                            )
+                        },
+                    ) {
+                        ComposablesText(stringResource(R.string.common_delete))
+                    }
+                }
+            },
+            anchor = {
+                ComposablesIconButton(
+                    onClick = { showMenu = showMenu.not() },
+                    style = ButtonStyle.Ghost,
+                    buttonSize = ButtonSize.Small,
+                    modifier = Modifier.size(28.dp).tutorialTarget("goals.menu"),
+                ) {
+                    ComposablesIcon(
+                        imageVector = Icons.Default.MoreVert,
+                        contentDescription = stringResource(R.string.common_more_options),
+                        modifier = Modifier.size(18.dp),
+                        tint = GoalsFlatColors.Muted,
                     )
                 }
-                // "Repeat Task" lived here. Removed: it was a third way to say
-                // "repeat", it cloned goals one at a time with no dedupe (the source
-                // of duplicated goals), and the "Bring forward" picker covers the
-                // single-goal case by simply ticking one row.
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.common_delete), color = GoalsFlatColors.Danger) },
-                    leadingIcon = { Icon(Icons.Default.Delete, null, tint = GoalsFlatColors.Danger) },
-                    onClick = { showMenu = false; onDelete() },
-                )
-            }
-        }
+            },
+        )
     }
 }
 
@@ -589,15 +651,8 @@ internal fun FlatFilledAction(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(accent)
-            .clickable(onClick = onClick)
-            .padding(vertical = 11.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(label, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
+    com.composables.ui.components.Button(onClick = onClick, modifier = modifier) {
+        ComposablesText(label)
     }
 }
 
@@ -607,14 +662,7 @@ internal fun FlatOutlineAction(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
-            .border(1.dp, GoalsFlatColors.Hairline, RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick)
-            .padding(vertical = 11.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(label, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = GoalsFlatColors.Muted)
+    com.composables.ui.components.Button(onClick = onClick, modifier = modifier, style = ButtonStyle.Outlined) {
+        ComposablesText(label)
     }
 }

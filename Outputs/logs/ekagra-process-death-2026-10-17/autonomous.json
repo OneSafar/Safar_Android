@@ -1,0 +1,16 @@
+[
+  {
+    "case": "focus",
+    "interruption": "kill",
+    "seedPid": 14052,
+    "verificationPid": 14785,
+    "clientSessionId": "local-7869b4ba-7808-4453-8300-0b783f94ba98",
+    "initialFocusSeconds": 720,
+    "finalFocusSeconds": 753,
+    "endReason": "user-ended",
+    "rowCount": 1,
+    "passed": true,
+    "backgroundRestarted": false,
+    "backgroundError": "Timed out waiting for autonomous foreground timer restart without opening the app"
+  }
+]

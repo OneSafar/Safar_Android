@@ -1,0 +1,14 @@
+{
+  "versionName": "1.6.79",
+  "versionCode": 79,
+  "jvmTests": 792,
+  "failures": 0,
+  "lintErrors": 0,
+  "lintWarnings": 905,
+  "releaseCertificateVerified": true,
+  "sourceSnapshotVerified": true,
+  "aab": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/Outputs/Safar-prod-release-v1.6.79-79.aab",
+  "bytes": 25324224,
+  "sha256": "f43f5b233b02685ea1c352921e7a7c67ce69f7449805cc80dbec5f97c3f9889c",
+  "emulatorOpened": false
+}

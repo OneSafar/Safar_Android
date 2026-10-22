@@ -1,5 +1,7 @@
 package com.safarparmar.app.feature.kavachanalytics.ui
 
+import androidx.compose.ui.platform.LocalLocale
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -35,7 +37,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
+import com.safarparmar.app.ui.components.popups.SafarModalBottomSheet as ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -465,6 +467,7 @@ private fun GranularityTabs(
             Column(
                 modifier = Modifier
                     .weight(1f)
+                    .clip(RoundedCornerShape(8.dp))
                     .clickable { onSelect(granularity) }
                     .padding(vertical = 12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -664,13 +667,14 @@ private fun CategoryChips(
  */
 @Composable
 private fun DailyBreakdown(state: KavachAnalyticsUiState, isLight: Boolean) {
+    val locale = LocalLocale.current.platformLocale
     val totals = (if (state.scope == KavachScope.ALL_DAY) state.report?.allDay else state.report?.duringKavach)
         ?: CategoryTotals()
     val totalSeconds = totals.totalSeconds
     val dayName = runCatching {
         LocalDate.parse(state.endDate).dayOfWeek.getDisplayName(
             java.time.format.TextStyle.FULL,
-            Locale.getDefault(),
+            locale,
         )
     }.getOrDefault("Day")
 
@@ -1236,8 +1240,9 @@ private fun AppList(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
                     .clickable { onOpen(row) }
-                    .padding(vertical = 10.dp),
+                    .padding(vertical = 10.dp, horizontal = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 AppIcon(
@@ -1366,7 +1371,11 @@ private fun FooterLinks(isLight: Boolean, onNavigate: (String) -> Unit) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
-            modifier = Modifier.fillMaxWidth().clickable { onNavigate(Routes.KAVACH_APP_CATEGORIES) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .clickable { onNavigate(Routes.KAVACH_APP_CATEGORIES) }
+                .padding(vertical = 8.dp, horizontal = 6.dp),
         ) {
             Icon(Icons.Default.Tune, contentDescription = null, tint = secondaryText(isLight), modifier = Modifier.size(18.dp))
             Text(

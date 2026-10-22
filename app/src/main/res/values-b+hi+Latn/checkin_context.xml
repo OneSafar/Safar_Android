@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="checkin_due_to">Due to</string>
+    <string name="checkin_reason_work">Work</string>
+    <string name="checkin_reason_family">Family</string>
+    <string name="checkin_reason_sleep">Sleep</string>
+    <string name="checkin_reason_health">Health</string>
+    <string name="checkin_reason_relationship">Relationship</string>
+    <string name="checkin_reason_finance">Finance</string>
+    <string name="checkin_reason_study">Study</string>
+    <string name="checkin_reason_other">Other</string>
+</resources>

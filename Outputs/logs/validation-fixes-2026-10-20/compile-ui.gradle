@@ -1,0 +1,9 @@
+allprojects {
+ afterEvaluate { p ->
+  if (p.path == ':app') {
+   def tests = p.android.sourceSets.getByName('androidTest')
+   tests.java.exclude('**/HabitReminderInstrumentedTest.kt')
+   tests.kotlin.exclude('**/HabitReminderInstrumentedTest.kt')
+  }
+ }
+}

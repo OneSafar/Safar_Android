@@ -96,7 +96,7 @@ class SettingsViewModel @Inject constructor(
 
     private fun observeNotificationPreferences() {
         viewModelScope.launch {
-            combine(
+            combine<Any?, Unit>(
                 listOf(
                     dataStore.notificationsEnabled,
                     dataStore.focusTimerNotificationsEnabled,

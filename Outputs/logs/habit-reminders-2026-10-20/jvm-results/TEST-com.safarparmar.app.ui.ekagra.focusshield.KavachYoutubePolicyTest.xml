@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.ui.ekagra.focusshield.KavachYoutubePolicyTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-20T02:13:05.153Z" hostname="Shashanks-MacBook-Air.local" time="0.04">
+  <properties/>
+  <testcase name="turning Focus off or losing its service restores Kavach ownership" classname="com.safarparmar.app.ui.ekagra.focusshield.KavachYoutubePolicyTest" time="0.0"/>
+  <testcase name="Focus never exempts other apps from Kavach" classname="com.safarparmar.app.ui.ekagra.focusshield.KavachYoutubePolicyTest" time="0.0"/>
+  <testcase name="runtime reads current enabled and connection state without changing saved app selection" classname="com.safarparmar.app.ui.ekagra.focusshield.KavachYoutubePolicyTest" time="0.04"/>
+  <testcase name="connected YouTube Focus owns YouTube while both modes run" classname="com.safarparmar.app.ui.ekagra.focusshield.KavachYoutubePolicyTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

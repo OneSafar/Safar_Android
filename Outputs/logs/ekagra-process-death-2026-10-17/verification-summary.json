@@ -1,0 +1,196 @@
+{
+  "unit": {
+    "tests": 733,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "instrumentation": [
+    {
+      "tests": 34,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  ],
+  "actual_cases": {
+    "kill-recovery-matrix": [
+      {
+        "case": "focus",
+        "interruption": "kill",
+        "seedPid": 18073,
+        "verificationPid": 18212,
+        "clientSessionId": "local-4958639c-a577-4cc5-b6da-ee177366cfc2",
+        "initialFocusSeconds": 720,
+        "finalFocusSeconds": 726,
+        "rowCount": 1,
+        "passed": true,
+        "backgroundPid": null,
+        "backgroundRestarted": false
+      },
+      {
+        "case": "focus-completion",
+        "interruption": "kill",
+        "seedPid": 18212,
+        "verificationPid": 18370,
+        "clientSessionId": "local-439b9d66-21e7-4d93-b2eb-eba63d74237b",
+        "initialFocusSeconds": 7194,
+        "finalFocusSeconds": 7200,
+        "rowCount": 1,
+        "passed": true,
+        "backgroundPid": null,
+        "backgroundRestarted": false
+      },
+      {
+        "case": "stopwatch",
+        "interruption": "kill",
+        "seedPid": 18370,
+        "verificationPid": 18533,
+        "clientSessionId": "local-0ff49f9f-77e0-4369-9e55-42c6d276b7eb",
+        "initialFocusSeconds": 720,
+        "finalFocusSeconds": 726,
+        "rowCount": 1,
+        "passed": true,
+        "backgroundPid": null,
+        "backgroundRestarted": false
+      },
+      {
+        "case": "paused",
+        "interruption": "kill",
+        "seedPid": 18533,
+        "verificationPid": 18691,
+        "clientSessionId": "local-29fc4af2-c355-453d-8a7c-2b9a6468e14a",
+        "initialFocusSeconds": 720,
+        "finalFocusSeconds": 720,
+        "rowCount": 1,
+        "passed": true,
+        "backgroundPid": null,
+        "backgroundRestarted": false
+      },
+      {
+        "case": "manual-break",
+        "interruption": "kill",
+        "seedPid": 18691,
+        "verificationPid": 18848,
+        "clientSessionId": "local-62175a15-aabc-4c86-bc66-320b4c07d0cf",
+        "initialFocusSeconds": 720,
+        "finalFocusSeconds": 720,
+        "rowCount": 1,
+        "passed": true,
+        "backgroundPid": null,
+        "backgroundRestarted": false
+      },
+      {
+        "case": "manual-break-completion",
+        "interruption": "kill",
+        "seedPid": 18848,
+        "verificationPid": 19010,
+        "clientSessionId": "local-a95f00a6-5c08-48fb-bb20-ae2c7850f112",
+        "initialFocusSeconds": 720,
+        "finalFocusSeconds": 720,
+        "rowCount": 1,
+        "passed": true,
+        "backgroundPid": null,
+        "backgroundRestarted": false
+      },
+      {
+        "case": "pomodoro-chain",
+        "interruption": "kill",
+        "seedPid": 19010,
+        "verificationPid": 19177,
+        "clientSessionId": "local-4b015311-6c63-4891-8ea2-67b840335fbe",
+        "initialFocusSeconds": 54,
+        "finalFocusSeconds": 66,
+        "rowCount": 1,
+        "passed": true,
+        "backgroundPid": null,
+        "backgroundRestarted": false
+      },
+      {
+        "case": "goal",
+        "interruption": "kill",
+        "seedPid": 19177,
+        "verificationPid": 19340,
+        "clientSessionId": "local-d287ea9e-3ad7-4b88-bfd6-6c321c3c4d61",
+        "initialFocusSeconds": 720,
+        "finalFocusSeconds": 726,
+        "rowCount": 1,
+        "passed": true,
+        "backgroundPid": null,
+        "backgroundRestarted": false
+      },
+      {
+        "case": "topic",
+        "interruption": "kill",
+        "seedPid": 19340,
+        "verificationPid": 19502,
+        "clientSessionId": "local-4e4bbd18-31b8-43a7-b45f-2dfde268ae89",
+        "initialFocusSeconds": 720,
+        "finalFocusSeconds": 726,
+        "rowCount": 1,
+        "passed": true,
+        "backgroundPid": null,
+        "backgroundRestarted": false
+      }
+    ],
+    "force-stop": [
+      {
+        "case": "focus",
+        "interruption": "force-stop",
+        "seedPid": 19502,
+        "verificationPid": 19678,
+        "clientSessionId": "local-098efeec-c1cf-44ae-aca0-cd8ef2a3b3db",
+        "initialFocusSeconds": 720,
+        "finalFocusSeconds": 720,
+        "rowCount": 1,
+        "passed": true,
+        "backgroundPid": null,
+        "backgroundRestarted": false
+      }
+    ],
+    "reboot": [
+      {
+        "case": "focus",
+        "interruption": "reboot",
+        "seedPid": 19678,
+        "verificationPid": 2416,
+        "clientSessionId": "local-53841c02-2444-48f1-a72a-02907b0abe33",
+        "initialFocusSeconds": 720,
+        "finalFocusSeconds": 721,
+        "rowCount": 1,
+        "passed": true,
+        "backgroundPid": null,
+        "backgroundRestarted": false
+      }
+    ],
+    "stale-alarm-and-recovery": [
+      {
+        "case": "focus",
+        "interruption": "kill",
+        "seedPid": 4490,
+        "verificationPid": 4713,
+        "clientSessionId": "local-6748e8de-9fa6-4e91-852c-506137163fae",
+        "initialFocusSeconds": 720,
+        "finalFocusSeconds": 728,
+        "endReason": "user-ended",
+        "rowCount": 1,
+        "passed": true
+      }
+    ],
+    "native-focus": [
+      {
+        "case": "focus",
+        "interruption": "kill",
+        "seedPid": 14949,
+        "verificationPid": 15130,
+        "clientSessionId": "local-7e8ecca4-07c9-4c61-82ae-fba28095aa75",
+        "initialFocusSeconds": 720,
+        "finalFocusSeconds": 726,
+        "rowCount": 1,
+        "passed": true,
+        "backgroundPid": 15130,
+        "backgroundRestarted": true
+      }
+    ]
+  }
+}

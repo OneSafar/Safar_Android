@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="quick_unlock_again">Time to get back to your task?</string>
+    <string name="quick_unlock_again_named">Hi %1$s, ready to get back?</string>
+    <string name="quick_unlock_again_body">You already chose a %1$d min break today. Shall we get back to your task?</string>
+    <string name="quick_unlock_return_home">Okay, return to home</string>
+    <string name="quick_unlock_more">Just %1$d min more</string>
+</resources>

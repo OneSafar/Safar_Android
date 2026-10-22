@@ -1,5 +1,9 @@
 package com.safarparmar.app.ui.ekagra.focusshield
 
+import androidx.compose.runtime.rememberUpdatedState
+
+import androidx.compose.ui.platform.LocalResources
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -44,6 +48,7 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.filled.SmartDisplay
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.OutlinedButton
@@ -53,7 +58,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
+import com.safarparmar.app.ui.components.popups.SafarModalBottomSheet as ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -76,6 +81,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.toggleableState
+import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.drawable.toBitmap
@@ -104,6 +116,9 @@ fun FocusShieldSettingsContent(
     state: FocusShieldUiState,
     accent: Color,
     onToggleEnabled: (Boolean) -> Unit,
+    youtubeEnabled: Boolean = false,
+    onToggleYoutubeStudyMode: (Boolean) -> Unit = {},
+    onOpenYoutubeSetup: () -> Unit = {},
     onOpenAppPicker: () -> Unit,
     onGoToEkagra: () -> Unit,
     onOpenOverlaySettings: () -> Unit,
@@ -122,6 +137,7 @@ fun FocusShieldSettingsContent(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+    val localizedResources by rememberUpdatedState(LocalResources.current)
     val lifecycleOwner = LocalLifecycleOwner.current
     var hasOverlay by remember { mutableStateOf(state.hasOverlayPermission) }
     var hasNotifications by remember { mutableStateOf(state.hasNotifications) }
@@ -149,7 +165,7 @@ fun FocusShieldSettingsContent(
         if (pendingEnableFlow) {
             pendingEnableFlow = false
             if (state.blockedPackages.isEmpty()) {
-                android.widget.Toast.makeText(context, context.getString(R.string.kavach_select_app_first), android.widget.Toast.LENGTH_SHORT).show()
+                android.widget.Toast.makeText(context, localizedResources.getString(R.string.kavach_select_app_first), android.widget.Toast.LENGTH_SHORT).show()
                 pendingEnableAfterAppSelection = true
                 onSetPendingEnableAfterAppSelection(true)
                 onOpenAppPicker()
@@ -157,7 +173,7 @@ fun FocusShieldSettingsContent(
                 if (!state.isEnabled) {
                     onToggleEnabled(true)
                 }
-                grantedBannerText = context.getString(R.string.kavach_active_ready)
+                grantedBannerText = localizedResources.getString(R.string.kavach_active_ready)
             }
         }
     }
@@ -172,17 +188,8 @@ fun FocusShieldSettingsContent(
         onReturned = { awaitingPermission = null },
     )
 
-    val requiredPermissionsGranted = hasUsageStats && hasOverlay && hasBatterySaver
-    val allPermissionsGranted = hasUsageStats && hasOverlay && hasNotifications && hasNotificationSuppressionAccess && hasBatterySaver
+    val requiredPermissionsGranted = KavachActivationReadiness.hasRequiredPermissions(hasUsageStats, hasOverlay)
     val readyCount = listOf(hasUsageStats, hasOverlay, hasBatterySaver, hasNotifications, hasNotificationSuppressionAccess).count { it }
-
-    val primaryCtaLabel = when {
-        !hasUsageStats -> stringResource(R.string.kavach_allow_app_check)
-        !hasOverlay -> stringResource(R.string.kavach_allow_display_over_apps)
-        !hasBatterySaver -> stringResource(R.string.kavach_disable_battery_restriction)
-        state.isEnabled -> stringResource(R.string.kavach_turn_off)
-        else -> stringResource(R.string.kavach_turn_on)
-    }
 
     LaunchedEffect(grantedBannerText) {
         if (grantedBannerText != null) {
@@ -206,16 +213,14 @@ fun FocusShieldSettingsContent(
                 PermissionTarget.NOTIFICATION_ACCESS -> FocusShieldPermissionHelper.openNotificationListenerSettings(context)
             }
         } else {
-            // Already granted, advance to next in first 3 permissions
+            // Already granted, advance through the required permissions
             when (target) {
                 PermissionTarget.USAGE_STATS -> {
                     if (!hasOverlay) nextPermissionToAutoLaunch = PermissionTarget.OVERLAY
-                    else if (!hasBatterySaver) nextPermissionToAutoLaunch = PermissionTarget.BATTERY_SAVER
                     else finishPermissionFlowAndCheckApps()
                 }
                 PermissionTarget.OVERLAY -> {
-                    if (!hasBatterySaver) nextPermissionToAutoLaunch = PermissionTarget.BATTERY_SAVER
-                    else finishPermissionFlowAndCheckApps()
+                    finishPermissionFlowAndCheckApps()
                 }
                 PermissionTarget.BATTERY_SAVER -> {
                     finishPermissionFlowAndCheckApps()
@@ -230,9 +235,10 @@ fun FocusShieldSettingsContent(
 
     LaunchedEffect(state.blockedPackages) {
         if ((pendingEnableAfterAppSelection || pendingEnableFlow) && state.blockedPackages.isNotEmpty()) {
-            val requiredGranted = FocusShieldPermissionHelper.hasUsageStatsPermission(context) &&
-                FocusShieldPermissionHelper.hasOverlayPermission(context) &&
-                FocusShieldPermissionHelper.isIgnoringBatteryOptimizations(context)
+            val requiredGranted = KavachActivationReadiness.hasRequiredPermissions(
+                FocusShieldPermissionHelper.hasUsageStatsPermission(context),
+                FocusShieldPermissionHelper.hasOverlayPermission(context),
+            )
             if (requiredGranted) {
                 pendingEnableAfterAppSelection = false
                 pendingEnableFlow = false
@@ -240,7 +246,7 @@ fun FocusShieldSettingsContent(
                 if (!state.isEnabled) {
                     onToggleEnabled(true)
                 }
-                grantedBannerText = context.getString(R.string.kavach_active_ready)
+                grantedBannerText = localizedResources.getString(R.string.kavach_active_ready)
             }
         }
     }
@@ -275,7 +281,7 @@ fun FocusShieldSettingsContent(
                 hasBatterySaver = newBatterySaver
                 onRefreshPermissions()
 
-                val requiredNow = newUsage && newOverlay && newBatterySaver
+                val requiredNow = KavachActivationReadiness.hasRequiredPermissions(newUsage, newOverlay)
                 if (requiredNow && (pendingEnableAfterAppSelection || pendingEnableFlow)) {
                     if (state.blockedPackages.isNotEmpty()) {
                         pendingEnableAfterAppSelection = false
@@ -284,7 +290,7 @@ fun FocusShieldSettingsContent(
                         if (!state.isEnabled) {
                             onToggleEnabled(true)
                         }
-                        grantedBannerText = context.getString(R.string.kavach_active_ready)
+                        grantedBannerText = localizedResources.getString(R.string.kavach_active_ready)
                     }
                 }
 
@@ -300,11 +306,6 @@ fun FocusShieldSettingsContent(
                         showPermissionCardSheet = true
                         return@LifecycleEventObserver
                     }
-                    if (prevTarget == PermissionTarget.BATTERY_SAVER && !newBatterySaver) {
-                        isAutoPermissionFlowActive = false
-                        showPermissionCardSheet = true
-                        return@LifecycleEventObserver
-                    }
 
                     // Progress automatically through the sequence once 1st permission is given
                     when {
@@ -315,11 +316,8 @@ fun FocusShieldSettingsContent(
                         !newOverlay -> {
                             nextPermissionToAutoLaunch = PermissionTarget.OVERLAY
                         }
-                        !newBatterySaver -> {
-                            nextPermissionToAutoLaunch = PermissionTarget.BATTERY_SAVER
-                        }
                         else -> {
-                            // First three mandatory permissions granted! Do not auto-redirect for last two.
+                            // Required permissions granted; optional access stays user initiated.
                             finishPermissionFlowAndCheckApps()
                         }
                     }
@@ -339,7 +337,7 @@ fun FocusShieldSettingsContent(
     }
 
     val navBarBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
-    val contentBottomPadding = 100.dp + navBarBottom
+    val contentBottomPadding = (if (state.isEnabled) 100.dp else 24.dp) + navBarBottom
 
     Box(
         modifier = modifier
@@ -357,37 +355,36 @@ fun FocusShieldSettingsContent(
                 ),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            // Master Status Card (Hero)
-            KavachMasterStatusCard(
-                isEnabled = state.isEnabled,
-                isAlwaysOn = state.isAlwaysOnMode,
-                isStrict = state.isStrictMode,
+            FocusProtectionSwitchCard(
+                title = stringResource(R.string.nav_focus_shield),
+                checked = state.isEnabled,
+                icon = Icons.Default.Shield,
                 onToggle = { enabled ->
                     if (enabled) {
-                        // 1. Check mandatory permissions first (Usage, Overlay, BatterySaver)
-                        val requiredGranted = hasUsageStats && hasOverlay && hasBatterySaver
+                        // 1. Only Usage Access and overlay permission are required to activate.
+                        val requiredGranted = KavachActivationReadiness.hasRequiredPermissions(hasUsageStats, hasOverlay)
                         if (!requiredGranted) {
-                            // First 3 permissions not given: do not turn on Kavach, do not ask to choose apps yet!
+                            // Complete required permissions before choosing apps.
                             pendingEnableFlow = true
                             isAutoPermissionFlowActive = false
                             hasPromptedNotification = false
                             hasPromptedNotificationAccess = false
                             showPermissionCardSheet = true
-                            return@KavachMasterStatusCard
+                            return@FocusProtectionSwitchCard
                         }
 
                         // 2. Mandatory permissions granted. Now check apps to block
                         if (state.blockedPackages.isEmpty()) {
-                            android.widget.Toast.makeText(context, context.getString(R.string.kavach_select_app_first), android.widget.Toast.LENGTH_SHORT).show()
+                            android.widget.Toast.makeText(context, localizedResources.getString(R.string.kavach_select_app_first), android.widget.Toast.LENGTH_SHORT).show()
                             pendingEnableAfterAppSelection = true
                             onSetPendingEnableAfterAppSelection(true)
                             onOpenAppPicker()
-                            return@KavachMasterStatusCard
+                            return@FocusProtectionSwitchCard
                         }
 
                         // 3. Both permissions and apps are selected -> turn on Kavach!
                         onToggleEnabled(true)
-                        grantedBannerText = context.getString(R.string.kavach_active_ready)
+                        grantedBannerText = localizedResources.getString(R.string.kavach_active_ready)
                     } else {
                         pendingEnableFlow = false
                         pendingEnableAfterAppSelection = false
@@ -398,175 +395,170 @@ fun FocusShieldSettingsContent(
                 },
             )
 
-            Spacer(Modifier.height(4.dp))
-
-            // WHEN IT WORKS Section
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    text = stringResource(R.string.kavach_when_it_works),
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.sp,
-                    color = ink.secondaryText,
-                )
-                KavachSegmentedSelector(
-                    options = listOf(
-                        SegmentOption(
-                            key = AppUsageMode.FOCUSED,
-                            label = stringResource(R.string.kavach_with_ekagra),
-                            icon = Icons.Default.Timer,
-                        ),
-                        SegmentOption(
-                            key = AppUsageMode.ALWAYS_ON,
-                            label = stringResource(R.string.kavach_always_on),
-                            icon = Icons.Default.Timer,
-                        ),
-                    ),
-                    selectedKey = if (state.isAlwaysOnMode) AppUsageMode.ALWAYS_ON else AppUsageMode.FOCUSED,
-                    onSelect = { handleProfileSelect(it) },
-                )
-                Text(
-                    text = if (state.isAlwaysOnMode) {
-                        stringResource(R.string.kavach_always_on_help)
-                    } else {
-                        stringResource(R.string.kavach_with_ekagra_help)
-                    },
-                    fontSize = 11.5.sp,
-                    lineHeight = 16.sp,
-                    color = ink.secondaryText,
-                    modifier = Modifier.padding(horizontal = 2.dp),
-                )
-            }
-
-            Spacer(Modifier.height(4.dp))
-
-            // PROTECTION LEVEL Section
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    text = stringResource(R.string.kavach_protection_level),
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.sp,
-                    color = ink.secondaryText,
-                )
-                KavachSegmentedSelector(
-                    options = listOf(
-                        SegmentOption(
-                            key = "normal",
-                            label = stringResource(R.string.kavach_normal),
-                            icon = Icons.Default.Shield,
-                        ),
-                        SegmentOption(
-                            key = "beast",
-                            label = stringResource(R.string.kavach_beast),
-                            icon = Icons.Default.Security,
-                        ),
-                    ),
-                    selectedKey = if (state.isStrictMode) "beast" else "normal",
-                    onSelect = { key ->
-                        onToggleStrictMode(key == "beast")
-                    },
-                )
-                Text(
-                    text = if (state.isStrictMode) {
-                        stringResource(R.string.kavach_beast_help)
-                    } else {
-                        stringResource(R.string.kavach_normal_help)
-                    },
-                    fontSize = 11.5.sp,
-                    lineHeight = 16.sp,
-                    color = ink.secondaryText,
-                    modifier = Modifier.padding(horizontal = 2.dp),
-                )
-            }
-
-            Spacer(Modifier.height(8.dp))
-            EkagraHairline(ink.hairline)
-            Spacer(Modifier.height(4.dp))
-
-            // Apps to Block Row
-            KavachActionRow(
-                icon = Icons.Default.Apps,
-                title = stringResource(R.string.kavach_apps_to_block),
-                subtitle = if (state.blockedPackages.isEmpty()) {
-                    stringResource(R.string.kavach_no_apps_chosen)
-                } else {
-                    stringResource(R.string.kavach_apps_selected, state.blockedPackages.size)
-                },
-                onClick = {
-                    if (!state.isEnabled && state.blockedPackages.isEmpty()) {
-                        pendingEnableAfterAppSelection = true
-                        onSetPendingEnableAfterAppSelection(true)
-                    }
-                    onOpenAppPicker()
-                },
-                trailingContent = {
-                    if (state.blockedPackages.isNotEmpty()) {
-                        AppIconsPreviewRow(
-                            packages = state.blockedPackages,
-                            modifier = Modifier.padding(end = 4.dp),
-                        )
-                    }
-                },
+            FocusProtectionSwitchCard(
+                title = stringResource(R.string.youtube_study_mode_control),
+                checked = youtubeEnabled,
+                icon = Icons.Default.SmartDisplay,
+                onToggle = onToggleYoutubeStudyMode,
+                onOpenSetup = onOpenYoutubeSetup.takeIf { youtubeEnabled },
             )
 
-            // App Categories Row
-            if (onOpenAppCategories != null) {
-                EkagraHairline(ink.hairline)
-                KavachActionRow(
-                    icon = Icons.Default.Category,
-                    title = stringResource(R.string.kavach_app_categories),
-                    subtitle = stringResource(R.string.kavach_app_categories_help),
-                    onClick = onOpenAppCategories,
-                )
-            }
+            if (state.isEnabled) {
+                Spacer(Modifier.height(4.dp))
 
-            // Permissions & Access Row
-            EkagraHairline(ink.hairline)
-            KavachActionRow(
-                icon = Icons.Default.Lock,
-                title = stringResource(R.string.kavach_permissions_access),
-                subtitle = stringResource(R.string.kavach_ready_count, readyCount, 5),
-                subtitleColor = if (readyCount == 5) Color(0xFF10B981) else Color(0xFFD97706),
-                onClick = {
-                    showPermissionCardSheet = true
-                },
-                trailingContent = {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(end = 4.dp),
-                    ) {
-                        val perms = listOf(hasUsageStats, hasOverlay, hasBatterySaver, hasNotifications, hasNotificationSuppressionAccess)
-                        perms.forEach { granted ->
-                            Box(
-                                modifier = Modifier
-                                    .size(6.dp)
-                                    .clip(CircleShape)
-                                    .background(if (granted) Color(0xFF10B981) else ink.hairline),
+                // WHEN IT WORKS Section
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = stringResource(R.string.kavach_when_it_works),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp,
+                        color = ink.secondaryText,
+                    )
+                    KavachProfileChoices(state.isAlwaysOnMode) { handleProfileSelect(it) }
+                    Text(
+                        text = if (state.isAlwaysOnMode) {
+                            stringResource(R.string.kavach_always_on_help)
+                        } else {
+                            stringResource(R.string.kavach_with_ekagra_help)
+                        },
+                        fontSize = 11.5.sp,
+                        lineHeight = 16.sp,
+                        color = ink.secondaryText,
+                        modifier = Modifier.padding(horizontal = 2.dp),
+                    )
+                }
+
+                Spacer(Modifier.height(4.dp))
+
+                // PROTECTION LEVEL Section
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = stringResource(R.string.kavach_protection_level),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp,
+                        color = ink.secondaryText,
+                    )
+                    KavachSegmentedSelector(
+                        options = listOf(
+                            SegmentOption(
+                                key = "normal",
+                                label = stringResource(R.string.kavach_normal),
+                                icon = Icons.Default.Shield,
+                            ),
+                            SegmentOption(
+                                key = "beast",
+                                label = stringResource(R.string.kavach_beast),
+                                icon = Icons.Default.Security,
+                            ),
+                        ),
+                        selectedKey = if (state.isStrictMode) "beast" else "normal",
+                        onSelect = { key ->
+                            onToggleStrictMode(key == "beast")
+                        },
+                    )
+                    Text(
+                        text = if (state.isStrictMode) {
+                            stringResource(R.string.kavach_beast_help)
+                        } else {
+                            stringResource(R.string.kavach_normal_help)
+                        },
+                        fontSize = 11.5.sp,
+                        lineHeight = 16.sp,
+                        color = ink.secondaryText,
+                        modifier = Modifier.padding(horizontal = 2.dp),
+                    )
+                }
+
+                Spacer(Modifier.height(8.dp))
+                EkagraHairline(ink.hairline)
+                Spacer(Modifier.height(4.dp))
+
+                // Apps to Block Row
+                KavachActionRow(
+                    icon = Icons.Default.Apps,
+                    title = stringResource(R.string.kavach_apps_to_block),
+                    subtitle = if (state.blockedPackages.isEmpty()) {
+                        stringResource(R.string.kavach_no_apps_chosen)
+                    } else {
+                        stringResource(R.string.kavach_apps_selected, state.blockedPackages.size)
+                    },
+                    onClick = {
+                        if (!state.isEnabled && state.blockedPackages.isEmpty()) {
+                            pendingEnableAfterAppSelection = true
+                            onSetPendingEnableAfterAppSelection(true)
+                        }
+                        onOpenAppPicker()
+                    },
+                    trailingContent = {
+                        if (state.blockedPackages.isNotEmpty()) {
+                            AppIconsPreviewRow(
+                                packages = state.blockedPackages,
+                                modifier = Modifier.padding(end = 4.dp),
                             )
                         }
-                    }
-                },
-            )
+                    },
+                )
 
-            // Kavach Analytics Row
-            if (onOpenAnalytics != null) {
+                // App Categories Row
+                if (onOpenAppCategories != null) {
+                    EkagraHairline(ink.hairline)
+                    KavachActionRow(
+                        icon = Icons.Default.Category,
+                        title = stringResource(R.string.kavach_app_categories),
+                        subtitle = stringResource(R.string.kavach_app_categories_help),
+                        onClick = onOpenAppCategories,
+                    )
+                }
+
+                // Permissions & Access Row
                 EkagraHairline(ink.hairline)
                 KavachActionRow(
-                    icon = Icons.Default.Analytics,
-                    title = stringResource(R.string.kavach_analytics),
-                    subtitle = stringResource(R.string.kavach_analytics_help),
-                    onClick = onOpenAnalytics,
+                    icon = Icons.Default.Lock,
+                    title = stringResource(R.string.kavach_permissions_access),
+                    subtitle = stringResource(R.string.kavach_ready_count, readyCount, 5),
+                    subtitleColor = if (readyCount == 5) Color(0xFF10B981) else Color(0xFFD97706),
+                    onClick = {
+                        showPermissionCardSheet = true
+                    },
+                    trailingContent = {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(end = 4.dp),
+                        ) {
+                            val perms = listOf(hasUsageStats, hasOverlay, hasBatterySaver, hasNotifications, hasNotificationSuppressionAccess)
+                            perms.forEach { granted ->
+                                Box(
+                                    modifier = Modifier
+                                        .size(6.dp)
+                                        .clip(CircleShape)
+                                        .background(if (granted) Color(0xFF10B981) else ink.hairline),
+                                )
+                            }
+                        }
+                    },
                 )
-            }
 
-            Spacer(Modifier.height(16.dp))
+                // Kavach Analytics Row
+                if (onOpenAnalytics != null) {
+                    EkagraHairline(ink.hairline)
+                    KavachActionRow(
+                        icon = Icons.Default.Analytics,
+                        title = stringResource(R.string.kavach_analytics),
+                        subtitle = stringResource(R.string.kavach_analytics_help),
+                        onClick = onOpenAnalytics,
+                    )
+                }
+
+                Spacer(Modifier.height(16.dp))
+            }
         }
 
         // Top notification banner for success/ready states
         AnimatedVisibility(
-            visible = grantedBannerText != null,
+            visible = state.isEnabled && grantedBannerText != null,
             enter = fadeIn() + slideInVertically { -it },
             exit = fadeOut() + slideOutVertically { -it },
             modifier = Modifier
@@ -603,50 +595,52 @@ fun FocusShieldSettingsContent(
         }
 
         // Sticky Bottom CTAs: "Not Now" and "Save"
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.BottomCenter)
-                .background(scheme.background)
-                .navigationBarsPadding()
-                .padding(horizontal = 20.dp, vertical = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            OutlinedButton(
-                onClick = onMaybeLater,
+        if (state.isEnabled) {
+            Row(
                 modifier = Modifier
-                    .weight(1f)
-                    .height(50.dp),
-                shape = RoundedCornerShape(12.dp),
-                border = BorderStroke(1.2.dp, KavachDesign.Primary),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = KavachDesign.Primary,
-                ),
+                    .fillMaxWidth()
+                    .align(Alignment.BottomCenter)
+                    .background(scheme.background)
+                    .navigationBarsPadding()
+                    .padding(horizontal = 20.dp, vertical = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Text(
-                    text = stringResource(R.string.kavach_not_now),
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = KavachDesign.Primary,
-                )
-            }
-            Button(
-                onClick = onSave,
-                modifier = Modifier
-                    .weight(1f)
-                    .height(50.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = KavachDesign.Primary,
-                    contentColor = Color.White,
-                ),
-            ) {
-                Text(
-                    text = stringResource(R.string.common_save),
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White,
-                )
+                OutlinedButton(
+                    onClick = onMaybeLater,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(50.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.2.dp, KavachDesign.Primary),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = KavachDesign.Primary,
+                    ),
+                ) {
+                    Text(
+                        text = stringResource(R.string.kavach_not_now),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = KavachDesign.Primary,
+                    )
+                }
+                Button(
+                    onClick = onSave,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(50.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = KavachDesign.Primary,
+                        contentColor = Color.White,
+                    ),
+                ) {
+                    Text(
+                        text = stringResource(R.string.common_save),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                    )
+                }
             }
         }
     }
@@ -671,7 +665,6 @@ fun FocusShieldSettingsContent(
                     .padding(top = 4.dp, bottom = 28.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                val hasBatterySaver = FocusShieldPermissionHelper.isIgnoringBatteryOptimizations(context)
                 KavachPermissionDisclosureCard(
                     hasUsageStats = hasUsageStats,
                     hasOverlay = hasOverlay,
@@ -704,7 +697,7 @@ fun FocusShieldSettingsContent(
 
                 Spacer(Modifier.height(4.dp))
 
-                val allRequiredGranted = hasUsageStats && hasOverlay && hasBatterySaver
+                val allRequiredGranted = KavachActivationReadiness.hasRequiredPermissions(hasUsageStats, hasOverlay)
                 Button(
                     onClick = {
                         if (allRequiredGranted && pendingEnableFlow) {
@@ -741,68 +734,51 @@ fun FocusShieldSettingsContent(
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
-private fun KavachMasterStatusCard(
-    isEnabled: Boolean,
-    isAlwaysOn: Boolean,
-    isStrict: Boolean,
+internal fun FocusProtectionSwitchCard(
+    title: String,
+    checked: Boolean,
+    icon: ImageVector,
     onToggle: (Boolean) -> Unit,
-    modifier: Modifier = Modifier,
+    onOpenSetup: (() -> Unit)? = null,
 ) {
     val scheme = MaterialTheme.colorScheme
     val ink = rememberEkagraInk(onCanvas = false)
-
     Card(
-        modifier = modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = scheme.surface),
         border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.55f)),
         elevation = CardDefaults.cardElevation(0.dp),
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 14.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
-                modifier = Modifier.weight(1f),
+            Icon(icon, contentDescription = null, tint = KavachDesign.Primary, modifier = Modifier.size(24.dp))
+            Column(
+                modifier = Modifier.weight(1f).then(
+                    if (onOpenSetup != null) Modifier.clickable(onClick = onOpenSetup) else Modifier,
+                ),
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .clip(CircleShape)
-                        .background(if (isEnabled) Color(0xFF10B981) else scheme.surfaceVariant.copy(alpha = 0.6f)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = if (isEnabled) Icons.Default.Check else Icons.Default.Shield,
-                        contentDescription = null,
-                        tint = if (isEnabled) Color.White else ink.secondaryText,
-                        modifier = Modifier.size(22.dp),
-                    )
-                }
-                Column {
-                    Text(
-                        text = if (isEnabled) stringResource(R.string.kavach_is_on) else stringResource(R.string.kavach_is_off),
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = ink.primaryText,
-                    )
-                    Spacer(Modifier.height(2.dp))
-                    Text(
-                        text = "${if (isAlwaysOn) stringResource(R.string.kavach_always_on) else stringResource(R.string.kavach_with_ekagra)} • ${if (isStrict) stringResource(R.string.kavach_beast) else stringResource(R.string.kavach_normal)}",
-                        fontSize = 11.5.sp,
-                        color = ink.secondaryText,
-                    )
+                Text(title, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = ink.primaryText)
+                Text(
+                    stringResource(if (checked) R.string.common_on else R.string.common_off),
+                    fontSize = 12.sp, color = ink.secondaryText,
+                )
+                if (onOpenSetup != null) {
+                    Text(stringResource(R.string.youtube_study_mode_configure), fontSize = 12.sp, color = KavachDesign.Primary)
                 }
             }
-
             Switch(
-                checked = isEnabled,
+                checked = checked,
                 onCheckedChange = onToggle,
+                modifier = Modifier.clearAndSetSemantics {
+                    contentDescription = title
+                    role = Role.Switch
+                    toggleableState = ToggleableState(checked)
+                    onClick { onToggle(!checked); true }
+                },
                 colors = SwitchDefaults.colors(
                     checkedThumbColor = Color.White,
                     checkedTrackColor = KavachDesign.Primary,
@@ -1015,4 +991,17 @@ private fun AppIconsPreviewRow(
             }
         }
     }
+}
+
+/** Pure profile controls shared with the safe timer guide. */
+@Composable
+internal fun KavachProfileChoices(alwaysOn: Boolean, onSelect: (String) -> Unit) {
+    KavachSegmentedSelector(
+        options = listOf(
+            SegmentOption(AppUsageMode.FOCUSED, stringResource(R.string.kavach_with_ekagra), Icons.Default.Timer),
+            SegmentOption(AppUsageMode.ALWAYS_ON, stringResource(R.string.kavach_always_on), Icons.Default.Timer),
+        ),
+        selectedKey = if (alwaysOn) AppUsageMode.ALWAYS_ON else AppUsageMode.FOCUSED,
+        onSelect = onSelect,
+    )
 }

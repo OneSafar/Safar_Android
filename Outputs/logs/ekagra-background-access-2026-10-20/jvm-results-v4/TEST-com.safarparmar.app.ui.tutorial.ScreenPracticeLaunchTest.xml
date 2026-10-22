@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.ui.tutorial.ScreenPracticeLaunchTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-20T05:52:11.899Z" hostname="Shashanks-MacBook-Air.local" time="0.021">
+  <properties/>
+  <testcase name="all practice features launch after loading and still block genuine busy flows" classname="com.safarparmar.app.ui.tutorial.ScreenPracticeLaunchTest" time="0.021"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

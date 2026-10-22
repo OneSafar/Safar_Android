@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.util.GoalHistoryVisibilityTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-20T02:13:05.755Z" hostname="Shashanks-MacBook-Air.local" time="0.0">
+  <properties/>
+  <testcase name="goal completed by Ekagra stays visible in Goals" classname="com.safarparmar.app.util.GoalHistoryVisibilityTest" time="0.0"/>
+  <testcase name="keep open does not imply goal completion" classname="com.safarparmar.app.util.GoalHistoryVisibilityTest" time="0.0"/>
+  <testcase name="reopening a focus completed goal keeps it visible but outside Completed" classname="com.safarparmar.app.util.GoalHistoryVisibilityTest" time="0.0"/>
+  <testcase name="standalone Ekagra session is not a completed goal" classname="com.safarparmar.app.util.GoalHistoryVisibilityTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

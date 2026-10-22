@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.feature.habits.HabitAnalyticsCalculatorTest" tests="13" skipped="0" failures="0" errors="0" timestamp="2026-10-19T19:59:37.349Z" hostname="Shashanks-MacBook-Air.local" time="0.006">
+  <properties/>
+  <testcase name="heatmap level mapping matches thresholds" classname="com.safarparmar.app.feature.habits.HabitAnalyticsCalculatorTest" time="0.001"/>
+  <testcase name="best historical streak identifies peak run" classname="com.safarparmar.app.feature.habits.HabitAnalyticsCalculatorTest" time="0.001"/>
+  <testcase name="current streak broken when yesterday was scheduled and missed" classname="com.safarparmar.app.feature.habits.HabitAnalyticsCalculatorTest" time="0.0"/>
+  <testcase name="habit scheduled only on specific weekdays" classname="com.safarparmar.app.feature.habits.HabitAnalyticsCalculatorTest" time="0.0"/>
+  <testcase name="leap year boundary February 29 2024 vs 2026" classname="com.safarparmar.app.feature.habits.HabitAnalyticsCalculatorTest" time="0.002"/>
+  <testcase name="no habits returns zeroed stats" classname="com.safarparmar.app.feature.habits.HabitAnalyticsCalculatorTest" time="0.0"/>
+  <testcase name="archived habit correctly reflects past completions and stops scheduling after archive date" classname="com.safarparmar.app.feature.habits.HabitAnalyticsCalculatorTest" time="0.001"/>
+  <testcase name="current streak preserved when today is scheduled but not yet completed" classname="com.safarparmar.app.feature.habits.HabitAnalyticsCalculatorTest" time="0.0"/>
+  <testcase name="multiple habits partial completion and perfect days calculation" classname="com.safarparmar.app.feature.habits.HabitAnalyticsCalculatorTest" time="0.0"/>
+  <testcase name="habit with schedule gaps preserves streak across unscheduled days" classname="com.safarparmar.app.feature.habits.HabitAnalyticsCalculatorTest" time="0.0"/>
+  <testcase name="one habit with 100 percent completion" classname="com.safarparmar.app.feature.habits.HabitAnalyticsCalculatorTest" time="0.0"/>
+  <testcase name="future dates in current month are not counted against completion rate" classname="com.safarparmar.app.feature.habits.HabitAnalyticsCalculatorTest" time="0.0"/>
+  <testcase name="one habit with 0 percent completion" classname="com.safarparmar.app.feature.habits.HabitAnalyticsCalculatorTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

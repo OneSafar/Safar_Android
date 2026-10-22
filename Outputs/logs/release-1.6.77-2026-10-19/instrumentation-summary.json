@@ -1,0 +1,193 @@
+{
+  "files": [
+    "app/build/outputs/androidTest-results/connected/debug/flavors/prod/TEST-Resizable_Experimental(AVD) - 17-_app-prod.xml"
+  ],
+  "counts": {
+    "tests": 148,
+    "failures": 19,
+    "errors": 0,
+    "skipped": 5
+  },
+  "failed_classes": {
+    "com.safarparmar.app.feature.toppersbatch.TodayPlanLayoutTest": 16,
+    "com.safarparmar.app.ui.components.popups.SafarPopupEnvironmentInstrumentedTest": 2,
+    "com.safarparmar.app.ui.ekagra.focusshield.KavachProgressiveUiTest": 1
+  },
+  "critical": [
+    {
+      "class": "com.safarparmar.app.ui.ekagra.EkagraAlarmInstrumentedTest",
+      "test": "systemAlarmIsRegisteredWithAndWithoutExactAccess",
+      "passed": true
+    },
+    {
+      "class": "com.safarparmar.app.ui.ekagra.EkagraAlarmInstrumentedTest",
+      "test": "ekagraChannelsUseDeviceSoundOrVibration",
+      "passed": true
+    },
+    {
+      "class": "com.safarparmar.app.ui.ekagra.EkagraJournalInstrumentedTest",
+      "test": "resumableProcessDeathRetainsTheOriginalIdentityAndDoesNotUploadATwelveMinuteFragment",
+      "passed": true
+    },
+    {
+      "class": "com.safarparmar.app.ui.ekagra.EkagraJournalInstrumentedTest",
+      "test": "sameProcessScreenRecreationDoesNotFinalize",
+      "passed": true
+    },
+    {
+      "class": "com.safarparmar.app.ui.ekagra.EkagraJournalInstrumentedTest",
+      "test": "completionAndEndRaceAndLateCheckpointProduceOneFinalRecord",
+      "passed": true
+    },
+    {
+      "class": "com.safarparmar.app.ui.ekagra.EkagraJournalInstrumentedTest",
+      "test": "failedDiskWriteRetainsCheckpointAndCanRetry",
+      "passed": true
+    },
+    {
+      "class": "com.safarparmar.app.ui.ekagra.EkagraJournalInstrumentedTest",
+      "test": "uploadAcknowledgementKeepsIdentityAndCannotBeReopened",
+      "passed": true
+    },
+    {
+      "class": "com.safarparmar.app.ui.ekagra.EkagraJournalInstrumentedTest",
+      "test": "serviceRecreationInTheSameProcessCanClaimItsActiveDurableCheckpoint",
+      "passed": true
+    },
+    {
+      "class": "com.safarparmar.app.ui.ekagra.EkagraJournalInstrumentedTest",
+      "test": "retryWithTheSameClockMillisecondCannotUndoANewerPause",
+      "passed": true
+    },
+    {
+      "class": "com.safarparmar.app.ui.ekagra.EkagraJournalInstrumentedTest",
+      "test": "pendingHistoryAndUploadsAreAccountIsolated",
+      "passed": true
+    },
+    {
+      "class": "com.safarparmar.app.ui.ekagra.EkagraJournalInstrumentedTest",
+      "test": "claimRetainsOlderOrphanProgressWithoutStartingTwoTimers",
+      "passed": true
+    },
+    {
+      "class": "com.safarparmar.app.ui.ekagra.EkagraJournalInstrumentedTest",
+      "test": "emptyCloseNeverDropsExistingNonzeroProgressOrRewritesAFinalizedCompletion",
+      "passed": true
+    },
+    {
+      "class": "com.safarparmar.app.ui.ekagra.EkagraJournalInstrumentedTest",
+      "test": "legacyPomodoroBreakOnlyCountsCompletedFocusRounds",
+      "passed": true
+    },
+    {
+      "class": "com.safarparmar.app.ui.ekagra.EkagraJournalInstrumentedTest",
+      "test": "failedEmptyCloseCanRetryWithoutResurrectingTheTimer",
+      "passed": true
+    },
+    {
+      "class": "com.safarparmar.app.ui.ekagra.EkagraJournalInstrumentedTest",
+      "test": "acknowledgementDiskFailureKeepsTwoHourSessionPendingForTheSameUploadRetry",
+      "passed": true
+    },
+    {
+      "class": "com.safarparmar.app.ui.ekagra.EkagraJournalInstrumentedTest",
+      "test": "goalChoiceOnOfflineCompletionUpdatesSamePendingRow",
+      "passed": true
+    },
+    {
+      "class": "com.safarparmar.app.ui.ekagra.EkagraJournalInstrumentedTest",
+      "test": "closingBeforeTheFirstDurableCheckpointCreatesATombstoneForLateRetries",
+      "passed": true
+    },
+    {
+      "class": "com.safarparmar.app.ui.ekagra.EkagraJournalInstrumentedTest",
+      "test": "processDeathSavesCheckpointNotThePlannedFiveHours",
+      "passed": true
+    },
+    {
+      "class": "com.safarparmar.app.ui.ekagra.EkagraJournalInstrumentedTest",
+      "test": "failedRecoveryCheckpointWriteRemainsRetryableWithTheSameIdentity",
+      "passed": true
+    },
+    {
+      "class": "com.safarparmar.app.ui.ekagra.EkagraJournalInstrumentedTest",
+      "test": "legacyRecoveryDoesNotCountOvernightGapAndMigrationIsIdempotent",
+      "passed": true
+    },
+    {
+      "class": "com.safarparmar.app.ui.ekagra.EkagraJournalInstrumentedTest",
+      "test": "legacyManualBreakPreservesSuspendedFocus",
+      "passed": true
+    },
+    {
+      "class": "com.safarparmar.app.ui.ekagra.EkagraJournalInstrumentedTest",
+      "test": "recoveryReadsAreAccountIsolatedAndDoNotClaimOrFinalizeRows",
+      "passed": true
+    },
+    {
+      "class": "com.safarparmar.app.ui.ekagra.EkagraJournalInstrumentedTest",
+      "test": "immediatelyEndedEmptySessionCannotResumeAfterProcessDeathOrLateCheckpoint",
+      "passed": true
+    },
+    {
+      "class": "com.safarparmar.app.ui.ekagra.EkagraJournalInstrumentedTest",
+      "test": "retryingAnOlderCheckpointCannotMoveAResumedTimerBackwards",
+      "passed": true
+    },
+    {
+      "class": "com.safarparmar.app.ui.ekagra.EkagraJournalInstrumentedTest",
+      "test": "acknowledgedGoalChoiceUsesExistingServerIdentity",
+      "passed": true
+    },
+    {
+      "class": "com.safarparmar.app.ui.ekagra.EkagraJournalInstrumentedTest",
+      "test": "recoveredCompletionAndLateCheckpointStillProduceOneFullTwoHourRecord",
+      "passed": true
+    },
+    {
+      "class": "com.safarparmar.app.ui.ekagra.EkagraServiceInstrumentedTest",
+      "test": "serviceDestructionAfterSleepKeepsTwoHoursResumableInsteadOfFinalizingTwelveMinutes",
+      "passed": true
+    },
+    {
+      "class": "com.safarparmar.app.ui.ekagra.EkagraServiceInstrumentedTest",
+      "test": "bothPomodoroStylesPreserveFocusDuringManualBreakTransition",
+      "passed": true
+    },
+    {
+      "class": "com.safarparmar.app.ui.ekagra.EkagraServiceInstrumentedTest",
+      "test": "recentAppsCheckInExpiryAndNotificationEndKeepStudyTimeSafe",
+      "passed": true
+    },
+    {
+      "class": "com.safarparmar.app.ui.ekagra.EkagraServiceInstrumentedTest",
+      "test": "progressSnapshotReconcilesSleepBeforeTheScreenPausesTheTimer",
+      "passed": true
+    },
+    {
+      "class": "com.safarparmar.app.ui.ekagra.EkagraServiceInstrumentedTest",
+      "test": "presenceResponsesDismissBothSurfacesAndRejectStaleActions",
+      "passed": true
+    },
+    {
+      "class": "com.safarparmar.app.ui.ekagra.EkagraServiceInstrumentedTest",
+      "test": "stopwatchReminderAndPauseResumeDoNotChangeElapsedFocus",
+      "passed": true
+    },
+    {
+      "class": "com.safarparmar.app.ui.ekagra.EkagraServiceInstrumentedTest",
+      "test": "manualBreakAfterSleepPreservesFocusAndPomodoroTimeWithoutCreditingTheBreak",
+      "passed": true
+    },
+    {
+      "class": "com.safarparmar.app.ui.ekagra.EkagraServiceInstrumentedTest",
+      "test": "repeatedStartAfterSleepKeepsTheOriginalTwoHourPeriod",
+      "passed": true
+    },
+    {
+      "class": "com.safarparmar.app.ui.tutorial.TitliReleaseGateInstrumentedTest",
+      "test": "disabledGuidanceKeepsScreenContentAndHidesEvenExplicitReplayActions",
+      "passed": true
+    }
+  ]
+}

@@ -523,7 +523,7 @@
     <string name="dashboard_unlocked_count">%1$d unlocked</string>
     <string name="dashboard_default_user">dost</string>
     <string name="dashboard_daily_inspiration">aaj ki inspiration</string>
-    <string name="dashboard_inspiration_quote">“aapki limits characters aapki imagination hi tay karati hai.”</string>
+    <string name="dashboard_inspiration_quote">“aapki limits aksar aapki imagination hi tay karti hai.”</string>
     <string name="dashboard_study_plan_progress">Study plan progress</string>
     <string name="dashboard_current_title">Current title</string>
     <string name="dashboard_set_title">Achievement title set karne ke liye tap karein</string>
@@ -579,8 +579,6 @@
     <string name="support_afternoon">dopahara</string>
     <string name="support_evening">sama</string>
     <string name="support_anytime">kabhi bhi</string>
-    <string name="support_asked_before">pehle bhi support mamga hai?</string>
-    <string name="support_first_time">nahi, pahali baar</string>
     <string name="support_send_request">meri request bhejein</string>
     <string name="support_request_status">Request status</string>
     <string name="support_preferred_callback">Preferred callback: %1$s</string>
@@ -982,7 +980,7 @@
     <string name="kavach_always_on_title">KAVACH Always On</string>
     <string name="kavach_active_title">KAVACH active hai</string>
     <string name="kavach_always_on_notification_body">Always On protection chalu hai.</string>
-    <string name="kavach_active_notification_body">KAVACH protection chalu hai.</string>
+    <string name="kavach_active_notification_body">KAVACH protection active hai.</string>
     <string name="common_beta">Beta</string>
     <string name="common_agree_continue">Agree karke aage badhein</string>
     <string name="common_allowed">Allowed</string>

@@ -2,12 +2,25 @@ package com.safarparmar.app.notifications
 
 import android.net.Uri
 import com.safarparmar.app.ui.navigation.Routes
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.mockkStatic
+import io.mockk.unmockkStatic
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class NotificationDeepLinkHandlerTest {
+    @Test fun habitRemindersOpenHabitTracker() {
+        assertEquals(Routes.HABIT_TRACKER, NotificationDeepLinkHandler.routeFor("safar://habits"))
+    }
+
+    @Test fun titliReplyOpensTheQueryInbox() {
+        assertEquals(Routes.TITLI_QUERIES, NotificationDeepLinkHandler.routeFor("safar://titli/queries?id=q"))
+        assertEquals(Routes.HOME, NotificationDeepLinkHandler.routeFor("safar://titli/unknown"))
+    }
+
     @Test
     fun `live session deep link maps to player route`() {
         val route = NotificationDeepLinkHandler.routeFor("safar://live/session/abc-123")
@@ -43,8 +56,27 @@ class NotificationDeepLinkHandlerTest {
 
     @Test
     fun `https links are opened externally while unsupported schemes are rejected`() {
-        assertTrue(NotificationDeepLinkHandler.isExternalWebLink("https://safar.parmarssc.in/updates"))
-        assertFalse(NotificationDeepLinkHandler.isExternalWebLink("http://safar.parmarssc.in/updates"))
-        assertFalse(NotificationDeepLinkHandler.isExternalWebLink("javascript:alert(1)"))
+        // Android URI parsing is stubbed in local JVM tests. Supply URI fields so
+        // these assertions exercise the handler's policy, not the Android stub.
+        mockkStatic(Uri::class)
+        try {
+            every { Uri.parse(any()) } answers {
+                val parsed = java.net.URI(firstArg<String>())
+                mockk<Uri> {
+                    every { scheme } returns parsed.scheme
+                    every { host } returns parsed.host
+                    every { path } returns parsed.path
+                }
+            }
+            assertEquals(Routes.GK5_BATCH, NotificationDeepLinkHandler.routeFor("https://safar.parmarssc.in/study/gk-5"))
+            assertFalse(NotificationDeepLinkHandler.isExternalWebLink("https://safar.parmarssc.in/study/gk-5"))
+            assertEquals(Routes.TOPPERS_BATCH, NotificationDeepLinkHandler.routeFor("https://safar.parmarssc.in/study/toppers-batch"))
+            assertTrue(NotificationDeepLinkHandler.isExternalWebLink("https://example.test/study/gk-5"))
+            assertTrue(NotificationDeepLinkHandler.isExternalWebLink("https://safar.parmarssc.in/updates"))
+            assertFalse(NotificationDeepLinkHandler.isExternalWebLink("http://safar.parmarssc.in/updates"))
+            assertFalse(NotificationDeepLinkHandler.isExternalWebLink("javascript:alert(1)"))
+        } finally {
+            unmockkStatic(Uri::class)
+        }
     }
 }

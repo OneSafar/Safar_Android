@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ParserTest" tests="53" skipped="0" failures="0" errors="0" timestamp="2026-10-20T02:12:56.599Z" hostname="Shashanks-MacBook-Air.local" time="0.013">
+  <properties/>
+  <testcase name="fullscreen live chat handles are not uploader evidence" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ParserTest" time="0.001"/>
+  <testcase name="title with pipes and numbers is preserved and not replaced by action buttons" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ParserTest" time="0.001"/>
+  <testcase name="modern youtube watch screen with handle in description preview extracts handle" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ParserTest" time="0.0"/>
+  <testcase name="fullscreen exit control cannot become a channel name" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ParserTest" time="0.001"/>
+  <testcase name="display name without exact handle never becomes identity" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ParserTest" time="0.0"/>
+  <testcase name="shorts player view id is recognized as shorts" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ParserTest" time="0.0"/>
+  <testcase name="standalone title mention without uploader proof is rejected" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ParserTest" time="0.0"/>
+  <testcase name="session rejects a watch tree until video card was tapped" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ParserTest" time="0.001"/>
+  <testcase name="title mention cannot replace uploader handle when title resource id is missing" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ParserTest" time="0.0"/>
+  <testcase name="regular video with Dislike this video and unselected pivot_shorts is classified as VIDEO and never shorts" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ParserTest" time="0.0"/>
+  <testcase name="legacy mini player is recognized and hidden mini player is ignored" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ParserTest" time="0.0"/>
+  <testcase name="modern youtube watch screen with handle in description preview and display name in avatar description" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ParserTest" time="0.0"/>
+  <testcase name="merged title mentions are ignored and uploader segment wins" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ParserTest" time="0.0"/>
+  <testcase name="subscriber metadata is removed before exact display alias matching" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ParserTest" time="0.0"/>
+  <testcase name="sibling handle and engagement text without owner ids resolves like real device log" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ParserTest" time="0.0"/>
+  <testcase name="active shorts controls override selected Home tab" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ParserTest" time="0.0"/>
+  <testcase name="unrelated handle mention in title does not override uploader display name" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ParserTest" time="0.0"/>
+  <testcase name="floating mini player on home is playback without borrowing feed channel identity" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ParserTest" time="0.0"/>
+  <testcase name="pre-roll advertiser is marked as ad and never becomes owner evidence" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ParserTest" time="0.0"/>
+  <testcase name="sponsored text inside the player is not classified as a side panel" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ParserTest" time="0.0"/>
+  <testcase name="structural owner row extracts exact handle instead of title keyword" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ParserTest" time="0.0"/>
+  <testcase name="bare handle sibling without vertically overlapping engagement text is rejected" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ParserTest" time="0.0"/>
+  <testcase name="confirmed reel watch is classified as shorts" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ParserTest" time="0.0"/>
+  <testcase name="portrait sponsored panel is detected without using advertiser as owner" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ParserTest" time="0.0"/>
+  <testcase name="excluded fullscreen control cannot truncate the real metadata row" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ParserTest" time="0.001"/>
+  <testcase name="handle mentioned in video title is never treated as channel owner" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ParserTest" time="0.0"/>
+  <testcase name="portrait fullscreen exit control activates fullscreen metadata recovery" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ParserTest" time="0.0"/>
+  <testcase name="navigation tab labels like Home or Shorts are never valid channel labels" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ParserTest" time="0.001"/>
+  <testcase name="shorts text and thumbnail in home feed are not a shorts viewer" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ParserTest" time="0.0"/>
+  <testcase name="title mention with no separate uploader metadata is rejected" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ParserTest" time="0.0"/>
+  <testcase name="unlabelled channel card with subscription sibling is detected" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ParserTest" time="0.0"/>
+  <testcase name="shorts tab selected in pivot bar is immediately classified as shorts" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ParserTest" time="0.0"/>
+  <testcase name="confirmed Shorts outranks a leftover mini player" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ParserTest" time="0.0"/>
+  <testcase name="fullscreen HUD title and bare handle identify uploader" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ParserTest" time="0.001"/>
+  <testcase name="modern youtube watch screen with sibling handle and engagement nodes extracts handle and title without resource ids" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ParserTest" time="0.001"/>
+  <testcase name="exact handle in bounded watch metadata wins while owner card is still rendering" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ParserTest" time="0.0"/>
+  <testcase name="tablet watch frame and accessibility owner card are detected without a surface view" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ParserTest" time="0.0"/>
+  <testcase name="landscape player is fullscreen even when owner row is hidden" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ParserTest" time="0.0"/>
+  <testcase name="channel URL is accepted only from owner metadata" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ParserTest" time="0.001"/>
+  <testcase name="autoplay title change remains inside the tapped watch session" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ParserTest" time="0.0"/>
+  <testcase name="screen with remix button or dislike short button is classified as shorts" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ParserTest" time="0.0"/>
+  <testcase name="prime video india with samay raina title mention resolves prime video handle" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ParserTest" time="0.0"/>
+  <testcase name="mini player closes through close control not its playback toggle" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ParserTest" time="0.0"/>
+  <testcase name="home preview surface without watch marker is not playback" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ParserTest" time="0.0"/>
+  <testcase name="video title mentions of other channels are never mistaken for real uploader" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ParserTest" time="0.001"/>
+  <testcase name="structural owner handle works on a compact low density screen" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ParserTest" time="0.0"/>
+  <testcase name="duplicate fullscreen HUD nodes for one handle are accepted" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ParserTest" time="0.0"/>
+  <testcase name="modern reel player container is classified as shorts without reel_watch" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ParserTest" time="0.0"/>
+  <testcase name="fullscreen sponsored side panel is distinguished from in-player ad playback" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ParserTest" time="0.0"/>
+  <testcase name="fullscreen caption mention is not accepted as uploader" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ParserTest" time="0.001"/>
+  <testcase name="fullscreen HUD handle supplements a stale title-only watch header" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ParserTest" time="0.0"/>
+  <testcase name="home feed with pivot_home selected is always non playback even with surface and watch player markers" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ParserTest" time="0.0"/>
+  <testcase name="shorts screen with background watch_player is classified as shorts and never video" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ParserTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

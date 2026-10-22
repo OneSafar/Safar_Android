@@ -1,5 +1,9 @@
 package com.safarparmar.app.feature.habits
 
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.runBlocking
 import com.safarparmar.app.feature.habits.data.*
 import com.safarparmar.app.feature.habits.viewmodel.*
 import io.mockk.*
@@ -18,8 +22,16 @@ import java.time.LocalDate
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class HabitViewModelTest {
+    private val models = mutableListOf<HabitViewModel>()
+    private fun createViewModel(repository: HabitRepository) = HabitViewModel(repository).also(models::add)
     @Before fun setUp() { Dispatchers.setMain(UnconfinedTestDispatcher()) }
-    @After fun tearDown() { Dispatchers.resetMain() }
+    @After fun tearDown() {
+        // flowOn(Default) may still be cancelling after runTest ends. Join the
+        // ViewModel children before removing their Main dispatcher.
+        runBlocking { models.forEach { it.viewModelScope.coroutineContext[Job]?.cancelAndJoin() } }
+        models.clear()
+        Dispatchers.resetMain()
+    }
     @Test fun `history calculations run off the collecting thread and preserve results`() = runTest {
         val collectingThread = Thread.currentThread()
         val days = java.time.DayOfWeek.entries.toSet()
@@ -32,7 +44,7 @@ class HabitViewModelTest {
         val today = LocalDate.now()
         val habit = HabitEntity(id = 1L, name = "Read", targetDays = checkedDays, scheduledSince = today.minusDays(1))
         val done = listOf(HabitCompletionEntity(1L, today.minusDays(1), true), HabitCompletionEntity(1L, today, true))
-        val dao = mockk<HabitDao>()
+        val dao = mockk<HabitRemoteStore>()
         every { dao.observeActiveHabits() } returns MutableStateFlow(listOf(habit))
         every { dao.observeCompletionsForDate(today) } returns MutableStateFlow(listOf(done.last()))
         every { dao.observeCompletionsBetween(any(), any()) } returns MutableStateFlow(done)
@@ -50,12 +62,13 @@ class HabitViewModelTest {
 
     @Test fun `midnight updates current periods and preserves browsed history`() = runTest {
         run {
-            val dao = mockk<HabitDao>(relaxed = true)
+            val dao = mockk<HabitRemoteStore>(relaxed = true)
             every { dao.observeActiveHabits() } returns MutableStateFlow(emptyList())
             every { dao.observeCompletionsForDate(any()) } returns MutableStateFlow(emptyList())
             every { dao.observeCompletionsBetween(any(), any()) } returns MutableStateFlow(emptyList())
             every { dao.observeActiveScheduleRevisionsThrough(any()) } returns MutableStateFlow(emptyList())
-            val vm = HabitViewModel(HabitRepository(dao))
+            every { dao.syncStatus } returns MutableStateFlow(HabitSyncStatus(false))
+            val vm = createViewModel(HabitRepository(dao))
             backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect() }
             val last = LocalDate.of(2026, 5, 31) // Sunday, at both week and month boundary.
             vm.refreshToday(last)
@@ -76,20 +89,22 @@ class HabitViewModelTest {
     }
     @Test fun `stale today tap never writes to yesterday`() = runTest {
         run {
-            val dao = mockk<HabitDao>(relaxed = true)
-            val vm = HabitViewModel(HabitRepository(dao))
+            val dao = mockk<HabitRemoteStore>(relaxed = true)
+            every { dao.syncStatus } returns MutableStateFlow(HabitSyncStatus(false))
+            val vm = createViewModel(HabitRepository(dao))
             vm.toggleTodayHabit(1L, LocalDate.now().minusDays(1), false)
             coVerify(exactly = 0) { dao.upsertCompletion(any()) }
         }
     }
     @Test fun `create uses all habits for ordering and propagates a save failure`() = runTest {
         run {
-            val dao = mockk<HabitDao>(relaxed = true)
+            val dao = mockk<HabitRemoteStore>(relaxed = true)
             every { dao.observeActiveHabits() } returns MutableStateFlow(listOf(HabitEntity(id = 1, name = "Weekend", order = 8)))
-            val vm = HabitViewModel(HabitRepository(dao))
+            every { dao.syncStatus } returns MutableStateFlow(HabitSyncStatus(false))
+            val vm = createViewModel(HabitRepository(dao))
             vm.createHabit("Read", java.time.DayOfWeek.entries.toSet(), isEveryDay = true)
             coVerify { dao.insertHabit(match { it.name == "Read" && it.order == 9 }) }
-            coEvery { dao.insertHabit(any()) } throws IllegalStateException("disk unavailable")
+            coEvery { dao.insertHabit(any()) } throws IllegalStateException("server unavailable")
             try { vm.createHabit("Run", java.time.DayOfWeek.entries.toSet(), isEveryDay = true); fail("Failure must reach the sheet") }
             catch (_: IllegalStateException) { }
         }
@@ -102,7 +117,7 @@ class HabitViewModelTest {
             targetDays = setOf(java.time.DayOfWeek.SUNDAY),
             order = 0
         )
-        val dao = mockk<HabitDao>(relaxed = true)
+        val dao = mockk<HabitRemoteStore>(relaxed = true)
         every { dao.observeActiveHabits() } returns MutableStateFlow(listOf(sundayHabit))
         every { dao.observeCompletionsForDate(any()) } returns MutableStateFlow(emptyList())
         every { dao.observeActiveScheduleRevisionsThrough(any()) } returns MutableStateFlow(emptyList())
@@ -137,10 +152,11 @@ class HabitViewModelTest {
             targetDays = setOf(today.dayOfWeek),
             order = 0
         )
-        val dao = mockk<HabitDao>(relaxed = true)
+        val dao = mockk<HabitRemoteStore>(relaxed = true)
         coEvery { dao.getHabitById(1L) } returns habit
         every { dao.observeActiveHabits() } returns MutableStateFlow(listOf(habit))
-        val vm = HabitViewModel(HabitRepository(dao))
+        every { dao.syncStatus } returns MutableStateFlow(HabitSyncStatus(false))
+        val vm = createViewModel(HabitRepository(dao))
         vm.toggleTodayHabit(1L, today, false)
         coVerify { dao.upsertCompletion(HabitCompletionEntity(1L, today, completed = true)) }
     }

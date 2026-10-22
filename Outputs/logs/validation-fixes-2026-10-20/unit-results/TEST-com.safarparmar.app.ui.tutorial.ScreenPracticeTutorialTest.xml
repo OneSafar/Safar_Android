@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.ui.tutorial.ScreenPracticeTutorialTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-19T19:59:48.504Z" hostname="Shashanks-MacBook-Air.local" time="0.005">
+  <properties/>
+  <testcase name="everyLessonCanMoveBothWaysAndReplayFromTheBeginning" classname="com.safarparmar.app.ui.tutorial.ScreenPracticeTutorialTest" time="0.004"/>
+  <testcase name="fourFeaturesHaveTwoShortIndependentLessons" classname="com.safarparmar.app.ui.tutorial.ScreenPracticeTutorialTest" time="0.0"/>
+  <testcase name="completionAndSkipAreSeparateAndHelpNeverCompletesALesson" classname="com.safarparmar.app.ui.tutorial.ScreenPracticeTutorialTest" time="0.0"/>
+  <testcase name="rotationRetainsStepWhileNewProcessStartsWithPracticeClosed" classname="com.safarparmar.app.ui.tutorial.ScreenPracticeTutorialTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.feature.toppersbatch.TodayPlanRemoveTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-20T02:12:55.951Z" hostname="Shashanks-MacBook-Air.local" time="0.014">
+  <properties/>
+  <testcase name="removalUpdatesCountsAndRestoresTheSuggestionWithoutDeletingTheLecture" classname="com.safarparmar.app.feature.toppersbatch.TodayPlanRemoveTest" time="0.005"/>
+  <testcase name="failedRemovalRetainsARecoverablePlan" classname="com.safarparmar.app.feature.toppersbatch.TodayPlanRemoveTest" time="0.002"/>
+  <testcase name="revisionRemovalRetainsCompletedSessionsAndWatchHistory" classname="com.safarparmar.app.feature.toppersbatch.TodayPlanRemoveTest" time="0.004"/>
+  <testcase name="staleRemovalDoesNotClearAFuturePlanOrCompletedWatch" classname="com.safarparmar.app.feature.toppersbatch.TodayPlanRemoveTest" time="0.003"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -5,6 +5,7 @@ data class PremiumFeaturesResponse(
     val studyPlannerInsights: Boolean = false,
     val nishthaAnalytics: Boolean = false,
     val focusAnalytics: Boolean = false,
+    val liveSessions: Boolean = false,
 )
 
 data class PremiumStatusResponse(

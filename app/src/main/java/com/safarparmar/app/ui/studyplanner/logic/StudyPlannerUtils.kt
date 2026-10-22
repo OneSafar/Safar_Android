@@ -23,6 +23,12 @@ data class TopicRef(
     val topic: StudyTopic,
 )
 
+/** Avoid recursively comparing an entire plan when a list is used as a Compose remember key. */
+class PlannerReferenceKey(private val value: Any?) {
+    override fun equals(other: Any?): Boolean = other is PlannerReferenceKey && value === other.value
+    override fun hashCode(): Int = System.identityHashCode(value)
+}
+
 fun StudyPlan.flattenTopics(): List<TopicRef> = subjects.flatMap { subject ->
     subject.chapters.flatMap { chapter ->
         chapter.topics.map { topic -> TopicRef(subject, chapter, topic) }

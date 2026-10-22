@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.feature.habits.HabitRemoteStoreTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-10-20T02:12:55.054Z" hostname="Shashanks-MacBook-Air.local" time="0.301">
+  <properties/>
+  <testcase name="background refresh after a lost create response cannot make the retry create a second habit" classname="com.safarparmar.app.feature.habits.HabitRemoteStoreTest" time="0.182"/>
+  <testcase name="reminders receive confirmed creates edits completions archives and deletes" classname="com.safarparmar.app.feature.habits.HabitRemoteStoreTest" time="0.043"/>
+  <testcase name="unconfirmed network mutation never replaces reminder projection" classname="com.safarparmar.app.feature.habits.HabitRemoteStoreTest" time="0.005"/>
+  <testcase name="two phones and fresh install share all backend history without writing Room" classname="com.safarparmar.app.feature.habits.HabitRemoteStoreTest" time="0.04"/>
+  <testcase name="unchanged server snapshot restores reminders after local cache reset" classname="com.safarparmar.app.feature.habits.HabitRemoteStoreTest" time="0.009"/>
+  <testcase name="server snake case contract retains schedule archive and completion fields" classname="com.safarparmar.app.feature.habits.HabitRemoteStoreTest" time="0.001"/>
+  <testcase name="logout and account change hide old history and reject late responses" classname="com.safarparmar.app.feature.habits.HabitRemoteStoreTest" time="0.012"/>
+  <testcase name="offline creation does not pretend to save and retry cannot duplicate a committed habit" classname="com.safarparmar.app.feature.habits.HabitRemoteStoreTest" time="0.009"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

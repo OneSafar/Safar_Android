@@ -36,4 +36,27 @@ class ForegroundAppTrackerTest {
         tracker.onBackground("com.example.current")
         assertNull(tracker.currentPackage)
     }
+
+    @Test
+    fun `pause from replaced activity does not forget the fullscreen foreground app`() {
+        val tracker = ForegroundAppTracker()
+        tracker.onForeground("com.google.android.youtube", "WatchActivity")
+        tracker.onForeground("com.google.android.youtube", "FullscreenActivity")
+        tracker.onBackground("com.google.android.youtube", "WatchActivity")
+        assertEquals("com.google.android.youtube", tracker.currentPackage)
+        tracker.onBackground("com.google.android.youtube", "FullscreenActivity")
+        assertNull(tracker.currentPackage)
+    }
+
+    @Test
+    fun `blocked app remains tracked after switching between its activities`() {
+        val tracker = ForegroundAppTracker()
+        tracker.onForeground("com.example.blocked", "Feed")
+        tracker.onForeground("com.example.blocked", "Video")
+        tracker.onBackground("com.example.blocked", "Feed")
+        assertEquals("com.example.blocked", tracker.currentPackage)
+        tracker.onForeground("com.example.allowed", "Home")
+        tracker.onBackground("com.example.blocked", "Video")
+        assertEquals("com.example.allowed", tracker.currentPackage)
+    }
 }

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ekagra_background_access_title">Ekagra ko background mein chalne dein</string>
+    <string name="ekagra_background_access_body">SAFAR ki battery restrictions hata dein taaki Android aapka study session beech mein band karne ki sambhavna kam ho. Kavach bhi app ki yahi setting use karta hai.</string>
+    <string name="ekagra_background_access_steps">Android ke request mein Allow chunein. Battery settings khule to Unrestricted ya No restrictions chunein aur background activity allow karein. Phir SAFAR par lautein. Setting badalte waqt timer chalta rahega.</string>
+    <string name="ekagra_background_access_unavailable">Battery settings nahi khul sakin. Android Settings → Apps → SAFAR → Battery kholein aur Unrestricted ya No restrictions chunein.</string>
+</resources>

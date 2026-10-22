@@ -336,3 +336,11 @@ data class EkagraAnalyticsFocusSessionDto(
     val pauseCount: Int? = 0,
     val timerMode: String? = null
 )
+
+/** Additive dashboard response; full report DTO remains available for analytics. */
+data class DashboardMonthlySummaryDto(
+    val month: String? = null,
+    val consistencyScore: Double? = null,
+    val completionRate: Double? = null,
+    val focusDepth: Double? = null,
+)

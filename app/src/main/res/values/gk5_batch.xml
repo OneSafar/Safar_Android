@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="gk5_tracker_title">Parmar GK 5.0 Batch Tracker</string>
+    <string name="gk5_tracker_subtitle">GK-only lectures, revision and progress</string>
+    <string name="gk5_switch_to_gk">Open GK 5.0</string>
+    <string name="gk5_switch_to_toppers">Open Toppers Batch</string>
+    <string name="gk5_opening">Opening GK 5.0…</string>
+    <string name="gk5_premium">SAFAR Premium is needed for GK 5.0.</string>
+    <string name="gk5_unavailable">GK 5.0 is not available for this account yet.</string>
+    <string name="gk5_could_not_open">Could not open GK 5.0.</string>
+    <string name="gk5_official_schedule_note">Your daily list follows the official Parmar GK 5.0 schedule.</string>
+</resources>

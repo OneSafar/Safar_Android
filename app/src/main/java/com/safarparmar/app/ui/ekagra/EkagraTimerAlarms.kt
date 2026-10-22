@@ -8,8 +8,11 @@ import android.content.Intent
 import android.os.Build
 import android.os.PowerManager
 import android.os.SystemClock
+import android.provider.Settings
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import com.safarparmar.app.data.local.SafarDataStore
+import com.safarparmar.app.R
 import com.safarparmar.app.data.local.TimerAlertStyle
 import com.safarparmar.app.notifications.*
 import kotlinx.coroutines.*
@@ -56,6 +59,18 @@ internal object EkagraTimerAlarms {
             )
         }
     }.let { Unit }
+
+    /** Reboot or an explicit app stop leaves the original session available, paused. */
+    suspend fun showRecoveryAvailable(context: Context) = runCatching {
+        SafarNotificationChannels.createAll(context)
+        SafarNotificationManager(context).show(
+            title = context.getString(R.string.ekagra_resume_available_title),
+            body = context.getString(R.string.ekagra_resume_available_body),
+            channelId = SafarNotificationChannels.FOCUS_TIMER,
+            deepLink = "safar://ekagra", notificationId = 1007,
+            priority = NotificationCompat.PRIORITY_DEFAULT,
+        )
+    }.let { Unit }
 }
 
 class EkagraTimerAlarmReceiver : BroadcastReceiver() {
@@ -73,11 +88,45 @@ class EkagraTimerAlarmReceiver : BroadcastReceiver() {
                 } else if (service != null && intent.action == AlarmManager.ACTION_SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED) {
                     service.scheduleTimerAlarms()
                 } else {
-                    EkagraSessionJournal.get(context).recover().await()
-                    EkagraSessionSaveWorker.enqueue(context)
+                    // A dead process is not an End action. Keep its durable active
+                    // identity and restore through the foreground service instead of
+                    // finalizing the last five-second checkpoint as "interrupted".
+                    val pending = EkagraSessionJournal.get(context).peekRecovery()
+                    val state = pending?.recovery
+                    if (pending == null || state == null) {
+                        EkagraSessionSaveWorker.enqueue(context)
+                        return@launch
+                    }
+                    if (intent.action == "com.safar.ekagra.DEADLINE" &&
+                        intent.getStringExtra("session") != pending.clientSessionId) return@launch
+
+                    val bootCount = runCatching {
+                        Settings.Global.getInt(context.contentResolver, Settings.Global.BOOT_COUNT)
+                    }.getOrNull()
+                    val sameBoot = bootCount != null && bootCount == state.checkpointBootCount &&
+                        SystemClock.elapsedRealtime() >= state.checkpointElapsedMs
+                    val exit = EkagraDiagnostics.reportRecovery(context, pending.clientSessionId, state.checkpointAtMs)
+                    val runningOrTimedUnlock = state.isRunning || state.quickUnlockUntilElapsedMs > 0L
+                    if (intent.action == "com.safar.ekagra.DEADLINE" && sameBoot &&
+                        runningOrTimedUnlock && exit?.isUserStopped != true) {
+                        // Exact timer alarms are an allowed background FGS entry.
+                        // An inexact fallback may be denied; the journal remains
+                        // active for the next permitted restart or foreground open.
+                        try {
+                            ContextCompat.startForegroundService(context,
+                                Intent(context, TimerService::class.java).setAction(TimerService.ACTION_RECOVER))
+                        } catch (error: Exception) {
+                            EkagraDiagnostics.recordFailure(context, "foreground_recovery_denied", error)
+                            EkagraTimerAlarms.showRecoveryAvailable(context)
+                        }
+                    } else {
+                        // BOOT_COMPLETED/package replacement never launches a
+                        // foreground timer. Powered-off time earns no focus credit.
+                        EkagraTimerAlarms.showRecoveryAvailable(context)
+                    }
                 }
             } catch (error: Exception) {
-                EkagraDiagnostics.record(context, "alarm_recovery_failed", error.javaClass.simpleName)
+                EkagraDiagnostics.recordFailure(context, "alarm_recovery_failed", error)
             } finally {
                 if (lock.isHeld) lock.release()
                 result.finish()

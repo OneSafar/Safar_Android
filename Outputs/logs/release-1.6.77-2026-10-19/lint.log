@@ -1,0 +1,134 @@
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preProdReleaseBuild UP-TO-DATE
+> Task :app:generateProdReleaseBuildConfig UP-TO-DATE
+> Task :app:generateProdReleaseResValues UP-TO-DATE
+> Task :app:generateProdReleaseResources UP-TO-DATE
+> Task :app:injectCrashlyticsMappingFileIdProdRelease
+> Task :app:extractProdReleaseVersionControlInfo UP-TO-DATE
+> Task :app:injectCrashlyticsVersionControlInfoProdRelease UP-TO-DATE
+> Task :app:processProdReleaseGoogleServices UP-TO-DATE
+> Task :app:packageProdReleaseResources
+> Task :app:processProdReleaseNavigationResources UP-TO-DATE
+> Task :app:javaPreCompileProdRelease UP-TO-DATE
+> Task :app:extractProguardFiles UP-TO-DATE
+> Task :app:extractDeepLinksProdRelease UP-TO-DATE
+> Task :app:processProdReleaseMainManifest UP-TO-DATE
+> Task :app:parseProdReleaseLocalResources
+> Task :app:generateProdReleaseRFile UP-TO-DATE
+> Task :app:kspProdReleaseKotlin UP-TO-DATE
+> Task :app:compileProdReleaseKotlin UP-TO-DATE
+> Task :app:compileProdReleaseJavaWithJavac UP-TO-DATE
+> Task :app:generateProdReleaseLintReportModel
+> Task :app:lintAnalyzeProdRelease
+
+> Task :app:lintReportProdRelease
+Wrote HTML report to file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/build/reports/lint-results-prodRelease.html
+Lint found 85 errors, 906 warnings and 8 hints. First failure:
+/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/feature/toppersbatch/ToppersBatchActions.kt:268: Error: Suspicious indentation: This is indented but is not continuing the previous expression (val strings = rememb...) [SuspiciousIndentation]
+                        if (divider) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/feature/toppersbatch/ToppersBatchActions.kt:267: Previous statement here
+
+
+> Task :app:lintProdRelease FAILED
+Lint found 85 errors, 906 warnings, 8 hints. First failure:
+
+/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/feature/toppersbatch/ToppersBatchActions.kt:268: Error: Suspicious indentation: This is indented but is not continuing the previous expression (val strings = rememb...) [SuspiciousIndentation]
+                        if (divider) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/feature/toppersbatch/ToppersBatchActions.kt:267: Previous statement here
+
+   Explanation for issues of type "SuspiciousIndentation":
+   This check looks for cases where the indentation suggests a grouping that
+   isn't actually there in the code. A common example of this would be
+   something like
+   if (column > width)
+       line++
+       column = 0
+   Here, the column = 0 line will be executed every single time, not just if
+   the condition is true.
+
+   Available options:
+
+   **always-run** (default is false):
+   Whether this check should be included while editing.
+
+   While you're editing, it's common to have a temporary situation where you have suspicious indentation scenarios -- e.g. you start typing an `if` statement on the line above something you want to make conditional, and you haven't indented it yet. It can be distracting and misleading to suddenly have both statements light up as errors. Therefore, lint will avoid including this check when running on the fly in the editor, unless it looks like the file has not been recently edited. With this option, you can turn it on in all cases.
+
+   To configure this option, use a `lint.xml` file with an <option> like this:
+
+   ```xml
+   <lint>
+       <issue id="SuspiciousIndentation">
+           <option name="always-run" value="false" />
+       </issue>
+   </lint>
+   ```
+
+
+The full lint text report is located at:
+  /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/build/intermediates/lint_intermediate_text_report/prodRelease/lintReportProdRelease/lint-results-prodRelease.txt
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:lintProdRelease'.
+> Lint found errors in the project; aborting build.
+  
+  Fix the issues identified by lint, or create a baseline to see only new errors.
+  To create a baseline, run `gradlew updateLintBaseline` after adding the following to the module's build.gradle file:
+  ```
+  android {
+      lint {
+          baseline = file("lint-baseline.xml")
+      }
+  }
+  ```
+  For more details, see https://developer.android.com/studio/write/lint#snapshot
+  
+  Lint found 85 errors, 906 warnings, 8 hints. First failure:
+  
+  /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/feature/toppersbatch/ToppersBatchActions.kt:268: Error: Suspicious indentation: This is indented but is not continuing the previous expression (val strings = rememb...) [SuspiciousIndentation]
+                          if (divider) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/feature/toppersbatch/ToppersBatchActions.kt:267: Previous statement here
+  
+     Explanation for issues of type "SuspiciousIndentation":
+     This check looks for cases where the indentation suggests a grouping that
+     isn't actually there in the code. A common example of this would be
+     something like
+     if (column > width)
+         line++
+         column = 0
+     Here, the column = 0 line will be executed every single time, not just if
+     the condition is true.
+  
+     Available options:
+  
+     **always-run** (default is false):
+     Whether this check should be included while editing.
+  
+     While you're editing, it's common to have a temporary situation where you have suspicious indentation scenarios -- e.g. you start typing an `if` statement on the line above something you want to make conditional, and you haven't indented it yet. It can be distracting and misleading to suddenly have both statements light up as errors. Therefore, lint will avoid including this check when running on the fly in the editor, unless it looks like the file has not been recently edited. With this option, you can turn it on in all cases.
+  
+     To configure this option, use a `lint.xml` file with an <option> like this:
+  
+     ```xml
+     <lint>
+         <issue id="SuspiciousIndentation">
+             <option name="always-run" value="false" />
+         </issue>
+     </lint>
+     ```
+  
+  
+  The full lint text report is located at:
+    /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/build/intermediates/lint_intermediate_text_report/prodRelease/lintReportProdRelease/lint-results-prodRelease.txt
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 5m 37s
+22 actionable tasks: 7 executed, 15 up-to-date

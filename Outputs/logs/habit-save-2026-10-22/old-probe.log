@@ -1,0 +1,12 @@
+request={"a":[{"mutationId":"test-mutation","habitId":"test-habit","type":"create","name":"Read","reminderTime":null}]}
+requestKeyPreserved=false
+Exception in thread "main" com.google.gson.JsonIOException: Abstract classes can't be instantiated! Adjust the R8 configuration or register an InstanceCreator or a TypeAdapter for this type. Class name: a.b
+See https://github.com/google/gson/blob/main/Troubleshooting.md#r8-abstract-class
+	at com.google.gson.internal.ConstructorConstructor$3.construct(ConstructorConstructor.java:153)
+	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory$FieldReflectionAdapter.createAccumulator(ReflectiveTypeAdapterFactory.java:552)
+	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory$Adapter.read(ReflectiveTypeAdapterFactory.java:505)
+	at com.google.gson.Gson.fromJson(Gson.java:1361)
+	at com.google.gson.Gson.fromJson(Gson.java:1262)
+	at com.google.gson.Gson.fromJson(Gson.java:1171)
+	at com.google.gson.Gson.fromJson(Gson.java:1107)
+	at HabitWireProbe.main(r8-map-id-8cedf4e07454e72e0a030b33a281a56206470e8730587c5bfb772c6f1be4448d:11)

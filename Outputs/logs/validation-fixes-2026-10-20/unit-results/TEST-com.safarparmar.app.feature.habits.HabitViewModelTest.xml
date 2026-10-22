@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.feature.habits.HabitViewModelTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-19T19:59:38.820Z" hostname="Shashanks-MacBook-Air.local" time="0.048">
+  <properties/>
+  <testcase name="create uses all habits for ordering and propagates a save failure" classname="com.safarparmar.app.feature.habits.HabitViewModelTest" time="0.012"/>
+  <testcase name="stale today tap never writes to yesterday" classname="com.safarparmar.app.feature.habits.HabitViewModelTest" time="0.002"/>
+  <testcase name="toggleTodayHabit marks today habit complete" classname="com.safarparmar.app.feature.habits.HabitViewModelTest" time="0.005"/>
+  <testcase name="history calculations run off the collecting thread and preserve results" classname="com.safarparmar.app.feature.habits.HabitViewModelTest" time="0.009"/>
+  <testcase name="midnight updates current periods and preserves browsed history" classname="com.safarparmar.app.feature.habits.HabitViewModelTest" time="0.016"/>
+  <testcase name="habit with specific target days appears only on scheduled days" classname="com.safarparmar.app.feature.habits.HabitViewModelTest" time="0.004"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

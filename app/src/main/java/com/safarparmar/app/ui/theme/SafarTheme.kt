@@ -83,7 +83,7 @@ private val LightColorScheme = lightColorScheme(
     surfaceContainerHighest = surfaceContainerHighestLight,
 )
 
-private val DarkColorScheme = darkColorScheme(
+internal val DarkColorScheme = darkColorScheme(
     primary = primaryDark,
     onPrimary = onPrimaryDark,
     primaryContainer = primaryContainerDark,
@@ -165,6 +165,9 @@ fun SafarTheme(
     // sheets never fall back to system dark while the app UI is light (or reverse).
     CompositionLocalProvider(
         LocalDensity provides customDensity,
+        com.safarparmar.app.ui.components.popups.LocalSafarPopupDensity provides customDensity,
+        com.composables.ui.theme.LocalColorScheme provides if (darkTheme)
+            com.composables.ui.theme.ColorScheme.Dark else com.composables.ui.theme.ColorScheme.Light,
         com.safarparmar.app.ui.studyplanner.components.LocalPlannerIsDarkTheme provides darkTheme,
     ) {
         MaterialTheme(
@@ -173,7 +176,9 @@ fun SafarTheme(
             typography  = SafarTypography,
         ) {
             com.safarparmar.app.performance.ProvideMotionPolicy {
-                ProvideTextStyle(value = SafarTypography.bodyMedium, content = content)
+                SafarComposablesTheme {
+                    ProvideTextStyle(value = SafarTypography.bodyMedium, content = content)
+                }
             }
         }
     }

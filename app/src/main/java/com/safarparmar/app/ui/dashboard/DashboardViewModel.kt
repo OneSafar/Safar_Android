@@ -44,7 +44,8 @@ class DashboardViewModel @Inject constructor(
     val uiState = _uiState.asStateFlow()
     private val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
         Log.e("DashboardViewModel", "Dashboard load failed", throwable)
-        FirebaseCrashlytics.getInstance().recordException(throwable)
+        runCatching { FirebaseCrashlytics.getInstance().recordException(throwable) }
+            .onFailure { Log.w("DashboardViewModel", "Crash reporting unavailable", it) }
         _uiState.update {
             it.copy(
                 isLoading = false,
@@ -116,7 +117,7 @@ class DashboardViewModel @Inject constructor(
                             moods.firstOrNull { it.timestamp.startsWith(key) } ?: Mood(intensity = 0, mood = "", timestamp = key)
                         })
                     } }
-                    launch { loadSection(DashboardSection.REPORT, { homeRepository.getMonthlyReport() }) { state, data -> state.copy(monthlyReport = data) } }
+                    launch { loadSection(DashboardSection.REPORT, { homeRepository.getDashboardMonthlySummary() }) { state, data -> state.copy(monthlyReport = data) } }
                     launch { loadSection(DashboardSection.TITLE, { homeRepository.getActiveTitle() }) { state, title ->
                         state.copy(activeTitle = title.title, activeTitleId = title.selectedId, activeTitleImageUrl = title.selectedId.takeIf(String::isNotEmpty)?.let(AchievementImages::urlFor))
                     } }

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.feature.toppersbatch.BatchCalendarModelTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-19T19:59:39.019Z" hostname="Shashanks-MacBook-Air.local" time="0.008">
+  <properties/>
+  <testcase name="allSubjectsHaveIndependentNextClassAndUnknownDatesStayUnknown" classname="com.safarparmar.app.feature.toppersbatch.BatchCalendarModelTest" time="0.002"/>
+  <testcase name="revisionMenuListsPendingLecturesAndFollowsRescheduling" classname="com.safarparmar.app.feature.toppersbatch.BatchCalendarModelTest" time="0.003"/>
+  <testcase name="lateCompletionPersonalPlanAndOfficialDateStayIndependent" classname="com.safarparmar.app.feature.toppersbatch.BatchCalendarModelTest" time="0.0"/>
+  <testcase name="completedRevisionHistoryRemainsAndDisabledSubjectsDoNotAppear" classname="com.safarparmar.app.feature.toppersbatch.BatchCalendarModelTest" time="0.0"/>
+  <testcase name="remainingClassesFollowTimeAndDisappearAtTwoHourBoundary" classname="com.safarparmar.app.feature.toppersbatch.BatchCalendarModelTest" time="0.002"/>
+  <testcase name="completionUsesIndiaDateAndKeepsClassDateSeparate" classname="com.safarparmar.app.feature.toppersbatch.BatchCalendarModelTest" time="0.0"/>
+  <testcase name="planStartAndTargetRemainSeparateFromRecordedStudyActivity" classname="com.safarparmar.app.feature.toppersbatch.BatchCalendarModelTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

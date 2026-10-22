@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.ui.ekagra.QuickUnlockResumeTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-20T02:12:56.959Z" hostname="Shashanks-MacBook-Air.local" time="0.0">
+  <properties/>
+  <testcase name="five minute unlock resumes only after its full monotonic duration" classname="com.safarparmar.app.ui.ekagra.QuickUnlockResumeTest" time="0.0"/>
+  <testcase name="manual resume or disabling protection invalidates the cleared grace window" classname="com.safarparmar.app.ui.ekagra.QuickUnlockResumeTest" time="0.0"/>
+  <testcase name="an old timeout cannot resume a newly started session" classname="com.safarparmar.app.ui.ekagra.QuickUnlockResumeTest" time="0.0"/>
+  <testcase name="extending quick unlock invalidates the first timeout" classname="com.safarparmar.app.ui.ekagra.QuickUnlockResumeTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

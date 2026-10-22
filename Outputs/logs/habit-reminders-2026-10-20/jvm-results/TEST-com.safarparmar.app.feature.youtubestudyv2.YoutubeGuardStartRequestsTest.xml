@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.feature.youtubestudyv2.YoutubeGuardStartRequestsTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-20T02:12:56.069Z" hostname="Shashanks-MacBook-Air.local" time="0.001">
+  <properties/>
+  <testcase name="guard notification requires enabled focus and a connected monitor" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeGuardStartRequestsTest" time="0.0"/>
+  <testcase name="disconnect invalidates an Android start already in flight" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeGuardStartRequestsTest" time="0.0"/>
+  <testcase name="newer start supersedes an older command and unsolicited restarts are rejected" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeGuardStartRequestsTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

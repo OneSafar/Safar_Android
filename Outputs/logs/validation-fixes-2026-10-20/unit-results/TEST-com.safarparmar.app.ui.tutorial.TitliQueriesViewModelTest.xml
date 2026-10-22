@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.ui.tutorial.TitliQueriesViewModelTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-19T19:59:48.509Z" hostname="Shashanks-MacBook-Air.local" time="0.085">
+  <properties/>
+  <testcase name="signedOutAndShortQueriesCannotSubmit" classname="com.safarparmar.app.ui.tutorial.TitliQueriesViewModelTest" time="0.07"/>
+  <testcase name="bothExistingSubmitAndNewInboxDatesParse" classname="com.safarparmar.app.ui.tutorial.TitliQueriesViewModelTest" time="0.003"/>
+  <testcase name="lateResponseCannotAppearInAnotherAccount" classname="com.safarparmar.app.ui.tutorial.TitliQueriesViewModelTest" time="0.003"/>
+  <testcase name="failureKeepsDraftAndRetryUsesSameRequestId" classname="com.safarparmar.app.ui.tutorial.TitliQueriesViewModelTest" time="0.002"/>
+  <testcase name="duplicateTapsSendOnlyOnce" classname="com.safarparmar.app.ui.tutorial.TitliQueriesViewModelTest" time="0.003"/>
+  <testcase name="anOlderInboxReadCannotEraseANewlySubmittedQuery" classname="com.safarparmar.app.ui.tutorial.TitliQueriesViewModelTest" time="0.004"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

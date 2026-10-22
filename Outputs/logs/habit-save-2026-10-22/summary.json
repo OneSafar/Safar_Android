@@ -1,0 +1,30 @@
+{
+  "result": "before/after isolated minified contract regression passed",
+  "r8_version": "9.3.16",
+  "gson_version": "2.11.0",
+  "old": {
+    "source": "Safar_Android_v5 app/build/intermediates/classes/prodRelease/transformProdReleaseClassesWithAsm/dirs, pre-fix compiled HabitBatchRequest/Response",
+    "requestKey": "a",
+    "requestKeyPreserved": false,
+    "responseResult": "Gson JsonIOException: Abstract classes cannot be instantiated",
+    "exit": 1
+  },
+  "fixed": {
+    "source": "Safar_Android_v5 app/build/intermediates/classes/prodDebug/transformProdDebugClassesWithAsm/dirs, fixed compiled HabitBatchRequest/Response",
+    "requestKey": "mutations",
+    "requestKeyPreserved": true,
+    "responseVersion": 3,
+    "responseAcknowledged": [
+      "test-mutation"
+    ],
+    "exit": 0
+  },
+  "scope": "Actual compiled app DTOs + isolated JVM main passed through R8 classfile release mode. Project keep rules plus Android @Keep semantics, external Gson and Kotlin libraries. Not an entire APK runtime test or server mutation. Test compile-only Compose annotation ignored in isolated shrinking.",
+  "input_sha256": {
+    "old-input.jar": "f9f64f9d9cf5a4395de637e464b4bd60f54b02ebe0f9a4c9087368fec1c3e6da",
+    "fixed-input.jar": "47ae9a15092130312067c0f66448d3019850de938b0732555f683ebb12309295",
+    "rules.pro": "388bff6433efe14d2ae4df532e101a0f3f60a6346ffc05138c6bc6f23419bcfe",
+    "HabitWireProbe.java": "e505f2f0f42519696d73ecfdaf4995fcb26997b64b0a931701e884cf5aa1b2a6"
+  },
+  "release_artifact_r8_version": "9.1.31"
+}

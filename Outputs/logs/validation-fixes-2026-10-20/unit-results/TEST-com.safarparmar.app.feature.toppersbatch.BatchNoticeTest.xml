@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.feature.toppersbatch.BatchNoticeTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-19T19:59:39.123Z" hostname="Shashanks-MacBook-Air.local" time="0.002">
+  <properties/>
+  <testcase name="unexpectedErrorsDoNotExposeServerOrExceptionText" classname="com.safarparmar.app.feature.toppersbatch.BatchNoticeTest" time="0.0"/>
+  <testcase name="legacyCompatibilityErrorsStayActionable" classname="com.safarparmar.app.feature.toppersbatch.BatchNoticeTest" time="0.001"/>
+  <testcase name="codeBasedConflictsDoNotDependOnServerLanguage" classname="com.safarparmar.app.feature.toppersbatch.BatchNoticeTest" time="0.0"/>
+  <testcase name="noticesRetainUnformattedDatesAndSubjects" classname="com.safarparmar.app.feature.toppersbatch.BatchNoticeTest" time="0.0"/>
+  <testcase name="partialSaveWarningKeepsItsDistinctMeaning" classname="com.safarparmar.app.feature.toppersbatch.BatchNoticeTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

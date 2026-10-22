@@ -1,6 +1,8 @@
 /* Hallmark · pre-emit critique: P5 H5 E4 S5 R5 V4 */
 package com.safarparmar.app.ui.premium
 
+import androidx.compose.ui.platform.LocalResources
+
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 import android.app.Activity
@@ -25,6 +27,7 @@ import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.material3.*
+import com.safarparmar.app.ui.components.popups.SafarMaterialAlertDialog as AlertDialog
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -89,12 +92,12 @@ private fun PremiumSectionHeader(
     val accent = accentColor ?: defaultAccent
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
         modifier = modifier
     ) {
         Box(
             modifier = Modifier
-                .size(34.dp)
+                .size(28.dp)
                 .clip(CircleShape)
                 .background(accent.copy(alpha = 0.12f)),
             contentAlignment = Alignment.Center
@@ -103,12 +106,12 @@ private fun PremiumSectionHeader(
                 imageVector = icon,
                 contentDescription = null,
                 tint = accent,
-                modifier = Modifier.size(18.dp)
+                modifier = Modifier.size(14.dp)
             )
         }
         Text(
             text = title.uppercase(),
-            fontSize = 13.sp,
+            fontSize = 11.sp,
             fontWeight = FontWeight.ExtraBold,
             letterSpacing = 1.5.sp,
             color = PlannerFlatColors.TextDark,
@@ -130,6 +133,7 @@ fun PremiumPaywallScreen(
     val premiumStatus by viewModel.premiumStatus.collectAsStateWithLifecycle()
     val dhyanPricing by viewModel.dhyanPricing.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val localizedResources by rememberUpdatedState(LocalResources.current)
     val lifecycleOwner = LocalLifecycleOwner.current
     val activity = context as? Activity
     val scope = rememberCoroutineScope()
@@ -206,7 +210,7 @@ fun PremiumPaywallScreen(
                     delay(1_500)
                     viewModel.refreshPremiumStatus(
                         showLoading = true,
-                        fallbackError = context.getString(R.string.premium_payment_returned_inactive)
+                        fallbackError = localizedResources.getString(R.string.premium_payment_returned_inactive)
                     )
                 }
             }
@@ -220,12 +224,12 @@ fun PremiumPaywallScreen(
             val state = uiState as PremiumUiState.OrderCreated
             try {
                 if (activity == null) {
-                    viewModel.notifyPaymentFailed(context.getString(R.string.premium_checkout_active_screen))
+                    viewModel.notifyPaymentFailed(localizedResources.getString(R.string.premium_checkout_active_screen))
                     return@LaunchedEffect
                 }
                 val razorpayKeyId = state.keyId?.trim()?.takeIf { it.isNotEmpty() }
                 if (razorpayKeyId == null) {
-                    viewModel.notifyPaymentFailed(context.getString(R.string.premium_gateway_not_configured))
+                    viewModel.notifyPaymentFailed(localizedResources.getString(R.string.premium_gateway_not_configured))
                     return@LaunchedEffect
                 }
                 refreshAfterPaymentReturn = state.planType != "dhyan"
@@ -235,7 +239,7 @@ fun PremiumPaywallScreen(
                     put("name", "Safar")
                     put(
                         "description",
-                        context.getString(
+                        localizedResources.getString(
                             if (state.planType == "dhyan") R.string.premium_dhyan_six_months
                             else R.string.premium_plus_dhyan
                         )
@@ -250,7 +254,7 @@ fun PremiumPaywallScreen(
             } catch (e: Exception) {
                 e.printStackTrace()
                 refreshAfterPaymentReturn = false
-                viewModel.notifyPaymentFailed(e.message ?: context.getString(R.string.premium_checkout_launch_error))
+                viewModel.notifyPaymentFailed(e.message ?: localizedResources.getString(R.string.premium_checkout_launch_error))
             }
         }
     }
@@ -313,6 +317,7 @@ fun PremiumPaywallScreen(
             contentWindowInsets = WindowInsets.safeDrawing,
             topBar = {
                 TopAppBar(
+                actions = { com.safarparmar.app.ui.tutorial.TitliGuideButton() },
                     title = {
                         Text(
                             text = stringResource(R.string.premium_safar_premium),
@@ -360,14 +365,14 @@ fun PremiumPaywallScreen(
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
                     .padding(paddingValues)
-                    .padding(horizontal = 20.dp, vertical = 14.dp),
-                verticalArrangement = Arrangement.spacedBy(20.dp),
+                    .padding(horizontal = 15.dp, vertical = 10.dp),
+                verticalArrangement = Arrangement.spacedBy(15.dp),
             ) {
                     if (isPremiumActive) {
                         // Card 1: Active Subscription Summary
                         Card(
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(18.dp),
+                            shape = RoundedCornerShape(12.dp),
                             colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.CardWhite),
                             border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.4f)),
                         ) {
@@ -379,7 +384,7 @@ fun PremiumPaywallScreen(
                     } else if (isTrialActive) {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(18.dp),
+                            shape = RoundedCornerShape(12.dp),
                             colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.CardWhite),
                             border = androidx.compose.foundation.BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
                         ) {
@@ -389,7 +394,7 @@ fun PremiumPaywallScreen(
                         // Card 1: 7-Day Free Trial Banner
                         Card(
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(18.dp),
+                            shape = RoundedCornerShape(12.dp),
                             colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.CardWhite),
                             border = androidx.compose.foundation.BorderStroke(1.dp, (if (isDarkTheme) Color(0xFFC084FC) else Color(0xFF581C87)).copy(alpha = 0.3f)),
                         ) {
@@ -402,7 +407,6 @@ fun PremiumPaywallScreen(
                     }
 
                     when (dhyanPricing.accessState) {
-                        "LEGACY_PREMIUM_DISCOUNT" -> LegacyPremiumNotice(isDarkTheme = isDarkTheme)
                         "DHYAN_INCLUDED" -> DhyanAccessNotice(
                             isPremiumActive = isPremiumActive,
                             onOpenDhyan = { onNavigate(Routes.LIVE_SESSIONS_ROOT) },
@@ -415,30 +419,30 @@ fun PremiumPaywallScreen(
                     }
 
                     if (dhyanPricing.accessState == "LOADING") {
-                        Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                        Box(modifier = Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
                             CircularProgressIndicator()
                         }
                     } else if (dhyanPricing.accessState == "ERROR") {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(18.dp),
+                            shape = RoundedCornerShape(12.dp),
                             colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.CardWhite),
                             border = androidx.compose.foundation.BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
                         ) {
-                            Text(stringResource(R.string.premium_verify_plans_error), modifier = Modifier.padding(20.dp), color = PlannerFlatColors.TextMuted)
+                            Text(stringResource(R.string.premium_verify_plans_error), modifier = Modifier.padding(15.dp), color = PlannerFlatColors.TextMuted)
                         }
                     } else if (plans.isNotEmpty()) {
                         Card(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(18.dp),
+                        shape = RoundedCornerShape(12.dp),
                         colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.CardWhite),
                         border = androidx.compose.foundation.BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
                     ) {
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(20.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                                .padding(15.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
                         ) {
                             PremiumSectionHeader(
                                 icon = Icons.Default.WorkspacePremium,
@@ -455,7 +459,7 @@ fun PremiumPaywallScreen(
                                     isPremiumActive -> stringResource(R.string.premium_extend_help)
                                     else -> stringResource(R.string.premium_choose_help)
                                 },
-                                fontSize = 12.5.sp,
+                                fontSize = 11.sp,
                                 color = PlannerFlatColors.TextMuted,
                             )
                             PlanHairline(alpha = 0.5f)
@@ -475,7 +479,7 @@ fun PremiumPaywallScreen(
                     val whatYouGetAccent = if (isDarkTheme) Color(0xFFFBBF24) else Color(0xFFD97706)
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(18.dp),
+                        shape = RoundedCornerShape(12.dp),
                         colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.CardWhite),
                         border = androidx.compose.foundation.BorderStroke(
                             1.dp,
@@ -483,8 +487,8 @@ fun PremiumPaywallScreen(
                         ),
                     ) {
                         Column(
-                            modifier = Modifier.fillMaxWidth().padding(20.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                            modifier = Modifier.fillMaxWidth().padding(15.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
                         ) {
                             PremiumSectionHeader(
                                 icon = Icons.Default.Star,
@@ -525,7 +529,7 @@ private fun StartTrialConfirmationDialog(
         icon = {
             Box(
                 modifier = Modifier
-                    .size(52.dp)
+                    .size(43.dp)
                     .clip(CircleShape)
                     .background(buttonBg),
                 contentAlignment = Alignment.Center,
@@ -533,7 +537,7 @@ private fun StartTrialConfirmationDialog(
                 Text(
                     text = "7",
                     fontFamily = LoraFontFamily,
-                    fontSize = 24.sp,
+                    fontSize = 20.4.sp,
                     fontWeight = FontWeight.Normal,
                     color = Color.White,
                 )
@@ -543,7 +547,7 @@ private fun StartTrialConfirmationDialog(
             Text(
                 text = stringResource(R.string.premium_start_trial_title),
                 fontFamily = LoraFontFamily,
-                fontSize = 20.sp,
+                fontSize = 16.sp,
                 fontWeight = FontWeight.Normal,
                 color = PlannerFlatColors.TextDark,
                 textAlign = TextAlign.Center,
@@ -552,7 +556,7 @@ private fun StartTrialConfirmationDialog(
         text = {
             Text(
                 text = stringResource(R.string.premium_trial_description),
-                fontSize = 14.sp,
+                fontSize = 12.sp,
                 color = PlannerFlatColors.TextMuted,
                 textAlign = TextAlign.Center,
             )
@@ -574,7 +578,7 @@ private fun StartTrialConfirmationDialog(
                 Text(stringResource(R.string.common_cancel), color = PlannerFlatColors.TextMuted, fontWeight = FontWeight.Bold)
             }
         },
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(12.dp),
     )
 }
 
@@ -629,7 +633,7 @@ private fun PremiumUnlockedDialog(
                 contentDescription = null,
                 tint = Color(0xFF10B981),
                 modifier = Modifier
-                    .size(56.dp)
+                    .size(46.dp)
                     .graphicsLayer {
                         scaleX = unlockScale
                         scaleY = unlockScale
@@ -640,7 +644,7 @@ private fun PremiumUnlockedDialog(
             Text(
                 text = dialogTitle,
                 fontFamily = LoraFontFamily,
-                fontSize = 20.sp,
+                fontSize = 16.sp,
                 fontWeight = FontWeight.Normal,
                 color = PlannerFlatColors.TextDark,
                 textAlign = TextAlign.Center,
@@ -651,18 +655,18 @@ private fun PremiumUnlockedDialog(
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Text(
                     text = subtitleText,
-                    fontSize = 14.sp,
+                    fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = Color(0xFF10B981),
                     textAlign = TextAlign.Center,
                 )
                 Text(
                     text = bodyText,
-                    fontSize = 13.sp,
+                    fontSize = 11.sp,
                     color = PlannerFlatColors.TextMuted,
                     textAlign = TextAlign.Center,
                 )
@@ -677,7 +681,7 @@ private fun PremiumUnlockedDialog(
                 Text(stringResource(R.string.common_continue), fontWeight = FontWeight.Bold, color = Color.White)
             }
         },
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(12.dp),
     )
 }
 
@@ -696,14 +700,14 @@ private fun NoActivePlanDialog(
                 imageVector = Icons.Default.Info,
                 contentDescription = null,
                 tint = if (isDarkTheme) Color(0xFFC084FC) else Color(0xFF7C3AED),
-                modifier = Modifier.size(52.dp),
+                modifier = Modifier.size(43.dp),
             )
         },
         title = {
             Text(
                 text = stringResource(R.string.premium_no_active_plan_title),
                 fontFamily = LoraFontFamily,
-                fontSize = 20.sp,
+                fontSize = 16.sp,
                 fontWeight = FontWeight.Normal,
                 color = PlannerFlatColors.TextDark,
                 textAlign = TextAlign.Center,
@@ -714,18 +718,18 @@ private fun NoActivePlanDialog(
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Text(
                     text = stringResource(R.string.premium_no_active_plan_body),
-                    fontSize = 14.sp,
+                    fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
                     color = PlannerFlatColors.TextDark,
                     textAlign = TextAlign.Center,
                 )
                 Text(
                     text = stringResource(R.string.premium_choose_later_help),
-                    fontSize = 13.sp,
+                    fontSize = 11.sp,
                     color = PlannerFlatColors.TextMuted,
                     textAlign = TextAlign.Center,
                 )
@@ -740,7 +744,7 @@ private fun NoActivePlanDialog(
                 Text(stringResource(R.string.premium_view_plans), fontWeight = FontWeight.Bold, color = Color.White)
             }
         },
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(12.dp),
     )
 }
 
@@ -762,17 +766,17 @@ private fun PremiumBenefitsCard(
 
     Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         benefits.forEach { benefit ->
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 Box(
                     modifier = Modifier
-                        .size(20.dp)
+                        .size(18.dp)
                         .clip(CircleShape)
                         .background(accent.copy(alpha = 0.14f)),
                     contentAlignment = Alignment.Center
@@ -787,7 +791,7 @@ private fun PremiumBenefitsCard(
                 Text(
                     text = benefit,
                     modifier = Modifier.weight(1f),
-                    fontSize = 13.5.sp,
+                    fontSize = 11.sp,
                     fontWeight = FontWeight.Medium,
                     color = PlannerFlatColors.TextDark,
                 )
@@ -796,40 +800,6 @@ private fun PremiumBenefitsCard(
     }
 }
 
-@Composable
-private fun LegacyPremiumNotice(
-    isDarkTheme: Boolean,
-) {
-    val accent = if (isDarkTheme) Color(0xFFC084FC) else Color(0xFF581C87)
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.CardWhite),
-        border = androidx.compose.foundation.BorderStroke(1.dp, accent.copy(alpha = 0.35f)),
-    ) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            PremiumSectionHeader(
-                icon = Icons.Default.WorkspacePremium,
-                title = stringResource(R.string.premium_existing_member_benefit),
-                isDarkTheme = isDarkTheme,
-            )
-            Text(
-                text = stringResource(R.string.premium_legacy_offer),
-                fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = PlannerFlatColors.TextDark,
-            )
-            Text(
-                text = stringResource(R.string.premium_legacy_offer_terms),
-                fontSize = 12.sp,
-                color = PlannerFlatColors.TextMuted,
-            )
-        }
-    }
-}
 
 @Composable
 private fun DhyanAccessNotice(
@@ -838,14 +808,14 @@ private fun DhyanAccessNotice(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.CardWhite),
         border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.4f)),
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(20.dp),
+            modifier = Modifier.fillMaxWidth().padding(15.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF10B981))
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
@@ -855,11 +825,11 @@ private fun DhyanAccessNotice(
                         if (isPremiumActive) R.string.premium_dhyan_included_current
                         else R.string.premium_dhyan_active_add_premium
                     ),
-                    fontSize = 12.sp,
+                    fontSize = 11.sp,
                     color = PlannerFlatColors.TextMuted,
                 )
             }
-            TextButton(onClick = onOpenDhyan, contentPadding = PaddingValues(horizontal = 8.dp)) {
+            TextButton(onClick = onOpenDhyan, contentPadding = PaddingValues(horizontal = 6.dp)) {
                 Text(stringResource(R.string.common_open), fontWeight = FontWeight.Bold)
             }
         }
@@ -874,13 +844,13 @@ private fun DhyanScheduledNotice(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.CardWhite),
         border = androidx.compose.foundation.BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth().padding(15.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             PremiumSectionHeader(
                 icon = Icons.Default.CheckCircle,
@@ -889,7 +859,7 @@ private fun DhyanScheduledNotice(
             )
             Text(
                 text = stringResource(R.string.premium_next_bundle_help),
-                fontSize = 13.sp,
+                fontSize = 11.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = PlannerFlatColors.TextDark,
             )
@@ -899,7 +869,7 @@ private fun DhyanScheduledNotice(
                     formatPremiumExpiry(startsAt) ?: stringResource(R.string.premium_scheduled_start),
                     formatPremiumExpiry(expiresAt) ?: stringResource(R.string.premium_scheduled_end),
                 ),
-                fontSize = 12.sp,
+                fontSize = 11.sp,
                 color = PlannerFlatColors.TextMuted,
             )
         }
@@ -916,7 +886,7 @@ private fun PremiumPricingPanel(
     isDarkTheme: Boolean = false,
     onSelectPlan: (String) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         RadioPlanSelector(
             plans = plans,
             selectedPlanId = selectedPlanId,
@@ -941,7 +911,7 @@ private fun RadioPlanSelector(
 ) {
     val accent = if (isDarkTheme) Color(0xFFC084FC) else Color(0xFF581C87)
 
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         plans.forEach { plan ->
             val selected = selectedPlanId == plan.id
 
@@ -956,7 +926,7 @@ private fun RadioPlanSelector(
                         shape = RoundedCornerShape(12.dp)
                     )
                     .clickable { onSelectPlan(plan.id) }
-                    .padding(horizontal = 16.dp, vertical = 14.dp)
+                    .padding(horizontal = 10.dp, vertical = 10.dp)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -965,7 +935,7 @@ private fun RadioPlanSelector(
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
                         modifier = Modifier.weight(1f)
                     ) {
                         RadioButton(
@@ -977,10 +947,10 @@ private fun RadioPlanSelector(
                             ),
                         )
                         Column {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 Text(
                                     text = plan.label,
-                                    fontSize = 15.5.sp,
+                                    fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = PlannerFlatColors.TextDark,
                                 )
@@ -1002,7 +972,7 @@ private fun RadioPlanSelector(
                             }
                             Text(
                                 text = plan.subtitle,
-                                fontSize = 12.sp,
+                                fontSize = 11.sp,
                                 color = PlannerFlatColors.TextMuted,
                             )
                         }
@@ -1012,14 +982,14 @@ private fun RadioPlanSelector(
                         plan.originalPrice?.let { originalPrice ->
                             Text(
                                 text = "₹$originalPrice",
-                                fontSize = 12.sp,
+                                fontSize = 11.sp,
                                 color = PlannerFlatColors.TextMuted,
                                 textDecoration = TextDecoration.LineThrough,
                             )
                         }
                         Text(
                             text = "₹${plan.price}",
-                            fontSize = 20.sp,
+                            fontSize = 16.sp,
                             fontWeight = FontWeight.ExtraBold,
                             color = if (selected) accent else PlannerFlatColors.TextDark,
                         )
@@ -1045,9 +1015,9 @@ private fun SelectedPlanCard(
             .clip(RoundedCornerShape(12.dp))
             .background(accent.copy(alpha = 0.05f))
             .border(1.dp, accent.copy(alpha = 0.25f), RoundedCornerShape(12.dp))
-            .padding(16.dp)
+            .padding(10.dp)
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -1056,7 +1026,7 @@ private fun SelectedPlanCard(
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(
                         text = stringResource(R.string.premium_selected_plan, plan.label),
-                        fontSize = 14.5.sp,
+                        fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         color = PlannerFlatColors.TextDark,
                     )
@@ -1066,7 +1036,7 @@ private fun SelectedPlanCard(
                             else R.string.premium_bundle_for_duration,
                             plan.durationLabel,
                         ),
-                        fontSize = 12.sp,
+                        fontSize = 11.sp,
                         color = PlannerFlatColors.TextMuted,
                     )
                 }
@@ -1081,7 +1051,7 @@ private fun SelectedPlanCard(
                     }
                     Text(
                         text = "₹${plan.price}",
-                        fontSize = 22.sp,
+                        fontSize = 16.sp,
                         fontWeight = FontWeight.ExtraBold,
                         color = accent,
                     )
@@ -1097,7 +1067,7 @@ private fun SelectedPlanCard(
                         R.string.premium_current_expiry,
                         currentExpiryText ?: stringResource(R.string.premium_no_active_subscription),
                     ),
-                    fontSize = 12.sp,
+                    fontSize = 11.sp,
                     color = PlannerFlatColors.TextMuted,
                 )
                 Text(
@@ -1105,7 +1075,7 @@ private fun SelectedPlanCard(
                         R.string.premium_new_expiry,
                         newExpiryText ?: stringResource(R.string.premium_calculating),
                     ),
-                    fontSize = 12.5.sp,
+                    fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
                     color = accent,
                 )
@@ -1125,7 +1095,7 @@ private fun SelectedPlanCard(
                         if (plan.price == 29) R.string.premium_existing_member_price
                         else R.string.premium_standalone_dhyan
                     ),
-                    fontSize = 12.sp,
+                    fontSize = 11.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = accent,
                 )
@@ -1146,14 +1116,15 @@ private fun SevenDayTrialBanner(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
             .clickable(enabled = !isLoading, onClick = onStartTrial)
-            .padding(16.dp),
+            .padding(10.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Box(
             modifier = Modifier
-                .size(38.dp)
+                .size(31.dp)
                 .clip(CircleShape)
                 .background(buttonBg),
             contentAlignment = Alignment.Center,
@@ -1161,7 +1132,7 @@ private fun SevenDayTrialBanner(
             Text(
                 text = "7",
                 fontFamily = LoraFontFamily,
-                fontSize = 18.sp,
+                fontSize = 16.sp,
                 fontWeight = FontWeight.Normal,
                 color = Color.White,
             )
@@ -1172,26 +1143,26 @@ private fun SevenDayTrialBanner(
         ) {
             Text(
                 text = stringResource(R.string.premium_start_trial_title),
-                fontSize = 15.sp,
+                fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
                 color = PlannerFlatColors.TextDark,
             )
             Text(
                 text = stringResource(R.string.premium_trial_short_description),
-                fontSize = 12.sp,
+                fontSize = 11.sp,
                 color = PlannerFlatColors.TextMuted,
             )
         }
         if (isLoading) {
             CircularProgressIndicator(
-                modifier = Modifier.size(18.dp),
+                modifier = Modifier.size(14.dp),
                 strokeWidth = 2.dp,
                 color = accent,
             )
         } else {
             Text(
                 text = stringResource(R.string.premium_try_free),
-                fontSize = 13.sp,
+                fontSize = 11.sp,
                 fontWeight = FontWeight.ExtraBold,
                 color = accent
             )
@@ -1213,9 +1184,9 @@ private fun UiStateMessage(
     ) {
         Text(
             text = uiState.message,
-            fontSize = 13.sp,
+            fontSize = 11.sp,
             color = MaterialTheme.colorScheme.onErrorContainer,
-            modifier = Modifier.padding(12.dp),
+            modifier = Modifier.padding(10.dp),
         )
     }
 }
@@ -1244,13 +1215,13 @@ private fun PaywallFooter(
         TextButton(
             onClick = onRestore,
             enabled = !isLoading,
-            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
         ) {
             Text(
                 text = stringResource(R.string.premium_restore),
                 color = accent,
                 fontWeight = FontWeight.Bold,
-                fontSize = 13.sp
+                fontSize = 11.sp
             )
         }
         Text(
@@ -1283,7 +1254,7 @@ private fun PremiumBottomBar(
             modifier = Modifier
                 .fillMaxWidth()
                 .navigationBarsPadding()
-                .padding(horizontal = 20.dp, vertical = 12.dp),
+                .padding(horizontal = 15.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
@@ -1293,7 +1264,7 @@ private fun PremiumBottomBar(
             ) {
                 Text(
                     text = "₹${selectedPlan.price}",
-                    fontSize = 22.sp,
+                    fontSize = 16.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color = PlannerFlatColors.TextDark,
                 )
@@ -1309,14 +1280,14 @@ private fun PremiumBottomBar(
                     .clip(RoundedCornerShape(10.dp))
                     .background(if (isLoading) buttonBg.copy(alpha = 0.5f) else buttonBg)
                     .clickable(enabled = !isLoading, onClick = onPurchase)
-                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                    .padding(horizontal = 15.dp, vertical = 10.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 if (isLoading) {
                     CircularProgressIndicator(
                         color = Color.White,
                         strokeWidth = 2.dp,
-                        modifier = Modifier.size(18.dp),
+                        modifier = Modifier.size(14.dp),
                     )
                 } else {
                     Row(
@@ -1327,11 +1298,11 @@ private fun PremiumBottomBar(
                             imageVector = Icons.Default.Security,
                             contentDescription = null,
                             tint = Color.White,
-                            modifier = Modifier.size(16.dp),
+                            modifier = Modifier.size(14.dp),
                         )
                         Text(
                             text = stringResource(R.string.premium_buy_now),
-                            fontSize = 14.sp,
+                            fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.White,
                         )
@@ -1350,16 +1321,16 @@ private fun PremiumActiveSummaryCard(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+            .padding(10.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Box(
                 modifier = Modifier
-                    .size(40.dp)
+                    .size(33.dp)
                     .clip(CircleShape)
                     .background(Color(0xFF10B981)),
                 contentAlignment = Alignment.Center,
@@ -1368,7 +1339,7 @@ private fun PremiumActiveSummaryCard(
                     imageVector = Icons.Default.Check,
                     contentDescription = null,
                     tint = Color.White,
-                    modifier = Modifier.size(22.dp)
+                    modifier = Modifier.size(18.dp)
                 )
             }
 
@@ -1376,14 +1347,14 @@ private fun PremiumActiveSummaryCard(
                 Text(
                     text = stringResource(R.string.premium_active_title),
                     fontFamily = LoraFontFamily,
-                    fontSize = 18.sp,
+                    fontSize = 16.sp,
                     fontWeight = FontWeight.Normal,
                     color = PlannerFlatColors.TextDark
                 )
                 Text(
                     text = expiryText?.let { stringResource(R.string.premium_valid_until, it) }
                         ?: stringResource(R.string.premium_named_plan_active, planLabel),
-                    fontSize = 13.sp,
+                    fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF10B981)
                 )
@@ -1392,7 +1363,7 @@ private fun PremiumActiveSummaryCard(
 
         Text(
             text = stringResource(R.string.premium_unlocked_manage_help),
-            fontSize = 12.5.sp,
+            fontSize = 11.sp,
             color = PlannerFlatColors.TextMuted,
         )
     }
@@ -1403,30 +1374,30 @@ private fun TrialActiveSummaryCard(
     expiryText: String?,
 ) {
     Column(
-        modifier = Modifier.fillMaxWidth().padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        modifier = Modifier.fillMaxWidth().padding(10.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Box(
-                modifier = Modifier.size(40.dp).clip(CircleShape).background(Color(0xFF10B981)),
+                modifier = Modifier.size(33.dp).clip(CircleShape).background(Color(0xFF10B981)),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(Icons.Default.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(22.dp))
+                Icon(Icons.Default.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
             }
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
                     text = stringResource(R.string.premium_trial_active_summary),
                     fontFamily = LoraFontFamily,
-                    fontSize = 18.sp,
+                    fontSize = 16.sp,
                     color = PlannerFlatColors.TextDark,
                 )
                 Text(
                     text = expiryText?.let { stringResource(R.string.premium_valid_until, it) }
                         ?: stringResource(R.string.premium_trial_is_active),
-                    fontSize = 13.sp,
+                    fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF10B981),
                 )
@@ -1434,7 +1405,7 @@ private fun TrialActiveSummaryCard(
         }
         Text(
             text = stringResource(R.string.premium_trial_bundle_help),
-            fontSize = 12.5.sp,
+            fontSize = 11.sp,
             color = PlannerFlatColors.TextMuted,
         )
     }

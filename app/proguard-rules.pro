@@ -41,3 +41,9 @@
 -dontwarn com.razorpay.**
 -dontwarn proguard.annotation.Keep
 -dontwarn proguard.annotation.KeepClassMembers
+# Firebase discovers registrars from manifest metadata and invokes their public
+# no-argument constructors through reflection. Preserve both names and constructors.
+-keep class * implements com.google.firebase.components.ComponentRegistrar {
+    public <init>();
+    public java.util.List getComponents();
+}

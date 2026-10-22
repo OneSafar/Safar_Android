@@ -2,6 +2,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <application>
+        <!-- Offline emulator probe; excluded from release variants. -->
+        <activity
+            android:name=".ui.ekagra.EkagraRecoveryProbeActivity"
+            android:exported="true"
+            android:theme="@style/Theme.Safar" />
         <activity
             android:name=".ui.debug.NotificationTestPanelActivity"
             android:exported="false"

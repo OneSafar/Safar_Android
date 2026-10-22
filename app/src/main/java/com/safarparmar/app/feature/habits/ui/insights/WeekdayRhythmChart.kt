@@ -1,6 +1,8 @@
 /* Hallmark · pre-emit critique: P5 H4 E4 S5 R4 V4 */
 package com.safarparmar.app.feature.habits.ui.insights
 
+import androidx.compose.ui.platform.LocalLocale
+
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
@@ -78,7 +80,7 @@ fun WeekdayRhythmChart(
         ) {
             weekdays.forEach { weekday ->
                 WeekdayBar(
-                    label = weekday.getDisplayName(TextStyle.NARROW, Locale.getDefault()),
+                    label = weekday.getDisplayName(TextStyle.NARROW, LocalLocale.current.platformLocale),
                     rate = rates.getValue(weekday),
                     highlighted = weekday == strongest,
                     selected = weekday == inspectedWeekday,
@@ -102,7 +104,7 @@ fun WeekdayRhythmChart(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = weekday.getDisplayName(TextStyle.FULL, Locale.getDefault()),
+                    text = weekday.getDisplayName(TextStyle.FULL, LocalLocale.current.platformLocale),
                     color = HabitColors.TextPrimary,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.SemiBold

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.feature.youtubestudyv2.YoutubeFullscreenPolicyTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-19T19:59:39.637Z" hostname="Shashanks-MacBook-Air.local" time="0.001">
+  <properties/>
+  <testcase name="live chat controls do not start a new video selection" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeFullscreenPolicyTest" time="0.001"/>
+  <testcase name="distracting or unknown classification never retains permission" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeFullscreenPolicyTest" time="0.0"/>
+  <testcase name="same productive video retains permission when fullscreen title remains visible" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeFullscreenPolicyTest" time="0.0"/>
+  <testcase name="next video with a different title requires fresh identity" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeFullscreenPolicyTest" time="0.0"/>
+  <testcase name="hidden HUD retains the verified productive video" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeFullscreenPolicyTest" time="0.0"/>
+  <testcase name="only actual next-video controls invalidate fullscreen permission" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeFullscreenPolicyTest" time="0.0"/>
+  <testcase name="current player transport is not mistaken for a new video card" classname="com.safarparmar.app.feature.youtubestudyv2.YoutubeFullscreenPolicyTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

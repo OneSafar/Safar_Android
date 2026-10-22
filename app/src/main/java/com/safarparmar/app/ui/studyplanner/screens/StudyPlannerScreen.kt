@@ -118,7 +118,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
+import com.safarparmar.app.ui.components.popups.SafarModalBottomSheet as ModalBottomSheet
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
@@ -630,21 +630,14 @@ fun StudyPlannerScreen(
         }
     }
 
-    // ── Internal back-press handling ────────────────────────────────────────────
-    // The Study Planner manages its own sub-screens via ViewModel state (PlannerSection)
-    // rather than NavController entries. Without this BackHandler the system back press
-    // would skip all internal sections and jump straight to Home.
-    //
-    // Hierarchy:
-    //   [sub-section B] → [sub-section A] → [plan list / YOUR_EXAMS] → Home (NavController)
-    val hasInternalBackState = chromeState.selectedPlan != null
-    BackHandler(enabled = hasInternalBackState) {
-        actions.navigateBack()
-        // navigateBack() always returns true when enabled (plan is open), so we just
-        // let it update the ViewModel state. The BackHandler disables itself automatically
-        // once selectedPlan becomes null (after closePlan()), letting the NavController
-        // handle the final back press back to Home.
+    // The exam list is this feature's root. Exit it to the actual caller instead
+    // of inserting the planner's Home tab into the Back path.
+    BackHandler {
+        if (!actions.navigateBack()) onBack()
     }
+
+    com.safarparmar.app.ui.tutorial.ScreenPracticeEntry(com.safarparmar.app.ui.tutorial.TitliFeature.EXAM_PLANNER,
+        isDarkTheme, eligible = !chromeState.loading && !chromeState.mutating && !dailyTodoSetupVisible)
 
     val selectedPlanForDrawer = chromeState.selectedPlan
     val drawerTitle = when {
@@ -754,10 +747,18 @@ fun StudyPlannerScreen(
                     )
 
                     if (!canUsePremiumPlannerFeatures) {
-                        StudyPlannerPremiumLockOverlay(
-                            modifier = Modifier.fillMaxSize(),
-                            onUpgrade = { onNavigate(Routes.PREMIUM) },
-                        )
+                        Column(Modifier.fillMaxSize()) {
+                            Box(Modifier.padding(16.dp)) {
+                                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    PlannerPosterEntry(onClick = { onNavigate(Routes.TOPPERS_BATCH) })
+                                    PlannerGk5Entry(onClick = { onNavigate(Routes.GK5_BATCH) })
+                                }
+                            }
+                            StudyPlannerPremiumLockOverlay(
+                                modifier = Modifier.weight(1f).fillMaxWidth(),
+                                onUpgrade = { onNavigate(Routes.PREMIUM) },
+                            )
+                        }
                     }
 
                     TourManager(
@@ -916,61 +917,29 @@ private fun StudyPlansScreen(
                 contentPadding = PaddingValues(start = 16.dp, top = 20.dp, end = 16.dp, bottom = 32.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                // ── Top Quick Actions Grid (Variant 3) ──────────────────
-                item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        // 1. New Plan
-                        PlannerQuickActionCard(
-                            title = stringResource(R.string.planner_new_plan),
-                            subtitle = stringResource(R.string.planner_new_plan_subtitle),
-                            icon = Icons.Default.Add,
-                            iconBg = if (isDark) Color(0xFF34D399).copy(alpha = 0.15f) else Color(0xFF064E3B).copy(alpha = 0.12f),
-                            iconTint = if (isDark) Color(0xFF34D399) else Color(0xFF064E3B),
-                            borderColor = if (isDark) Color(0xFF272C35) else Color(0xFFE2E8F0),
-                            isLight = !isDark,
-                            onClick = {
-                                onAdvanceTour()
-                                onNavigate(Routes.CREATE_PLAN)
-                            },
-                            modifier = Modifier.weight(1f)
+                item(key = "toppers_batch") {
+                    PlannerPosterEntry(onClick = { onNavigate(Routes.TOPPERS_BATCH) })
+                }
+                item(key = "gk5_batch") {
+                    PlannerGk5Entry(onClick = { onNavigate(Routes.GK5_BATCH) })
+                }
+                item(key = "new_plan") {
+                    PlannerEntryAction(
+                        title = stringResource(R.string.planner_new_plan),
+                        subtitle = "Start fresh or build from a template",
+                        icon = Icons.Default.Add,
+                        primary = true,
+                        onClick = { onAdvanceTour(); onNavigate(Routes.CREATE_PLAN) },
+                    )
+                }
+                if (state.draftSyllabi.isNotEmpty()) {
+                    item(key = "drafts") {
+                        PlannerEntryAction(
+                            title = stringResource(R.string.planner_drafts_count, state.draftSyllabi.size),
+                            subtitle = stringResource(R.string.planner_resume_building),
+                            icon = Icons.AutoMirrored.Outlined.Article,
+                            onClick = { onAdvanceTour(); onNavigate("${Routes.CREATE_PLAN}?startAtSaved=true") },
                         )
-
-                        // 2. Drafts (or Templates if 0 drafts)
-                        if (state.draftSyllabi.isNotEmpty()) {
-                            PlannerQuickActionCard(
-                                title = stringResource(R.string.planner_drafts_count, state.draftSyllabi.size),
-                                subtitle = stringResource(R.string.planner_resume_building),
-                                icon = Icons.AutoMirrored.Outlined.Article,
-                                iconBg = Color(0xFFF59E0B).copy(alpha = 0.15f),
-                                iconTint = Color(0xFFD97706),
-                                borderColor = if (isDark) Color(0xFFB45309).copy(alpha = 0.4f) else Color(0xFFFDE68A),
-                                isLight = !isDark,
-                                onInfoClick = { showDraftsInfo = true },
-                                onClick = {
-                                    onAdvanceTour()
-                                    onNavigate("${Routes.CREATE_PLAN}?startAtSaved=true")
-                                },
-                                modifier = Modifier.weight(1f)
-                            )
-                        } else {
-                            PlannerQuickActionCard(
-                                title = stringResource(R.string.planner_templates),
-                                subtitle = stringResource(R.string.planner_browse_exam_syllabi),
-                                icon = Icons.Outlined.AutoStories,
-                                iconBg = if (isDark) Color(0xFF818CF8).copy(alpha = 0.15f) else Color(0xFF4F46E5).copy(alpha = 0.10f),
-                                iconTint = if (isDark) Color(0xFF818CF8) else Color(0xFF4F46E5),
-                                borderColor = if (isDark) Color(0xFF272C35) else Color(0xFFE2E8F0),
-                                isLight = !isDark,
-                                onClick = {
-                                    onAdvanceTour()
-                                    onNavigate(Routes.CREATE_PLAN)
-                                },
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
                     }
                 }
 
@@ -1133,7 +1102,7 @@ private fun DraftsInfoDialog(
     val textSecondary = if (isLight) Color(0xFF64748B) else Color(0xFF94A3B8)
     val accent = if (isLight) Color(0xFF064E3B) else Color(0xFF34D399)
 
-    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
+    com.safarparmar.app.ui.components.popups.SafarDialog(onDismissRequest = onDismiss) {
         Surface(
             shape = RoundedCornerShape(20.dp),
             color = bg,
@@ -1283,7 +1252,7 @@ private fun planCreatedDate(value: String?): String? {
 }
 
 @Composable
-private fun PlannerTargetExamRow(
+internal fun PlannerTargetExamRow(
     plan: StudyPlan,
     planNumber: Int,
     isActive: Boolean = false,
@@ -1314,113 +1283,11 @@ private fun PlannerTargetExamRow(
     val textPrimary = if (isLight) Color(0xFF0F172A) else Color(0xFFF8FAFC)
     val textSecondary = if (isLight) Color(0xFF64748B) else Color(0xFF94A3B8)
 
-    Surface(
-        onClick = onOpen,
-        shape = RoundedCornerShape(16.dp),
-        color = bg,
-        border = androidx.compose.foundation.BorderStroke(if (isActive) 1.5.dp else 1.dp, border),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            // Clean flat icon container
-            Box(
-                modifier = Modifier
-                    .size(42.dp)
-                    .background(
-                        if (isDark) Color(0xFF818CF8).copy(alpha = 0.15f) else Color(0xFF4F46E5).copy(alpha = 0.10f),
-                        RoundedCornerShape(12.dp)
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.School,
-                    contentDescription = null,
-                    tint = if (isDark) Color(0xFF818CF8) else Color(0xFF4F46E5),
-                    modifier = Modifier.size(22.dp)
-                )
-            }
-
-            Spacer(Modifier.width(12.dp))
-
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(3.dp)
-            ) {
-                Text(
-                    text = title,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 15.sp,
-                    color = textPrimary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = subtitle,
-                    fontSize = 12.sp,
-                    color = textSecondary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-
-            Spacer(Modifier.width(8.dp))
-
-            // Days left pill
-            val badge = examBadgeLabel(days)
-            if (badge.isNotBlank()) {
-                Box(
-                    modifier = Modifier
-                        .background(
-                            if (isDark) Color(0xFF1E293B) else Color(0xFFF1F5F9),
-                            RoundedCornerShape(8.dp)
-                        )
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                ) {
-                    Text(
-                        text = badge,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = if (isDark) Color(0xFF94A3B8) else Color(0xFF475569)
-                    )
-                }
-            }
-
-            Box {
-                IconButton(
-                    onClick = { menuExpanded = true },
-                    modifier = Modifier.size(32.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.MoreVert,
-                        contentDescription = stringResource(R.string.common_options),
-                        tint = textSecondary,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-                PlannerOverflowMenu(
-                    expanded = menuExpanded,
-                    onDismissRequest = { menuExpanded = false },
-                ) {
-                    PlannerOverflowMenuItem(
-                        text = stringResource(R.string.planner_rename_exam),
-                        icon = Icons.Default.Edit,
-                        onClick = { menuExpanded = false; onRename() },
-                    )
-                    PlannerOverflowMenuItem(
-                        text = stringResource(R.string.planner_delete_plan),
-                        icon = Icons.Default.Delete,
-                        destructive = true,
-                        onClick = { menuExpanded = false; onDelete() },
-                    )
-                }
-            }
-        }
-    }
+    PlannerExamEntry(
+        title = title, subtitle = subtitle, badge = examBadgeLabel(days),
+        upcoming = days != null && days >= 0, active = isActive,
+        onOpen = onOpen, onRename = onRename, onDelete = onDelete,
+    )
 }
 
 @Composable

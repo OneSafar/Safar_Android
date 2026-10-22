@@ -49,12 +49,12 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.ui.window.Dialog
+import com.safarparmar.app.ui.components.popups.SafarDialog as Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import com.composables.ui.components.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.animation.core.Animatable
@@ -106,7 +106,7 @@ fun YoutubeFocusAccessibilityTutorialSheet(
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
         Surface(
-            modifier = Modifier.fillMaxWidth(0.90f).widthIn(max = 520.dp).fillMaxHeight(0.88f),
+            modifier = Modifier.widthIn(max = 520.dp).fillMaxWidth(0.90f).fillMaxHeight(0.88f),
             shape = RoundedCornerShape(26.dp),
             color = if (isLight) Color(0xFFF8FAFC) else Color(0xFF0F172A),
         ) {
@@ -126,7 +126,7 @@ fun YoutubeFocusAccessibilityTutorialSheet(
                 }
                 Text(stringResource(R.string.youtube_focus_guide_float_hint),
                     fontSize = 12.sp, color = if (isLight) Color(0xFF64748B) else Color(0xFF94A3B8))
-                Button(
+                com.safarparmar.app.ui.components.SafarButton(
                     onClick = {
                         if (onContinueGuide != null) {
                             onContinueGuide()

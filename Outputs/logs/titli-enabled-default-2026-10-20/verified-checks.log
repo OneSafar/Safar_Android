@@ -1,0 +1,115 @@
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preProdDebugBuild UP-TO-DATE
+> Task :app:generateProdDebugBuildConfig UP-TO-DATE
+> Task :app:generateProdDebugResValues UP-TO-DATE
+> Task :app:generateProdDebugResources UP-TO-DATE
+> Task :app:injectCrashlyticsMappingFileIdProdDebug UP-TO-DATE
+> Task :app:injectCrashlyticsVersionControlInfoProdDebug UP-TO-DATE
+> Task :app:processProdDebugGoogleServices UP-TO-DATE
+> Task :app:packageProdDebugResources UP-TO-DATE
+> Task :app:processProdDebugNavigationResources UP-TO-DATE
+> Task :app:parseProdDebugLocalResources UP-TO-DATE
+> Task :app:generateProdDebugRFile UP-TO-DATE
+> Task :app:kspProdDebugKotlin UP-TO-DATE
+> Task :app:compileProdDebugKotlin UP-TO-DATE
+> Task :app:javaPreCompileProdDebug UP-TO-DATE
+> Task :app:compileProdDebugJavaWithJavac UP-TO-DATE
+> Task :app:hiltSyncProdDebug UP-TO-DATE
+> Task :app:hiltAggregateDepsProdDebug UP-TO-DATE
+> Task :app:hiltJavaCompileProdDebug UP-TO-DATE
+> Task :app:checkProdDebugAarMetadata UP-TO-DATE
+> Task :app:mapProdDebugSourceSetPaths UP-TO-DATE
+> Task :app:compileProdDebugNavigationResources UP-TO-DATE
+> Task :app:mergeProdDebugResources UP-TO-DATE
+> Task :app:createProdDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksProdDebug UP-TO-DATE
+> Task :app:processProdDebugMainManifest UP-TO-DATE
+> Task :app:processProdDebugManifest UP-TO-DATE
+> Task :app:processProdDebugManifestForPackage UP-TO-DATE
+> Task :app:processProdDebugResources UP-TO-DATE
+> Task :app:transformProdDebugClassesWithAsm UP-TO-DATE
+> Task :app:bundleProdDebugClassesToRuntimeJar UP-TO-DATE
+> Task :app:preProdDebugUnitTestBuild UP-TO-DATE
+> Task :app:processProdDebugJavaRes UP-TO-DATE
+> Task :app:bundleProdDebugClassesToCompileJar UP-TO-DATE
+> Task :app:kspProdDebugUnitTestKotlin UP-TO-DATE
+> Task :app:compileProdDebugUnitTestKotlin UP-TO-DATE
+> Task :app:processProdDebugUnitTestJavaRes UP-TO-DATE
+> Task :app:javaPreCompileProdDebugUnitTest UP-TO-DATE
+> Task :app:compileProdDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :app:hiltSyncProdDebugUnitTest UP-TO-DATE
+> Task :app:hiltAggregateDepsProdDebugUnitTest UP-TO-DATE
+> Task :app:hiltJavaCompileProdDebugUnitTest NO-SOURCE
+> Task :app:transformProdDebugUnitTestClassesWithAsm UP-TO-DATE
+> Task :app:testProdDebugUnitTest UP-TO-DATE
+> Task :app:preProdReleaseBuild UP-TO-DATE
+> Task :app:generateProdReleaseBuildConfig
+> Task :app:generateProdReleaseResValues UP-TO-DATE
+> Task :app:generateProdReleaseResources UP-TO-DATE
+> Task :app:injectCrashlyticsMappingFileIdProdRelease
+> Task :app:extractProdReleaseVersionControlInfo UP-TO-DATE
+> Task :app:injectCrashlyticsVersionControlInfoProdRelease UP-TO-DATE
+> Task :app:processProdReleaseGoogleServices UP-TO-DATE
+> Task :app:packageProdReleaseResources
+> Task :app:processProdReleaseNavigationResources UP-TO-DATE
+> Task :app:parseProdReleaseLocalResources
+> Task :app:generateProdReleaseRFile UP-TO-DATE
+> Task :app:kspProdReleaseKotlin
+
+> Task :app:compileProdReleaseKotlin
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/SafarApplication.kt:159:58 'static field TRIM_MEMORY_RUNNING_LOW: Int' is deprecated. Deprecated in Java.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/data/remote/maintenance/MaintenanceStateManager.kt:128:59 Java type mismatch: inferred type is 'Nothing?', but 'String' was expected.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/data/remote/maintenance/MaintenanceStateManager.kt:129:79 Java type mismatch: inferred type is 'Nothing?', but 'String' was expected.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/data/remote/maintenance/MaintenanceStateManager.kt:144:59 Java type mismatch: inferred type is 'Nothing?', but 'String' was expected.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/data/remote/maintenance/MaintenanceStateManager.kt:145:79 Java type mismatch: inferred type is 'Nothing?', but 'String' was expected.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/data/repository/HomeRepositoryImpl.kt:231:17 Expression is unused.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/data/repository/HomeRepositoryImpl.kt:242:17 Expression is unused.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/feature/kavachanalytics/data/KavachUsageCollector.kt:160:67 'static field MOVE_TO_FOREGROUND: Int' is deprecated. Deprecated in Java.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/feature/kavachanalytics/data/KavachUsageCollector.kt:163:67 'static field MOVE_TO_BACKGROUND: Int' is deprecated. Deprecated in Java.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/feature/youtubestudyv2/YoutubeStudyV2AccessibilityService.kt:1442:17 Unnecessary safe call on a non-null receiver of type 'AccessibilityNodeInfo'.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/feature/youtubestudyv2/YoutubeStudyV2AccessibilityService.kt:1443:17 Unnecessary safe call on a non-null receiver of type 'AccessibilityNodeInfo'.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/feature/youtubestudyv2/YoutubeStudyV2AccessibilityService.kt:1444:24 Unnecessary safe call on a non-null receiver of type 'AccessibilityNodeInfo'.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/feature/youtubestudyv2/YoutubeStudyV2AccessibilityService.kt:1465:26 Unnecessary safe call on a non-null receiver of type 'AccessibilityNodeInfo'.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/feature/youtubestudyv2/YoutubeStudyV2AccessibilityService.kt:1467:17 Unnecessary safe call on a non-null receiver of type 'AccessibilityNodeInfo'.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/feature/youtubestudyv2/YoutubeStudyV2AccessibilityService.kt:1468:17 Unnecessary safe call on a non-null receiver of type 'AccessibilityNodeInfo'.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/feature/youtubestudyv2/YoutubeStudyV2AccessibilityService.kt:1469:24 Unnecessary safe call on a non-null receiver of type 'AccessibilityNodeInfo'.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/ui/auth/AuthScreen.kt:357:29 'typealias MenuAnchorType = ExposedDropdownMenuAnchorType' is deprecated. Renamed to ExposedDropdownMenuAnchorType.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:412:35 Unnecessary safe call on a non-null receiver of type 'TimerService'.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:435:29 Unnecessary safe call on a non-null receiver of type 'TimerService'.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:501:135 Unnecessary safe call on a non-null receiver of type 'TimerService'.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:502:25 Unnecessary safe call on a non-null receiver of type 'TimerService'.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:1253:60 Unnecessary safe call on a non-null receiver of type 'VisualTheme'.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:1384:149 Unnecessary safe call on a non-null receiver of type 'TimerService'.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:1435:90 'val Icons.Filled.HelpOutline: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.HelpOutline.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:1440:103 'val Icons.Filled.VolumeUp: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.VolumeUp.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:1440:163 'val Icons.Filled.VolumeOff: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.VolumeOff.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:1607:65 Unnecessary safe call on a non-null receiver of type 'TimerService'.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:1617:61 Unnecessary safe call on a non-null receiver of type 'TimerService'.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:1620:196 Unnecessary safe call on a non-null receiver of type 'TimerService'.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraScreen.kt:1739:61 Unnecessary safe call on a non-null receiver of type 'TimerService'.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/ui/ekagra/EkagraSessionSaveWorker.kt:81:124 Unnecessary safe call on a non-null receiver of type 'String'.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/ui/ekagra/TimerService.kt:588:22 No cast needed.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/ui/ekagra/TimerService.kt:720:22 No cast needed.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/ui/ekagra/focusshield/KavachAlwaysOnService.kt:518:67 'static field MOVE_TO_FOREGROUND: Int' is deprecated. Deprecated in Java.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/ui/ekagra/focusshield/KavachAlwaysOnService.kt:521:67 'static field MOVE_TO_BACKGROUND: Int' is deprecated. Deprecated in Java.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/ui/ekagra/focusshield/UsageAccessHelper.kt:27:20 'fun unsafeCheckOpNoThrow(p0: String, p1: Int, p2: String): Int' is deprecated. Deprecated in Java.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/ui/navigation/SafarNavGraph.kt:189:81 Unnecessary safe call on a non-null receiver of type 'String'.
+w: file:///private/tmp/safar-habit-checks-20261020/app/src/main/java/com/safarparmar/app/ui/navigation/SafarNavGraph.kt:204:21 Unnecessary safe call on a non-null receiver of type 'MainActivity'.
+
+> Task :app:preProdDebugAndroidTestBuild SKIPPED
+> Task :app:processProdDebugAndroidTestManifest UP-TO-DATE
+> Task :app:generateProdDebugAndroidTestBuildConfig UP-TO-DATE
+> Task :app:generateProdDebugAndroidTestResValues UP-TO-DATE
+> Task :app:generateProdDebugAndroidTestResources UP-TO-DATE
+> Task :app:packageProdDebugAndroidTestResources UP-TO-DATE
+> Task :app:processProdDebugAndroidTestNavigationResources UP-TO-DATE
+> Task :app:parseProdDebugAndroidTestLocalResources UP-TO-DATE
+> Task :app:generateProdDebugAndroidTestRFile UP-TO-DATE
+> Task :app:kspProdDebugAndroidTestKotlin UP-TO-DATE
+> Task :app:compileProdDebugAndroidTestKotlin UP-TO-DATE
+
+[Incubating] Problems report is available at: file:///private/tmp/safar-habit-checks-20261020/build/reports/problems/problems-report.html
+
+BUILD SUCCESSFUL in 25s
+60 actionable tasks: 6 executed, 54 up-to-date
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.3.1/userguide/configuration_cache_enabling.html

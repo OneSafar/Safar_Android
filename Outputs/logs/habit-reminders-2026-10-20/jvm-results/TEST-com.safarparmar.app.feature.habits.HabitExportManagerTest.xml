@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.feature.habits.HabitExportManagerTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-20T02:12:51.852Z" hostname="Shashanks-MacBook-Air.local" time="0.007">
+  <properties/>
+  <testcase name="exports rows with correct dates, habit names, and completed flags" classname="com.safarparmar.app.feature.habits.HabitExportManagerTest" time="0.005"/>
+  <testcase name="csv escaping handles commas, double-quotes and newlines" classname="com.safarparmar.app.feature.habits.HabitExportManagerTest" time="0.0"/>
+  <testcase name="archived habits export correctly during active periods" classname="com.safarparmar.app.feature.habits.HabitExportManagerTest" time="0.0"/>
+  <testcase name="resolveDateRange resolves correct dates" classname="com.safarparmar.app.feature.habits.HabitExportManagerTest" time="0.001"/>
+  <testcase name="selected habits filter excludes other habits from csv and summary" classname="com.safarparmar.app.feature.habits.HabitExportManagerTest" time="0.0"/>
+  <testcase name="empty dataset generates clean headers" classname="com.safarparmar.app.feature.habits.HabitExportManagerTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

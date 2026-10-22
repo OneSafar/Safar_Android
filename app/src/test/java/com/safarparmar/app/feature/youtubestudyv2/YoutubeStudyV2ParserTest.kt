@@ -806,6 +806,49 @@ class YoutubeStudyV2ParserTest {
     }
 
 
+    @Test fun `unlabelled channel card with subscription sibling is detected`() {
+        val nodes = baseWatchNodes() + listOf(
+            node(parent = 0, left = 0, top = 900, right = 1080, bottom = 1050),
+            node(description = "The Deshbhakt", clickable = true, parent = 3,
+                left = 30, top = 920, right = 500, bottom = 1030),
+            node(clazz = "ImageView", parent = 4, left = 30, top = 935, right = 110, bottom = 1015),
+            node(description = "Subscribe to The Deshbhakt.", clickable = true, parent = 3,
+                left = 550, top = 920, right = 1000, bottom = 1030),
+        )
+        assertEquals("The Deshbhakt", YoutubeStudyV2Parser.parse(snapshot(nodes)).displayName)
+    }
+
+    @Test fun `excluded fullscreen control cannot truncate the real metadata row`() {
+        val nodes = baseWatchNodes() + listOf(
+            node(id = "fullscreen_button", description = "Enter fullscreen", clickable = true, parent = 0,
+                left = 920, top = 770, right = 1030, bottom = 850),
+            node(id = "video_owner", parent = 0, left = 0, top = 900, right = 1080, bottom = 1050),
+            node(clazz = "ImageView", parent = 4, left = 30, top = 920, right = 150, bottom = 1040),
+            node(text = "PARMAR SSC", clazz = "TextView", parent = 4, left = 165, top = 930, right = 500, bottom = 990),
+            node(text = "@parmarssc", clazz = "TextView", parent = 4, left = 165, top = 990, right = 500, bottom = 1040),
+        )
+        val result = YoutubeStudyV2Parser.parse(snapshot(nodes))
+        assertEquals("@parmarssc", result.exactHandle)
+        assertEquals("PARMAR SSC", result.displayName)
+    }
+
+    @Test fun `portrait sponsored panel is detected without using advertiser as owner`() {
+        val nodes = baseWatchNodes() + listOf(
+            node(id = "engagement_panel", parent = 0, left = 0, top = 880, right = 1080, bottom = 1900),
+            node(text = "Sponsored", parent = 3, left = 32, top = 920, right = 1080, bottom = 980),
+            node(text = "Angel One", parent = 3, left = 32, top = 1040, right = 900, bottom = 1140),
+        )
+        val result = YoutubeStudyV2Parser.parse(snapshot(nodes))
+        assertEquals(YoutubeFullscreenSidePanel.SPONSORED, result.fullscreenSidePanel)
+        assertFalse(result.hasOwnerEvidence)
+    }
+
+    @Test fun `portrait fullscreen exit control activates fullscreen metadata recovery`() {
+        val nodes = baseWatchNodes() + node(description = "Exit fullscreen", clickable = true,
+            left = 920, top = 300, right = 1030, bottom = 420)
+        assertTrue(YoutubeStudyV2Parser.parse(snapshot(nodes)).fullscreen)
+    }
+
     private fun baseWatchNodes() = listOf(
         node(parent = null, left = 0, top = 0, right = 1080, bottom = 1920),
         node(id = "watch_player", clazz = "SurfaceView", parent = 0, left = 0, top = 100, right = 1080, bottom = 800),

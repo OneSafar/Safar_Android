@@ -323,7 +323,9 @@ internal fun PlanHomeStatStrip(
                     .weight(1f)
                     .then(
                         if (enabled) {
-                            Modifier.clickable { stat.onClick?.invoke() }
+                            Modifier
+                                .clip(RoundedCornerShape(12.dp))
+                                .clickable { stat.onClick?.invoke() }
                         } else {
                             Modifier
                         },
@@ -375,8 +377,9 @@ internal fun PlanHomeDailyTodoRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
                 .clickable(onClick = onToggleExpanded)
-                .padding(vertical = 16.dp),
+                .padding(vertical = 16.dp, horizontal = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
@@ -646,14 +649,20 @@ internal fun PlanHomeAddActions(
             fontSize = 12.5.sp,
             fontWeight = FontWeight.Bold,
             color = PlannerFlatColors.PrimaryAccent,
-            modifier = Modifier.clickable(onClick = onAddFromSyllabus),
+            modifier = Modifier
+                .clip(RoundedCornerShape(6.dp))
+                .clickable(onClick = onAddFromSyllabus)
+                .padding(horizontal = 4.dp, vertical = 2.dp),
         )
         Text(
             text = stringResource(R.string.planner_add_custom_plus),
             fontSize = 12.5.sp,
             fontWeight = FontWeight.Bold,
             color = PlannerFlatColors.TextMuted,
-            modifier = Modifier.clickable(onClick = onAddCustom),
+            modifier = Modifier
+                .clip(RoundedCornerShape(6.dp))
+                .clickable(onClick = onAddCustom)
+                .padding(horizontal = 4.dp, vertical = 2.dp),
         )
     }
 }

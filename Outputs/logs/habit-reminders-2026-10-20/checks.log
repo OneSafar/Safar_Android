@@ -1,0 +1,137 @@
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preProdDebugBuild UP-TO-DATE
+> Task :app:generateProdDebugBuildConfig UP-TO-DATE
+> Task :app:generateProdDebugResValues UP-TO-DATE
+> Task :app:generateProdDebugResources UP-TO-DATE
+> Task :app:injectCrashlyticsMappingFileIdProdDebug UP-TO-DATE
+> Task :app:injectCrashlyticsVersionControlInfoProdDebug UP-TO-DATE
+> Task :app:processProdDebugGoogleServices UP-TO-DATE
+> Task :app:packageProdDebugResources UP-TO-DATE
+> Task :app:processProdDebugNavigationResources UP-TO-DATE
+> Task :app:parseProdDebugLocalResources UP-TO-DATE
+> Task :app:generateProdDebugRFile UP-TO-DATE
+> Task :app:javaPreCompileProdDebug UP-TO-DATE
+> Task :app:checkProdDebugAarMetadata UP-TO-DATE
+> Task :app:mapProdDebugSourceSetPaths UP-TO-DATE
+> Task :app:compileProdDebugNavigationResources UP-TO-DATE
+> Task :app:mergeProdDebugResources UP-TO-DATE
+> Task :app:createProdDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksProdDebug UP-TO-DATE
+> Task :app:processProdDebugMainManifest UP-TO-DATE
+> Task :app:processProdDebugManifest UP-TO-DATE
+> Task :app:processProdDebugManifestForPackage UP-TO-DATE
+> Task :app:processProdDebugResources UP-TO-DATE
+> Task :app:preProdDebugUnitTestBuild UP-TO-DATE
+> Task :app:javaPreCompileProdDebugUnitTest UP-TO-DATE
+> Task :app:preProdDebugAndroidTestBuild SKIPPED
+> Task :app:processProdDebugAndroidTestManifest UP-TO-DATE
+> Task :app:generateProdDebugAndroidTestBuildConfig UP-TO-DATE
+> Task :app:generateProdDebugAndroidTestResValues UP-TO-DATE
+> Task :app:generateProdDebugAndroidTestResources UP-TO-DATE
+> Task :app:packageProdDebugAndroidTestResources UP-TO-DATE
+> Task :app:processProdDebugAndroidTestNavigationResources UP-TO-DATE
+> Task :app:parseProdDebugAndroidTestLocalResources UP-TO-DATE
+> Task :app:generateProdDebugAndroidTestRFile UP-TO-DATE
+> Task :app:preProdReleaseBuild UP-TO-DATE
+> Task :app:generateProdReleaseBuildConfig UP-TO-DATE
+> Task :app:generateProdReleaseResValues UP-TO-DATE
+> Task :app:generateProdReleaseResources
+> Task :app:injectCrashlyticsMappingFileIdProdRelease
+> Task :app:extractProdReleaseVersionControlInfo UP-TO-DATE
+> Task :app:injectCrashlyticsVersionControlInfoProdRelease UP-TO-DATE
+> Task :app:processProdReleaseGoogleServices UP-TO-DATE
+> Task :app:packageProdReleaseResources
+> Task :app:processProdReleaseNavigationResources
+> Task :app:javaPreCompileProdRelease UP-TO-DATE
+> Task :app:extractProguardFiles UP-TO-DATE
+> Task :app:extractDeepLinksProdRelease UP-TO-DATE
+> Task :app:parseProdReleaseLocalResources
+> Task :app:processProdReleaseMainManifest
+> Task :app:generateProdReleaseRFile
+> Task :app:kspProdDebugKotlin
+> Task :app:kspProdReleaseKotlin
+
+> Task :app:compileProdReleaseKotlin
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/nishtha/StreaksScreen.kt:109:102 Unresolved reference 'STREAKS'.
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/nishtha/analytics/NishthaAnalyticsScreen.kt:73:102 Unresolved reference 'ANALYTICS'.
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/nishtha/checkin/CheckInScreen.kt:202:102 Unresolved reference 'CHECK_IN'.
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/nishtha/journal/JournalScreen.kt:129:102 Unresolved reference 'JOURNAL'.
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/studycircle/StudyCircleScreen.kt:247:102 Unresolved reference 'STUDY_CIRCLE'.
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/studycircle/StudyCircleScreen.kt:1525:102 Unresolved reference 'STUDY_CIRCLE'.
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/studycircle/StudyCircleScreen.kt:1526:9 Argument type mismatch: actual type is 'WideNavigationRailValue', but 'Boolean' was expected.
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/studycircle/StudyCircleScreen.kt:1526:47 Unresolved reference 'isLightBackground'.
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/studyplanner/screens/StudyPlannerScreen.kt:639:102 Unresolved reference 'EXAM_PLANNER'.
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/tutorial/ScreenPracticeModels.kt:75:30 Unresolved reference 'STUDY_CIRCLE'.
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/tutorial/ScreenPracticeModels.kt:76:32 Unresolved reference 'STUDY_CIRCLE'.
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/tutorial/ScreenPracticeModels.kt:77:31 Unresolved reference 'CHECK_IN'.
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/tutorial/ScreenPracticeModels.kt:78:31 Unresolved reference 'JOURNAL'.
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/tutorial/ScreenPracticeModels.kt:79:31 Unresolved reference 'STREAKS'.
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/tutorial/ScreenPracticeModels.kt:80:33 Unresolved reference 'ANALYTICS'.
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/tutorial/ScreenPracticeModels.kt:81:31 Unresolved reference 'EXAM_PLANNER'.
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/tutorial/ScreenPracticeModels.kt:106:18 Unresolved reference 'STUDY_CIRCLE'.
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/tutorial/ScreenPracticeModels.kt:107:18 Unresolved reference 'CHECK_IN'.
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/tutorial/ScreenPracticeModels.kt:108:18 Unresolved reference 'JOURNAL'.
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/tutorial/ScreenPracticeModels.kt:109:18 Unresolved reference 'STREAKS'.
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/tutorial/ScreenPracticeModels.kt:110:18 Unresolved reference 'ANALYTICS'.
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/tutorial/ScreenPracticeModels.kt:111:18 Unresolved reference 'EXAM_PLANNER'.
+
+> Task :app:compileProdReleaseKotlin FAILED
+
+> Task :app:compileProdDebugKotlin FAILED
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/nishtha/StreaksScreen.kt:109:102 Unresolved reference 'STREAKS'.
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/nishtha/analytics/NishthaAnalyticsScreen.kt:73:102 Unresolved reference 'ANALYTICS'.
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/nishtha/checkin/CheckInScreen.kt:202:102 Unresolved reference 'CHECK_IN'.
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/nishtha/journal/JournalScreen.kt:129:102 Unresolved reference 'JOURNAL'.
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/studycircle/StudyCircleScreen.kt:247:102 Unresolved reference 'STUDY_CIRCLE'.
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/studycircle/StudyCircleScreen.kt:1525:102 Unresolved reference 'STUDY_CIRCLE'.
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/studycircle/StudyCircleScreen.kt:1526:9 Argument type mismatch: actual type is 'WideNavigationRailValue', but 'Boolean' was expected.
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/studycircle/StudyCircleScreen.kt:1526:47 Unresolved reference 'isLightBackground'.
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/studyplanner/screens/StudyPlannerScreen.kt:639:102 Unresolved reference 'EXAM_PLANNER'.
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/tutorial/ScreenPracticeModels.kt:75:30 Unresolved reference 'STUDY_CIRCLE'.
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/tutorial/ScreenPracticeModels.kt:76:32 Unresolved reference 'STUDY_CIRCLE'.
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/tutorial/ScreenPracticeModels.kt:77:31 Unresolved reference 'CHECK_IN'.
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/tutorial/ScreenPracticeModels.kt:78:31 Unresolved reference 'JOURNAL'.
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/tutorial/ScreenPracticeModels.kt:79:31 Unresolved reference 'STREAKS'.
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/tutorial/ScreenPracticeModels.kt:80:33 Unresolved reference 'ANALYTICS'.
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/tutorial/ScreenPracticeModels.kt:81:31 Unresolved reference 'EXAM_PLANNER'.
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/tutorial/ScreenPracticeModels.kt:106:18 Unresolved reference 'STUDY_CIRCLE'.
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/tutorial/ScreenPracticeModels.kt:107:18 Unresolved reference 'CHECK_IN'.
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/tutorial/ScreenPracticeModels.kt:108:18 Unresolved reference 'JOURNAL'.
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/tutorial/ScreenPracticeModels.kt:109:18 Unresolved reference 'STREAKS'.
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/tutorial/ScreenPracticeModels.kt:110:18 Unresolved reference 'ANALYTICS'.
+e: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/app/src/main/java/com/safarparmar/app/ui/tutorial/ScreenPracticeModels.kt:111:18 Unresolved reference 'EXAM_PLANNER'.
+
+[Incubating] Problems report is available at: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/build/reports/problems/problems-report.html
+
+FAILURE: Build completed with 2 failures.
+
+1: Task failed with an exception.
+-----------
+* What went wrong:
+Execution failed for task ':app:compileProdReleaseKotlin'.
+> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.btapi.BuildToolsApiCompilationWork
+   > Compilation error. See log for more details
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+==============================================================================
+
+2: Task failed with an exception.
+-----------
+* What went wrong:
+Execution failed for task ':app:compileProdDebugKotlin'.
+> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.btapi.BuildToolsApiCompilationWork
+   > Compilation error. See log for more details
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+==============================================================================
+
+BUILD FAILED in 20s
+49 actionable tasks: 11 executed, 38 up-to-date

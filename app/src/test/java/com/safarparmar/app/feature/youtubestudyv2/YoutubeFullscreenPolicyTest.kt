@@ -32,4 +32,10 @@ class YoutubeFullscreenPolicyTest {
         assertFalse(isVideoCardAccessibilityLabel("Play video"))
         assertTrue(isVideoCardAccessibilityLabel("Physics lesson – 12 minutes – play video"))
     }
+    @Test fun `live chat controls do not start a new video selection`() {
+        assertTrue(isCurrentWatchPageInteraction("live_chat_toggle", "Play video, show chat"))
+        assertTrue(isCurrentWatchPageInteraction(null, "Live chat"))
+        assertTrue(isCurrentWatchPageInteraction(null, "Top chat"))
+        assertFalse(isCurrentWatchPageInteraction(null, "Next video"))
+    }
 }

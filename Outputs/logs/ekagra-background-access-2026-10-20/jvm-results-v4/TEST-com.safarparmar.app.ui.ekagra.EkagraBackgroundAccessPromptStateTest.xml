@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.ui.ekagra.EkagraBackgroundAccessPromptStateTest" tests="12" skipped="0" failures="0" errors="0" timestamp="2026-10-20T05:52:07.063Z" hostname="Shashanks-MacBook-Air.local" time="0.001">
+  <properties/>
+  <testcase name="stoppingWhileInSettingsDoesNotLeavePermissionDialogForBreak" classname="com.safarparmar.app.ui.ekagra.EkagraBackgroundAccessPromptStateTest" time="0.0"/>
+  <testcase name="revokedSharedGrantIsDetectedOnNextStudyStart" classname="com.safarparmar.app.ui.ekagra.EkagraBackgroundAccessPromptStateTest" time="0.0"/>
+  <testcase name="missingOrDeniedGrantIsRequestedAgainOnNextSession" classname="com.safarparmar.app.ui.ekagra.EkagraBackgroundAccessPromptStateTest" time="0.0"/>
+  <testcase name="pauseResumeDoesNotNagAfterDismissal" classname="com.safarparmar.app.ui.ekagra.EkagraBackgroundAccessPromptStateTest" time="0.0"/>
+  <testcase name="recreationCanRetainThePendingSettingsRequestAndSessionIdentity" classname="com.safarparmar.app.ui.ekagra.EkagraBackgroundAccessPromptStateTest" time="0.0"/>
+  <testcase name="existingInstallWithoutGrantIsPromptedOnItsFirstStudyStart" classname="com.safarparmar.app.ui.ekagra.EkagraBackgroundAccessPromptStateTest" time="0.0"/>
+  <testcase name="grantAlreadyEnabledThroughKavachSkipsPrompt" classname="com.safarparmar.app.ui.ekagra.EkagraBackgroundAccessPromptStateTest" time="0.0"/>
+  <testcase name="actualGrantClosesPromptAfterSettingsReturn" classname="com.safarparmar.app.ui.ekagra.EkagraBackgroundAccessPromptStateTest" time="0.0"/>
+  <testcase name="ordinaryResumeKeepsUnansweredPromptVisible" classname="com.safarparmar.app.ui.ekagra.EkagraBackgroundAccessPromptStateTest" time="0.0"/>
+  <testcase name="browsingAndBreaksDoNotConsumeFirstStudyPrompt" classname="com.safarparmar.app.ui.ekagra.EkagraBackgroundAccessPromptStateTest" time="0.0"/>
+  <testcase name="openingSettingsNeverPretendsPermissionWasGranted" classname="com.safarparmar.app.ui.ekagra.EkagraBackgroundAccessPromptStateTest" time="0.001"/>
+  <testcase name="noPromptWithoutDurableSessionIdentity" classname="com.safarparmar.app.ui.ekagra.EkagraBackgroundAccessPromptStateTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

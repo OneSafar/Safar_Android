@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.ui.ekagra.focusshield.BlockedMediaEnforcerTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-20T05:49:34.771Z" hostname="Shashanks-MacBook-Air.local" time="0.206">
+  <properties/>
+  <testcase name="YouTube owned by Focus is never paused by Kavach" classname="com.safarparmar.app.ui.ekagra.focusshield.BlockedMediaEnforcerTest" time="0.082"/>
+  <testcase name="blocking another app only pauses that apps player" classname="com.safarparmar.app.ui.ekagra.focusshield.BlockedMediaEnforcerTest" time="0.042"/>
+  <testcase name="missing matching session never dispatches global media keys" classname="com.safarparmar.app.ui.ekagra.focusshield.BlockedMediaEnforcerTest" time="0.041"/>
+  <testcase name="without notification access app blocking cannot pause an unrelated lesson" classname="com.safarparmar.app.ui.ekagra.focusshield.BlockedMediaEnforcerTest" time="0.041"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

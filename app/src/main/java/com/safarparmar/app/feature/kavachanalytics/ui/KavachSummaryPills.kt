@@ -1,4 +1,5 @@
 package com.safarparmar.app.feature.kavachanalytics.ui
+import com.composables.ui.components.HorizontalSeparator as HorizontalDivider
 
 import com.safarparmar.app.performance.decorativeFloat
 import androidx.compose.animation.AnimatedContent
@@ -35,6 +36,7 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material3.*
+import com.safarparmar.app.ui.components.popups.SafarDropdownMenu as DropdownMenu
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -48,6 +50,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.safarparmar.app.ui.tutorial.tutorialTarget
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -136,6 +139,28 @@ fun KavachSummaryPills(
     val report = state.report
     val distractingSeconds = report?.allDay?.distractingSeconds ?: 0
 
+    KavachSummaryPillsContent(
+        distractingSeconds = distractingSeconds, modifier = modifier, ink = ink,
+        isDarkTheme = isDarkTheme, themeAccent = themeAccent, onOpenAnalytics = onOpenAnalytics,
+        myCircles = myCircles, selectedCircle = selectedCircle, onSelectCircle = onSelectCircle,
+        onNavigate = onNavigate,
+    )
+}
+
+/** Presentation shared with isolated feature tutorials; no ViewModel or lifecycle work. */
+@Composable
+fun KavachSummaryPillsContent(
+    distractingSeconds: Int,
+    modifier: Modifier = Modifier,
+    ink: com.safarparmar.app.ui.ekagra.EkagraInk? = null,
+    isDarkTheme: Boolean = !MaterialTheme.colorScheme.background.isLightBackground(),
+    themeAccent: Color = MaterialTheme.colorScheme.primary,
+    onOpenAnalytics: () -> Unit = {},
+    myCircles: List<StudyCircleSummaryDto> = emptyList(),
+    selectedCircle: StudyCircleSummaryDto? = null,
+    onSelectCircle: (StudyCircleSummaryDto) -> Unit = {},
+    onNavigate: (String) -> Unit = {},
+) {
     Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -166,11 +191,10 @@ fun KavachSummaryPills(
             accent = themeAccent,
             ink = ink,
             isDark = isDarkTheme,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.weight(1f).tutorialTarget("ekagra.circles"),
         )
     }
 }
-
 @Composable
 private fun SummaryPill(
     label: String,
@@ -185,7 +209,7 @@ private fun SummaryPill(
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
-    val shape = RoundedCornerShape(18.dp)
+    val shape = RoundedCornerShape(14.dp)
 
     val normalCardBg = if (isDark) {
         Color(0xFF1E293B).copy(alpha = 0.55f)
@@ -217,7 +241,7 @@ private fun SummaryPill(
 
     Box(
         modifier = modifier
-            .height(72.dp)
+            .height(62.dp)
             .clip(shape)
             .background(cardColor)
             .border(1.dp, borderColor, shape)
@@ -231,24 +255,24 @@ private fun SummaryPill(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 8.dp),
+                .padding(horizontal = 10.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            // 3x Larger Icon in Red
+            // Prominent Warning Icon
             Icon(
                 imageVector = icon,
                 contentDescription = null,
                 tint = iconColor,
-                modifier = Modifier.size(34.dp),
+                modifier = Modifier.size(28.dp),
             )
-            Spacer(Modifier.width(10.dp))
+            Spacer(Modifier.width(8.dp))
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.Center,
             ) {
                 Text(
                     text = label,
-                    fontSize = 11.sp,
+                    fontSize = 10.5.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = secondaryColor,
                     maxLines = 1,
@@ -264,7 +288,7 @@ private fun SummaryPill(
                 ) { animatedValue ->
                     Text(
                         text = animatedValue,
-                        fontSize = 18.sp,
+                        fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         color = textColor,
                         maxLines = 1,
@@ -290,7 +314,7 @@ private fun StudyGroupLivePill(
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     var showDropdown by remember { mutableStateOf(false) }
-    val shape = RoundedCornerShape(18.dp)
+    val shape = RoundedCornerShape(14.dp)
 
     val normalCardBg = if (isDark) {
         Color(0xFF1E293B).copy(alpha = 0.55f)
@@ -331,7 +355,7 @@ private fun StudyGroupLivePill(
 
     Box(
         modifier = modifier
-            .height(72.dp)
+            .height(62.dp)
             .clip(shape)
             .background(cardColor)
             .border(1.dp, borderColor, shape)
@@ -354,12 +378,12 @@ private fun StudyGroupLivePill(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 8.dp),
+                .padding(horizontal = 10.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            // 3x Larger Light Teal Pulsating Live Dot
-            TealLivePulseDot(size = 18, modifier = Modifier.size(34.dp))
-            Spacer(Modifier.width(10.dp))
+            // Light Teal Pulsating Live Dot
+            TealLivePulseDot(size = 14, modifier = Modifier.size(28.dp))
+            Spacer(Modifier.width(8.dp))
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.Center,
@@ -370,7 +394,7 @@ private fun StudyGroupLivePill(
                 ) {
                     Text(
                         text = groupName,
-                        fontSize = 11.sp,
+                        fontSize = 10.5.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = secondaryColor,
                         maxLines = 1,
@@ -383,7 +407,7 @@ private fun StudyGroupLivePill(
                             imageVector = Icons.Default.ArrowDropDown,
                             contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.kavach_select_group),
                             tint = secondaryColor,
-                            modifier = Modifier.size(16.dp),
+                            modifier = Modifier.size(15.dp),
                         )
                     }
                 }
@@ -398,7 +422,7 @@ private fun StudyGroupLivePill(
                 ) { animatedValue ->
                     Text(
                         text = animatedValue,
-                        fontSize = 18.sp,
+                        fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         color = textColor,
                         maxLines = 1,

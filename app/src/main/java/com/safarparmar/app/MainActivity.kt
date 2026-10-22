@@ -29,6 +29,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -141,15 +142,14 @@ class MainActivity : AppCompatActivity(), PaymentResultWithDataListener {
             val requiredUpdate by maintenanceStateManager.requiredUpdate.collectAsStateWithLifecycle()
             val isCheckingMaintenance by maintenanceStateManager.isChecking.collectAsStateWithLifecycle()
 
-            // Allow system font scale to expand gracefully within a safe range (1.0f to 1.45f)
-            // so text scales with Android settings without overflowing or breaking layout.
             val currentDensity = androidx.compose.ui.platform.LocalDensity.current
             val systemFontScale = configuration.fontScale
-            val safeFontScale = systemFontScale.coerceIn(1.0f, 1.45f)
-            val customDensity = androidx.compose.ui.unit.Density(
-                density = currentDensity.density,
-                fontScale = safeFontScale
-            )
+            val customDensity = remember(currentDensity.density, systemFontScale) {
+                androidx.compose.ui.unit.Density(
+                    density = currentDensity.density,
+                    fontScale = systemFontScale
+                )
+            }
 
             CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides customDensity) {
                 SafarTheme(darkTheme = isDarkTheme) {
@@ -173,30 +173,32 @@ class MainActivity : AppCompatActivity(), PaymentResultWithDataListener {
                         Surface(
                             modifier = appContentModifier.imePadding(),
                         ) {
-                            androidx.compose.animation.AnimatedContent(
-                                targetState = maintenanceInfo?.takeIf { it.inMaintenance },
-                                transitionSpec = {
-                                    androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(300)) togetherWith
-                                    androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(250))
-                                },
-                                label = "maintenance_switch",
-                            ) { activeMaintenance ->
-                                if (requiredUpdate != null) {
-                                    com.safarparmar.app.ui.update.ForceUpdateScreen(info = requiredUpdate!!)
-                                } else if (activeMaintenance != null) {
-                                    com.safarparmar.app.ui.maintenance.MaintenanceScreen(
-                                        info = activeMaintenance,
-                                        isChecking = isCheckingMaintenance,
-                                        onCheckStatus = { maintenanceStateManager.checkStatusManually() },
-                                    )
-                                } else {
-                                    CompositionLocalProvider(LocalTimerService provides timerService) {
-                                        SafarNavGraph(
-                                            dataStore = dataStore,
-                                            isDarkTheme = isDarkTheme,
-                                            onToggleDarkTheme = { themeViewModel.toggleDarkTheme() },
+                            com.safarparmar.app.ui.components.popups.SafarPopupViewport {
+                                androidx.compose.animation.AnimatedContent(
+                                    targetState = maintenanceInfo?.takeIf { it.inMaintenance },
+                                    transitionSpec = {
+                                        androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(300)) togetherWith
+                                        androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(250))
+                                    },
+                                    label = "maintenance_switch",
+                                ) { activeMaintenance ->
+                                    if (requiredUpdate != null) {
+                                        com.safarparmar.app.ui.update.ForceUpdateScreen(info = requiredUpdate!!)
+                                    } else if (activeMaintenance != null) {
+                                        com.safarparmar.app.ui.maintenance.MaintenanceScreen(
+                                            info = activeMaintenance,
+                                            isChecking = isCheckingMaintenance,
+                                            onCheckStatus = { maintenanceStateManager.checkStatusManually() },
                                         )
-                                        EkagraPresencePrompt(timerService)
+                                    } else {
+                                        CompositionLocalProvider(LocalTimerService provides timerService) {
+                                            SafarNavGraph(
+                                                dataStore = dataStore,
+                                                isDarkTheme = isDarkTheme,
+                                                onToggleDarkTheme = { themeViewModel.toggleDarkTheme() },
+                                            )
+                                            EkagraPresencePrompt(timerService)
+                                        }
                                     }
                                 }
                             }

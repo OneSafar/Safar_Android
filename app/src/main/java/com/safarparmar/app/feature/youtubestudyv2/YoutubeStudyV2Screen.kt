@@ -77,7 +77,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
+import com.composables.ui.components.HorizontalSeparator as HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -87,7 +87,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
-import androidx.compose.material3.Text
+import com.composables.ui.components.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -168,6 +168,10 @@ fun YoutubeStudyV2Screen(
     isDarkTheme: Boolean = false,
     viewModel: YoutubeStudyV2ViewModel = hiltViewModel(),
 ) {
+    var showTitliHelp by rememberSaveable { mutableStateOf(false) }
+    com.safarparmar.app.ui.tutorial.RegisterTitliGuide(start = { showTitliHelp = true }, lessons = { showTitliHelp = true },
+        feature = com.safarparmar.app.ui.tutorial.TitliFeature.YOUTUBE)
+    if (showTitliHelp) com.safarparmar.app.ui.tutorial.TitliFeatureHelp(com.safarparmar.app.ui.tutorial.TitliFeature.YOUTUBE, onDone = { showTitliHelp = false })
     val isLight = !isDarkTheme
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -186,6 +190,7 @@ fun YoutubeStudyV2Screen(
         containerColor = screenBg,
         topBar = {
             TopAppBar(
+                actions = { com.safarparmar.app.ui.tutorial.TitliGuideButton() },
                 title = {
                     Text(
                         "YouTube Focus",
@@ -194,7 +199,7 @@ fun YoutubeStudyV2Screen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
+                    com.composables.ui.components.IconButton(style = com.composables.ui.components.ButtonStyle.Ghost, onClick = onBack) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = stringResource(R.string.common_back),
@@ -208,104 +213,47 @@ fun YoutubeStudyV2Screen(
             )
         },
     ) { padding ->
-        YoutubeStudyV2Content(
+        YoutubeStudyV2FeatureContent(
             state = state,
-            isLight = isLight,
-            onAgree = {
-                if (state.accessibilityEnabled) viewModel.goToStep2()
-                else FocusShieldPermissionHelper.openAccessibilitySettings(context)
-            },
+            viewModel = viewModel,
             onNotNow = onBack,
-            onSetEnabled = viewModel::setEnabled,
-            onOpenAccessibility = { FocusShieldPermissionHelper.openAccessibilitySettings(context) },
-            onReferenceChanged = viewModel::setReference,
-            onAddChannel = viewModel::resolveAndAllow,
-            onSetClassification = viewModel::setClassification,
-            onToggleAvailable = viewModel::toggleAvailable,
-            onSetAvailableClassification = viewModel::setAvailableClassification,
-            onDeleteChannel = viewModel::deleteChannel,
-            onBackToStep1 = viewModel::returnToStep1,
-            onStart = viewModel::finishSetup,
-            onAcceptDisclosure = viewModel::acceptDisclosure,
+            isLight = isLight,
             modifier = Modifier.padding(padding).navigationBarsPadding(),
         )
     }
 }
 
 @Composable
-fun YoutubeFocusComingSoonContent(
+fun YoutubeStudyV2FeatureContent(
+    state: YoutubeStudyV2UiState,
+    viewModel: YoutubeStudyV2ViewModel,
     isLight: Boolean,
+    onNotNow: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val accent = YTCMColors.accent(isLight)
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = 28.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-    ) {
-        Box(
-            modifier = Modifier
-                .size(180.dp)
-                .clip(CircleShape)
-                .background(accent.copy(alpha = 0.08f)),
-            contentAlignment = Alignment.Center,
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(112.dp)
-                    .clip(RoundedCornerShape(28.dp))
-                    .background(accent.copy(alpha = 0.12f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Default.SmartDisplay,
-                    contentDescription = null,
-                    tint = accent,
-                    modifier = Modifier.size(48.dp),
-                )
+    val context = LocalContext.current
+    YoutubeStudyV2Content(
+        state = state,
+        isLight = isLight,
+        onAgree = viewModel::goToStep2,
+        onNotNow = onNotNow,
+        onSetEnabled = viewModel::setEnabled,
+        onOpenAccessibility = {
+            if (!YoutubeFocusTutorialActivity.launch(context, isLight)) {
+                FocusShieldPermissionHelper.openAccessibilitySettings(context)
             }
-            Icon(
-                imageVector = Icons.Default.Lock,
-                contentDescription = null,
-                tint = accent,
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(top = 18.dp, end = 18.dp)
-                    .size(27.dp),
-            )
-        }
-        Spacer(Modifier.height(42.dp))
-        Text(
-            text = stringResource(R.string.youtube_focus_title_upper),
-            color = accent,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Bold,
-            letterSpacing = 3.sp,
-        )
-        Spacer(Modifier.height(24.dp))
-        Text(
-            text = stringResource(R.string.youtube_focus_coming_soon),
-            color = primaryText(isLight),
-            fontSize = 32.sp,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center,
-        )
-        Spacer(Modifier.height(28.dp))
-        Surface(
-            shape = RoundedCornerShape(50),
-            color = accent.copy(alpha = 0.09f),
-        ) {
-            Text(
-                text = stringResource(R.string.youtube_focus_coming_soon_body),
-                color = accent,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Medium,
-                modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp),
-            )
-        }
-    }
+        },
+        onReferenceChanged = viewModel::setReference,
+        onAddChannel = viewModel::resolveAndAllow,
+        onSetClassification = viewModel::setClassification,
+        onToggleAvailable = viewModel::toggleAvailable,
+        onSetAvailableClassification = viewModel::setAvailableClassification,
+        onDeleteChannel = viewModel::deleteChannel,
+        onBackToStep1 = viewModel::returnToStep1,
+        onStart = viewModel::finishSetup,
+        modifier = modifier,
+        onAcceptDisclosure = viewModel::acceptDisclosure,
+    )
 }
 
 // ── Embeddable Content (Used in Kavach Tab) ───────────────────────────────────
@@ -388,13 +336,13 @@ fun YoutubeStudyV2Content(
         }
 
         if (showDisclosure) {
-            androidx.compose.material3.AlertDialog(
+            com.safarparmar.app.ui.components.popups.SafarComposablesAlertDialog(
+                visible = true,
                 onDismissRequest = { showDisclosure = false; enableAfterDisclosure = false },
-                containerColor = if (isLight) YTCMColors.ContainerLight else YTCMColors.ContainerDark,
+                backgroundColor = if (isLight) YTCMColors.ContainerLight else YTCMColors.ContainerDark,
                 title = { Text(stringResource(R.string.youtube_focus_accessibility_title)) },
                 text = {
                     Column(
-                        Modifier.verticalScroll(rememberScrollState()),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         Text(stringResource(R.string.youtube_focus_accessibility_intro))
@@ -405,8 +353,8 @@ fun YoutubeStudyV2Content(
                         Text(stringResource(R.string.youtube_focus_accessibility_optional))
                     }
                 },
-                confirmButton = {
-                    TextButton(onClick = {
+                positiveButton = {
+                    com.composables.ui.components.Button(style = com.composables.ui.components.ButtonStyle.Ghost, onClick = {
                         onAcceptDisclosure()
                         showDisclosure = false
                         if (state.accessibilityEnabled) {
@@ -417,8 +365,8 @@ fun YoutubeStudyV2Content(
                         enableAfterDisclosure = false
                     }) { Text(stringResource(R.string.common_agree_continue)) }
                 },
-                dismissButton = {
-                    TextButton(onClick = { showDisclosure = false; enableAfterDisclosure = false }) { Text(stringResource(R.string.common_not_now)) }
+                negativeButton = {
+                    com.composables.ui.components.Button(style = com.composables.ui.components.ButtonStyle.Ghost, onClick = { showDisclosure = false; enableAfterDisclosure = false }) { Text(stringResource(R.string.common_not_now)) }
                 },
             )
         }
@@ -616,6 +564,7 @@ private fun PermissionStep(
                     border = BorderStroke(1.dp, if (isLight) YTCMColors.ContainerBorderLight else YTCMColors.ContainerBorderDark),
                     modifier = Modifier
                         .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
                         .clickable { FocusShieldPermissionHelper.openBatterySaverSettings(context) },
                 ) {
                     Row(
@@ -672,7 +621,7 @@ private fun PermissionStep(
                 isLight = isLight,
                 onClick = onAgree,
             )
-            TextButton(onClick = onNotNow) {
+            com.composables.ui.components.Button(style = com.composables.ui.components.ButtonStyle.Ghost, onClick = onNotNow) {
                 Text(stringResource(R.string.common_not_now), fontSize = 13.sp, color = secondaryText(isLight))
             }
         }
@@ -739,7 +688,7 @@ private fun ChannelSelectionStep(
         YTCMDivider(isLight)
 
         SectionLabel("ADD CHANNEL BY HANDLE", isLight)
-        OutlinedTextField(
+        com.safarparmar.app.ui.components.SafarRichTextField(
             value = state.reference,
             onValueChange = onReferenceChanged,
             placeholder = { Text(stringResource(R.string.youtube_focus_channel_placeholder), fontSize = 14.sp, color = secondaryText(isLight)) },
@@ -780,7 +729,7 @@ private fun ChannelSelectionStep(
             enabled = true,
             onClick = onStart,
         )
-        TextButton(
+        com.composables.ui.components.Button(style = com.composables.ui.components.ButtonStyle.Ghost,
             onClick = onBackToStep1,
             modifier = Modifier.align(Alignment.CenterHorizontally),
         ) {
@@ -828,6 +777,14 @@ private fun StudyModeDashboard(
             )
         }
 
+        item {
+            Text(
+                text = stringResource(R.string.youtube_focus_kavach_priority),
+                style = MaterialTheme.typography.bodySmall,
+                color = secondaryText(isLight),
+            )
+        }
+
         // 2. Add channel by handle (includes empty state box when allowed is empty)
         item {
             AddChannelCard(
@@ -867,6 +824,7 @@ private fun StudyModeDashboard(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .clip(RoundedCornerShape(16.dp))
                                 .clickable { catalogExpanded = !catalogExpanded }
                                 .padding(horizontal = 16.dp, vertical = 14.dp),
                             verticalAlignment = Alignment.CenterVertically,
@@ -1004,7 +962,7 @@ private fun ProtectionStatus(
             YoutubeFocusBetaBadge(isLight = isLight)
             Spacer(Modifier.weight(1f))
             Box(contentAlignment = Alignment.Center) {
-                Switch(
+                com.safarparmar.app.ui.components.SafarColoredSwitch(
                     checked = active,
                     onCheckedChange = { checked ->
                         if (!accessibilityEnabled) {
@@ -1013,12 +971,10 @@ private fun ProtectionStatus(
                             onSetEnabled(checked)
                         }
                     },
-                    colors = SwitchDefaults.colors(
-                        checkedTrackColor = YTCMColors.toggleTrack(isLight),
-                        checkedThumbColor = Color.White,
-                        uncheckedTrackColor = YTCMColors.toggleTrackUnchecked(isLight),
-                        uncheckedBorderColor = Color.Transparent,
-                    ),
+                    checkedTrackColor = YTCMColors.toggleTrack(isLight),
+                    checkedThumbColor = Color.White,
+                    uncheckedTrackColor = YTCMColors.toggleTrackUnchecked(isLight),
+                    uncheckedBorderColor = Color.Transparent,
                 )
                 if (!accessibilityEnabled) {
                     Box(
@@ -1149,7 +1105,7 @@ private fun AddChannelCard(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            OutlinedTextField(
+            com.safarparmar.app.ui.components.SafarRichTextField(
                 value = reference,
                 onValueChange = onReferenceChanged,
                 placeholder = {
@@ -1199,7 +1155,7 @@ private fun AddChannelCard(
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     if (resolving) {
-                        CircularProgressIndicator(
+                        com.safarparmar.app.ui.components.SafarCircularProgressIndicator(
                             modifier = Modifier.size(18.dp),
                             strokeWidth = 2.dp,
                             color = iconTint,
@@ -1372,6 +1328,7 @@ private fun YourChannelsCard(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
                     .clickable(onClick = onToggle)
                     .padding(horizontal = 16.dp, vertical = 14.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -1526,6 +1483,7 @@ private fun TroubleshootingWarningCard(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
                     .clickable(onClick = onToggle)
                     .padding(horizontal = 16.dp, vertical = 14.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -1600,7 +1558,7 @@ private fun TroubleshootingWarningCard(
                         )
                         val context = LocalContext.current
                         Spacer(Modifier.height(4.dp))
-                        Button(
+                        com.safarparmar.app.ui.components.SafarButton(
                             onClick = { FocusShieldPermissionHelper.openBatterySaverSettings(context) },
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -1783,7 +1741,7 @@ private fun ChannelToggleRow(
                 )
             }
             if (onDelete != null) {
-                IconButton(
+                com.composables.ui.components.IconButton(style = com.composables.ui.components.ButtonStyle.Ghost,
                     onClick = onDelete,
                     modifier = Modifier.size(36.dp),
                 ) {
@@ -1992,7 +1950,7 @@ private fun CtaButton(
     onClick: () -> Unit,
     enabled: Boolean = true,
 ) {
-    Button(
+    com.safarparmar.app.ui.components.SafarButton(
         onClick = onClick,
         enabled = enabled,
         modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),

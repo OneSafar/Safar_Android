@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.ui.ekagra.focusshield.BackgroundRunningAccessTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-20T05:52:07.107Z" hostname="Shashanks-MacBook-Air.local" time="0.052">
+  <properties/>
+  <testcase name="unsupportedSdkDoesNotCallRestrictionApi" classname="com.safarparmar.app.ui.ekagra.focusshield.BackgroundRunningAccessTest" time="0.0"/>
+  <testcase name="sharedGrantRequiresExemptionAndNoExplicitBackgroundRestriction" classname="com.safarparmar.app.ui.ekagra.focusshield.BackgroundRunningAccessTest" time="0.03"/>
+  <testcase name="android28AndLaterReadRealBackgroundRestriction" classname="com.safarparmar.app.ui.ekagra.focusshield.BackgroundRunningAccessTest" time="0.022"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

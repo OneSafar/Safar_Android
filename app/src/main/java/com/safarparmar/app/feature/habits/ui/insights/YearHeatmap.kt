@@ -1,6 +1,8 @@
 /* Hallmark · pre-emit critique: P5 H4 E4 S5 R4 V4 */
 package com.safarparmar.app.feature.habits.ui.insights
 
+import androidx.compose.ui.platform.LocalLocale
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.Canvas
@@ -14,6 +16,7 @@ import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.ArrowDropDown
 import androidx.compose.material3.*
+import com.safarparmar.app.ui.components.popups.SafarDropdownMenu as DropdownMenu
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -384,7 +387,7 @@ private fun MonthHeatmap(
 
     Column(modifier = modifier) {
         Text(
-            text = month.month.getDisplayName(TextStyle.FULL, Locale.getDefault()),
+            text = month.month.getDisplayName(TextStyle.FULL, LocalLocale.current.platformLocale),
             fontSize = 12.sp,
             fontWeight = FontWeight.Bold,
             color = textPrimary

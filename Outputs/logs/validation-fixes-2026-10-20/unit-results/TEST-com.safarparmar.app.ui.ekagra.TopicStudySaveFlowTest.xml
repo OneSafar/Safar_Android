@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.ui.ekagra.TopicStudySaveFlowTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-19T19:59:40.680Z" hostname="Shashanks-MacBook-Air.local" time="0.001">
+  <properties/>
+  <testcase name="timer saves only the time that was studied" classname="com.safarparmar.app.ui.ekagra.TopicStudySaveFlowTest" time="0.001"/>
+  <testcase name="study time uses simple readable words" classname="com.safarparmar.app.ui.ekagra.TopicStudySaveFlowTest" time="0.0"/>
+  <testcase name="stopwatch saves its full counted time" classname="com.safarparmar.app.ui.ekagra.TopicStudySaveFlowTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

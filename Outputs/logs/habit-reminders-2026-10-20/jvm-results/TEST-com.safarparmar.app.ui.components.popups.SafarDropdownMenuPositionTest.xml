@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.ui.components.popups.SafarDropdownMenuPositionTest" tests="10" skipped="0" failures="0" errors="0" timestamp="2026-10-20T02:12:56.838Z" hostname="Shashanks-MacBook-Air.local" time="0.003">
+  <properties/>
+  <testcase name="dp offsets use app density and mirror horizontally in RTL" classname="com.safarparmar.app.ui.components.popups.SafarDropdownMenuPositionTest" time="0.003"/>
+  <testcase name="actual bounds callback drives animation pivot from anchor intersection" classname="com.safarparmar.app.ui.components.popups.SafarDropdownMenuPositionTest" time="0.0"/>
+  <testcase name="oversized tall menu uses centered vertical fallback without invalid clamp" classname="com.safarparmar.app.ui.components.popups.SafarDropdownMenuPositionTest" time="0.0"/>
+  <testcase name="LTR menu follows its original physical anchor" classname="com.safarparmar.app.ui.components.popups.SafarDropdownMenuPositionTest" time="0.0"/>
+  <testcase name="bottom edge opens above anchor" classname="com.safarparmar.app.ui.components.popups.SafarDropdownMenuPositionTest" time="0.0"/>
+  <testcase name="centered app canvas keeps a menu inside its own viewport" classname="com.safarparmar.app.ui.components.popups.SafarDropdownMenuPositionTest" time="0.0"/>
+  <testcase name="RTL aligns start to anchor right without converting physical bounds twice" classname="com.safarparmar.app.ui.components.popups.SafarDropdownMenuPositionTest" time="0.0"/>
+  <testcase name="both failed anchor candidates fall back to available app edge" classname="com.safarparmar.app.ui.components.popups.SafarDropdownMenuPositionTest" time="0.0"/>
+  <testcase name="right edge falls back to anchor end" classname="com.safarparmar.app.ui.components.popups.SafarDropdownMenuPositionTest" time="0.0"/>
+  <testcase name="menu above anchor animates from bottom edge" classname="com.safarparmar.app.ui.components.popups.SafarDropdownMenuPositionTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

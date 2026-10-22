@@ -272,7 +272,7 @@ fun DhyanCoursesContent(
                         ) {
                             Text(
                                 text = stringResource(
-                                    if (isPremiumActive) R.string.dhyan_go_to_live else R.string.dhyan_enroll_now
+                                    if (isPremiumActive) R.string.dhyan_open_course else R.string.dhyan_enroll_now
                                 ),
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,

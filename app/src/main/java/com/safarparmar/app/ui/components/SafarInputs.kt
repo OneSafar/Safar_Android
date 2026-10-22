@@ -1,4 +1,6 @@
 package com.safarparmar.app.ui.components
+import com.safarparmar.app.ui.components.popups.SafarExposedDropdownMenu
+
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -210,7 +212,7 @@ fun SafarCustomDropdownMenu(
                     )
                 }
             }
-            ExposedDropdownMenu(
+            SafarExposedDropdownMenu(
                 expanded = expanded,
                 onDismissRequest = { expanded = false },
                 modifier = Modifier.background(scheme.surface),

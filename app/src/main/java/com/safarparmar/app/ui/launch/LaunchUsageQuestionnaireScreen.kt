@@ -568,11 +568,8 @@ private fun KavachModePage(
 private fun QuestionnaireTitli(
     modifier: Modifier = Modifier,
 ) {
-    Image(
-        painter = painterResource(R.drawable.ic_butterfly_tour),
-        contentDescription = null,
-        modifier = modifier.size(56.dp),
-    )
+    if (!com.safarparmar.app.BuildConfig.TITLI_TUTORIALS_ENABLED) return
+    com.safarparmar.app.ui.tutorial.TitliIcon(modifier.size(56.dp))
 }
 
 @Composable

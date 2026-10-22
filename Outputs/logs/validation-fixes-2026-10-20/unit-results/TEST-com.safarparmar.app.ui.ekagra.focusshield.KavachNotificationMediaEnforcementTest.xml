@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.ui.ekagra.focusshield.KavachNotificationMediaEnforcementTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-10-19T19:59:47.794Z" hostname="Shashanks-MacBook-Air.local" time="0.279">
+  <properties/>
+  <testcase name="pending notification cannot pause after its app is removed from blocking" classname="com.safarparmar.app.ui.ekagra.focusshield.KavachNotificationMediaEnforcementTest" time="0.035"/>
+  <testcase name="unlock granted during settings read is honored before media pause" classname="com.safarparmar.app.ui.ekagra.focusshield.KavachNotificationMediaEnforcementTest" time="0.042"/>
+  <testcase name="strict mode ignores a remaining normal-mode unlock" classname="com.safarparmar.app.ui.ekagra.focusshield.KavachNotificationMediaEnforcementTest" time="0.033"/>
+  <testcase name="a different unlocked package does not exempt blocked media" classname="com.safarparmar.app.ui.ekagra.focusshield.KavachNotificationMediaEnforcementTest" time="0.032"/>
+  <testcase name="expired unlock restores notification media blocking" classname="com.safarparmar.app.ui.ekagra.focusshield.KavachNotificationMediaEnforcementTest" time="0.035"/>
+  <testcase name="legacy unscoped normal unlock remains compatible" classname="com.safarparmar.app.ui.ekagra.focusshield.KavachNotificationMediaEnforcementTest" time="0.035"/>
+  <testcase name="Study Mode unlock cannot bypass Kavach notification media blocking" classname="com.safarparmar.app.ui.ekagra.focusshield.KavachNotificationMediaEnforcementTest" time="0.033"/>
+  <testcase name="normal package Quick Unlock keeps notification updates from pausing playback" classname="com.safarparmar.app.ui.ekagra.focusshield.KavachNotificationMediaEnforcementTest" time="0.033"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

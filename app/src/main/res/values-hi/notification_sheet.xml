@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="notification_close">सूचनाएं बंद करें</string>
+    <string name="notification_unread_count">%1$d अपठित सूचनाएं</string>
+    <string name="notification_filter_all">सभी</string>
+    <string name="notification_filter_news">समाचार</string>
+    <string name="notification_filter_updates">अपडेट</string>
+    <string name="notification_today">आज</string>
+    <string name="notification_this_week">पिछले 7 दिन</string>
+    <string name="notification_earlier">पहले</string>
+    <string name="notification_unread">अपठित</string>
+    <string name="notification_type_update">ऐप अपडेट</string>
+    <string name="notification_type_maintenance">रखरखाव</string>
+    <string name="notification_type_news">घोषणा</string>
+</resources>

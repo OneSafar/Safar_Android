@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.widget.SafarWidgetMetricsTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-20T02:13:05.762Z" hostname="Shashanks-MacBook-Air.local" time="0.001">
+  <properties/>
+  <testcase name="goalCountsExcludeOtherDaysDeletedCancelledAndFreeSessions" classname="com.safarparmar.app.widget.SafarWidgetMetricsTest" time="0.001"/>
+  <testcase name="invalidAndEmptyProtectionWindowsAreZero" classname="com.safarparmar.app.widget.SafarWidgetMetricsTest" time="0.0"/>
+  <testcase name="overlappingProtectionDoesNotDoubleCount" classname="com.safarparmar.app.widget.SafarWidgetMetricsTest" time="0.0"/>
+  <testcase name="focusUsesActualSecondsAndIndiaDay" classname="com.safarparmar.app.widget.SafarWidgetMetricsTest" time="0.0"/>
+  <testcase name="legacyUndatedActiveGoalsStayActionable" classname="com.safarparmar.app.widget.SafarWidgetMetricsTest" time="0.0"/>
+  <testcase name="uploadedSessionIsNotAddedAgainFromLocalQueue" classname="com.safarparmar.app.widget.SafarWidgetMetricsTest" time="0.0"/>
+  <testcase name="protectionClipsMidnightAndStopsAtLastHeartbeat" classname="com.safarparmar.app.widget.SafarWidgetMetricsTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

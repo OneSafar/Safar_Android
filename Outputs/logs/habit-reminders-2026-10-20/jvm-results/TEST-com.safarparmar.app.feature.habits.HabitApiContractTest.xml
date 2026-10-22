@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.feature.habits.HabitApiContractTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-20T02:12:51.700Z" hostname="Shashanks-MacBook-Air.local" time="0.136">
+  <properties/>
+  <testcase name="Android uses the website endpoints owner header null fields and acknowledgement contract" classname="com.safarparmar.app.feature.habits.HabitApiContractTest" time="0.136"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

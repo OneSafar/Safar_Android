@@ -1,5 +1,11 @@
 package com.safarparmar.app.ui.nishtha.goals
 
+import androidx.compose.runtime.rememberUpdatedState
+
+import androidx.compose.ui.platform.LocalResources
+
+import androidx.compose.ui.platform.LocalLocale
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -20,13 +26,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
+import com.safarparmar.app.ui.components.popups.SafarDatePickerDialog as DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
+import com.composables.ui.components.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import com.safarparmar.app.ui.tutorial.tutorialTarget
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -68,12 +75,21 @@ internal fun HistoryTab(
     onReopen: (Goal) -> Unit,
     onDelete: (Goal) -> Unit,
 ) {
-    val today = LocalDate.now(IstDateUtils.zone)
-    var selectedDate by remember { mutableStateOf(today) }
-    var showHistoryDatePicker by remember { mutableStateOf(false) }
     val ekagraViewModel = hiltViewModel<EkagraViewModel>()
     val linkedSessions by ekagraViewModel.linkedSessions.collectAsStateWithLifecycle()
     LaunchedEffect(goals) { ekagraViewModel.loadLinkedSessions() }
+    GoalHistoryContent(goals, isSaving, onReopen, onDelete, linkedSessions)
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun GoalHistoryContent(
+    goals: List<Goal>, isSaving: Boolean, onReopen: (Goal) -> Unit, onDelete: (Goal) -> Unit,
+    linkedSessions: List<GoalLinkedSession> = emptyList(),
+) {
+    val today = LocalDate.now(IstDateUtils.zone)
+    var selectedDate by remember { mutableStateOf(today) }
+    var showHistoryDatePicker by remember { mutableStateOf(false) }
     val sessionsByGoal = remember(linkedSessions) {
         linkedSessions.distinctBy { it.id }.groupBy { it.goalId }
     }
@@ -160,7 +176,7 @@ internal fun HistoryTab(
                         )
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            selectedDate.format(DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.getDefault())),
+                            selectedDate.format(DateTimeFormatter.ofPattern("MMM d, yyyy", LocalLocale.current.platformLocale)),
                             fontSize = 13.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = GoalsFlatColors.Text,
@@ -174,8 +190,9 @@ internal fun HistoryTab(
                         fontWeight = FontWeight.Bold,
                         color = GoalsFlatColors.Scheduled,
                         modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
                             .clickable { selectedDate = today }
-                            .padding(8.dp),
+                            .padding(horizontal = 8.dp, vertical = 4.dp),
                     )
                 }
             }
@@ -215,6 +232,7 @@ internal fun HistoryTab(
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(16.dp))
                         .border(1.dp, GoalsFlatColors.Hairline, RoundedCornerShape(16.dp))
+                        .tutorialTarget("goals.historyGoal")
                         .background(GoalsFlatColors.Primary.copy(alpha = 0.03f))
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                 ) {
@@ -240,6 +258,7 @@ internal fun HistoryTab(
 private fun GoalFocusContribution(sessions: List<GoalLinkedSession>) {
     var expanded by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    val localizedResources by rememberUpdatedState(LocalResources.current)
     val totalSeconds = sessions.sumOf { linkedFocusSeconds(it) }
     val summary = context.resources.getQuantityString(
         R.plurals.goals_focus_sessions,
@@ -268,8 +287,8 @@ private fun GoalFocusContribution(sessions: List<GoalLinkedSession>) {
             sessions.sortedBy { it.startedAt }.forEach { session ->
                 val start = session.startedAt?.let { runCatching { Instant.parse(it) }.getOrNull() }
                 val end = session.endedAt?.let { runCatching { Instant.parse(it) }.getOrNull() }
-                val dateTime = DateTimeFormatter.ofPattern("MMM d, h:mm a", Locale.getDefault()).withZone(IstDateUtils.zone)
-                val time = DateTimeFormatter.ofPattern("h:mm a", Locale.getDefault()).withZone(IstDateUtils.zone)
+                val dateTime = DateTimeFormatter.ofPattern("MMM d, h:mm a", LocalLocale.current.platformLocale).withZone(IstDateUtils.zone)
+                val time = DateTimeFormatter.ofPattern("h:mm a", LocalLocale.current.platformLocale).withZone(IstDateUtils.zone)
                 val timing = when {
                     start != null && end != null -> {
                         val endFormat = if (start.atZone(IstDateUtils.zone).toLocalDate() == end.atZone(IstDateUtils.zone).toLocalDate()) time else dateTime
@@ -277,13 +296,13 @@ private fun GoalFocusContribution(sessions: List<GoalLinkedSession>) {
                     }
                     start != null -> dateTime.format(start)
                     end != null -> dateTime.format(end)
-                    else -> context.getString(R.string.common_time_unavailable)
+                    else -> localizedResources.getString(R.string.common_time_unavailable)
                 }
                 Text(
                     buildString {
                         append(timing)
                         if (sessions.size > 1) append(" · ${focusContributionDuration(context, linkedFocusSeconds(session))}")
-                        if (session.timerMode.equals("stopwatch", ignoreCase = true)) append(" · ${context.getString(R.string.common_stopwatch)}")
+                        if (session.timerMode.equals("stopwatch", ignoreCase = true)) append(" · ${localizedResources.getString(R.string.common_stopwatch)}")
                     },
                     fontSize = 12.sp,
                     lineHeight = 18.sp,

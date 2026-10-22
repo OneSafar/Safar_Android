@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.feature.habits.HabitReminderPolicyTest" tests="12" skipped="0" failures="0" errors="0" timestamp="2026-10-20T02:12:52.652Z" hostname="Shashanks-MacBook-Air.local" time="0.012">
+  <properties/>
+  <testcase name="rejectsInvalidOrNonCanonicalTimes" classname="com.safarparmar.app.feature.habits.HabitReminderPolicyTest" time="0.003"/>
+  <testcase name="revisionChangesRecurrenceWithoutChangingEarlierDates" classname="com.safarparmar.app.feature.habits.HabitReminderPolicyTest" time="0.001"/>
+  <testcase name="timezoneChangeKeepsChosenLocalTime" classname="com.safarparmar.app.feature.habits.HabitReminderPolicyTest" time="0.001"/>
+  <testcase name="skipsCompletedWeeklyOccurrencesBeyondFirstWeek" classname="com.safarparmar.app.feature.habits.HabitReminderPolicyTest" time="0.001"/>
+  <testcase name="disabledDeletedArchivedAndUnconfiguredHabitsNeverSchedule" classname="com.safarparmar.app.feature.habits.HabitReminderPolicyTest" time="0.001"/>
+  <testcase name="schedulesTodayBeforeTimeAndTomorrowAfterTime" classname="com.safarparmar.app.feature.habits.HabitReminderPolicyTest" time="0.001"/>
+  <testcase name="suppressesDuplicateAndPreviousDayDelayedAlarms" classname="com.safarparmar.app.feature.habits.HabitReminderPolicyTest" time="0.0"/>
+  <testcase name="followsSelectedWeekdays" classname="com.safarparmar.app.feature.habits.HabitReminderPolicyTest" time="0.001"/>
+  <testcase name="completionSkipsTodayButUndoRestoresToday" classname="com.safarparmar.app.feature.habits.HabitReminderPolicyTest" time="0.001"/>
+  <testcase name="daylightSavingOverlapDoesNotProduceTwoReminders" classname="com.safarparmar.app.feature.habits.HabitReminderPolicyTest" time="0.001"/>
+  <testcase name="respectsStartDateAndFutureScheduleRevisions" classname="com.safarparmar.app.feature.habits.HabitReminderPolicyTest" time="0.0"/>
+  <testcase name="daylightSavingGapMovesToValidLocalTime" classname="com.safarparmar.app.feature.habits.HabitReminderPolicyTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
