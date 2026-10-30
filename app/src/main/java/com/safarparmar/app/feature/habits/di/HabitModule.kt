@@ -21,6 +21,24 @@ object HabitModule {
     @Singleton
     fun provideHabitApi(retrofit: retrofit2.Retrofit): com.safarparmar.app.feature.habits.data.HabitApi =
         retrofit.newBuilder()
+            .client((retrofit.callFactory() as okhttp3.OkHttpClient).newBuilder()
+                .callTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+                .connectTimeout(8, java.util.concurrent.TimeUnit.SECONDS)
+                .readTimeout(12, java.util.concurrent.TimeUnit.SECONDS)
+                .writeTimeout(12, java.util.concurrent.TimeUnit.SECONDS)
+                .addInterceptor { chain ->
+                    val request = chain.request()
+                    val operation = request.header("X-Habit-Operation") ?: java.util.UUID.randomUUID().toString()
+                    val started = System.nanoTime()
+                    try {
+                        val response = chain.proceed(request.newBuilder().header("X-Habit-Operation", operation).build())
+                        runCatching { android.util.Log.i("HabitSync", "http operation=${response.header("X-Habit-Operation") ?: operation} method=${request.method} status=${response.code} durationMs=${(System.nanoTime() - started) / 1_000_000} bytes=${response.body?.contentLength()}") }
+                        response
+                    } catch (e: java.io.IOException) {
+                        runCatching { android.util.Log.w("HabitSync", "http operation=$operation failed durationMs=${(System.nanoTime() - started) / 1_000_000}") }
+                        throw e
+                    }
+                }.build())
             .apply { converterFactories().clear() }
             .addConverterFactory(retrofit2.converter.gson.GsonConverterFactory.create(
                 com.google.gson.GsonBuilder().serializeNulls().create()))

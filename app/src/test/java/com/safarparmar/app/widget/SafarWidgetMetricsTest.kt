@@ -67,4 +67,41 @@ class SafarWidgetMetricsTest {
         assertEquals(600L, widgetFocusSeconds(mergeJournalHistory(server, listOf(local)).focusSessions, today))
         assertEquals(600L, widgetFocusSeconds(mergeJournalHistory(EkagraAnalyticsStats(), listOf(local)).focusSessions, today))
     }
+
+    @Test fun bentoSnapshotSerializesAndMaintainsNewFields() {
+        val snapshot = SafarWidgetSnapshot(
+            owner = "user_123",
+            day = "2026-10-23",
+            focusSeconds = 14400L,
+            protectedSeconds = 7200L,
+            kavachUsed = true,
+            completed = 3,
+            pending = 1,
+            nextGoalTitle = "Solve Electrostatics Module 2",
+            streakDays = 21,
+            userName = "Shashank",
+            updatedAt = 1729680000000L,
+            stale = false,
+        )
+        val json = com.google.gson.Gson().toJson(snapshot)
+        val restored = com.google.gson.Gson().fromJson(json, SafarWidgetSnapshot::class.java)
+
+        assertEquals("user_123", restored.owner)
+        assertEquals("Solve Electrostatics Module 2", restored.nextGoalTitle)
+        assertEquals(21, restored.streakDays)
+        assertEquals("Shashank", restored.userName)
+        assertEquals(14400L, restored.focusSeconds)
+        assertEquals(true, restored.kavachUsed)
+    }
+
+    @Test fun legacyJsonDeserializesWithoutNewFieldsGracefully() {
+        val legacyJson = """{"owner":"user_old","day":"2026-10-23","focusSeconds":3600,"completed":2,"pending":0}"""
+        val restored = com.google.gson.Gson().fromJson(legacyJson, SafarWidgetSnapshot::class.java)
+
+        assertEquals("user_old", restored.owner)
+        assertEquals(null, restored.nextGoalTitle)
+        assertEquals(null, restored.streakDays)
+        assertEquals(null, restored.userName)
+        assertEquals(3600L, restored.focusSeconds)
+    }
 }

@@ -285,7 +285,7 @@ class SafarDataStore @Inject constructor(
 
     val quietHoursEnd: Flow<String> = context.dataStore.data
         .catch { emit(emptyPreferences()) }
-        .map { it[Keys.QUIET_HOURS_END] ?: "07:00" }
+        .map { it[Keys.QUIET_HOURS_END] ?: "06:00" }
 
     val deviceTokenLastSyncAt: Flow<Long> = context.dataStore.data
         .catch { emit(emptyPreferences()) }

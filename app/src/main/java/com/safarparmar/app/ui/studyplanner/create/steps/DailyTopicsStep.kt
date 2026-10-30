@@ -86,7 +86,7 @@ fun DailyTopicsStep(
         Spacer(Modifier.height(8.dp))
         Text(
             text = stringResource(R.string.planner_add_daily_topics),
-            fontFamily = LoraFontFamily,
+            fontFamily = com.safarparmar.app.ui.theme.MulishFontFamily,
             fontSize = 26.sp,
             fontWeight = FontWeight.Normal,
             color = ink,

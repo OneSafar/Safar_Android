@@ -192,7 +192,7 @@ fun HabitInsightsContent(
 
     if (showExportDialog) {
         HabitExportDialog(
-            availableHabits = state.availableHabits,
+            availableHabits = state.exportableHabits,
             onDismiss = { showExportDialog = false },
             onExport = { rangeOption, customStart, customEnd, selectedHabitIds ->
                 scope.launch {
@@ -207,7 +207,8 @@ fun HabitInsightsContent(
                         )
                         exportManager.exportAndShare(context, csvContent)
                         onShowSnackbar?.invoke("Export ready to save or share")
-                    } catch (e: Exception) {
+                    } catch (e: kotlinx.coroutines.CancellationException) { throw e }
+                    catch (e: Exception) {
                         onShowSnackbar?.invoke("Export failed: ${e.localizedMessage ?: "Unknown error"}")
                     } finally {
                         isExporting = false

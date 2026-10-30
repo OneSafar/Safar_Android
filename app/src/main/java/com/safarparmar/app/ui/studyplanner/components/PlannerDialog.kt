@@ -126,7 +126,7 @@ fun PlannerDialogAction(
     ) {
         Text(
             text = text,
-            color = Color.White.copy(alpha = if (enabled) 1f else 0.6f),
+            color = (if (LocalPlannerWarmClarity.current) androidx.compose.material3.LocalContentColor.current else Color.White).copy(alpha = if (enabled) 1f else 0.6f),
             fontWeight = FontWeight.SemiBold,
             style = MaterialTheme.typography.labelLarge,
         )

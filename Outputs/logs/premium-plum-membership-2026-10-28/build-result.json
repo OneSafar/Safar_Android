@@ -1,0 +1,10 @@
+{
+  "command": "./gradlew :app:assembleProdDebug --console=plain",
+  "exitCode": 0,
+  "testsRun": false,
+  "deviceRuns": false,
+  "apk": "Outputs/apk/prod/debug/app-prod-debug.apk",
+  "sha256": "e209f69705fb067d3ae034b9a316ca5e98575a87d440a0e20f67ecf0fe6aa42c",
+  "localizedLabelKeys": 7,
+  "newDependencies": false
+}

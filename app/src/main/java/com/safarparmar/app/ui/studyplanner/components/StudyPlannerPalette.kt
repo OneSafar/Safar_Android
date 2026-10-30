@@ -46,22 +46,20 @@ val isPlannerDark: Boolean
         ?: !MaterialTheme.colorScheme.background.isLightBackground()
 
 object PlannerFlatColors {
-    val BgCream @Composable get() = if (isPlannerDark) Color(0xFF131316) else Color(0xFFFFF9F0)
-    val CardWhite @Composable get() = if (isPlannerDark) Color(0xFF1E1E24) else Color(0xFFFFFFFF)
-    val TextDark @Composable get() = if (isPlannerDark) Color(0xFFF8FAFC) else Color(0xFF1E1B4B)
-    val TextMuted @Composable get() = if (isPlannerDark) Color(0xFF94A3B8) else Color(0xFF64748B)
-    val BorderSoft @Composable get() = if (isPlannerDark) Color(0xFF33333D) else Color(0xFFE2DDF0)
+    val BgCream @Composable get() = if (LocalPlannerWarmClarity.current) plannerWarmColors(isPlannerDark).canvas else if (isPlannerDark) Color(0xFF131316) else Color(0xFFFFF9F0)
+    val CardWhite @Composable get() = if (LocalPlannerWarmClarity.current) plannerWarmColors(isPlannerDark).card else if (isPlannerDark) Color(0xFF1E1E24) else Color(0xFFFFFFFF)
+    val TextDark @Composable get() = if (LocalPlannerWarmClarity.current) plannerWarmColors(isPlannerDark).ink else if (isPlannerDark) Color(0xFFF8FAFC) else Color(0xFF1E1B4B)
+    val TextMuted @Composable get() = if (LocalPlannerWarmClarity.current) plannerWarmColors(isPlannerDark).muted else if (isPlannerDark) Color(0xFF94A3B8) else Color(0xFF64748B)
+    val BorderSoft @Composable get() = if (LocalPlannerWarmClarity.current) plannerWarmColors(isPlannerDark).border else if (isPlannerDark) Color(0xFF33333D) else Color(0xFFE2DDF0)
     val ShadowSoft @Composable get() = if (isPlannerDark) Color.Black.copy(alpha = 0.2f) else Color(0xFF1E1B4B).copy(alpha = 0.04f)
-    val PrimaryAccent @Composable get() = LocalPlannerAccent.current ?: Color(0xFFE0654B)
+    val PrimaryAccent @Composable get() = if (LocalPlannerWarmClarity.current) plannerWarmColors(isPlannerDark).action else LocalPlannerAccent.current ?: Color(0xFFE0654B)
     val AccentShadow @Composable get() = PrimaryAccent.copy(alpha = 0.30f)
-    val AccentTint @Composable get() = PrimaryAccent.copy(alpha = if (isPlannerDark) 0.15f else 0.10f)
+    val AccentTint @Composable get() = if (LocalPlannerWarmClarity.current) plannerWarmColors(isPlannerDark).peach else PrimaryAccent.copy(alpha = if (isPlannerDark) 0.15f else 0.10f)
 }
 
 /**
- * Card surface for every planner container. The "flat 2.0" look has been retired
- * in favour of the macOS Subtle glass system: this now delegates to the neutral
- * translucent [glassSurface] so all existing call sites become macOS glass with
- * no per-site changes. The name is kept so callers don't churn.
+ * Shared card API. Warm Clarity uses an opaque themed card; callers outside
+ * the planner retain their existing glass presentation through [glassSurface].
  */
 @Composable
 fun Modifier.flatCard(shape: Shape = RoundedCornerShape(16.dp)): Modifier =
@@ -106,10 +104,10 @@ object PlannerRevisionAccent {
  * Semantic Task Status colors.
  */
 object PlannerStatusAccent {
-    val Done: Color @Composable get() = if (isPlannerDark) Color(0xFF34D399) else Color(0xFF059669)
-    val Overdue: Color @Composable get() = if (isPlannerDark) Color(0xFFF87171) else Color(0xFFDC2626)
-    val InProgress: Color @Composable get() = if (isPlannerDark) Color(0xFFFBBF24) else Color(0xFFD97706)
-    val Pending: Color @Composable get() = if (isPlannerDark) Color(0xFF94A3B8) else Color(0xFF64748B)
+    val Done: Color @Composable get() = if (LocalPlannerWarmClarity.current) plannerWarmColors(isPlannerDark).success else if (isPlannerDark) Color(0xFF34D399) else Color(0xFF059669)
+    val Overdue: Color @Composable get() = if (LocalPlannerWarmClarity.current) plannerWarmColors(isPlannerDark).error else if (isPlannerDark) Color(0xFFF87171) else Color(0xFFDC2626)
+    val InProgress: Color @Composable get() = if (LocalPlannerWarmClarity.current) plannerWarmColors(isPlannerDark).attention else if (isPlannerDark) Color(0xFFFBBF24) else Color(0xFFD97706)
+    val Pending: Color @Composable get() = if (LocalPlannerWarmClarity.current) plannerWarmColors(isPlannerDark).muted else if (isPlannerDark) Color(0xFF94A3B8) else Color(0xFF64748B)
 }
 
 /** Softened, muted versions of the Calendar tab's original fully-saturated status colors —

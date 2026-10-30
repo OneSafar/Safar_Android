@@ -91,12 +91,12 @@
     <string name="practice_next_analytics_month_title">Mahine ka review</string>
     <string name="practice_next_analytics_month_instruction">Monthly Review kholein aur mahina chunein.</string>
     <string name="practice_next_analytics_month_body">Month controls se reports aur achievements compare karein. Practice asli report nahi banati.</string>
-    <string name="practice_next_planner_exams_title">Plan: exam chunein</string>
-    <string name="practice_next_planner_exams_instruction">New Plan se plan banayein ya saved plan kholein.</string>
+    <string name="practice_next_planner_exams_title">Exams: plan chunein</string>
+    <string name="practice_next_planner_exams_instruction">New plan banayein ya saved exam plan se padhai jaari rakhein.</string>
     <string name="practice_next_planner_exams_body">Is tab mein exam plans hain. Saved plan ke menu mein main options hain. Tutorial sample plan dikhata hai aur detailed setup chhodta hai.</string>
-    <string name="practice_next_planner_home_title">Home: aaj ka kaam</string>
-    <string name="practice_next_planner_home_instruction">Aaj ke topics, Daily To-do aur add buttons dekhein.</string>
-    <string name="practice_next_planner_home_body">Today aur Done se lists badlein. Poora kaam mark karein ya syllabus se topic jodein. Menu mein plan settings hain. Practice kuch nahi badalti.</string>
+    <string name="practice_next_planner_home_title">Today: aaj ka kaam</string>
+    <string name="practice_next_planner_home_instruction">Tasks dekhein, Focus dabayein ya topic jodein.</string>
+    <string name="practice_next_planner_home_body">Today aur Done se lists badlein. Poora kaam tick karein ya syllabus se topic jodein. Plan settings se routine badlein. Practice kuch nahi badalti.</string>
     <string name="practice_next_planner_syllabus_title">Syllabus: topics sambhalein</string>
     <string name="practice_next_planner_syllabus_instruction">Chapters aur topics dekhne ke liye subject kholein.</string>
     <string name="practice_next_planner_syllabus_body">Add aur menu buttons se syllabus sambhalein. Date aur plan controls upar hain. Yeh chhota overview hai.</string>

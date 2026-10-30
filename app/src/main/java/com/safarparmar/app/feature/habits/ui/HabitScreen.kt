@@ -55,6 +55,7 @@ fun HabitScreen(
     viewModel: HabitViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val pendingCells by viewModel.pendingCells.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     var showAddHabit by rememberSaveable { mutableStateOf(false) }
     var editingId by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -105,7 +106,7 @@ fun HabitScreen(
         onDispose { context.unregisterReceiver(receiver) }
     }
 
-    CompositionLocalProvider(LocalHabitDarkTheme provides isDarkTheme) {
+    CompositionLocalProvider(LocalHabitDarkTheme provides isDarkTheme, LocalHabitPendingCells provides pendingCells) {
         SafarDrawerScaffold(
             title = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_tracker),
             currentRoute = currentRoute,
@@ -140,6 +141,10 @@ fun HabitScreen(
                             Text(message, modifier = Modifier.weight(1f), color = HabitColors.TextSecondary)
                             TextButton(onClick = { scope.launch { viewModel.refreshBackend() } }) { Text("Retry") }
                         }
+                    }
+                    if (state.isMigrating) {
+                        Text("Importing your previous habits… You can browse while the import finishes.",
+                            color = HabitColors.TextSecondary, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
                     }
                     if (state.isLoading) {
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -197,7 +202,7 @@ fun HabitScreen(
 
                 if (pager.currentPage != HabitTab.INSIGHTS.ordinal) {
                     ModernPrimaryFab(
-                        onClick = { showAddHabit = true },
+                        onClick = { if (!state.isLoading && !state.isMigrating) showAddHabit = true },
                         modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp)
                     )
                 }
@@ -212,7 +217,7 @@ fun HabitScreen(
         if (showAddHabit) {
             AddHabitBottomSheet(
                 onDismiss = { showAddHabit = false },
-                onCreate = { name, days, isEveryDay, reminderTime -> viewModel.createHabit(name, days, isEveryDay, reminderTime) },
+                onCreate = { name, days, isEveryDay, reminderTime, operationId -> viewModel.createHabit(name, days, isEveryDay, reminderTime, operationId) },
                 onCreated = { name, days ->
                     scope.launch { snackbar.showSnackbar(habitCreatedMessage(name, days, LocalDate.now())) }
                 }

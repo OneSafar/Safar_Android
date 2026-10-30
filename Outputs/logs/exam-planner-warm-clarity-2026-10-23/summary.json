@@ -1,0 +1,25 @@
+{
+  "unit_tests": {
+    "tests": 55,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "suites": 13,
+  "lint": {
+    "Warning": 888,
+    "Hint": 8
+  },
+  "source_files_compared": 959,
+  "source_mismatches": 0,
+  "compose_instrumentation_tests_compiled": 6,
+  "instrumentation_executed": false,
+  "apk_aab_built": false,
+  "device_emulator_run": false,
+  "tasks": [
+    "testProdDebugUnitTest (planner, dashboard planner state, tutorial practice, planner alerts)",
+    "compileProdDebugAndroidTestKotlin",
+    "compileProdReleaseKotlin",
+    "lintProdRelease"
+  ]
+}

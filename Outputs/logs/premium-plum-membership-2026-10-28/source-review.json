@@ -1,0 +1,12 @@
+{
+  "planDefinitionsAndPaymentHandlers": "unchanged",
+  "expiryCalculationAndFormatting": "unchanged",
+  "TitliAndAnimatedButterfly": "unchanged",
+  "existingLocalizedBenefitCopy": "reused verbatim in disclosure panels",
+  "newLocales": [
+    "en",
+    "hi",
+    "hi-Latn"
+  ],
+  "testsRun": false
+}

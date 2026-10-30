@@ -74,7 +74,7 @@ fun MixedBagSubjectPickerStep(
     ) {
         Text(
             "Pick your 2-3 hardest subjects",
-            fontFamily = LoraFontFamily,
+            fontFamily = com.safarparmar.app.ui.theme.MulishFontFamily,
             fontSize = 24.sp,
             fontWeight = FontWeight.Normal,
             color = scheme.onSurface,

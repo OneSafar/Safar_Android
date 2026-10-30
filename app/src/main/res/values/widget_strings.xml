@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Safar Today Widget -->
     <string name="widget_title">Safar · Today</string>
     <string name="widget_description">Your daily focus, Kavach protection, and goal progress.</string>
     <string name="widget_focus">Ekagra</string>
@@ -18,4 +19,25 @@
     <string name="widget_goal_summary">%1$s done · %2$s pending</string>
     <string name="widget_goals_compact">Goals</string>
     <string name="widget_goal_fraction">%1$s/%2$s</string>
+
+    <!-- Safar Bento Hub Widget -->
+    <string name="widget_bento_title">Safar · Bento Hub</string>
+    <string name="widget_bento_description">Your daily focus hub, Kavach shield, priority goals, and 1-tap quick actions.</string>
+    <string name="widget_bento_focus_label">FOCUS TODAY</string>
+    <string name="widget_bento_kavach_label">KAVACH SHIELD</string>
+    <string name="widget_bento_priority_label">NEXT GOAL</string>
+    <string name="widget_bento_focus_target">Target: %1$dh</string>
+    <string name="widget_bento_focus_empty">Tap to start</string>
+    <string name="widget_bento_shield_on">Active</string>
+    <string name="widget_bento_shield_off">Standby</string>
+    <string name="widget_bento_shield_saved">%1$s protected</string>
+    <string name="widget_bento_shield_ready">Tap to activate</string>
+    <string name="widget_bento_all_goals_done">All goals completed! 🎉</string>
+    <string name="widget_bento_add_goal">Tap to add today’s goal</string>
+    <string name="widget_bento_action_focus">⏱️ Focus</string>
+    <string name="widget_bento_action_kavach">🛡️ Kavach</string>
+    <string name="widget_bento_action_goals">📋 Goals</string>
+    <string name="widget_bento_action_planner">📅 Planner</string>
+    <string name="widget_bento_streak">%1$dd</string>
+    <string name="widget_bento_greeting">%1$s · Safar</string>
 </resources>

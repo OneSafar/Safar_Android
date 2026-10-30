@@ -22,6 +22,11 @@ import java.time.LocalDate
 /** Five bottom-tab overviews using native presentation controls and an isolated sample plan. */
 @Composable
 internal fun PlannerPracticeStage(scene: PracticeScene, dark: Boolean) {
+    com.safarparmar.app.ui.studyplanner.components.PlannerWarmClarityTheme(dark) { PlannerPracticeContent(scene, dark) }
+}
+
+@Composable
+private fun PlannerPracticeContent(scene: PracticeScene, dark: Boolean) {
     val today = LocalDate.now()
     val subject = StudySubject(id = "sample-subject", name = stringResource(R.string.practice_next_sample_subject), chapters = listOf(
         StudyChapter(id = "sample-chapter", name = stringResource(R.string.practice_next_sample_chapter), topics = listOf(
@@ -45,12 +50,12 @@ internal fun PlannerPracticeStage(scene: PracticeScene, dark: Boolean) {
                     PlannerTargetExamRow(plan = plan, planNumber = 1, isActive = true, isLight = !dark, onOpen = {}, onRename = {}, onDelete = {})
                 }
                 PracticeScene.PLANNER_HOME -> {
-                    PlanHomeHeader(plan.title, {})
-                    PlanHomeHero(plan, PlanProgress(totalTopics = 4, doneTopics = 1, completionPercent = 25))
+                    PlanHomeHeader(plan.title, {}, onSelectExam = {})
+                    PlanHomeTodaySummary(1, 3, 1, 0, {}, {}, {})
                     Column {
                         PlanHomeTabs(StudyPlannerTab.TODAY, {})
                         Box(Modifier.tutorialTarget(scene.target)) { PlanHomeDailyTodoRow(1, 3, false, {}, expandedContent = {}) }
-                        PlanHomeTaskRow(TopicRef(subject, subject.chapters.first(), subject.chapters.first().topics.first()), {})
+                        PlanHomeTaskRow(TopicRef(subject, subject.chapters.first(), subject.chapters.first().topics.first()), {}, onFocus = {})
                         PlanHomeAddActions({}, {})
                     }
                 }

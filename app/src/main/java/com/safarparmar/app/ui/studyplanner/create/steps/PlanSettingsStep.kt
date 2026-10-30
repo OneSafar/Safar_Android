@@ -11,6 +11,8 @@ import com.safarparmar.app.ui.studyplanner.components.PlannerDialogText
 import com.safarparmar.app.ui.studyplanner.components.PlannerDialogAction
 import com.safarparmar.app.ui.studyplanner.components.PlannerDialog
 import android.widget.Toast
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -118,7 +120,7 @@ fun PlanSettingsStep(
     ) {
         Text(
             stringResource(R.string.planner_few_details),
-            fontFamily = LoraFontFamily,
+            fontFamily = com.safarparmar.app.ui.theme.MulishFontFamily,
             fontSize = 26.sp,
             fontWeight = FontWeight.Normal,
             color = scheme.onSurface,
@@ -146,45 +148,38 @@ fun PlanSettingsStep(
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 StudyStyleIconOption(
                     icon = Icons.Default.CenterFocusStrong,
-                    accent = PlannerAccent.Coral,
+                    accent = scheme.primary,
                     title = stringResource(R.string.planner_deep_focus),
                     body = stringResource(R.string.planner_deep_focus_option_body),
                     info = stringResource(R.string.planner_deep_focus_option_info),
                     selected = selectedStyle == "deep_focus",
                     onClick = {
                         onStudyStyleChange("deep_focus")
-                        onOpenDeepFocusOrder()
                     },
                 )
                 if (subjectCount > 2) {
                     StudyStyleIconOption(
                         icon = Icons.Default.Shuffle,
-                        accent = PlannerAccent.Teal,
+                        accent = scheme.primary,
                         title = stringResource(R.string.planner_mixed_bag),
                         body = stringResource(R.string.planner_mixed_bag_option_body),
                         info = stringResource(R.string.planner_mixed_bag_option_info),
                         selected = selectedStyle == "mixed_bag",
                         onClick = {
                             onStudyStyleChange("mixed_bag")
-                            onOpenMixedBagPicker()
                         },
                     )
                 }
                 StudyStyleIconOption(
                     icon = Icons.Default.Bolt,
-                    accent = PlannerAccent.Amber,
+                    accent = scheme.primary,
                     title = stringResource(R.string.planner_balanced),
                     body = stringResource(R.string.planner_balanced_option_body),
                     info = stringResource(R.string.planner_balanced_option_info),
                     selected = selectedStyle == "balanced",
                     onClick = {
                         onStudyStyleChange("balanced")
-                        // Balanced arranges the syllabus too. It reuses the exact
-                        // same screen as Deep Focus — the two styles differ in what
-                        // they DO with the order (Deep Focus finishes one subject
-                        // before the next; Balanced only uses it to decide who
-                        // leads the daily mix), not in how it is collected.
-                        onOpenDeepFocusOrder()
+
                     },
                 )
             }
@@ -196,13 +191,13 @@ fun PlanSettingsStep(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(12.dp))
                     .background(accent.copy(alpha = 0.08f))
-                    .clickable { onOpenDeepFocusOrder() }
+                    .clickable { if (selectedStyle == "mixed_bag") onOpenMixedBagPicker() else onOpenDeepFocusOrder() }
                     .padding(horizontal = 14.dp, vertical = 10.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    stringResource(R.string.planner_rearrange_order),
+                    stringResource(if (selectedStyle == "mixed_bag") R.string.planner_warm_choose_priority else R.string.planner_warm_customize_order),
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = accent,
@@ -318,92 +313,22 @@ private fun StudyStyleIconOption(
     onClick: () -> Unit,
 ) {
     val scheme = MaterialTheme.colorScheme
-    val isLight = scheme.background.isLightBackground()
     var showInfo by remember { mutableStateOf(false) }
-
-    val shape = RoundedCornerShape(20.dp)
-    val bodyColor = if (selected) {
-        accent.copy(alpha = if (isLight) 0.15f else 0.22f)
-    } else {
-        if (isLight) Color(0xFFF9F9FB) else Color(0xFF2C2C2E).copy(alpha = 0.65f)
-    }
-
-    val borderBrush = if (!isLight) {
-        Brush.verticalGradient(
-            colors = listOf(
-                if (selected) accent.copy(alpha = 0.6f) else Color.White.copy(alpha = 0.25f),
-                if (selected) accent.copy(alpha = 0.2f) else Color.White.copy(alpha = 0.02f),
-            )
-        )
-    } else {
-        Brush.verticalGradient(
-            colors = listOf(
-                if (selected) accent.copy(alpha = 0.6f) else Color(0xFFE5E5EA),
-                if (selected) accent.copy(alpha = 0.3f) else Color(0xFFD1D1D6),
-            )
-        )
-    }
-
-    val shadowElevation = if (isLight) 4.dp else 12.dp
-    val shadowColor = if (isLight) Color.Black.copy(alpha = 0.12f) else Color.Black.copy(alpha = 0.8f)
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .shadow(
-                elevation = if (selected) (shadowElevation + 2.dp) else shadowElevation,
-                shape = shape,
-                spotColor = shadowColor,
-                ambientColor = shadowColor,
-            )
-            .clip(shape)
-            .background(bodyColor)
-            .border(
-                width = if (selected) 1.dp else 0.5.dp,
-                brush = borderBrush,
-                shape = shape,
-            )
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(if (selected) accent else accent.copy(alpha = 0.20f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    icon,
-                    contentDescription = null,
-                    tint = if (selected) Color.White else accent,
-                    modifier = Modifier.size(20.dp),
-                )
+    androidx.compose.material3.Surface(shape = RoundedCornerShape(24.dp), color = if (selected) scheme.primaryContainer.copy(alpha = 0.45f) else scheme.surface,
+        border = BorderStroke(1.dp, if (selected) scheme.primary else scheme.outlineVariant)) {
+        Row(Modifier.fillMaxWidth().selectable(selected = selected, role = androidx.compose.ui.semantics.Role.RadioButton, onClick = onClick).padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Icon(icon, null, Modifier.size(24.dp), tint = accent)
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(title, style = MaterialTheme.typography.titleMedium)
+                Text(body, style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant, maxLines = 3)
             }
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(
-                    title,
-                    fontSize = 14.sp,
-                    fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
-                    color = if (selected) accent else scheme.onSurface,
-                )
-                Text(body, fontSize = 11.5.sp, color = scheme.onSurfaceVariant, maxLines = 1)
-            }
-            IconButton(onClick = { showInfo = true }, modifier = Modifier.size(28.dp)) {
-                Icon(Icons.Default.Info, contentDescription = stringResource(R.string.common_about_named, title), tint = scheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
+            androidx.compose.material3.RadioButton(selected = selected, onClick = null)
+            IconButton(onClick = { showInfo = true }, modifier = Modifier.size(48.dp)) {
+                Icon(Icons.Default.Info, stringResource(R.string.common_about_named, title), tint = scheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
             }
         }
     }
-    if (showInfo) {
-        PlannerDialog(
-            onDismissRequest = { showInfo = false },
-            title = title,
-            text = { PlannerDialogText(info) },
-            confirmButton = { PlannerDialogAction(text = stringResource(R.string.common_ok)) { showInfo = false } },
-        )
-    }
+    if (showInfo) PlannerDialog(onDismissRequest = { showInfo = false }, title = title,
+        text = { PlannerDialogText(info) }, confirmButton = { PlannerDialogAction(stringResource(R.string.common_ok)) { showInfo = false } })
 }

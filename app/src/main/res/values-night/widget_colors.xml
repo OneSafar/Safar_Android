@@ -1,14 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="widget_background">#FAF8F5</color>
-    <color name="widget_text">#211C29</color>
-    <color name="widget_secondary">#635B6C</color>
-    <color name="widget_accent">#6B3296</color>
-    <color name="widget_tint">#EBE2F2</color>
-    <color name="widget_divider">#E4DEE7</color>
-    <color name="widget_orange">#B34314</color>
-    <color name="widget_orange_tint">#FBE9DD</color>
-    <color name="widget_focus_surface">#EFE7F6</color>
-    <color name="widget_goals_surface">#FFFFFF</color>
-    <color name="widget_panel_border">#E6DFE8</color>
-    <color name="widget_progress_track">#F8D8BB</color>
+    <!-- Dark Mode Surfaces (OLED Midnight Violet palette) -->
+    <color name="widget_background">#16131F</color>
+    <color name="widget_surface">#221C2F</color>
+    <color name="widget_surface_subtle">#2D233D</color>
+    <color name="widget_surface_kavach">#351F14</color>
+    <color name="widget_surface_dock">#1E182A</color>
+
+    <!-- Typography -->
+    <color name="widget_text">#F5F2F9</color>
+    <color name="widget_secondary">#B5ACBF</color>
+    <color name="widget_tertiary">#867C92</color>
+
+    <!-- Brand Violet Accents (Luminous Lavender for Dark Surfaces) -->
+    <color name="widget_accent">#B388EB</color>
+    <color name="widget_accent_subtle">#C8A3FC</color>
+    <color name="widget_tint">#3E2D57</color>
+    <color name="widget_divider">#302741</color>
+    <color name="widget_panel_border">#372C4B</color>
+
+    <!-- Kavach Orange / Shield (Vibrant Amber for Dark Surfaces) -->
+    <color name="widget_orange">#FB923C</color>
+    <color name="widget_orange_tint">#4E2A17</color>
+
+    <!-- Success Green / Streaks (Vibrant Mint) -->
+    <color name="widget_green">#34D399</color>
+    <color name="widget_green_tint">#133E2E</color>
+
+    <!-- Planner Blue (Luminous Sky Blue) -->
+    <color name="widget_blue">#60A5FA</color>
+    <color name="widget_blue_tint">#1B3356</color>
+
+    <!-- Existing Aliases for Backward Compatibility -->
+    <color name="widget_focus_surface">#2D233D</color>
+    <color name="widget_goals_surface">#221C2F</color>
+    <color name="widget_progress_track">#2C253B</color>
 </resources>

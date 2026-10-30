@@ -235,7 +235,7 @@ fun PlanSectionHeader(
     Row(modifier = modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Text(
             text = title,
-            fontFamily = LoraFontFamily,
+            fontFamily = com.safarparmar.app.ui.theme.MulishFontFamily,
             fontStyle = FontStyle.Normal,
             fontWeight = FontWeight.Normal,
             fontSize = 22.sp,
@@ -1251,7 +1251,7 @@ fun DailyTodoSetupSheet(
             Spacer(Modifier.height(8.dp))
             Text(
                 text = stringResource(R.string.planner_add_daily_topics),
-                fontFamily = LoraFontFamily,
+                fontFamily = com.safarparmar.app.ui.theme.MulishFontFamily,
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Normal,
                 color = ink,
@@ -1310,7 +1310,7 @@ fun DailyTodoSetupSheet(
                     Icon(
                         imageVector = Icons.Default.Add,
                         contentDescription = stringResource(R.string.planner_add_daily_topic),
-                        tint = Color.White,
+                        tint = androidx.compose.material3.LocalContentColor.current,
                         modifier = Modifier.size(22.dp),
                     )
                 }
@@ -1353,7 +1353,7 @@ fun DailyTodoSetupSheet(
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Medium,
                                 modifier = Modifier.weight(1f),
-                                color = ink,
+                                color = androidx.compose.material3.LocalContentColor.current,
                             )
                             GlassButton(
                                 onClick = { todoToEditInSheet = todo },
@@ -1368,7 +1368,7 @@ fun DailyTodoSetupSheet(
                                 Icon(
                                     imageVector = Icons.Default.Edit,
                                     contentDescription = stringResource(R.string.planner_rename_named, todo.name),
-                                    tint = ink,
+                                    tint = androidx.compose.material3.LocalContentColor.current,
                                     modifier = Modifier.size(16.dp),
                                 )
                             }
@@ -1385,7 +1385,7 @@ fun DailyTodoSetupSheet(
                                 Icon(
                                     imageVector = Icons.Default.Close,
                                     contentDescription = stringResource(R.string.planner_remove_named, todo.name),
-                                    tint = ink,
+                                    tint = androidx.compose.material3.LocalContentColor.current,
                                     modifier = Modifier.size(16.dp),
                                 )
                             }
@@ -1434,7 +1434,7 @@ fun DailyTodoSetupSheet(
                         text = stringResource(R.string.common_not_now),
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 15.sp,
-                        color = ink,
+                        color = androidx.compose.material3.LocalContentColor.current,
                         modifier = Modifier.fillMaxWidth(),
                         textAlign = TextAlign.Center,
                     )
@@ -1456,7 +1456,7 @@ fun DailyTodoSetupSheet(
                         text = if (pendingTodos.isEmpty()) "Continue" else "Save topics",
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 15.sp,
-                        color = Color.White,
+                        color = androidx.compose.material3.LocalContentColor.current,
                         modifier = Modifier.fillMaxWidth(),
                         textAlign = TextAlign.Center,
                     )

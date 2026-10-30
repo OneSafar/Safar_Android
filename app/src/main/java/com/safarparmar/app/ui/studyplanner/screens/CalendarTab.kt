@@ -136,6 +136,8 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import com.safarparmar.app.ui.tutorial.tutorialTarget
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
@@ -174,6 +176,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -255,11 +259,11 @@ import kotlin.math.max
 @Composable
 internal fun CalendarTab(plan: StudyPlan, state: StudyPlannerUiState, actions: PlannerActions) {
     val todayK = todayKey()
-    var visibleMonth by remember { mutableStateOf(YearMonth.now()) }
+    var visibleMonth by rememberSaveable(stateSaver = Saver<YearMonth, String>(save = { it.toString() }, restore = { YearMonth.parse(it) })) { mutableStateOf(YearMonth.now()) }
     val locale = LocalLocale.current.platformLocale
     val monthSlots = remember(visibleMonth) { monthCalendarSlots(visibleMonth) }
     val weeks = remember(monthSlots) { monthSlots.chunked(7) }
-    var sheetDay by remember { mutableStateOf<String?>(null) }
+    var sheetDay by rememberSaveable { mutableStateOf<String?>(null) }
     var showUnscheduledTopicsScreen by remember { mutableStateOf(false) }
 
     val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
@@ -291,7 +295,10 @@ internal fun CalendarTab(plan: StudyPlan, state: StudyPlannerUiState, actions: P
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             item {
-                CalendarPlainHeader(plan = plan, isLight = isLight)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    CalendarPlainHeader(plan = plan, isLight = isLight, modifier = Modifier.weight(1f))
+                    TextButton(onClick = { visibleMonth = YearMonth.now(); sheetDay = todayK }) { Text(stringResource(R.string.planner_warm_today)) }
+                }
             }
 
             item {
@@ -344,58 +351,13 @@ internal fun CalendarTab(plan: StudyPlan, state: StudyPlannerUiState, actions: P
 
 @Composable
 internal fun CalendarPlainHeader(plan: StudyPlan, isLight: Boolean = false, modifier: Modifier = Modifier) {
-    val examDays = daysUntil(plan.examDate)
-    val examDate = readableDate(plan.examDate).takeUnless { it == "Not set" }.orEmpty()
-
-    // Flat magazine header: eyebrow, then the plan title with the countdown
-    // numeral in serif, and the exam date as a quiet meta line. No card.
-    Column(modifier = modifier.fillMaxWidth().padding(bottom = 4.dp)) {
-        PlanEyebrow("Target exam")
-        Spacer(Modifier.height(16.dp))
-        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
-            Text(
-                text = plan.title.ifBlank { "Your Study Journey" },
-                fontFamily = LoraFontFamily,
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Normal,
-                color = PlannerFlatColors.TextDark,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f),
-            )
-            Spacer(Modifier.width(10.dp))
-            if (examDays != null && examDays >= 0L) {
-                Text(
-                    text = "$examDays",
-                    fontFamily = LoraFontFamily,
-                    fontSize = 22.sp,
-                    color = PlannerFlatColors.PrimaryAccent,
-                    maxLines = 1,
-                )
-                Spacer(Modifier.width(5.dp))
-                Text(
-                    text = if (examDays == 1L) "day left" else "days left",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = PlannerFlatColors.TextMuted,
-                    modifier = Modifier.padding(bottom = 2.dp),
-                )
-            }
-        }
-        if (examDate.isNotEmpty()) {
-            Spacer(Modifier.height(8.dp))
-            Text(
-                text = examDate,
-                fontSize = 11.5.sp,
-                color = PlannerFlatColors.TextMuted,
-            )
-        }
-        Spacer(Modifier.height(18.dp))
-        PlanHairline()
+    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(stringResource(R.string.planner_warm_calendar), style = MaterialTheme.typography.headlineMedium, color = PlannerFlatColors.TextDark)
+        Text(plan.title, style = MaterialTheme.typography.bodyMedium, color = PlannerFlatColors.TextMuted, maxLines = 2, overflow = TextOverflow.Ellipsis)
     }
 }
 
-private enum class CalendarDateStatus(val color: Color) {
+internal enum class CalendarDateStatus(val color: Color) {
     PLANNED(Blue500),
     DONE(Emerald500),
     OVERDUE(Rose500),
@@ -405,19 +367,18 @@ private enum class CalendarDateStatus(val color: Color) {
 /** Resolves done/planned/overdue only — "off day" is rendered as its own independent
  *  glyph (see [CalendarDayChip]) so a topic scheduled on an off-day no longer silently
  *  hides the "off" indicator behind a status dot. */
-private fun calendarDateStatus(
+internal fun calendarDateStatus(
     dateIso: String,
     items: List<CalendarTopicItem>,
     todayIso: String,
 ): CalendarDateStatus? {
-    val planned = items.size
-    val done = items.count { it.status.isStudied }
-    val overdue = dateIso < todayIso && items.any { !it.status.isStudied }
+    val statuses = items.map { calendarTopicStatus(it, dateIso, todayIso) }
     return when {
-        overdue -> CalendarDateStatus.OVERDUE
-        planned > 0 && done == planned -> CalendarDateStatus.DONE
-        planned > 0 -> CalendarDateStatus.PLANNED
-        else -> null
+        statuses.isEmpty() -> null
+        CalendarDateStatus.OVERDUE in statuses -> CalendarDateStatus.OVERDUE
+        CalendarDateStatus.REVISE in statuses -> CalendarDateStatus.REVISE
+        statuses.all { it == CalendarDateStatus.DONE } -> CalendarDateStatus.DONE
+        else -> CalendarDateStatus.PLANNED
     }
 }
 
@@ -435,63 +396,36 @@ internal fun CalendarDayChip(
     onClick: () -> Unit,
     modifier: Modifier = Modifier.width(54.dp),
 ) {
-    val todayK = todayKey()
-    val dayNum = LocalDate.parse(dateIso).dayOfMonth.toString()
-    
-    val accentColor = PlannerFlatColors.PrimaryAccent
-    
-    val dayTextColor = when {
-        isToday -> Color.White
-        isWeekend -> PlannerFlatColors.TextMuted
-        else -> PlannerFlatColors.TextDark
+    val scheme = MaterialTheme.colorScheme
+    val status = calendarDateStatus(dateIso, items, todayKey())
+    val statusColor = when (status) {
+        CalendarDateStatus.DONE -> scheme.secondary
+        CalendarDateStatus.OVERDUE -> scheme.error
+        CalendarDateStatus.REVISE -> scheme.tertiary
+        else -> scheme.primary
     }
-
-    Box(
-        modifier = modifier
-            .clip(CircleShape)
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(if (isToday || selected) 42.dp else 34.dp)
-                    .clip(CircleShape)
-                    .then(
-                        if (isToday) {
-                            Modifier.background(accentColor)
-                        } else if (selected) {
-                            Modifier.border(2.dp, accentColor.copy(alpha = 0.6f), CircleShape)
-                        } else {
-                            Modifier
-                        }
-                    ),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = dayNum,
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = if (isToday || selected) FontWeight.Bold else FontWeight.Normal,
-                        fontSize = 16.sp,
-                        color = if (isToday) Color.White else dayTextColor,
-                    ),
-                )
-                if (isExamDay) {
-                    Icon(
-                        imageVector = Icons.Default.Flag,
-                        contentDescription = stringResource(R.string.planner_exam_day),
-                        tint = PlannerAccent.Coral,
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .size(10.dp),
-                    )
-                }
-            }
+    val day = LocalDate.parse(dateIso).dayOfMonth.toString()
+    val workload = stringResource(R.string.planner_warm_due_load, items.size)
+    val rest = stringResource(R.string.planner_warm_rest)
+    val exam = stringResource(R.string.planner_exam_day)
+    val label = listOfNotNull(readableDate(dateIso), workload, rest.takeIf { isOff }, exam.takeIf { isExamDay }).joinToString(", ")
+    Column(modifier.clip(RoundedCornerShape(14.dp))
+        .background(if (isToday) scheme.primary else if (selected) scheme.primaryContainer else Color.Transparent)
+        .then(if (selected && !isToday) Modifier.border(1.dp, scheme.primary, RoundedCornerShape(14.dp)) else Modifier)
+        .clickable(role = Role.Button, onClick = onClick)
+        .semantics { contentDescription = label; this.selected = selected }
+        .padding(vertical = 3.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(day, fontSize = 16.sp, fontWeight = if (isToday || selected) FontWeight.Bold else FontWeight.Medium,
+                color = if (isToday) scheme.onPrimary else scheme.onSurface)
+            if (isOff || isExamDay) Text(if (isExamDay) "★" else "☾", fontSize = 11.sp,
+                color = if (isToday) scheme.onPrimary else scheme.onSurfaceVariant)
         }
+        if (items.isNotEmpty()) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+            Box(Modifier.size(4.dp).clip(CircleShape).background(if (isToday) scheme.onPrimary else statusColor))
+            Text("${items.size}", fontSize = 11.sp, color = if (isToday) scheme.onPrimary else scheme.onSurfaceVariant)
+        }
+
     }
 }
 
@@ -687,58 +621,12 @@ private fun DayStatBox(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     modifier: Modifier = Modifier,
 ) {
-    // The day sheet is a pop-up, so it belongs to the glass layer: each tile
-    // keeps its own status colour but renders as tinted glass rather than a
-    // solid block. Alphas are raised because the tile carries white content.
-    Column(
-        modifier = modifier
-            .glassSurface(
-                shape = RoundedCornerShape(12.dp),
-                tint = color,
-                tintTopAlpha = 0.78f,
-                tintBottomAlpha = 0.58f,
-            )
-            .padding(10.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Box(
-            modifier = Modifier.fillMaxWidth(),
-            contentAlignment = Alignment.TopStart
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(22.dp)
-                    .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.2f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
-            }
+    Surface(modifier = modifier, color = MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(18.dp)) {
+        Column(Modifier.padding(8.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Icon(icon, null, Modifier.size(18.dp), tint = color)
+            Text("$value", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface)
+            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 3, overflow = TextOverflow.Ellipsis)
         }
-        
-        Spacer(Modifier.height(4.dp))
-        
-        Text(
-            text = "$value",
-            style = MaterialTheme.typography.titleLarge.copy(
-                fontWeight = FontWeight.ExtraBold,
-                color = Color.White,
-                fontSize = 28.sp
-            ),
-        )
-        
-        Spacer(Modifier.height(4.dp))
-        
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall.copy(
-                color = Color.White.copy(alpha = 0.9f),
-                fontWeight = FontWeight.Medium,
-                fontSize = 11.sp
-            ),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
     }
 }
 
@@ -784,7 +672,7 @@ private fun CompactDayTopicRow(
                 Text(
                     item.topicName,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp,
+                    fontSize = 16.sp,
                     color = scheme.onSurface,
                     maxLines = if (showFullName) Int.MAX_VALUE else 1,
                     overflow = if (showFullName) TextOverflow.Clip else TextOverflow.Ellipsis,
@@ -907,12 +795,12 @@ internal fun PlannerMonthGrid(
     onDay: (String) -> Unit,
 ) {
     Column(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().flatCard(RoundedCornerShape(24.dp)).padding(10.dp).tutorialTarget("planner.calendar"),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Row(
             Modifier
-                .fillMaxWidth().tutorialTarget("planner.calendar")
+                .fillMaxWidth()
                 .padding(horizontal = 8.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -981,7 +869,7 @@ internal fun PlannerMonthGrid(
                         Box(
                             Modifier
                                 .weight(1f)
-                                .aspectRatio(1f)
+                                .heightIn(min = 56.dp)
                                 .padding(2.dp),
                         ) {
                             if (date != null) {
@@ -1005,6 +893,11 @@ internal fun PlannerMonthGrid(
                     }
                 }
             }
+        }
+        Row(Modifier.fillMaxWidth().padding(top = 12.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
+            Text("● " + stringResource(R.string.planner_warm_planned), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+            Text("● " + stringResource(R.string.planner_warm_done), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
+            Text("☾ " + stringResource(R.string.planner_warm_rest), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

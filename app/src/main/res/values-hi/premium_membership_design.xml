@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="premium_membership_headline">आपका अगला अध्याय,\nसफ़र के साथ।</string>
+    <string name="premium_group_preparation">आपकी तैयारी के अनुसार योजना</string>
+    <string name="premium_group_preparation_summary">परीक्षा प्लानर और रिविज़न रिमाइंडर</string>
+    <string name="premium_group_progress">अपनी प्रगति साफ़ देखें</string>
+    <string name="premium_group_progress_summary">गतिविधियों का विस्तृत विश्लेषण</string>
+    <string name="premium_group_focus">नियमित रहने का एक शांत तरीका</string>
+    <string name="premium_group_focus_summary">गाइडेड ऑडियो, लाइव सेशन और महफ़िल</string>
+</resources>

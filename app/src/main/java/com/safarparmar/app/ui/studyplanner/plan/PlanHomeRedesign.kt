@@ -9,6 +9,9 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -19,6 +22,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -35,6 +39,17 @@ import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Button
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Surface
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -79,22 +94,14 @@ import com.safarparmar.app.ui.studyplanner.logic.daysUntil
 import com.safarparmar.app.ui.studyplanner.logic.plannerExamCountdownHeroNumber
 import com.safarparmar.app.ui.theme.LoraFontFamily
 
-/**
- * The Home ("Today") tab as one flat surface.
- *
- * The previous screen stacked four bordered cards — a status hero, a separate
- * Daily To-Do card, a pill-tab switcher and the agenda list — for what is really
- * one continuous task. These pieces drop the containers and use hairlines and
- * whitespace instead, so the whole page reads as a single sheet.
- *
- * Colours all come from [PlannerFlatColors], which already resolves per
- * light/dark via LocalPlannerIsDarkTheme — the planner keeps its own coral
- * accent rather than taking on a fixed accent from the mock.
- */
+/** Warm Clarity presentation for Today, using the existing planner callbacks. */
 
-/** Hairline rule — the only container this redesign uses. */
 @Composable
 internal fun PlanHairline(modifier: Modifier = Modifier, alpha: Float = 1f) {
+    if (com.safarparmar.app.ui.studyplanner.components.LocalPlannerWarmClarity.current) {
+        Spacer(modifier.height(8.dp))
+        return
+    }
     Box(
         modifier
             .fillMaxWidth()
@@ -103,14 +110,14 @@ internal fun PlanHairline(modifier: Modifier = Modifier, alpha: Float = 1f) {
     )
 }
 
-/** Wide-tracked uppercase label that opens the page. */
+/** Compact section label. */
 @Composable
 internal fun PlanEyebrow(text: String, modifier: Modifier = Modifier) {
     Text(
-        text = text.uppercase(),
-        fontSize = 12.sp,
+        text = text,
+        fontSize = 16.sp,
         fontWeight = FontWeight.Bold,
-        letterSpacing = 3.sp,
+        letterSpacing = 0.sp,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = modifier,
     )
@@ -125,38 +132,25 @@ internal fun PlanHomeHeader(
     planTitle: String,
     onSettingsClick: () -> Unit,
     modifier: Modifier = Modifier,
+    onSelectExam: (() -> Unit)? = null,
 ) {
-    Column(modifier = modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            PlanEyebrow("Study Planner", modifier = Modifier.weight(1f))
-            Box(
-                modifier = Modifier
-                    .size(30.dp)
-                    .clip(CircleShape)
-                    .border(1.dp, PlannerFlatColors.BorderSoft, CircleShape)
-                    .clickable(onClick = onSettingsClick),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Default.MoreVert,
-                    contentDescription = stringResource(R.string.planner_plan_settings),
-                    tint = PlannerFlatColors.TextMuted,
-                    modifier = Modifier.size(16.dp),
-                )
+    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.65f), modifier = Modifier.weight(1f)) {
+                TextButton(onClick = { onSelectExam?.invoke() }, enabled = onSelectExam != null) {
+                    Text(planTitle, maxLines = 2, overflow = TextOverflow.Ellipsis, color = PlannerFlatColors.TextDark, style = MaterialTheme.typography.titleMedium)
+                }
+            }
+            TextButton(onClick = onSettingsClick) {
+                Icon(Icons.Default.Settings, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp))
+                Text(stringResource(R.string.planner_plan_settings), style = MaterialTheme.typography.labelLarge)
             }
         }
-        Spacer(Modifier.height(16.dp))
-        Text(
-            text = planTitle,
-            fontSize = 18.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = PlannerFlatColors.TextDark,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Text(stringResource(R.string.planner_warm_today), style = MaterialTheme.typography.headlineMedium, color = PlannerFlatColors.TextDark)
+            Text(java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofLocalizedDate(java.time.format.FormatStyle.MEDIUM).withLocale(androidx.compose.ui.platform.LocalLocale.current.platformLocale)),
+                style = MaterialTheme.typography.bodySmall, color = PlannerFlatColors.TextMuted)
+        }
     }
 }
 
@@ -216,7 +210,7 @@ internal fun PlanHomeHero(
             }
             Text(
                 text = "${progress.completionPercent}%",
-                fontFamily = LoraFontFamily,
+                fontFamily = com.safarparmar.app.ui.theme.MulishFontFamily,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Normal,
                 color = PlannerFlatColors.TextDark,
@@ -227,7 +221,7 @@ internal fun PlanHomeHero(
             Row(verticalAlignment = Alignment.Bottom) {
                 Text(
                     text = plannerExamCountdownHeroNumber(examDays),
-                    fontFamily = LoraFontFamily,
+                    fontFamily = com.safarparmar.app.ui.theme.MulishFontFamily,
                     fontSize = 34.sp,
                     fontWeight = FontWeight.Normal,
                     color = PlannerFlatColors.TextDark,
@@ -334,7 +328,7 @@ internal fun PlanHomeStatStrip(
             ) {
                 Text(
                     text = "$value",
-                    fontFamily = LoraFontFamily,
+                    fontFamily = com.safarparmar.app.ui.theme.MulishFontFamily,
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Normal,
                     color = color,
@@ -379,7 +373,8 @@ internal fun PlanHomeDailyTodoRow(
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(12.dp))
                 .clickable(onClick = onToggleExpanded)
-                .padding(vertical = 16.dp, horizontal = 4.dp),
+                .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f))
+                .padding(vertical = 16.dp, horizontal = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
@@ -391,8 +386,8 @@ internal fun PlanHomeDailyTodoRow(
             Spacer(Modifier.width(8.dp))
             Text(
                 text = stringResource(R.string.planner_daily_todo),
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold,
                 color = PlannerFlatColors.TextDark,
                 modifier = Modifier.weight(1f),
             )
@@ -428,38 +423,24 @@ internal fun PlanHomeTabs(
     modifier: Modifier = Modifier,
 ) {
     val tabs = listOf(
-        StudyPlannerTab.TODAY to "Today",
-        StudyPlannerTab.COMPLETED to "Done",
+        StudyPlannerTab.TODAY to stringResource(R.string.planner_warm_today),
+        StudyPlannerTab.COMPLETED to stringResource(R.string.planner_warm_done),
     )
-    Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(26.dp)) {
+    Row(modifier = modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         tabs.forEach { (tab, label) ->
             val selected = activeTab == tab
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                // Size to the label, so the underline below doesn't inherit the
-                // Row's loose width constraint and stretch across the screen.
-                modifier = Modifier
-                    .width(IntrinsicSize.Min)
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                    ) { onTabSelected(tab) },
+            Surface(
+                modifier = Modifier.weight(1f).heightIn(min = 48.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .selectable(selected = selected, role = Role.Tab, onClick = { onTabSelected(tab) }),
+                shape = RoundedCornerShape(16.dp),
+                color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
             ) {
-                Text(
-                    text = label,
-                    fontSize = 13.sp,
-                    fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
-                    color = if (selected) PlannerFlatColors.TextDark else PlannerFlatColors.TextMuted,
-                )
-                Spacer(Modifier.height(10.dp))
-                Box(
-                    Modifier
-                        .fillMaxWidth()
-                        .height(2.dp)
-                        .background(
-                            if (selected) PlannerFlatColors.PrimaryAccent else Color.Transparent
-                        ),
-                )
+                Box(Modifier.padding(horizontal = 16.dp, vertical = 12.dp), contentAlignment = Alignment.Center) {
+                    Text(label, style = MaterialTheme.typography.titleSmall,
+                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurface)
+                }
             }
         }
     }
@@ -496,139 +477,47 @@ internal fun PlanHomeSectionHeader(
     }
 }
 
-/**
- * One agenda row: a tappable circular checkbox, a subject dot, and the topic with
- * its subject/chapter subtext. A hairline above separates rows — no card and no
- * left accent bar.
- *
- * The mock shows no trailing control, but Focus-with-Ekagra / Edit / Replace /
- * Remove have no other entry point on this screen, so they stay behind a muted
- * overflow rather than being dropped.
- */
+/** Topic card with completion, visible Focus and the existing editing actions. */
 @Composable
 internal fun PlanHomeTaskRow(
     ref: TopicRef,
     onDoneChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
     onReplace: (() -> Unit)? = null,
     onRemoveFromToday: (() -> Unit)? = null,
     onEdit: (() -> Unit)? = null,
     onFocus: (() -> Unit)? = null,
-    modifier: Modifier = Modifier,
 ) {
-    val done = ref.topic.status == TopicStatus.DONE
+    val done = ref.topic.status.isStudied
     val needsRevision = ref.topic.status == TopicStatus.REVISION_NEEDED
-    val dotColor = when {
-        done -> Color(0xFF10B981)
-        needsRevision -> Color(0xFFF97316)
-        else -> subjectDotColor(ref.subject.color)
-    }
-
     var showMenu by remember { mutableStateOf(false) }
-    val hasMenu = onEdit != null || onReplace != null ||
-        (onRemoveFromToday != null && !done) || (onFocus != null && !done)
+    val scheme = MaterialTheme.colorScheme
+    Surface(modifier = modifier.fillMaxWidth(), color = scheme.surface, shape = RoundedCornerShape(22.dp)) {
+        Column(Modifier.padding(horizontal = 8.dp, vertical = 8.dp)) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(checked = done, onCheckedChange = onDoneChange,
+                    modifier = Modifier.size(48.dp).semantics { contentDescription = ref.topic.name },
+                    colors = CheckboxDefaults.colors(checkedColor = scheme.secondary, uncheckedColor = scheme.outline))
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Text(ref.topic.name, style = MaterialTheme.typography.titleMedium, color = scheme.onSurface, maxLines = 3, overflow = TextOverflow.Ellipsis,
+                        textDecoration = if (done) androidx.compose.ui.text.style.TextDecoration.LineThrough else null)
+                    Text("${ref.subject.name} · ${ref.chapter.name}", style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    if (needsRevision) Text(stringResource(R.string.planner_to_revise), style = MaterialTheme.typography.labelMedium, color = scheme.tertiary)
+                }
+                if (onFocus != null && (!done || needsRevision)) Button(onClick = onFocus, modifier = Modifier.heightIn(min = 48.dp),
+                    shape = RoundedCornerShape(18.dp), contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 8.dp)) {
+                    Text(stringResource(R.string.planner_warm_focus))
+                }
+                if (onEdit != null || onReplace != null || onRemoveFromToday != null) Box {
+                    IconButton(onClick = { showMenu = true }) { Icon(Icons.Default.MoreVert, stringResource(R.string.planner_topic_options), Modifier.size(20.dp)) }
+                    PlannerOverflowMenu(showMenu, { showMenu = false }) {
+                        onEdit?.let { action -> PlannerOverflowMenuItem(stringResource(R.string.planner_warm_edit_topic), icon = Icons.Default.Edit) { showMenu = false; action() } }
+                        onReplace?.let { action -> PlannerOverflowMenuItem(stringResource(R.string.planner_warm_replace_topic), icon = Icons.Default.SwapHoriz) { showMenu = false; action() } }
+                        if (!done) onRemoveFromToday?.let { action -> PlannerOverflowMenuItem(stringResource(R.string.planner_warm_remove_today), icon = Icons.Default.RemoveCircleOutline) { showMenu = false; action() } }
+                    }
+                }
+            }
 
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = 13.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        // Circular checkbox — fills with the accent once complete
-        Box(
-            modifier = Modifier
-                .size(18.dp)
-                .clip(CircleShape)
-                .then(
-                    if (done) Modifier.background(PlannerFlatColors.PrimaryAccent)
-                    else Modifier.border(1.dp, PlannerFlatColors.BorderSoft, CircleShape)
-                )
-                .clickable { onDoneChange(!done) },
-            contentAlignment = Alignment.Center,
-        ) {
-            if (done) {
-                Icon(
-                    imageVector = Icons.Default.Check,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(12.dp),
-                )
-            }
-        }
-        Spacer(Modifier.width(12.dp))
-        Box(
-            Modifier
-                .size(6.dp)
-                .clip(CircleShape)
-                .background(dotColor),
-        )
-        Spacer(Modifier.width(12.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = ref.topic.name,
-                fontSize = 13.5.sp,
-                fontWeight = FontWeight.Medium,
-                color = PlannerFlatColors.TextDark,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Spacer(Modifier.height(2.dp))
-            Text(
-                text = "${ref.subject.name} · ${ref.chapter.name}",
-                fontSize = 11.sp,
-                color = PlannerFlatColors.TextMuted,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-        if (needsRevision) {
-            Spacer(Modifier.width(8.dp))
-            Text(
-                text = stringResource(R.string.planner_to_revise),
-                fontSize = 10.5.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = Color(0xFFF97316),
-            )
-        }
-        if (hasMenu) {
-            Spacer(Modifier.width(6.dp))
-            Box {
-                Box(
-                    modifier = Modifier
-                        .size(28.dp)
-                        .clip(CircleShape)
-                        .clickable { showMenu = true },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.MoreVert,
-                        contentDescription = stringResource(R.string.planner_topic_options),
-                        tint = PlannerFlatColors.TextMuted,
-                        modifier = Modifier.size(16.dp),
-                    )
-                }
-                PlannerOverflowMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-                    if (onFocus != null && !done) {
-                        PlannerOverflowMenuItem("Focus with Ekagra", icon = Icons.Default.Timer) {
-                            showMenu = false; onFocus()
-                        }
-                    }
-                    if (onEdit != null) {
-                        PlannerOverflowMenuItem("Edit topic", icon = Icons.Default.Edit) {
-                            showMenu = false; onEdit()
-                        }
-                    }
-                    if (onReplace != null) {
-                        PlannerOverflowMenuItem("Replace topic", icon = Icons.Default.SwapHoriz) {
-                            showMenu = false; onReplace()
-                        }
-                    }
-                    if (onRemoveFromToday != null && !done) {
-                        PlannerOverflowMenuItem("Remove from today", icon = Icons.Default.RemoveCircleOutline) {
-                            showMenu = false; onRemoveFromToday()
-                        }
-                    }
-                }
-            }
         }
     }
 }
@@ -640,30 +529,11 @@ internal fun PlanHomeAddActions(
     onAddCustom: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(
-        modifier = modifier.fillMaxWidth().padding(top = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(20.dp),
-    ) {
-        Text(
-            text = stringResource(R.string.planner_add_topic_today_plus),
-            fontSize = 12.5.sp,
-            fontWeight = FontWeight.Bold,
-            color = PlannerFlatColors.PrimaryAccent,
-            modifier = Modifier
-                .clip(RoundedCornerShape(6.dp))
-                .clickable(onClick = onAddFromSyllabus)
-                .padding(horizontal = 4.dp, vertical = 2.dp),
-        )
-        Text(
-            text = stringResource(R.string.planner_add_custom_plus),
-            fontSize = 12.5.sp,
-            fontWeight = FontWeight.Bold,
-            color = PlannerFlatColors.TextMuted,
-            modifier = Modifier
-                .clip(RoundedCornerShape(6.dp))
-                .clickable(onClick = onAddCustom)
-                .padding(horizontal = 4.dp, vertical = 2.dp),
-        )
+    Column(modifier.fillMaxWidth().padding(top = 12.dp)) {
+        FilledTonalButton(onClick = onAddFromSyllabus, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp), shape = RoundedCornerShape(18.dp)) {
+            Text(stringResource(R.string.planner_add_topic_today_plus))
+        }
+        TextButton(onClick = onAddCustom, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.planner_add_custom_plus)) }
     }
 }
 
@@ -676,4 +546,24 @@ internal fun PlanHomeEmptyNote(text: String, modifier: Modifier = Modifier) {
         color = PlannerFlatColors.TextMuted,
         modifier = modifier.fillMaxWidth().padding(vertical = 28.dp),
     )
+}
+
+@Composable
+internal fun PlanHomeTodaySummary(
+    done: Int, total: Int, revision: Int, missed: Int,
+    onRevision: () -> Unit, onMissed: () -> Unit, onUpcoming: () -> Unit,
+) {
+    val scheme = MaterialTheme.colorScheme
+    Surface(color = scheme.surface, shape = RoundedCornerShape(24.dp)) {
+        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(stringResource(R.string.planner_warm_tasks_done, done, total), style = MaterialTheme.typography.titleMedium)
+            LinearProgressIndicator(progress = { if (total == 0) 0f else done.toFloat() / total },
+                modifier = Modifier.fillMaxWidth().height(8.dp).clip(CircleShape), color = scheme.secondary, trackColor = scheme.outlineVariant)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                TextButton(onClick = onRevision) { Text(stringResource(R.string.planner_warm_revision_count, revision)) }
+                if (missed > 0) TextButton(onClick = onMissed) { Text(stringResource(R.string.planner_warm_missed_count, missed), color = scheme.error) }
+                else TextButton(onClick = onUpcoming) { Text(stringResource(R.string.planner_warm_upcoming)) }
+            }
+        }
+    }
 }

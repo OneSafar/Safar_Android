@@ -168,7 +168,7 @@ fun PlanPreviewStep(
             item {
                 Text(
                     stringResource(R.string.planner_schedule_preview_title),
-                    fontFamily = LoraFontFamily,
+                    fontFamily = com.safarparmar.app.ui.theme.MulishFontFamily,
                     fontSize = 26.sp,
                     fontWeight = FontWeight.Normal,
                     color = scheme.onSurface,
@@ -207,7 +207,7 @@ fun PlanPreviewStep(
                         ) {
                             Text(
                                 text = value,
-                                fontFamily = LoraFontFamily,
+                                fontFamily = com.safarparmar.app.ui.theme.MulishFontFamily,
                                 fontSize = 22.sp,
                                 fontWeight = FontWeight.Normal,
                                 color = if (isHero) PlannerAccent.Coral else scheme.onSurface,
@@ -375,7 +375,7 @@ fun PlanPreviewStep(
                             )
                             Text(
                                 examDateLabel,
-                                fontFamily = LoraFontFamily,
+                                fontFamily = com.safarparmar.app.ui.theme.MulishFontFamily,
                                 fontSize = 20.sp,
                                 color = PlannerAccent.Coral,
                             )
@@ -604,7 +604,7 @@ private fun TopicPill(
                 .then(
                     if (onLongPress != null) {
                         Modifier.combinedClickable(
-                            onClick = {},
+                            onClick = onLongPress,
                             onLongClick = {
                                 haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                                 onLongPress()

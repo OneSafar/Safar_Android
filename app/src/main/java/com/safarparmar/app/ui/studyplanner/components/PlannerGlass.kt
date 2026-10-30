@@ -18,6 +18,9 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.safarparmar.app.ui.theme.isLightBackground
@@ -89,6 +92,11 @@ fun Modifier.glassSurface(
     tintTopAlpha: Float = if (isDarkTheme) 0.22f else 0.16f,
     tintBottomAlpha: Float = if (isDarkTheme) 0.07f else 0.05f,
 ): Modifier {
+    if (LocalPlannerWarmClarity.current) {
+        val c = plannerWarmColors(isDarkTheme)
+        val fill = if (tint == null) c.card else lerp(c.card, tint, 0.10f)
+        return this.clip(shape).background(fill)
+    }
     val bodyColor = if (isDarkTheme) Color(0xFF2C2C2E).copy(alpha = 0.65f) else Color(0xFFF9F9FB)
     var m = this
         .shadow(
@@ -146,6 +154,16 @@ fun GlassButton(
     greyShadeAlpha: Float = if (isDarkTheme) 0.20f else 0.08f,
     content: @Composable RowScope.() -> Unit,
 ) {
+    if (LocalPlannerWarmClarity.current) {
+        val fill = accentColor.copy(alpha = 1f)
+        androidx.compose.material3.Surface(onClick = onClick, enabled = enabled,
+            modifier = modifier.heightIn(min = 48.dp), shape = shape,
+            color = fill, contentColor = plannerButtonForeground(fill)) {
+            Row(Modifier.padding(contentPadding), verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = horizontalArrangement, content = content)
+        }
+        return
+    }
     // Single fill layer — stacking an opaque glass body under a translucent tint
     // reads as a nested rectangle inside the rounded button on warm backgrounds.
     val fillBrush = Brush.verticalGradient(

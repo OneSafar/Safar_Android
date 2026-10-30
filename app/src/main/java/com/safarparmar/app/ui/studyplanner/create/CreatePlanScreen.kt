@@ -37,6 +37,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -88,7 +89,6 @@ private fun stepTitle(step: CreatePlanStep): String = when (step) {
  * as its own nav route with its own ViewModel (not shared with StudyPlannerViewModel) —
  * this flow is self-contained and entirely throwaway if the user backs out.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreatePlanScreen(
     canUsePremiumPlannerFeatures: Boolean,
@@ -98,8 +98,24 @@ fun CreatePlanScreen(
     onPlanConfirmed: (String) -> Unit,
     viewModel: CreatePlanViewModel = hiltViewModel(),
 ) {
+    com.safarparmar.app.ui.studyplanner.components.PlannerWarmClarityTheme(!MaterialTheme.colorScheme.background.isLightBackground()) {
+        CreatePlanScreenContent(canUsePremiumPlannerFeatures, startAtSavedSyllabi, onUpgrade, onBack, onPlanConfirmed, viewModel)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CreatePlanScreenContent(
+    canUsePremiumPlannerFeatures: Boolean,
+    startAtSavedSyllabi: Boolean = false,
+    onUpgrade: () -> Unit,
+    onBack: () -> Unit,
+    onPlanConfirmed: (String) -> Unit,
+    viewModel: CreatePlanViewModel = hiltViewModel(),
+) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var showCelebration by remember { mutableStateOf(false) }
+    var manualStartedFromSource by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(startAtSavedSyllabi) {
         if (startAtSavedSyllabi) {
@@ -124,7 +140,7 @@ fun CreatePlanScreen(
             } else {
                 viewModel.goToStep(CreatePlanStep.ChoosePath)
             }
-            CreatePlanStep.ManualTopicTree -> viewModel.returnToSavedSyllabi()
+            CreatePlanStep.ManualTopicTree -> if (manualStartedFromSource) viewModel.goToStep(CreatePlanStep.ChoosePath) else viewModel.returnToSavedSyllabi()
             CreatePlanStep.PasteSyllabus, CreatePlanStep.SavedSyllabusPicker ->
                 viewModel.goToStep(CreatePlanStep.ChoosePath)
             CreatePlanStep.PlanSettings -> viewModel.goToStep(
@@ -168,15 +184,16 @@ fun CreatePlanScreen(
         containerColor = SafarSemanticColors.plannerBackground(),
         topBar = {
             if (!showCelebration && state.step != CreatePlanStep.ManualTopicTree) {
+                Column {
                 CenterAlignedTopAppBar(
                 actions = { com.safarparmar.app.ui.tutorial.TitliGuideButton() },
                     title = {
                         Text(
-                            text = stepTitle(state.step).uppercase(),
-                            fontSize = 11.sp,
+                            text = stepTitle(state.step),
+                            fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
-                            letterSpacing = 2.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                            letterSpacing = 0.sp,
+                            color = MaterialTheme.colorScheme.onSurface,
                         )
                     },
                     navigationIcon = {
@@ -186,6 +203,8 @@ fun CreatePlanScreen(
                     },
                     colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.Transparent),
                 )
+                PlannerCreationPhases(state.step)
+                }
             }
         },
     ) { padding ->
@@ -210,7 +229,10 @@ fun CreatePlanScreen(
         ) { step ->
             when (step) {
                 CreatePlanStep.ChoosePath -> ChoosePathStep(
-                    onChoose = viewModel::chooseSource,
+                    onChoose = { source ->
+                        manualStartedFromSource = source == PlanSource.Manual
+                        if (source == PlanSource.Manual) viewModel.startNewManualSyllabus() else viewModel.chooseSource(source)
+                    },
                     modifier = Modifier.padding(padding),
                 )
                 CreatePlanStep.TemplatePicker -> TemplatePickerStep(

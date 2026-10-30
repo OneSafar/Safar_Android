@@ -73,6 +73,7 @@ internal fun HabitFormBottomSheet(
     var daysError by rememberSaveable { mutableStateOf(false) }
     var error by rememberSaveable { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
+    var confirmingPrevious by rememberSaveable { mutableStateOf(false) }
     var confirmArchive by rememberSaveable { mutableStateOf(false) }
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
 
@@ -104,7 +105,6 @@ internal fun HabitFormBottomSheet(
     val focus = LocalFocusManager.current
 
     fun dismissSafely() {
-        if (busy) return
         focus.clearFocus()
         onDismiss()
     }
@@ -126,10 +126,10 @@ internal fun HabitFormBottomSheet(
                 onDismiss()
             } catch (e: CancellationException) {
                 throw e
-            } catch (_: Exception) {
-                error = "Unable to save habit. Please try again."
-                busy = false
-            }
+            } catch (e: Exception) {
+                confirmingPrevious = (e as? com.safarparmar.app.feature.habits.data.HabitSaveException)?.uncertain == true
+                error = e.message ?: "Unable to save habit. Please try again."
+            } finally { busy = false }
         }
     }
 
@@ -142,11 +142,10 @@ internal fun HabitFormBottomSheet(
                 onDismiss()
             } catch (e: CancellationException) {
                 throw e
-            } catch (_: Exception) {
-                busy = false
+            } catch (e: Exception) {
                 confirmArchive = false
-                error = "Unable to archive habit. Please try again."
-            }
+                error = e.message ?: "Unable to archive habit. Please try again."
+            } finally { busy = false }
         }
     }
 
@@ -159,11 +158,10 @@ internal fun HabitFormBottomSheet(
                 onDismiss()
             } catch (e: CancellationException) {
                 throw e
-            } catch (_: Exception) {
-                busy = false
+            } catch (e: Exception) {
                 confirmDelete = false
-                error = "Unable to delete habit. Please try again."
-            }
+                error = e.message ?: "Unable to delete habit. Please try again."
+            } finally { busy = false }
         }
     }
 
@@ -199,7 +197,7 @@ internal fun HabitFormBottomSheet(
                         lineHeight = 20.sp
                     )
                 }
-                IconButton(onClick = ::dismissSafely, enabled = !busy, modifier = Modifier.size(48.dp)) {
+                IconButton(onClick = ::dismissSafely, enabled = true, modifier = Modifier.size(48.dp)) {
                     Icon(Icons.Default.Close, contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.common_close), tint = HabitColors.TextPrimary)
                 }
             }
@@ -213,7 +211,7 @@ internal fun HabitFormBottomSheet(
                         if (name.isNotBlank()) nameError = false
                     },
                     modifier = Modifier.fillMaxWidth().tutorialTarget("habits.name"),
-                    enabled = !busy,
+                    enabled = !busy && !confirmingPrevious,
                     placeholder = { Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_name_example), color = HabitColors.TextSecondary) },
                     singleLine = true,
                     isError = nameError,
@@ -243,12 +241,12 @@ internal fun HabitFormBottomSheet(
                         .padding(4.dp),
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    ScheduleChoice("Every day", selected = !specificDays, enabled = !busy, modifier = Modifier.weight(1f)) {
+                    ScheduleChoice("Every day", selected = !specificDays, enabled = !busy && !confirmingPrevious, modifier = Modifier.weight(1f)) {
                         specificDays = false
                         dayMask = 127
                         daysError = false
                     }
-                    ScheduleChoice("Specific days", selected = specificDays, enabled = !busy, modifier = Modifier.weight(1f)) {
+                    ScheduleChoice("Specific days", selected = specificDays, enabled = !busy && !confirmingPrevious, modifier = Modifier.weight(1f)) {
                         specificDays = true
                         if (dayMask == 127) dayMask = weekdayMask()
                     }
@@ -266,7 +264,7 @@ internal fun HabitFormBottomSheet(
                                         .clip(RoundedCornerShape(11.dp))
                                         .background(if (selected) HabitColors.RoyalPurpleBg else HabitColors.Surface)
                                         .border(1.dp, if (selected) HabitColors.RoyalPurple.copy(alpha = .35f) else HabitColors.Outline, RoundedCornerShape(11.dp))
-                                        .clickable(enabled = !busy) {
+                                        .clickable(enabled = !busy && !confirmingPrevious) {
                                             val bit = 1 shl (day.value - 1)
                                             dayMask = dayMask xor bit
                                             daysError = false
@@ -305,7 +303,7 @@ internal fun HabitFormBottomSheet(
                     Text(reminderLabel, modifier = Modifier.weight(1f), color = HabitColors.TextPrimary)
                     Switch(
                         checked = reminderEnabled,
-                        enabled = !busy,
+                        enabled = !busy && !confirmingPrevious,
                         modifier = Modifier.semantics { contentDescription = reminderLabel },
                         onCheckedChange = {
                             reminderEnabled = it
@@ -316,7 +314,7 @@ internal fun HabitFormBottomSheet(
                     )
                 }
                 if (reminderEnabled) {
-                    TextButton(onClick = { showReminderTime = true }, enabled = !busy) {
+                    TextButton(onClick = { showReminderTime = true }, enabled = !busy && !confirmingPrevious) {
                         Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habit_reminder_time, reminderTime))
                     }
                     Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habit_reminder_help),
@@ -331,6 +329,10 @@ internal fun HabitFormBottomSheet(
                 }
             }
 
+            if (busy) {
+                Text("Waiting for confirmation… You can close this form; an unconfirmed save will be recovered safely.",
+                    color = HabitColors.TextSecondary, fontSize = 12.sp)
+            }
             error?.let {
                 Spacer(Modifier.height(10.dp))
                 Text(it, color = HabitColors.Error, fontSize = 12.sp)
@@ -344,20 +346,20 @@ internal fun HabitFormBottomSheet(
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = HabitColors.RoyalPurple, contentColor = HabitColors.OnRoyalPurple)
             ) {
-                Text(if (busy) "Saving…" else if (habit == null) "Create Habit" else "Save Changes", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                Text(if (busy) "Saving…" else if (confirmingPrevious) "Retry confirmation" else if (habit == null) "Create Habit" else "Save Changes", fontSize = 14.sp, fontWeight = FontWeight.Bold)
             }
 
             if (habit != null && (onArchive != null || onDelete != null)) {
                 Spacer(Modifier.height(8.dp))
                 if (onArchive != null) {
-                    TextButton(onClick = { confirmArchive = true }, enabled = !busy, modifier = Modifier.fillMaxWidth()) {
+                    TextButton(onClick = { confirmArchive = true }, enabled = !busy && !confirmingPrevious, modifier = Modifier.fillMaxWidth()) {
                         Icon(Icons.Default.Archive, contentDescription = null, modifier = Modifier.size(16.dp), tint = HabitColors.TextSecondary)
                         Spacer(Modifier.width(6.dp))
                         Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_archive), color = HabitColors.TextSecondary, fontSize = 13.sp)
                     }
                 }
                 if (onDelete != null) {
-                    TextButton(onClick = { confirmDelete = true }, enabled = !busy, modifier = Modifier.fillMaxWidth()) {
+                    TextButton(onClick = { confirmDelete = true }, enabled = !busy && !confirmingPrevious, modifier = Modifier.fillMaxWidth()) {
                         Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(15.dp), tint = HabitColors.Error)
                         Spacer(Modifier.width(5.dp))
                         Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_delete_permanently), color = HabitColors.Error, fontSize = 12.sp)

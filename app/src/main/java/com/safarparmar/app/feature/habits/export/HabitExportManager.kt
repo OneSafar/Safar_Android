@@ -3,6 +3,8 @@ package com.safarparmar.app.feature.habits.export
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.core.content.FileProvider
 import com.safarparmar.app.feature.habits.data.HabitPerformance
 import com.safarparmar.app.feature.habits.data.HabitWithCompletions
@@ -131,17 +133,18 @@ class HabitExportManager @Inject constructor() {
     /**
      * Saves CSV content to app cache and opens the Android Share Sheet.
      */
-    fun exportAndShare(
+    suspend fun exportAndShare(
         context: Context,
         csvContent: String,
         filenamePrefix: String = "habit_tracker_export"
     ): File {
-        val exportDir = File(context.cacheDir, "exports").apply { mkdirs() }
-        val timestamp = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss").format(LocalDateTime.now())
-        val file = File(exportDir, "${filenamePrefix}_$timestamp.csv")
-        file.writeText(csvContent, Charsets.UTF_8)
-
-        val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+        val (file, uri) = withContext(Dispatchers.IO) {
+            val exportDir = File(context.cacheDir, "exports").apply { mkdirs() }
+            val timestamp = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss_SSS").format(LocalDateTime.now())
+            val file = File(exportDir, "${filenamePrefix}_$timestamp.csv")
+            file.writeText(csvContent, Charsets.UTF_8)
+            file to FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+        }
         val shareIntent = Intent(Intent.ACTION_SEND).apply {
             type = "text/csv"
             putExtra(Intent.EXTRA_STREAM, uri)
@@ -152,7 +155,7 @@ class HabitExportManager @Inject constructor() {
         val chooser = Intent.createChooser(shareIntent, context.getString(com.safarparmar.app.R.string.habits_export_data)).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
-        context.startActivity(chooser)
+        withContext(Dispatchers.Main) { context.startActivity(chooser) }
         return file
     }
 

@@ -91,12 +91,12 @@
     <string name="practice_next_analytics_month_title">Review a month</string>
     <string name="practice_next_analytics_month_instruction">Open Monthly Review and choose a month.</string>
     <string name="practice_next_analytics_month_body">Use the month controls to compare reports and achievements. Practice does not generate a real report.</string>
-    <string name="practice_next_planner_exams_title">Plan: choose an exam</string>
-    <string name="practice_next_planner_exams_instruction">Use New Plan to create an exam plan, or open a saved one.</string>
+    <string name="practice_next_planner_exams_title">Exams: choose a plan</string>
+    <string name="practice_next_planner_exams_instruction">Tap New plan, or continue a saved exam plan.</string>
     <string name="practice_next_planner_exams_body">This tab holds your exam plans. A saved plan has an overflow menu for its main actions. The tutorial uses a sample plan and skips detailed setup.</string>
-    <string name="practice_next_planner_home_title">Home: your daily work</string>
-    <string name="practice_next_planner_home_instruction">Check today’s topics, Daily To-do, and the add buttons.</string>
-    <string name="practice_next_planner_home_body">Use Today and Done to switch lists. Mark completed work or add a topic from your syllabus. The settings menu controls your plan. Practice changes nothing.</string>
+    <string name="practice_next_planner_home_title">Today: your daily work</string>
+    <string name="practice_next_planner_home_instruction">Check your tasks, tap Focus, or add a topic.</string>
+    <string name="practice_next_planner_home_body">Use Today and Done to switch lists. Tick completed work or add a topic from your syllabus. Plan settings controls your routine. Practice changes nothing.</string>
     <string name="practice_next_planner_syllabus_title">Syllabus: organize topics</string>
     <string name="practice_next_planner_syllabus_instruction">Open a subject to see chapters and topics.</string>
     <string name="practice_next_planner_syllabus_body">Use the add and overflow buttons to manage your syllabus. The date and plan controls are at the top. This is a short overview, not a setup lesson.</string>

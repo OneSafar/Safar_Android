@@ -102,6 +102,21 @@ fun SyllabusSubjectsScreen(
     onPlannerSectionSelect: (PlannerSection) -> Unit,
     showBottomBar: Boolean = true,
 ) {
+    com.safarparmar.app.ui.studyplanner.components.PlannerWarmClarityTheme(isDarkTheme) {
+        SyllabusSubjectsScreenContent(viewModel, planId, isDarkTheme, onNavigate, onBack, onPlannerSectionSelect, showBottomBar)
+    }
+}
+
+@Composable
+private fun SyllabusSubjectsScreenContent(
+    viewModel: StudyPlannerViewModel,
+    planId: String,
+    isDarkTheme: Boolean = !MaterialTheme.colorScheme.background.isLightBackground(),
+    onNavigate: (String) -> Unit,
+    onBack: () -> Unit,
+    onPlannerSectionSelect: (PlannerSection) -> Unit,
+    showBottomBar: Boolean = true,
+) {
     val premiumViewModel: com.safarparmar.app.ui.premium.PremiumViewModel = androidx.hilt.navigation.compose.hiltViewModel()
     val premiumStatus by premiumViewModel.premiumStatus.collectAsStateWithLifecycle()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -262,8 +277,17 @@ fun SyllabusSubjectsScreen(
     val isTemplatePlan = !selectedPlan?.templateId.isNullOrBlank()
     val shouldShowFullImport = localSubjects.isEmpty() && !isTemplatePlan
 
-    val filteredSubjects = localSubjects
-    val canReorderSyllabus = !state.mutating
+    var syllabusQuery by rememberSaveable { mutableStateOf("") }
+    var organizeSyllabus by rememberSaveable { mutableStateOf(false) }
+    val filteredSubjects = remember(localSubjects, syllabusQuery) {
+        val query = syllabusQuery.trim()
+        if (query.isBlank()) localSubjects else localSubjects.filter { subject ->
+            subject.name.contains(query, ignoreCase = true) || subject.chapters.any { chapter ->
+                chapter.name.contains(query, ignoreCase = true) || chapter.topics.any { it.name.contains(query, ignoreCase = true) }
+            }
+        }
+    }
+    val canReorderSyllabus = !state.mutating && organizeSyllabus && syllabusQuery.isBlank()
 
     val buildSchedule: () -> Unit = {
         val pending = state.pendingRebuild
@@ -528,8 +552,8 @@ fun SyllabusSubjectsScreen(
                         LazyColumn(
                             modifier = Modifier.fillMaxSize(),
                             contentPadding = PaddingValues(
-                                start = 24.dp,
-                                end = 24.dp,
+                                start = 16.dp,
+                                end = 16.dp,
                                 top = if (showBottomBar) 16.dp else 8.dp,
                                 bottom = 32.dp,
                             ),
@@ -582,6 +606,13 @@ fun SyllabusSubjectsScreen(
                                         },
                                     )
                                 }
+                                androidx.compose.material3.OutlinedTextField(value = syllabusQuery, onValueChange = { syllabusQuery = it },
+                                    modifier = Modifier.fillMaxWidth().padding(top = 12.dp), singleLine = true, shape = RoundedCornerShape(18.dp),
+                                    label = { Text(stringResource(R.string.planner_warm_search_topics)) })
+                                androidx.compose.material3.TextButton(onClick = { organizeSyllabus = !organizeSyllabus }, enabled = !state.mutating && syllabusQuery.isBlank(), modifier = Modifier.fillMaxWidth()) {
+                                    Text(stringResource(if (organizeSyllabus) R.string.common_done else R.string.planner_warm_organize))
+                                }
+                                if (organizeSyllabus) Text(stringResource(R.string.planner_warm_reorder_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 SyllabusMagazineListHeader(
                                     title = stringResource(R.string.planner_your_subjects),
                                     onAddSubject = { dialogState = SyllabusDialogState.AddSubject },
@@ -590,6 +621,9 @@ fun SyllabusSubjectsScreen(
                                 )
                             }
 
+                            if (filteredSubjects.isEmpty() && localSubjects.isNotEmpty()) {
+                                item { Text(stringResource(R.string.planner_warm_no_matches), color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(vertical = 20.dp)) }
+                            }
                             if (localSubjects.isEmpty() && !shouldShowFullImport) {
                                 item {
                                     SyllabusMagazineEmptyNote(

@@ -96,6 +96,7 @@ fun SafarEnableSheetBackdropBlur(radiusPx: Int = SafarBackdropBlurRadiusPx) {
 
 @Composable
 fun rememberPlannerBackdropBlur(radiusPx: Int = SafarBackdropBlurRadiusPx): Boolean {
+    if (LocalPlannerWarmClarity.current) return false
     val view = LocalView.current
     val supported = remember(view) { isCrossWindowBlurSupported(view) }
 

@@ -26,7 +26,8 @@ data class HabitUiState(
     val monthAnchor: LocalDate = LocalDate.now().withDayOfMonth(1),
     val selectedTab: HabitTab = HabitTab.TODAY,
     val syncError: String? = null,
-    val isLoading: Boolean = true
+    val isLoading: Boolean = true,
+    val isMigrating: Boolean = false
 )
 
 internal fun weekOf(date: LocalDate): LocalDate = date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
@@ -34,6 +35,8 @@ internal fun weekOf(date: LocalDate): LocalDate = date.with(TemporalAdjusters.pr
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class HabitViewModel @Inject constructor(private val repository: HabitRepository) : ViewModel() {
+    private val pending = MutableStateFlow<Set<Pair<Long, LocalDate>>>(emptySet())
+    val pendingCells: StateFlow<Set<Pair<Long, LocalDate>>> = pending.asStateFlow()
     private val selectedTab = MutableStateFlow(HabitTab.TODAY)
     private val selectedDate = MutableStateFlow(LocalDate.now())
     private val weekStart = MutableStateFlow(weekOf(LocalDate.now()))
@@ -68,7 +71,8 @@ class HabitViewModel @Inject constructor(private val repository: HabitRepository
             monthAnchor = month.anchor,
             selectedTab = tab,
             syncError = sync.error,
-            isLoading = sync.loading
+            isLoading = sync.loading,
+            isMigrating = sync.migrating
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), HabitUiState())
 
@@ -108,6 +112,9 @@ class HabitViewModel @Inject constructor(private val repository: HabitRepository
      * silently writing or silently blocking.
      */
     fun toggleHabit(habitId: Long, date: LocalDate, currentlyDone: Boolean) {
+        val key = habitId to date
+        if (key in pending.value) return
+        pending.value = pending.value + key
         viewModelScope.launch {
             try {
                 when (repository.toggle(habitId, date, currentlyDone)) {
@@ -124,7 +131,8 @@ class HabitViewModel @Inject constructor(private val repository: HabitRepository
                         errors.send("Habit not found.")
                 }
             } catch (e: CancellationException) { throw e }
-            catch (e: Exception) { errors.send("Unable to update habit. Please try again.") }
+            catch (e: Exception) { errors.send(e.message ?: "Unable to update habit. Please try again.") }
+            finally { pending.value = pending.value - key }
         }
     }
 
@@ -137,14 +145,15 @@ class HabitViewModel @Inject constructor(private val repository: HabitRepository
         }
     }
 
-    suspend fun createHabit(name: String, targetDays: Set<DayOfWeek>, isEveryDay: Boolean, reminderTime: String? = null) {
+    suspend fun createHabit(name: String, targetDays: Set<DayOfWeek>, isEveryDay: Boolean, reminderTime: String? = null, operationId: String? = null) {
         val habits = repository.observeHabits().first()
         repository.createHabit(
             name = name,
             targetDays = targetDays,
             isEveryDay = isEveryDay,
             order = (habits.maxOfOrNull { it.order } ?: -1) + 1,
-            reminderTime = reminderTime
+            reminderTime = reminderTime,
+            operationId = operationId
         )
     }
 

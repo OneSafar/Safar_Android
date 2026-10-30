@@ -1,0 +1,367 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Safar Bento Hub Widget Layout: 4x3 / 4x4 Flagship Bento Command Center -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:id="@+id/bento_root"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|center_horizontal"
+        android:orientation="vertical"
+        android:paddingHorizontal="14dp"
+        android:paddingVertical="12dp"
+        android:background="@drawable/widget_safar_background">
+
+        <!-- Header: Identity + Streak + Refresh -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="36dp"
+            android:gravity="center_vertical">
+
+            <ImageView
+                android:id="@+id/bento_sparkle"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/ic_safar_notification_sparkle"
+                android:importantForAccessibility="no" />
+
+            <TextView
+                android:id="@+id/bento_title"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:text="@string/widget_bento_title"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="@color/widget_text"
+                android:maxLines="1"
+                android:ellipsize="end" />
+
+            <!-- Streak Pill -->
+            <LinearLayout
+                android:id="@+id/bento_streak_pill"
+                android:layout_width="wrap_content"
+                android:layout_height="26dp"
+                android:layout_marginEnd="6dp"
+                android:paddingHorizontal="8dp"
+                android:gravity="center"
+                android:background="@drawable/widget_pill_streak"
+                android:visibility="gone">
+
+                <TextView
+                    android:id="@+id/bento_streak_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🔥 1d"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/widget_orange"
+                    android:maxLines="1" />
+            </LinearLayout>
+
+            <!-- Refresh Button -->
+            <ImageButton
+                android:id="@+id/bento_refresh"
+                android:layout_width="38dp"
+                android:layout_height="36dp"
+                android:background="@drawable/widget_safar_touch"
+                android:padding="8dp"
+                android:src="@drawable/widget_refresh"
+                android:contentDescription="@string/widget_refresh" />
+        </LinearLayout>
+
+        <!-- Sign-in Prompt (Visible when signed out) -->
+        <TextView
+            android:id="@+id/bento_sign_in"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/widget_sign_in"
+            android:textColor="@color/widget_secondary"
+            android:textSize="13sp"
+            android:paddingVertical="14dp"
+            android:visibility="gone" />
+
+        <!-- Bento Content (Visible when signed in) -->
+        <LinearLayout
+            android:id="@+id/bento_content"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- Middle Bento Row: Focus Card + Kavach Card -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:orientation="horizontal"
+                android:baselineAligned="false">
+
+                <!-- Focus Tile -->
+                <LinearLayout
+                    android:id="@+id/bento_focus_card"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:minHeight="90dp"
+                    android:layout_marginEnd="5dp"
+                    android:orientation="vertical"
+                    android:paddingHorizontal="11dp"
+                    android:paddingVertical="9dp"
+                    android:background="@drawable/widget_bento_focus_card">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical">
+
+                        <ImageView
+                            android:layout_width="14dp"
+                            android:layout_height="14dp"
+                            android:src="@drawable/widget_focus_icon"
+                            android:importantForAccessibility="no" />
+
+                        <TextView
+                            android:id="@+id/bento_focus_label"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="5dp"
+                            android:text="@string/widget_bento_focus_label"
+                            android:textSize="9sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/widget_secondary"
+                            android:maxLines="1" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/bento_focus_time"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="—"
+                        android:textSize="20sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/widget_accent"
+                        android:maxLines="1" />
+
+                    <TextView
+                        android:id="@+id/bento_focus_sub"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/widget_bento_focus_empty"
+                        android:textSize="10sp"
+                        android:textColor="@color/widget_secondary"
+                        android:maxLines="1"
+                        android:ellipsize="end" />
+
+                    <ProgressBar
+                        android:id="@+id/bento_focus_progress"
+                        style="?android:attr/progressBarStyleHorizontal"
+                        android:layout_width="match_parent"
+                        android:layout_height="4dp"
+                        android:layout_marginTop="6dp"
+                        android:progressDrawable="@drawable/widget_focus_horizontal_progress"
+                        android:max="100"
+                        android:progress="0" />
+                </LinearLayout>
+
+                <!-- Kavach Shield Tile -->
+                <LinearLayout
+                    android:id="@+id/bento_kavach_card"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:minHeight="90dp"
+                    android:layout_marginStart="5dp"
+                    android:orientation="vertical"
+                    android:paddingHorizontal="11dp"
+                    android:paddingVertical="9dp"
+                    android:background="@drawable/widget_bento_kavach_card">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical">
+
+                        <ImageView
+                            android:layout_width="14dp"
+                            android:layout_height="14dp"
+                            android:src="@drawable/widget_shield_icon"
+                            android:importantForAccessibility="no" />
+
+                        <TextView
+                            android:id="@+id/bento_kavach_label"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="5dp"
+                            android:text="@string/widget_bento_kavach_label"
+                            android:textSize="9sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/widget_secondary"
+                            android:maxLines="1" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/bento_kavach_status"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="@string/widget_bento_shield_off"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/widget_orange"
+                        android:maxLines="1" />
+
+                    <TextView
+                        android:id="@+id/bento_kavach_sub"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/widget_bento_shield_ready"
+                        android:textSize="10sp"
+                        android:textColor="@color/widget_secondary"
+                        android:maxLines="1"
+                        android:ellipsize="end" />
+
+                    <TextView
+                        android:id="@+id/bento_kavach_indicator"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:text="🛡️ Standby"
+                        android:textSize="10sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/widget_secondary"
+                        android:maxLines="1" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Priority Goal Card -->
+            <LinearLayout
+                android:id="@+id/bento_goal_card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="46dp"
+                android:layout_marginTop="8dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingHorizontal="12dp"
+                android:paddingVertical="8dp"
+                android:background="@drawable/widget_bento_card">
+
+                <TextView
+                    android:id="@+id/bento_goal_tag"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingHorizontal="6dp"
+                    android:paddingVertical="2dp"
+                    android:text="@string/widget_bento_priority_label"
+                    android:textSize="8sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/widget_accent"
+                    android:background="@drawable/widget_pill_tag" />
+
+                <TextView
+                    android:id="@+id/bento_goal_title"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginEnd="6dp"
+                    android:text="@string/widget_bento_add_goal"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/widget_text"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
+
+                <TextView
+                    android:id="@+id/bento_goal_count"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0/0"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/widget_green"
+                    android:maxLines="1" />
+            </LinearLayout>
+
+            <!-- Bottom 4-Pill Quick Actions Dock -->
+            <LinearLayout
+                android:id="@+id/bento_dock"
+                android:layout_width="match_parent"
+                android:layout_height="34dp"
+                android:layout_marginTop="8dp"
+                android:orientation="horizontal"
+                android:background="@drawable/widget_bento_dock"
+                android:padding="2dp">
+
+                <TextView
+                    android:id="@+id/bento_action_focus"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:text="@string/widget_bento_action_focus"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/widget_accent"
+                    android:background="@drawable/widget_pill_action"
+                    android:maxLines="1" />
+
+                <TextView
+                    android:id="@+id/bento_action_kavach"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:text="@string/widget_bento_action_kavach"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/widget_orange"
+                    android:background="@drawable/widget_pill_action"
+                    android:maxLines="1" />
+
+                <TextView
+                    android:id="@+id/bento_action_goals"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:text="@string/widget_bento_action_goals"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/widget_green"
+                    android:background="@drawable/widget_pill_action"
+                    android:maxLines="1" />
+
+                <TextView
+                    android:id="@+id/bento_action_planner"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:text="@string/widget_bento_action_planner"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/widget_blue"
+                    android:background="@drawable/widget_pill_action"
+                    android:maxLines="1" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Status / Timestamp -->
+        <TextView
+            android:id="@+id/bento_status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/widget_loading"
+            android:textColor="@color/widget_secondary"
+            android:textSize="9sp"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:visibility="gone" />
+    </LinearLayout>
+</FrameLayout>

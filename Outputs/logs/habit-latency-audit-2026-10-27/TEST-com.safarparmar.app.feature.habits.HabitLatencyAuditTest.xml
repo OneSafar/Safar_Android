@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.feature.habits.HabitLatencyAuditTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-27T17:34:48.516Z" hostname="Shashanks-MacBook-Air.local" time="0.292">
+  <properties/>
+  <testcase name="repeated taps from same unchanged frame send redundant completion writes" classname="com.safarparmar.app.feature.habits.HabitLatencyAuditTest" time="0.239"/>
+  <testcase name="process restart loses create retry identity and can duplicate accepted habit" classname="com.safarparmar.app.feature.habits.HabitLatencyAuditTest" time="0.008"/>
+  <testcase name="accepted create reports failure when readback fails" classname="com.safarparmar.app.feature.habits.HabitLatencyAuditTest" time="0.005"/>
+  <testcase name="accepted create waits for reminder side effect even with reminder disabled" classname="com.safarparmar.app.feature.habits.HabitLatencyAuditTest" time="0.03"/>
+  <testcase name="reminder exception turns accepted save into failed save" classname="com.safarparmar.app.feature.habits.HabitLatencyAuditTest" time="0.006"/>
+  <testcase name="accepted create remains pending until full snapshot finishes" classname="com.safarparmar.app.feature.habits.HabitLatencyAuditTest" time="0.004"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

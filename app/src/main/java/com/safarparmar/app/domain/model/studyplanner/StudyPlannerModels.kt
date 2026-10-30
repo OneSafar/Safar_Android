@@ -359,10 +359,10 @@ data class UpgradePlannerResult(
 )
 
 enum class PlannerSection(val label: String) {
-    YOUR_EXAMS("Plan"),
+    YOUR_EXAMS("Exams"),
     SYLLABUS("Syllabus"),
     CALENDAR("Calendar"),
-    PLAN("Home"),
+    PLAN("Today"),
     INSIGHTS("Progress"),
     REVISION("Revision"),
 }

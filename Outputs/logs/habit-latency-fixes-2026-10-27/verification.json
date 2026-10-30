@@ -1,0 +1,14 @@
+{
+  "androidCompile": {
+    "command": "./gradlew :app:compileProdDebugKotlin --console=plain",
+    "exitCode": 0
+  },
+  "backendTypecheck": {
+    "command": "./node_modules/.bin/tsc --noEmit --pretty false",
+    "exitCode": 0
+  },
+  "testsExecuted": false,
+  "reason": "User requested to perform testing themselves",
+  "deployed": false,
+  "apkOrBundlePackaged": false
+}

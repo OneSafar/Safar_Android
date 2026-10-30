@@ -172,7 +172,7 @@ private fun WeeklyHabitCard(
                         if (completed || scheduled) {
                             SafarColoredCheckbox(
                                 checked = completed, onCheckedChange = { onToggleDay(item.habit.id, date, completed) },
-                                enabled = completed || !future,
+                                enabled = (completed || !future) && (item.habit.id to date) !in LocalHabitPendingCells.current,
                                 checkedColor = HabitColors.RoyalPurple, uncheckedColor = HabitColors.OutlineStrong,
                                 checkmarkColor = HabitColors.CheckDoneOn,
                                 accessibilityLabel = "${item.habit.name}, $date, $label${if (date == today) ", today" else ""}",

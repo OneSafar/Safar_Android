@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="premium_membership_headline">Aapka agla adhyaay,\nSafar ke saath.</string>
+    <string name="premium_group_preparation">Aapki taiyaari ke hisaab se plan</string>
+    <string name="premium_group_preparation_summary">Exam planner aur revision reminders</string>
+    <string name="premium_group_progress">Apni progress saaf dekhein</string>
+    <string name="premium_group_progress_summary">Activity ke detailed insights</string>
+    <string name="premium_group_focus">Regular rehne ka ek shaant tareeka</string>
+    <string name="premium_group_focus_summary">Guided audio, live sessions aur Mehfil</string>
+</resources>

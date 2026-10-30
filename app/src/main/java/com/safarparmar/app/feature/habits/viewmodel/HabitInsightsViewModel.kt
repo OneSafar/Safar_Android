@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import java.time.LocalDate
@@ -32,6 +33,7 @@ data class HabitInsightsUiState(
     val yearlyDailyStats: List<DailyHabitStats> = emptyList(),
     val habitPerformance: List<HabitPerformance> = emptyList(),
     val availableHabits: List<HabitEntity> = emptyList(),
+    val exportableHabits: List<HabitEntity> = emptyList(),
     val currentStreak: Int = 0,
     val bestStreak: Int = 0,
     val totalCompleted: Int = 0,
@@ -70,13 +72,17 @@ class HabitInsightsViewModel @Inject constructor(
         repository.observeHabitsWithCompletionsForRange(start, end)
     }
 
+    private val periodData = combine(monthlyFlow, yearlyFlow, repository.observeAllHabits()) { month, year, all ->
+        Triple(month, year, all)
+    }
+
     val uiState: StateFlow<HabitInsightsUiState> = combine(
         selectedMonth,
         selectedYear,
         selectedHabitId,
-        monthlyFlow,
-        yearlyFlow
-    ) { month, year, habitId, monthHabits, yearHabits ->
+        periodData
+    ) { month, year, habitId, periods ->
+        val (monthHabits, yearHabits, allHabits) = periods
         val today = LocalDate.now()
         val currentYm = YearMonth.now()
         val currentYr = today.year
@@ -137,6 +143,7 @@ class HabitInsightsViewModel @Inject constructor(
             yearlyDailyStats = yDaily,
             habitPerformance = performance,
             availableHabits = yearHabits.map { it.habit }.distinctBy { it.id }.sortedBy { it.order },
+            exportableHabits = allHabits,
             currentStreak = currentHabitStreak,
             bestStreak = currentHabitBestStreak,
             totalCompleted = totCompleted,
@@ -208,8 +215,9 @@ class HabitInsightsViewModel @Inject constructor(
         selectedHabitIds: Set<Long>?
     ): String = kotlinx.coroutines.withContext(Dispatchers.IO) {
         val today = LocalDate.now()
-        val allHabits = uiState.value.availableHabits
-        val earliest = allHabits.minOfOrNull { it.scheduledSince } ?: LocalDate.of(2020, 1, 1)
+        val allHabits = repository.observeAllHabits().first()
+            .filter { selectedHabitIds == null || it.id in selectedHabitIds }
+        val earliest = allHabits.minOfOrNull { it.scheduledSince } ?: today
         val (start, end) = exportManager.resolveDateRange(
             option = rangeOption,
             customStart = customStart,
@@ -217,7 +225,13 @@ class HabitInsightsViewModel @Inject constructor(
             today = today,
             earliestHabitDate = earliest
         )
-        val habitsWithCompletions = repository.getHabitsWithCompletionsForRange(start, end)
+        require(java.time.temporal.ChronoUnit.DAYS.between(start, end) <= 36_600) {
+            "Choose an export range shorter than 100 years."
+        }
+        require((java.time.temporal.ChronoUnit.DAYS.between(start, end) + 1) * allHabits.size <= 2_000_000) {
+            "This export is too large. Select fewer habits or a shorter date range."
+        }
+        val habitsWithCompletions = repository.getHabitsWithCompletionsForRange(start, end, selectedHabitIds)
         val performance = calculator.calculateHabitPerformance(habitsWithCompletions, start, end, today)
         exportManager.generateCsv(
             habits = habitsWithCompletions,

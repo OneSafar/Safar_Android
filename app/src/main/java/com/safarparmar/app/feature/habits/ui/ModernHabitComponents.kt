@@ -344,7 +344,7 @@ internal fun ModernHabitRow(
         ModernCheckButton(
             modifier = Modifier.tutorialTarget("habit.check"),
             completed = completed,
-            enabled = true,
+            enabled = (habit.id to java.time.LocalDate.now()) !in LocalHabitPendingCells.current,
             onClick = onToggle,
             contentDescription = if (completed) "Mark ${habit.name} as incomplete" else "Mark ${habit.name} as complete"
         )
@@ -1002,7 +1002,7 @@ internal fun ModernDayDetailSheet(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable(enabled = !future || completed) { onToggle(item.habit.id, date, completed) }
+                            .clickable(enabled = (!future || completed) && (item.habit.id to date) !in LocalHabitPendingCells.current) { onToggle(item.habit.id, date, completed) }
                             .padding(vertical = 14.dp, horizontal = 2.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -1026,7 +1026,7 @@ internal fun ModernDayDetailSheet(
                         }
                         ModernCheckButton(
                             completed = completed,
-                            enabled = !future || completed,
+                            enabled = (!future || completed) && (item.habit.id to date) !in LocalHabitPendingCells.current,
                             onClick = { onToggle(item.habit.id, date, completed) },
                             contentDescription = if (completed) "Mark ${item.habit.name} as incomplete" else "Mark ${item.habit.name} as complete"
                         )

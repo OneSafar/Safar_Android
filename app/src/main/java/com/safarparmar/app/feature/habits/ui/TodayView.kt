@@ -5,6 +5,7 @@ import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.animation.core.animateFloatAsState
@@ -87,23 +88,19 @@ fun TodayView(
 
         item { ModernSectionRow("Today's Habits", "${habits.size} scheduled") }
 
-        item {
-            ModernSoftCard(Modifier.fillMaxWidth()) {
-                when {
-                    habits.isNotEmpty() -> habits.forEachIndexed { index, item ->
-                        ModernHabitRow(
-                            habit = item.habit,
-                            completed = item.completed,
-                            onEdit = { onEditHabit(item.habit) },
-                            onToggle = { onToggle(item.habit.id, item.completed) }
-                        )
-                        if (index != habits.lastIndex) HorizontalDivider(color = HabitColors.Outline)
-                    }
-                    !hasHabits -> ModernEmptyState("No habits yet", "Tap + New Habit below to build your routine.")
-                    else -> ModernEmptyState(
-                        "No habits for today",
-                        "Take a rest day, or tap + New Habit to add one."
-                    )
+        if (habits.isNotEmpty()) {
+            items(habits, key = { it.habit.id }, contentType = { "habit" }) { item ->
+                ModernSoftCard(Modifier.fillMaxWidth()) {
+                    ModernHabitRow(habit = item.habit, completed = item.completed,
+                        onEdit = { onEditHabit(item.habit) },
+                        onToggle = { onToggle(item.habit.id, item.completed) })
+                }
+            }
+        } else {
+            item(key = "empty") {
+                ModernSoftCard(Modifier.fillMaxWidth()) {
+                    if (!hasHabits) ModernEmptyState("No habits yet", "Tap + New Habit below to build your routine.")
+                    else ModernEmptyState("No habits for today", "Take a rest day, or tap + New Habit to add one.")
                 }
             }
         }

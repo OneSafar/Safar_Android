@@ -120,6 +120,40 @@
                 <action android:name="android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED" />
             </intent-filter>
         </receiver>
+
+        <!-- Safar Today Home Screen Widget -->
+        <receiver
+            android:name=".widget.SafarTodayWidget"
+            android:exported="true"
+            android:label="@string/widget_title">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.safarparmar.app.widget.REFRESH_TODAY" />
+                <action android:name="android.intent.action.DATE_CHANGED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/safar_today_widget" />
+        </receiver>
+
+        <!-- Safar Bento Hub Home Screen Widget -->
+        <receiver
+            android:name=".widget.SafarBentoWidget"
+            android:exported="true"
+            android:label="@string/widget_bento_title">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.safarparmar.app.widget.REFRESH_BENTO" />
+                <action android:name="android.intent.action.DATE_CHANGED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/safar_bento_widget" />
+        </receiver>
         <service
             android:name=".ui.ekagra.TimerService"
             android:foregroundServiceType="specialUse"

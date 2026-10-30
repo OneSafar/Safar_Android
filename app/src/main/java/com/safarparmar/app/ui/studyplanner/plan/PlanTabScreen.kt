@@ -130,6 +130,7 @@ fun PlanTabScreen(
     plan: StudyPlan,
     actions: PlannerActions,
     activeTab: StudyPlannerTab,
+    onSelectExam: (() -> Unit)? = null,
     onNavigate: (String) -> Unit,
     onboardingCompletedSteps: Set<String> = emptySet(),
     preferredStudyStrategy: String = "interleaved",
@@ -552,29 +553,24 @@ fun PlanTabScreen(
         // only by hairlines, so no vertical gap between items either.
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(start = 24.dp, top = 16.dp, end = 24.dp, bottom = 112.dp),
+            contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 112.dp),
             verticalArrangement = Arrangement.spacedBy(0.dp),
         ) {
             item(key = "status", contentType = "status") {
                 PlanHomeHeader(
                     planTitle = plan.title,
                     onSettingsClick = { showSettings = true },
+                    onSelectExam = onSelectExam,
                 )
                 Spacer(Modifier.height(18.dp))
                 PlanHairline()
-                PlanHomeHero(plan = plan, progress = progress)
-                PlanHairline()
-                PlanHomeStatStrip(
-                    todayCount = todayTopics.size,
-                    overdueCount = overdueTopics.size,
-                    upcomingCount = upcomingTopics.size,
-                    completedCount = completedTopics.size,
-                    onTodayClick = { actions.setPlanTab(StudyPlannerTab.TODAY) },
-                    // Missed opens the missed-topics list in place; Upcoming is
-                    // date-shaped so it hands off to the Calendar month grid.
-                    onOverdueClick = { showMissedTopicsScreen = true },
-                    onUpcomingClick = { actions.setSection(PlannerSection.CALENDAR) },
-                    onDoneClick = { actions.setPlanTab(StudyPlannerTab.COMPLETED) },
+                PlanHomeTodaySummary(
+                    done = todayDoneCount, total = todayTopics.size,
+                    revision = refs.count { it.topic.status == TopicStatus.REVISION_NEEDED },
+                    missed = overdueTopics.size,
+                    onRevision = { actions.openRevisionTopics() },
+                    onMissed = { showMissedTopicsScreen = true },
+                    onUpcoming = { actions.setSection(PlannerSection.CALENDAR) },
                 )
                 PlanHairline()
                 if (unscheduledTopics.isNotEmpty()) {
@@ -585,18 +581,7 @@ fun PlanTabScreen(
                 }
             }
 
-            item(key = "daily_todo_collapsible", contentType = "daily_todo_collapsible") {
-                val todos = plan.dailyTodos.orEmpty()
-                val logs = plan.dailyTodoLogs?.get(today).orEmpty()
-                PlanHomeDailyTodoRow(
-                    doneCount = todos.count { it.id in logs },
-                    totalCount = todos.size,
-                    expanded = dailyTodoExpanded,
-                    onToggleExpanded = { dailyTodoExpanded = !dailyTodoExpanded },
-                ) {
-                    DailyTodoSection(plan = plan, actions = actions, todayStr = today)
-                }
-                PlanHairline()
+            item(key = "agenda_tabs") {
                 PlanHomeTabs(
                     activeTab = activeTab,
                     onTabSelected = { actions.setPlanTab(it) },
@@ -779,7 +764,7 @@ fun PlanTabScreen(
                             )
                         }
                         items(
-                            items = completedTopics.take(15),
+                            items = completedTopics,
                             key = { ref -> "completed_${ref.topic.id}" },
                             contentType = { "completedTopic" }
                         ) { ref ->
@@ -796,6 +781,20 @@ fun PlanTabScreen(
                     }
                 }
             }
+            item(key = "daily_todo_collapsible", contentType = "daily_todo_collapsible") {
+                val todos = plan.dailyTodos.orEmpty()
+                val logs = plan.dailyTodoLogs?.get(today).orEmpty()
+                PlanHomeDailyTodoRow(
+                    doneCount = todos.count { it.id in logs },
+                    totalCount = todos.size,
+                    expanded = dailyTodoExpanded,
+                    onToggleExpanded = { dailyTodoExpanded = !dailyTodoExpanded },
+                ) {
+                    DailyTodoSection(plan = plan, actions = actions, todayStr = today)
+                }
+                PlanHairline()
+            }
+
         }
       }
 

@@ -63,8 +63,8 @@ internal fun PlannerGk5Entry(onClick: () -> Unit) {
 
 @Composable
 internal fun PlannerEntryAction(title: String, subtitle: String, icon: ImageVector, primary: Boolean = false, onClick: () -> Unit) {
-    val coral = Color(0xFFFF6555)
-    val ink = if (primary) Color.White else MaterialTheme.colorScheme.onSurface
+    val coral = MaterialTheme.colorScheme.primary
+    val ink = if (primary) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
     SafarButton(onClick = onClick, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp),
         colors = androidx.compose.material3.ButtonDefaults.buttonColors(
             containerColor = if (primary) coral else MaterialTheme.colorScheme.surface, contentColor = ink),
@@ -76,7 +76,7 @@ internal fun PlannerEntryAction(title: String, subtitle: String, icon: ImageVect
         }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(title, color = ink, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Text(subtitle, color = if (primary) Color.White.copy(alpha = 0.9f) else MaterialTheme.colorScheme.onSurfaceVariant,
+            Text(subtitle, color = if (primary) MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.9f) else MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodySmall)
         }
         Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = ink, modifier = Modifier.size(22.dp))

@@ -1,0 +1,9 @@
+{
+  "reportedError": "Hilt FilerException recreating SafarApplication_GeneratedInjector",
+  "fullAssemble": "passed",
+  "subsequentIncrementalAssemble": "passed, all tasks up-to-date",
+  "sourceOrDependencyChangesRequired": false,
+  "testsRun": false,
+  "apk": "Outputs/apk/prod/debug/app-prod-debug.apk",
+  "sha256": "6b35568be9f843ac820e68ed4af939e59016dff23597cb27b797a67e9afd8a65"
+}

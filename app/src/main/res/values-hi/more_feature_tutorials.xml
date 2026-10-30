@@ -91,12 +91,12 @@
     <string name="practice_next_analytics_month_title">महीने की समीक्षा</string>
     <string name="practice_next_analytics_month_instruction">Monthly Review खोलें और महीना चुनें।</string>
     <string name="practice_next_analytics_month_body">महीने के बटन से रिपोर्ट और उपलब्धियाँ देखें। अभ्यास असली रिपोर्ट नहीं बनाता।</string>
-    <string name="practice_next_planner_exams_title">Plan: परीक्षा चुनें</string>
-    <string name="practice_next_planner_exams_instruction">New Plan से योजना बनाएँ या सहेजी योजना खोलें।</string>
+    <string name="practice_next_planner_exams_title">परीक्षाएँ: योजना चुनें</string>
+    <string name="practice_next_planner_exams_instruction">नई योजना बनाएँ या सहेजी गई योजना से पढ़ाई जारी रखें।</string>
     <string name="practice_next_planner_exams_body">इस टैब में परीक्षा योजनाएँ हैं। सहेजी योजना के मेनू में मुख्य विकल्प हैं। अभ्यास नमूना योजना दिखाता है।</string>
-    <string name="practice_next_planner_home_title">Home: आज का काम</string>
-    <string name="practice_next_planner_home_instruction">आज के विषय, Daily To-do और जोड़ने के बटन देखें।</string>
-    <string name="practice_next_planner_home_body">Today और Done से सूची बदलें। पूरा काम चिह्नित करें या पाठ्यक्रम से विषय जोड़ें। मेनू में योजना की सेटिंग है। अभ्यास कुछ नहीं बदलता।</string>
+    <string name="practice_next_planner_home_title">आज: आपका रोज़ का काम</string>
+    <string name="practice_next_planner_home_instruction">काम देखें, फ़ोकस दबाएँ या विषय जोड़ें।</string>
+    <string name="practice_next_planner_home_body">आज और पूरा हुआ से सूचियाँ बदलें। काम पूरा होने पर टिक करें या पाठ्यक्रम से विषय जोड़ें। योजना की सेटिंग से दिनचर्या बदलें। अभ्यास कुछ नहीं बदलता।</string>
     <string name="practice_next_planner_syllabus_title">Syllabus: विषय सँभालें</string>
     <string name="practice_next_planner_syllabus_instruction">अध्याय और टॉपिक देखने के लिए विषय खोलें।</string>
     <string name="practice_next_planner_syllabus_body">जोड़ने और मेनू के बटन से पाठ्यक्रम सँभालें। तारीख और योजना के विकल्प ऊपर हैं। यह छोटा परिचय है।</string>

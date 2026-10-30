@@ -12,7 +12,7 @@ data class SettingsUiState(
     val weeklySummaryEnabled: Boolean = false,
     val dailyReminderTime: String = "19:00",
     val quietHoursStart: String = "22:00",
-    val quietHoursEnd: String = "07:00",
+    val quietHoursEnd: String = "06:00",
     val userEmail: String = "",
     val showDeleteAccountDialog: Boolean = false,
     val isDeletingAccount: Boolean = false,

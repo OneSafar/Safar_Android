@@ -19,7 +19,7 @@ fun EditHabitBottomSheet(
             // submits the new visible state; it must not rewrite historical dates itself.
             onSave(habit.copy(name = name, targetDays = days, isEveryDay = isEveryDay, reminderTime = reminderTime))
         },
-        onArchive = { onArchive(habit.id) },
+        onArchive = if (habit.isArchived) null else ({ onArchive(habit.id) }),
         onDelete = { onDelete(habit) }
     )
 }

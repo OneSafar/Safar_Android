@@ -120,6 +120,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.ui.res.stringResource
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
@@ -268,14 +269,28 @@ internal fun InsightsTab(
         // 2. Main content column
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 32.dp),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 32.dp),
             // One continuous page — sections are divided by hairlines, not cards.
-            verticalArrangement = Arrangement.spacedBy(0.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item {
-                PlanEyebrow("Progress")
+                Text(stringResource(R.string.planner_warm_progress), style = MaterialTheme.typography.headlineMedium, color = PlannerFlatColors.TextDark)
                 Spacer(Modifier.height(18.dp))
                 PlanHairline()
+            }
+            item {
+                // Prefer the forecast projected from the student's real recent
+                // pace; only fall back to the daily-goal projection when there
+                // isn't enough recent activity to measure a pace.
+                val velocityForecast = insights.summary.velocityForecastCompletionDate
+                val shownForecast = velocityForecast ?: insights.summary.forecastCompletionDate
+                InsightsFinishLineCard(
+                    examDateIso = plan.examDate,
+                    forecastDateIso = shownForecast,
+                    studyDaysLeft = insights.summary.availableStudyDays,
+                    basedOnRecentPace = velocityForecast != null,
+                    isLight = isLight,
+                )
             }
             item {
                 InsightsOverallProgressRedesign(
@@ -300,20 +315,6 @@ internal fun InsightsTab(
                     requiredPerDay = insights.summary.requiredTopicsPerStudyDay,
                     dailyGoal = dailyGoal,
                     isLight = isLight
-                )
-            }
-            item {
-                // Prefer the forecast projected from the student's real recent
-                // pace; only fall back to the daily-goal projection when there
-                // isn't enough recent activity to measure a pace.
-                val velocityForecast = insights.summary.velocityForecastCompletionDate
-                val shownForecast = velocityForecast ?: insights.summary.forecastCompletionDate
-                InsightsFinishLineCard(
-                    examDateIso = plan.examDate,
-                    forecastDateIso = shownForecast,
-                    studyDaysLeft = insights.summary.availableStudyDays,
-                    basedOnRecentPace = velocityForecast != null,
-                    isLight = isLight,
                 )
             }
             item {
@@ -366,7 +367,7 @@ internal fun LinkedEkagraSessionsCard(
                     "Focus sessions",
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp,
-                    color = Color(0xFFFF8A65) // Warm Orange!
+                    color = PlannerFlatColors.TextDark
                 )
                 Text(
                     "${totalMinutes} min total",
@@ -407,12 +408,12 @@ internal fun LinkedEkagraSessionsCard(
                     }
                     Text(
                         "Ekagra",
-                        fontSize = 10.sp,
+                        fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
                         modifier = Modifier
                             .clip(RoundedCornerShape(50.dp))
-                            .background(Color(0xFFFF8A65)) // Accent Orange
+                            .background(MaterialTheme.colorScheme.primaryContainer)
                             .padding(horizontal = 8.dp, vertical = 2.dp),
                     )
                 }
