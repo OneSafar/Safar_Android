@@ -1,4 +1,6 @@
 package com.safarparmar.app.ui.studyplanner.create.steps
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 
 import androidx.compose.ui.res.stringResource
 import com.safarparmar.app.R
@@ -77,7 +79,7 @@ internal fun ChapterRatingStep(
     Column(modifier = modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 12.dp)) {
         Text(
             text = if (goByDifficulty == true) "Rate your chapters" else "How should we plan your days?",
-            fontFamily = LoraFontFamily,
+            fontFamily = com.safarparmar.app.ui.theme.MulishFontFamily,
             fontSize = 26.sp,
             fontWeight = FontWeight.Normal,
             color = scheme.onSurface,
@@ -89,7 +91,7 @@ internal fun ChapterRatingStep(
             // The two options ARE the screen: one fills the top half, one the
             // bottom, so each is a full tap target and neither reads as secondary.
             Column(
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
                 PlanChoiceCard(
@@ -100,7 +102,7 @@ internal fun ChapterRatingStep(
                         "Choose this if you want a fixed routine." to null,
                     ),
                     onClick = onBuildEven,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.fillMaxWidth(),
                 ) {
                     // Every row identical — that IS the promise.
                     repeat(3) { day ->
@@ -117,7 +119,7 @@ internal fun ChapterRatingStep(
                         "Every day feels the same amount of work." to null,
                     ),
                     onClick = { goByDifficulty = true },
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.fillMaxWidth(),
                 ) {
                     // Same total width on every row: the bar is always "one day of
                     // work". Only the number of pieces changes with difficulty, so
@@ -213,7 +215,7 @@ internal fun ChapterRatingStep(
             outline.forEach { subject ->
                 item(key = "subject-${subject.name}") {
                     Column {
-                        PlanHairline(alpha = 0.6f)
+                        PlanHairline()
                         Spacer(Modifier.height(12.dp))
                         Text(
                             text = subject.name,
@@ -255,7 +257,7 @@ internal fun ChapterRatingStep(
                                                 } else {
                                                     Modifier.border(
                                                         1.dp,
-                                                        scheme.outlineVariant.copy(alpha = 0.5f),
+                                                        PlannerFlatColors.BorderSoft,
                                                         CircleShape,
                                                     )
                                                 },
@@ -293,7 +295,7 @@ internal fun ChapterRatingStep(
                                             inactiveColor = if (isSelected) {
                                                 Color.White.copy(alpha = 0.3f)
                                             } else {
-                                                scheme.outlineVariant.copy(alpha = 0.5f)
+                                                PlannerFlatColors.BorderSoft
                                             },
                                         )
                                       }
@@ -396,8 +398,8 @@ private fun PlanChoiceCard(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .border(1.dp, scheme.outlineVariant.copy(alpha = 0.5f), RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(24.dp))
+            .background(scheme.surface)
             .clickable { onClick() }
             .padding(18.dp),
         // Centred as a group: the card is now half the screen, so top-aligned

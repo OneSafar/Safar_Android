@@ -185,7 +185,7 @@ fun YoutubeStudyV2Screen(
         onDispose { owner.lifecycle.removeObserver(observer) }
     }
 
-    val screenBg = if (isLight) Color(0xFFF8FAFC) else Color(0xFF090A0E)
+    val screenBg = if (isLight) Color(0xFFFFF5F0) else Color(0xFF131316)
     Scaffold(
         containerColor = screenBg,
         topBar = {
@@ -475,74 +475,35 @@ private fun PermissionStep(
         verticalArrangement = Arrangement.spacedBy(28.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        // Centered Hero
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.padding(top = 8.dp),
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(72.dp)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(YTCMColors.royalPurpleSurface(isLight)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    Icons.Default.SmartDisplay,
-                    contentDescription = null,
-                    tint = YTCMColors.accent(isLight),
-                    modifier = Modifier.size(36.dp),
-                )
-            }
-            Spacer(Modifier.height(4.dp))
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Text(
-                    "YouTube Focus",
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = primaryText(isLight),
-                    textAlign = TextAlign.Center,
-                )
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text("PERMISSION", fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
+                color = if (isLight) Color(0xFF75616F) else Color(0xFFCFBECB))
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("YouTube Focus", modifier = Modifier.weight(1f, fill = false), fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold, color = if (isLight) Color(0xFF39132E) else Color(0xFFFFF0F6))
                 YoutubeFocusBetaBadge(isLight = isLight)
             }
-            Text(
-                "Block distracting channels. Only productive channels will open.",
-                fontSize = 14.sp,
-                color = secondaryText(isLight),
-                textAlign = TextAlign.Center,
-            )
+            Text("Block distracting channels. Only productive channels will open.", fontSize = 15.sp,
+                color = if (isLight) Color(0xFF75616F) else Color(0xFFCFBECB))
+            YoutubeSoftGeometry(Modifier.fillMaxWidth().height(140.dp))
         }
-
-        // Feature rows (Clean, airy, non-cluttered)
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            FeatureRow(
-                icon = Icons.Default.SmartDisplay,
-                iconBg = if (isLight) Color(0xFFFEF2F2) else Color(0xFF450A0A),
-                iconTint = if (isLight) Color(0xFFEF4444) else Color(0xFFF87171),
-                label = stringResource(R.string.youtube_focus_benefit_block_channels),
-                isLight = isLight,
-            )
-            FeatureRow(
-                icon = Icons.Default.Block,
-                iconBg = YTCMColors.royalPurpleSurface(isLight),
-                iconTint = YTCMColors.accent(isLight),
-                label = stringResource(R.string.youtube_focus_benefit_block_shorts),
-                isLight = isLight,
-            )
-            FeatureRow(
-                icon = Icons.Default.CheckCircle,
-                iconBg = if (isLight) Color(0xFFF0FDF4) else Color(0xFF052E16),
-                iconTint = if (isLight) Color(0xFF10B981) else Color(0xFF4ADE80),
-                label = stringResource(R.string.youtube_focus_benefit_allow_productive),
-                isLight = isLight,
-            )
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            listOf(
+                Triple(Icons.Default.Block, Color(0xFFFFCBBE), R.string.youtube_focus_benefit_block_channels),
+                Triple(Icons.Default.SmartDisplay, Color(0xFFCDBBE9), R.string.youtube_focus_benefit_block_shorts),
+                Triple(Icons.Default.CheckCircle, Color(0xFFC9EFE0), R.string.youtube_focus_benefit_allow_productive),
+            ).forEach { (icon, tile, label) ->
+                Surface(color = if (isLight) Color(0xFFFFFDFC) else Color(0xFF342735), shape = RoundedCornerShape(24.dp)) {
+                    Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        Box(Modifier.size(48.dp).background(tile, RoundedCornerShape(16.dp)), contentAlignment = Alignment.Center) {
+                            Icon(icon, null, tint = Color(0xFF39132E), modifier = Modifier.size(26.dp))
+                        }
+                        Text(stringResource(label), fontSize = 15.sp, fontWeight = FontWeight.SemiBold,
+                            color = if (isLight) Color(0xFF39132E) else Color(0xFFFFF0F6))
+                    }
+                }
+            }
         }
 
         // Permission status pill
@@ -616,11 +577,15 @@ private fun PermissionStep(
             verticalArrangement = Arrangement.spacedBy(12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            CtaButton(
-                text = if (permissionConnected) "Select Productive Channels →" else "Turn On Permission & Continue",
-                isLight = isLight,
-                onClick = onAgree,
-            )
+            androidx.compose.material3.Button(onClick = onAgree,
+                modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
+                shape = RoundedCornerShape(26.dp),
+                colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                    containerColor = if (isLight) Color(0xFF542347) else Color(0xFFF0BEDC),
+                    contentColor = if (isLight) Color.White else Color(0xFF39132E))) {
+                Text(if (permissionConnected) "Select Productive Channels →" else "Turn On Permission & Continue",
+                    fontSize = 14.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)
+            }
             com.composables.ui.components.Button(style = com.composables.ui.components.ButtonStyle.Ghost, onClick = onNotNow) {
                 Text(stringResource(R.string.common_not_now), fontSize = 13.sp, color = secondaryText(isLight))
             }

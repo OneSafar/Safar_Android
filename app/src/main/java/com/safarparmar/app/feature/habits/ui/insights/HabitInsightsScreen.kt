@@ -22,6 +22,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.safarparmar.app.feature.habits.export.HabitExportManager
 import com.safarparmar.app.feature.habits.premium.PremiumFeature
 import com.safarparmar.app.feature.habits.ui.HabitColors
+import com.safarparmar.app.feature.habits.ui.HabitMotion
+import com.safarparmar.app.feature.habits.ui.habitPress
 import com.safarparmar.app.feature.habits.ui.LocalHabitDarkTheme
 import com.safarparmar.app.feature.habits.viewmodel.HabitInsightsViewModel
 import kotlinx.coroutines.launch
@@ -53,7 +55,7 @@ fun HabitInsightsScreen(
                         )
                     },
                     navigationIcon = {
-                        IconButton(onClick = onBack) {
+                        IconButton(onClick = onBack, modifier = Modifier.habitPress(scaleDown = HabitMotion.ScaleIcon)) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
                                 contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.common_back),
@@ -260,7 +262,7 @@ private fun ExportSection(
                 contentColor = purple
             ),
             border = androidx.compose.foundation.BorderStroke(1.dp, outlineColor),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth().habitPress(scaleDown = HabitMotion.ScaleButton)
         ) {
             Row(
                 modifier = Modifier.padding(vertical = 4.dp),

@@ -27,6 +27,9 @@ import androidx.compose.ui.unit.sp
 import com.safarparmar.app.feature.habits.data.DailyHabitStats
 import com.safarparmar.app.feature.habits.data.HabitEntity
 import com.safarparmar.app.feature.habits.ui.HabitColors
+import com.safarparmar.app.feature.habits.ui.HabitMotion
+import com.safarparmar.app.feature.habits.ui.habitPress
+import com.safarparmar.app.feature.habits.ui.habitClickable
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
@@ -112,7 +115,7 @@ fun ContributionHeatmapMatrix(
             ) {
                 IconButton(
                     onClick = onPreviousYear,
-                    modifier = Modifier.size(32.dp)
+                    modifier = Modifier.size(32.dp).habitPress(scaleDown = HabitMotion.ScaleIcon)
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowLeft,
@@ -133,7 +136,7 @@ fun ContributionHeatmapMatrix(
                 IconButton(
                     onClick = onNextYear,
                     enabled = canNavigateNextYear,
-                    modifier = Modifier.size(32.dp)
+                    modifier = Modifier.size(32.dp).habitPress(scaleDown = HabitMotion.ScaleIcon)
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
@@ -147,7 +150,7 @@ fun ContributionHeatmapMatrix(
                     TextButton(
                         onClick = onCurrentYear,
                         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
-                        modifier = Modifier.height(28.dp)
+                        modifier = Modifier.height(28.dp).habitPress(scaleDown = HabitMotion.ScaleButton)
                     ) {
                         Text(
                             text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_this_year),
@@ -491,7 +494,7 @@ private fun MonthHeatmapBlock(
                                         else -> Modifier
                                     }
                                 )
-                                .clickable { onSelectDate(date) }
+                                .habitClickable(scaleDown = HabitMotion.ScaleChip) { onSelectDate(date) }
                         )
                     } else {
                         // Empty spacer cell so the grid maintains its rigid Monday..Sunday alignment

@@ -64,7 +64,11 @@ data class YoutubeV2Observation(
  * with the user's allow list.
  */
 object YoutubeStudyV2Parser {
-    private val regularWatchIds = listOf("watch_player", "movie_player", "fullscreen_player")
+    private val regularWatchIds = listOf(
+        "watch_player", "movie_player", "fullscreen_player",
+        "player_view", "player_fragment_container", "player_overlays",
+        "watch_panel_scrim", "watch_panel", "next_gen_watch", "player_control",
+    )
     private val shortsWatchIds = listOf(
         "reel_watch",
         "reel_player",
@@ -76,6 +80,8 @@ object YoutubeStudyV2Parser {
         "shorts_video",
         "shorts_container",
         "shorts_surface",
+        "shorts_pager",
+        "reel_item",
     )
     private val miniPlayerIds = listOf("modern_miniplayer", "miniplayer_container")
     private val titleIds = listOf("video_title", "watch_title", "title_text")
@@ -111,7 +117,14 @@ object YoutubeStudyV2Parser {
             val id = node.viewId.orEmpty().lowercase()
             val text = node.text?.trim()?.lowercase().orEmpty()
             val desc = node.contentDescription?.trim()?.lowercase().orEmpty()
-            node.selected && (id.contains("pivot_shorts") || text == "shorts" || desc == "shorts" || text == "शॉर्ट्स" || desc == "शॉर्ट्स")
+            val isShortsPivot = id.contains("pivot_shorts") || id.contains("tab_shorts") ||
+                text == "shorts" || text == "शॉर्ट्स" ||
+                desc == "shorts" || desc == "शॉर्ट्स" ||
+                desc.startsWith("shorts,") || desc.startsWith("shorts ") ||
+                desc.startsWith("शॉर्ट्स,") || desc.startsWith("शॉर्ट्स ")
+            if (!isShortsPivot) return@any false
+            val parentSelected = node.parentIndex?.takeIf(nodes.indices::contains)?.let { nodes[it].selected } ?: false
+            node.selected || parentSelected || desc.contains("selected")
         }
         if (isShortsTabSelected) {
             return YoutubeV2Observation(
@@ -147,7 +160,15 @@ object YoutubeStudyV2Parser {
                 desc == "shorts player" || desc == "शॉर्ट्स प्लेयर" ||
                 desc.contains("comments for short") ||
                 desc.contains("sound used in short") ||
-                text == "remix"
+                text == "remix" ||
+                // Regain-inspired Shorts vertical action controls
+                ((desc == "like" || desc.startsWith("like this video") || desc.startsWith("like video") || desc == "पसंद करें") &&
+                    node.left > snapshot.screenWidth * 0.65f) ||
+                ((desc == "dislike" || desc.startsWith("dislike this video") || desc.startsWith("dislike video") || desc == "नापसंद करें") &&
+                    node.left > snapshot.screenWidth * 0.65f) ||
+                ((desc.startsWith("comments") || desc.startsWith("open comments") || desc.startsWith("view comments") || desc.startsWith("टिप्पणियां") || desc.startsWith("टिप्पणियाँ")) &&
+                    node.left > snapshot.screenWidth * 0.65f) ||
+                (desc.contains("sound") && node.bottom > snapshot.screenHeight * 0.70f)
         }
 
         val shortsPlaybackRegion = surface ?: shortsWatchMarker
@@ -168,9 +189,35 @@ object YoutubeStudyV2Parser {
             return YoutubeV2Observation(YoutubeV2ContentKind.MINI_PLAYER)
         }
 
-        // If any feed navigation tab is selected, this is feed browsing (Home, Subscriptions, Library).
-        // Autoplay previews or recommendation carousels on feeds are NEVER video watch screens.
-        if (feedSelected) {
+        // Dedicated watch screen containers that can never be part of a feed
+        val hasWatchPageMarkers = visible.any { index ->
+            val id = nodes[index].viewId.orEmpty().lowercase()
+            id.contains("watch_panel_scrim") ||
+                id.contains("watch_list") ||
+                id.contains("watch_panel") ||
+                id.contains("next_gen_watch") ||
+                id.contains("watch_layout") ||
+                id.contains("movie_player")
+        }
+
+        // Feed browsing markers: presence of feed recycler, filter chips, logo, or pivot bar
+        val isFeedBrowsing = feedSelected || (!hasWatchPageMarkers && visible.any { index ->
+            val node = nodes[index]
+            val id = node.viewId.orEmpty().lowercase()
+            val desc = node.contentDescription?.trim()?.lowercase().orEmpty()
+            id.contains("feed_filter_bar") ||
+                id.contains("chips_container") ||
+                id.contains("chip_cloud") ||
+                id.contains("filter_bar") ||
+                id.contains("results_recycler") ||
+                id.contains("pane_fragment_container") ||
+                id.contains("rich_grid") ||
+                id.contains("elements_recycler") ||
+                (id.contains("logo") && (desc == "youtube" || desc == "होम" || desc == "home")) ||
+                id.contains("pivot_bar")
+        })
+
+        if (isFeedBrowsing) {
             return YoutubeV2Observation(YoutubeV2ContentKind.NON_PLAYBACK)
         }
 
@@ -195,7 +242,7 @@ object YoutubeStudyV2Parser {
                     regularPlaybackRegion.width >= snapshot.screenWidth * 0.85f &&
                     regularPlaybackRegion.height >= snapshot.screenHeight * 0.85f)
             val fullscreenSidePanel = detectFullscreenSidePanel(snapshot, visible)
-            val metadataNodes = watchMetadataNodes(snapshot, visible, regularWatchMarker)
+            val metadataNodes = watchMetadataNodes(snapshot, visible, regularPlaybackRegion)
             val watchMetadata = watchHeaderMetadata(nodes, metadataNodes)
             val hudMetadata = if (fullscreen) fullscreenHudMetadata(snapshot, visible) else null
             // YouTube can leave a visible title-only portrait watch header in
@@ -221,7 +268,7 @@ object YoutubeStudyV2Parser {
                     metadataNodes.asSequence()
                         .map(nodes::get)
                         .filter { node ->
-                            node.top >= regularPlaybackRegion!!.bottom - 8 * snapshot.density &&
+                            node.top >= regularPlaybackRegion.bottom - 8 * snapshot.density &&
                                 node.top <= regularPlaybackRegion.bottom + 120 * snapshot.density &&
                                 node.className.orEmpty().let { it.contains("TextView", true) || it.contains("ViewGroup", true) }
                         }
@@ -234,7 +281,17 @@ object YoutubeStudyV2Parser {
                         }
                 }
 
-            val owner = findOwnerRow(snapshot, metadataNodes, regularPlaybackRegion!!.bottom, title)
+            val owner = findOwnerRow(snapshot, metadataNodes, regularPlaybackRegion.bottom, title)
+            val subscribeChannel = if (owner?.displayName == null && owner?.handle == null) {
+                extractChannelFromSubscribeButton(nodes, visible, regularPlaybackRegion.bottom, snapshot.density)
+            } else null
+            val finalOwner = if (subscribeChannel != null && owner == null) {
+                OwnerEvidence(handle = null, displayName = subscribeChannel)
+            } else if (subscribeChannel != null && owner != null && owner.displayName == null) {
+                owner.copy(displayName = subscribeChannel)
+            } else {
+                owner
+            }
             val ownerChannelIds = metadataNodes.asSequence().filter { index ->
                 val node = nodes[index]
                 node.top >= regularPlaybackRegion.bottom - 24 * snapshot.density &&
@@ -247,16 +304,26 @@ object YoutubeStudyV2Parser {
                         ?: value.trim().takeIf { Regex("UC[A-Za-z0-9_-]{22}").matches(it) }
                 }.distinct().toList()
             val ownerChannelId = ownerChannelIds.singleOrNull()
+            val hasWatchContainer = nodes.any { node ->
+                val id = node.viewId.orEmpty().lowercase()
+                id.contains("watch_panel_scrim") || id.contains("watch_list") ||
+                    id.contains("watch_panel") || id.contains("next_gen_watch") ||
+                    id.contains("watch_layout") || id.contains("movie_player") ||
+                    id.contains("watch_player")
+            }
+            val isConfirmedWatchScreen = fullscreen || hasWatchContainer ||
+                (metadata?.handle != null || finalOwner != null || ownerChannelId != null || !title.isNullOrBlank())
+
             return YoutubeV2Observation(
-                kind = YoutubeV2ContentKind.VIDEO,
-                watchScreenConfirmed = true,
+                kind = if (isConfirmedWatchScreen) YoutubeV2ContentKind.VIDEO else YoutubeV2ContentKind.NON_PLAYBACK,
+                watchScreenConfirmed = isConfirmedWatchScreen,
                 fullscreen = fullscreen,
                 title = title,
-                exactHandle = metadata?.handle ?: owner?.handle,
+                exactHandle = metadata?.handle ?: finalOwner?.handle,
                 exactChannelId = ownerChannelId,
-                displayName = owner?.displayName,
+                displayName = finalOwner?.displayName,
                 adPlaying = isAdPlayback(nodes, visible, regularPlaybackRegion),
-                canResumeWatchSession = (metadata?.handle != null || owner != null || ownerChannelId != null) && !title.isNullOrBlank(),
+                canResumeWatchSession = (metadata?.handle != null || finalOwner != null || ownerChannelId != null) && !title.isNullOrBlank(),
                 fullscreenSidePanel = fullscreenSidePanel,
             )
         }
@@ -345,7 +412,10 @@ object YoutubeStudyV2Parser {
 
     /** Read bounded watch-header items, allowing leading spacers and separate wrappers. */
     private fun watchHeaderMetadata(nodes: List<YoutubeV2Node>, metadataNodes: List<Int>): WatchHeaderMetadata? {
-        val list = nodes.indexOfFirst { it.viewId?.substringAfterLast('/') == "watch_list" }
+        val list = nodes.indexOfFirst {
+            val id = it.viewId?.substringAfterLast('/')?.lowercase().orEmpty()
+            id == "watch_list" || id == "watch_scroll_container" || id == "watch_recycler" || id == "watch_panel"
+        }
         if (list < 0) return null
         val candidates = nodes.indices.asSequence()
             .filter { nodes[it].parentIndex == list && nodes[it].visibleToUser && nodes[it].height > 0 }
@@ -498,6 +568,29 @@ object YoutubeStudyV2Parser {
 
     private data class OwnerEvidence(val handle: String?, val displayName: String?)
 
+    private fun hasRowSubscribeButton(
+        nodes: List<YoutubeV2Node>,
+        visible: List<Int>,
+        avatarIndex: Int,
+        textIndex: Int,
+        density: Float,
+    ): Boolean {
+        val avatar = nodes[avatarIndex]
+        val textNode = nodes[textIndex]
+        val rowTop = min(avatar.top, textNode.top) - (12 * density).toInt()
+        val rowBottom = max(avatar.bottom, textNode.bottom) + (12 * density).toInt()
+        return visible.any { index ->
+            val node = nodes[index]
+            if (node.bottom < rowTop || node.top > rowBottom) return@any false
+            val desc = node.contentDescription?.trim()?.lowercase().orEmpty()
+            val text = node.text?.trim()?.lowercase().orEmpty()
+            val id = node.viewId.orEmpty().lowercase()
+            id.contains("subscribe") ||
+                desc.contains("subscribe") || desc.contains("सदस्यता") || desc == "join" ||
+                text.contains("subscribe") || text.contains("सदस्यता") || text == "join"
+        }
+    }
+
     private fun findOwnerRow(
         snapshot: YoutubeV2Snapshot,
         visible: List<Int>,
@@ -551,8 +644,15 @@ object YoutubeStudyV2Parser {
                 val sharedGrandparent = parentOf(nodes, avatar.parentIndex) != null &&
                     parentOf(nodes, avatar.parentIndex) == parentOf(nodes, textNode.parentIndex)
                 val ownerAncestor = hasOwnerAncestor(nodes, textIndex) || hasOwnerAncestor(nodes, avatarIndex)
+                val hasSubscribeButton = hasRowSubscribeButton(nodes, visible, avatarIndex, textIndex, density)
+                val hasAvatarChannelProof = avatar.contentDescription.orEmpty().startsWith("go to channel", true)
+                // Require structural channel corroboration: either an owner ancestor, a Subscribe button in the row,
+                // an avatar with "go to channel" proof, or an exact handle in metadata band.
+                // Never accept arbitrary text near an icon without proof!
+                if (!ownerAncestor && !hasSubscribeButton && !hasAvatarChannelProof && metadataHandle == null) return@forEach
                 if (!sharedParent && !sharedGrandparent && !ownerAncestor) return@forEach
-                val score = (if (sharedParent) 100 else 0) + (if (ownerAncestor) 50 else 0) -
+                val score = (if (sharedParent) 100 else 0) + (if (ownerAncestor) 150 else 0) +
+                    (if (hasSubscribeButton) 120 else 0) + (if (hasAvatarChannelProof) 80 else 0) -
                     abs(avatar.centerY - textNode.centerY)
                 candidates += Triple(score, avatarIndex, textIndex)
             }
@@ -560,6 +660,7 @@ object YoutubeStudyV2Parser {
 
         val best = candidates.maxByOrNull { it.first } ?: run {
             val avatarDisplay = avatars.asSequence()
+                .filter { index -> nodes[index].contentDescription.orEmpty().startsWith("go to channel", true) }
                 .mapNotNull { index -> cleanOwnerText(nodes[index].contentDescription ?: nodes[index].text) }
                 .firstOrNull(::isPlausibleOwnerLabel)
             return semanticOwner(nodes, visible)
@@ -799,8 +900,10 @@ object YoutubeStudyV2Parser {
 
     internal fun isPlausibleOwnerLabel(value: String): Boolean {
         if (value.length !in 2..120) return false
-        val lower = value.lowercase()
+        val lower = value.trim().lowercase()
         if (isWatchEngagementLabel(value) || isActionButtonText(lower)) return false
+        if (ACTION_PREFIXES.any(lower::startsWith)) return false
+        if (ACTION_SUFFIXES.any(lower::endsWith)) return false
         if (lower in setOf("exit full screen", "enter full screen", "full screen", "fullscreen", "play", "pause", "next video", "previous video", "close player", "close", "dismiss", "back", "quote", "description", "बंद करें", "वापस")) return false
         return INVALID_OWNER_WORDS.none(lower::contains)
     }
@@ -840,12 +943,27 @@ object YoutubeStudyV2Parser {
     private const val FULLSCREEN_HUD_TITLE_GAP_DP = 48f
     private const val FULLSCREEN_HUD_ALIGNMENT_DP = 72f
     private const val FULLSCREEN_SIDE_PANEL_LEFT_RATIO = 0.52f
+    private val ACTION_PREFIXES = listOf(
+        "open ", "close ", "show ", "hide ", "expand ", "collapse ", "view ",
+        "tap ", "click ", "select ", "toggle ", "press ", "switch ", "create ",
+        "add ", "reply ", "play ", "pause ", "replay ", "resume ", "stop ",
+        "खोलें", "बंद करें", "दिखाएं", "छुपाएं", "जोड़ें", "बनाएं",
+    )
+    private val ACTION_SUFFIXES = listOf(
+        " picker", " button", " icon", " avatar", " badge", " menu", " tray", " sheet",
+        " dialog", " popup", " container", " cloud", " chips",
+    )
     private val INVALID_OWNER_WORDS = listOf(
         "views", "likes", "comments", "subscribe", "subscribed", "share", "download",
         "save", "more", "play video", "minutes", "hours", "advertiser", "ad panel",
         "sponsored", "install", "सदस्यता", "टिप्पणियां",
         "home", "shorts", "subscriptions", "library", "you", "explore", "trending",
         "होम", "शॉर्ट्स", "सदस्यताएं", "लाइब्रेरी", "आप", "एक्सप्लोर", "ट्रेंडिंग",
+        "emoji", "picker", "button", "avatar", "badge", "tooltip", "filter",
+        "notification", "settings", "search", "overflow", "account", "profile picture",
+        "cast", "remix", "reply", "replies", "caption", "subtitles", "quality", "speed",
+        "autoplay", "auto-play", "shuffle", "loop", "playback", "custom emoji",
+        "खोलें", "बंद करें", "इमोजी", "टिप्पणी", "सर्च", "फ़िल्टर", "प्रोफ़ाइल",
     )
     private val AD_PLAYBACK_MARKERS = listOf(
         "visit advertiser", "skip ad", "stop ad", "ad countdown", "ad badge",
@@ -864,8 +982,36 @@ object YoutubeStudyV2Parser {
         "\\s*(?:·|•|\\|)?\\s*[\\d.,\\u00a0]+(?:\\s*(?:k|m|b|lakh|crore))?\\s+(?:views?|likes?|subscribers?|watching|products?|ago).*$",
         RegexOption.IGNORE_CASE,
     )
+    private val SUBSCRIBE_BUTTON_REGEX = Regex(
+        "^(?:Subscribe to|Subscribed to|Unsubscribe from)\\s+(.+?)\\.?$",
+        RegexOption.IGNORE_CASE,
+    )
+    private val HINDI_SUBSCRIBE_REGEX = Regex(
+        "^(.+?)\\s+(?:की सदस्यता लें|की सदस्यता ली गई|की सदस्यता छोड़ें)\\.?$",
+        RegexOption.IGNORE_CASE,
+    )
+
+    internal fun extractChannelFromSubscribeButton(
+        nodes: List<YoutubeV2Node>,
+        visible: List<Int>,
+        playerBottom: Int? = null,
+        density: Float = 1f,
+    ): String? {
+        return visible.asSequence().map { nodes[it] }
+            .filter { node ->
+                playerBottom == null || node.bottom >= playerBottom - 24 * density
+            }
+            .mapNotNull { node ->
+                val desc = cleanText(node.contentDescription) ?: cleanText(node.text) ?: return@mapNotNull null
+                val extracted = SUBSCRIBE_BUTTON_REGEX.find(desc)?.groupValues?.getOrNull(1)?.trim()
+                    ?: HINDI_SUBSCRIBE_REGEX.find(desc)?.groupValues?.getOrNull(1)?.trim()
+                extracted?.let(::cleanOwnerText)?.takeIf(::isPlausibleOwnerLabel)
+            }
+            .firstOrNull()
+    }
+
     private val SUBSCRIBER_SUFFIX = Regex(
-        "\\s+[\\d.,\\u00a0]+(?:\\s*(?:k|m|b|lakh|crore))?\\s+subscribers?\\b.*$",
+        "\\s+[\\d.,\\u00a0]+(?:\\s*(?:k|m|b|lakh|crore|लाख|करोड़))?\\s+(?:subscribers?|सदस्य)\\b.*$",
         RegexOption.IGNORE_CASE,
     )
     private val ACTION_BUTTON_TEXTS = setOf(

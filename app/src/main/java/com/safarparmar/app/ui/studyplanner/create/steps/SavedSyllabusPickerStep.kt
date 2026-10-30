@@ -79,7 +79,7 @@ fun SavedSyllabusPickerStep(
     var searchQuery by remember { mutableStateOf("") }
     val ink = MaterialTheme.colorScheme.onSurface
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
-    val rule = MaterialTheme.colorScheme.outlineVariant
+    val rule = PlannerFlatColors.BorderSoft
     val filteredSyllabi = remember(syllabi, searchQuery) {
         if (searchQuery.isBlank()) syllabi
         else syllabi.filter { it.name.contains(searchQuery.trim(), ignoreCase = true) }
@@ -257,7 +257,7 @@ private fun NewSyllabusRow(onClick: () -> Unit) {
             Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
-    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+    HorizontalDivider(color = PlannerFlatColors.BorderSoft)
 }
 
 @Composable

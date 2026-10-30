@@ -33,6 +33,8 @@ data class EkagraTimerRecoveryState(
     val quickUnlockGraceUntilMs: Long = 0,
 )
 
+internal data class CompletedTimerBreak(val seconds: Int, val endedAtMs: Long, val endedElapsedMs: Long)
+
 internal data class EkagraTimerRecoveryResult(
     val state: EkagraTimerRecoveryState,
     val sameBoot: Boolean,
@@ -41,6 +43,8 @@ internal data class EkagraTimerRecoveryResult(
     val completed: Boolean,
     val completedAtMs: Long?,
     val periodFinished: Boolean,
+    val completedBreaks: List<CompletedTimerBreak> = emptyList(),
+    val completedElapsedMs: Long? = null,
 )
 
 /**
@@ -49,6 +53,14 @@ internal data class EkagraTimerRecoveryResult(
  * Paused checkpoints and checkpoints from another boot never earn a missing-time gap.
  */
 internal fun recoverEkagraTimer(
+    checkpoint: EkagraTimerRecoveryState,
+    nowElapsedMs: Long,
+    currentBootCount: Int?,
+    nowAtMs: Long,
+): EkagraTimerRecoveryResult = advanceEkagraTimer(checkpoint, nowElapsedMs, currentBootCount, nowAtMs)
+
+/** Shared pure reducer for live ticks, alarms and process recovery. No persistence or effects. */
+internal fun advanceEkagraTimer(
     checkpoint: EkagraTimerRecoveryState,
     nowElapsedMs: Long,
     currentBootCount: Int?,
@@ -99,6 +111,7 @@ internal fun recoverEkagraTimer(
         return EkagraTimerRecoveryResult(state.copy(isRunning = false), sameBoot, 0, false, null, false)
     }
 
+    val completedBreaks = mutableListOf<CompletedTimerBreak>()
     var gap = elapsed
     var consumed = 0L
     var periodFinished = false
@@ -115,6 +128,12 @@ internal fun recoverEkagraTimer(
         consumed += advance
         if (state.remainingSeconds > 0) break
         periodFinished = true
+        if (state.mode == TimerMode.BREAK) {
+            val endElapsed = addMillis(advanceStartedElapsedMs, consumed * 1000L)
+            val endAt = addMillis(checkpoint.checkpointAtMs,
+                (advanceStartedElapsedMs - checkpoint.checkpointElapsedMs).coerceAtLeast(0L) + consumed * 1000L)
+            completedBreaks += CompletedTimerBreak(state.totalSeconds, endAt, endElapsed)
+        }
 
         when {
             state.mode == TimerMode.BREAK && state.suspendedTotalSeconds > 0 -> {
@@ -168,7 +187,8 @@ internal fun recoverEkagraTimer(
         }
         if (gap == 0L) break
     }
-    return EkagraTimerRecoveryResult(state, sameBoot, elapsed, completed, completedAtMs, periodFinished)
+    return EkagraTimerRecoveryResult(state, sameBoot, elapsed, completed, completedAtMs, periodFinished, completedBreaks,
+        if (completed) addMillis(advanceStartedElapsedMs, consumed * 1000L) else null)
 }
 
 private fun addSeconds(current: Int, extra: Long): Int =

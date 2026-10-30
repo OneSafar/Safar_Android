@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ekagra_history_cache_error">Is phone par history ki copy save nahi hui. Aapke saved sessions surakshit hain. Jagah khaali karke retry karein.</string>
+    <string name="ekagra_history_connect_once">Saved history download karne ke liye ek baar internet se judein. Sync ka intezaar kar rahe sessions abhi bhi dikhte hain.</string>
+    <string name="ekagra_history_offline_updated">Offline · Last updated %1$s</string>
+    <string name="ekagra_history_last_updated">Last updated %1$s · Refresh baaki hai</string>
+    <string name="ekagra_bubble_time_focused">Focus ka samay</string>
+    <string name="ekagra_bubble_time_remaining">Baaki samay</string>
+    <string name="ekagra_bubble_paused">Ruka hua</string>
+</resources>

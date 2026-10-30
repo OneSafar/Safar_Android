@@ -136,6 +136,10 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import com.safarparmar.app.ui.tutorial.tutorialTarget
+import androidx.compose.runtime.saveable.rememberSaveable
+import com.safarparmar.app.ui.adaptive.LocalSafarAdaptiveState
+import com.safarparmar.app.ui.adaptive.usePlannerTopNavigation
+import com.safarparmar.app.ui.adaptive.plannerPanesFit
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
@@ -154,7 +158,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.material.icons.filled.ChevronLeft
-import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.rounded.Whatshot
 import androidx.compose.material.icons.rounded.EmojiEvents
 import androidx.compose.material.icons.rounded.AutoAwesome
@@ -174,6 +177,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -229,9 +234,6 @@ import com.safarparmar.app.ui.components.PlanCardSkeleton
 import com.safarparmar.app.ui.components.SafarInlineRefreshIndicator
 import com.safarparmar.app.ui.components.SafarPullRefreshBox
 import com.safarparmar.app.ui.studyplanner.StudyPlannerTab
-import com.safarparmar.app.ui.components.PlanCardSkeleton
-import com.safarparmar.app.ui.components.SafarInlineRefreshIndicator
-import com.safarparmar.app.ui.components.SafarPullRefreshBox
 import com.safarparmar.app.ui.studyplanner.plan.PlanTabScreen
 import com.safarparmar.app.ui.studyplanner.plan.MissedTopicsScreen
 import kotlinx.coroutines.Dispatchers
@@ -255,11 +257,12 @@ import kotlin.math.max
 @Composable
 internal fun CalendarTab(plan: StudyPlan, state: StudyPlannerUiState, actions: PlannerActions) {
     val todayK = todayKey()
-    var visibleMonth by remember { mutableStateOf(YearMonth.now()) }
+    var visibleMonthKey by rememberSaveable(plan.id) { mutableStateOf(YearMonth.now().toString()) }
+    val visibleMonth = YearMonth.parse(visibleMonthKey)
     val locale = LocalLocale.current.platformLocale
     val monthSlots = remember(visibleMonth) { monthCalendarSlots(visibleMonth) }
     val weeks = remember(monthSlots) { monthSlots.chunked(7) }
-    var sheetDay by remember { mutableStateOf<String?>(null) }
+    var sheetDay by rememberSaveable(plan.id) { mutableStateOf<String?>(null) }
     var showUnscheduledTopicsScreen by remember { mutableStateOf(false) }
 
     val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
@@ -272,130 +275,106 @@ internal fun CalendarTab(plan: StudyPlan, state: StudyPlannerUiState, actions: P
         }
     }
 
-    sheetDay?.let { day ->
-        SelectedDayLogSheet(
-            dateIso = day,
-            plan = plan,
-            items = state.calendar[day].orEmpty(),
-            actions = actions,
-            onDismiss = { sheetDay = null },
-        )
-    }
+    val adaptive = LocalSafarAdaptiveState.current
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val useSidePanel = adaptive.plannerPanesFit(maxWidth, maxHeight)
+        if (!useSidePanel) sheetDay?.let { day ->
+            SelectedDayLogSheet(
+                dateIso = day,
+                plan = plan,
+                items = state.calendar[day].orEmpty(),
+                actions = actions,
+                onDismiss = { sheetDay = null },
+            )
+        }
 
+        Box(modifier = Modifier.fillMaxSize()) {
+            if (useSidePanel) {
+                TabletPlannerCalendar(
+                    plan = plan,
+                    calendar = state.calendar,
+                    visibleMonth = visibleMonth,
+                    selectedDay = sheetDay,
+                    onPrevious = { visibleMonthKey = visibleMonth.minusMonths(1).toString() },
+                    onNext = { visibleMonthKey = visibleMonth.plusMonths(1).toString() },
+                    onDay = { sheetDay = it },
+                    onToday = { visibleMonthKey = YearMonth.now().toString(); sheetDay = todayK },
+                    actions = actions,
+                    onMissedTopics = { showUnscheduledTopicsScreen = true },
+                )
+            } else LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 32.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                item {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        CalendarPlainHeader(plan, isLight, Modifier.weight(1f))
+                        TextButton(onClick = { visibleMonthKey = YearMonth.now().toString(); sheetDay = todayK }) {
+                            Text(stringResource(R.string.planner_warm_today))
+                        }
+                    }
+                }
 
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 32.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            item {
-                CalendarPlainHeader(plan = plan, isLight = isLight)
-            }
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp)
+                    ) {
+                        PlannerMonthGrid(visibleMonth, weeks, locale, todayK, sheetDay, plan, isLight,
+                            dayItems = { state.calendar[it].orEmpty() },
+                            onPrevious = { visibleMonthKey = visibleMonth.minusMonths(1).toString() },
+                            onNext = { visibleMonthKey = visibleMonth.plusMonths(1).toString() }, onDay = { sheetDay = it })
+                    }
+                }
 
-            item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp)
-                ) {
-                    PlannerMonthGrid(visibleMonth, weeks, locale, todayK, sheetDay, plan, isLight,
-                        dayItems = { state.calendar[it].orEmpty() },
-                        onPrevious = { visibleMonth = visibleMonth.minusMonths(1) },
-                        onNext = { visibleMonth = visibleMonth.plusMonths(1) }, onDay = { sheetDay = it })
+                item {
+                    // Flat magazine actions: hairline-separated rows with the colour
+                    // carried by the label, not a filled button.
+                    Spacer(Modifier.height(10.dp))
+                    PlanHairline()
+                    CalendarActionRow(
+                        label = stringResource(R.string.planner_view_revision_topics),
+                        accent = PlannerFlatColors.PrimaryAccent,
+                        onClick = { actions.openRevisionTopics() },
+                    )
+                    PlanHairline()
+                    CalendarActionRow(
+                        label = stringResource(R.string.planner_view_missed_topics),
+                        accent = MaterialTheme.colorScheme.error,
+                        onClick = { showUnscheduledTopicsScreen = true },
+                    )
+                    PlanHairline()
                 }
             }
 
-            item {
-                // Flat magazine actions: hairline-separated rows with the colour
-                // carried by the label, not a filled button.
-                Spacer(Modifier.height(10.dp))
-                PlanHairline()
-                CalendarActionRow(
-                    label = stringResource(R.string.planner_view_revision_topics),
-                    accent = PlannerFlatColors.PrimaryAccent,
-                    onClick = { actions.openRevisionTopics() },
+            if (showUnscheduledTopicsScreen) {
+                val refs = remember(PlannerReferenceKey(plan.subjects)) { plan.flattenTopics() }
+                val missedTopics = remember(PlannerReferenceKey(refs), todayK) {
+                    refs.filter { ref -> ref.topic.isMissed(todayK) }
+                }
+                MissedTopicsScreen(
+                    plan = plan,
+                    missedTopics = missedTopics,
+                    actions = actions,
+                    onDismiss = { showUnscheduledTopicsScreen = false }
                 )
-                PlanHairline(alpha = 0.6f)
-                CalendarActionRow(
-                    label = stringResource(R.string.planner_view_missed_topics),
-                    accent = Color(0xFFDC2626),
-                    onClick = { showUnscheduledTopicsScreen = true },
-                )
-                PlanHairline()
             }
-        }
-
-        if (showUnscheduledTopicsScreen) {
-            val refs = remember(PlannerReferenceKey(plan.subjects)) { plan.flattenTopics() }
-            val missedTopics = remember(PlannerReferenceKey(refs), todayK) {
-                refs.filter { ref -> ref.topic.isMissed(todayK) }
-            }
-            MissedTopicsScreen(
-                plan = plan,
-                missedTopics = missedTopics,
-                actions = actions,
-                onDismiss = { showUnscheduledTopicsScreen = false }
-            )
         }
     }
 }
 
 @Composable
 internal fun CalendarPlainHeader(plan: StudyPlan, isLight: Boolean = false, modifier: Modifier = Modifier) {
-    val examDays = daysUntil(plan.examDate)
-    val examDate = readableDate(plan.examDate).takeUnless { it == "Not set" }.orEmpty()
-
-    // Flat magazine header: eyebrow, then the plan title with the countdown
-    // numeral in serif, and the exam date as a quiet meta line. No card.
-    Column(modifier = modifier.fillMaxWidth().padding(bottom = 4.dp)) {
-        PlanEyebrow("Target exam")
-        Spacer(Modifier.height(16.dp))
-        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
-            Text(
-                text = plan.title.ifBlank { "Your Study Journey" },
-                fontFamily = LoraFontFamily,
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Normal,
-                color = PlannerFlatColors.TextDark,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f),
-            )
-            Spacer(Modifier.width(10.dp))
-            if (examDays != null && examDays >= 0L) {
-                Text(
-                    text = "$examDays",
-                    fontFamily = LoraFontFamily,
-                    fontSize = 22.sp,
-                    color = PlannerFlatColors.PrimaryAccent,
-                    maxLines = 1,
-                )
-                Spacer(Modifier.width(5.dp))
-                Text(
-                    text = if (examDays == 1L) "day left" else "days left",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = PlannerFlatColors.TextMuted,
-                    modifier = Modifier.padding(bottom = 2.dp),
-                )
-            }
-        }
-        if (examDate.isNotEmpty()) {
-            Spacer(Modifier.height(8.dp))
-            Text(
-                text = examDate,
-                fontSize = 11.5.sp,
-                color = PlannerFlatColors.TextMuted,
-            )
-        }
-        Spacer(Modifier.height(18.dp))
-        PlanHairline()
+    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(stringResource(R.string.planner_warm_calendar), style = MaterialTheme.typography.headlineMedium, color = PlannerFlatColors.TextDark)
+        Text(plan.title, style = MaterialTheme.typography.bodyMedium, color = PlannerFlatColors.TextMuted, maxLines = 2, overflow = TextOverflow.Ellipsis)
     }
 }
 
-private enum class CalendarDateStatus(val color: Color) {
+internal enum class CalendarDateStatus(val color: Color) {
     PLANNED(Blue500),
     DONE(Emerald500),
     OVERDUE(Rose500),
@@ -405,19 +384,18 @@ private enum class CalendarDateStatus(val color: Color) {
 /** Resolves done/planned/overdue only — "off day" is rendered as its own independent
  *  glyph (see [CalendarDayChip]) so a topic scheduled on an off-day no longer silently
  *  hides the "off" indicator behind a status dot. */
-private fun calendarDateStatus(
+internal fun calendarDateStatus(
     dateIso: String,
     items: List<CalendarTopicItem>,
     todayIso: String,
 ): CalendarDateStatus? {
-    val planned = items.size
-    val done = items.count { it.status.isStudied }
-    val overdue = dateIso < todayIso && items.any { !it.status.isStudied }
+    val statuses = items.map { calendarTopicStatus(it, dateIso, todayIso) }
     return when {
-        overdue -> CalendarDateStatus.OVERDUE
-        planned > 0 && done == planned -> CalendarDateStatus.DONE
-        planned > 0 -> CalendarDateStatus.PLANNED
-        else -> null
+        statuses.isEmpty() -> null
+        CalendarDateStatus.OVERDUE in statuses -> CalendarDateStatus.OVERDUE
+        CalendarDateStatus.REVISE in statuses -> CalendarDateStatus.REVISE
+        statuses.all { it == CalendarDateStatus.DONE } -> CalendarDateStatus.DONE
+        else -> CalendarDateStatus.PLANNED
     }
 }
 
@@ -435,63 +413,36 @@ internal fun CalendarDayChip(
     onClick: () -> Unit,
     modifier: Modifier = Modifier.width(54.dp),
 ) {
-    val todayK = todayKey()
-    val dayNum = LocalDate.parse(dateIso).dayOfMonth.toString()
-    
-    val accentColor = PlannerFlatColors.PrimaryAccent
-    
-    val dayTextColor = when {
-        isToday -> Color.White
-        isWeekend -> PlannerFlatColors.TextMuted
-        else -> PlannerFlatColors.TextDark
+    val scheme = MaterialTheme.colorScheme
+    val status = calendarDateStatus(dateIso, items, todayKey())
+    val statusColor = when (status) {
+        CalendarDateStatus.DONE -> scheme.secondary
+        CalendarDateStatus.OVERDUE -> scheme.error
+        CalendarDateStatus.REVISE -> scheme.tertiary
+        else -> scheme.primary
     }
-
-    Box(
-        modifier = modifier
-            .clip(CircleShape)
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(if (isToday || selected) 42.dp else 34.dp)
-                    .clip(CircleShape)
-                    .then(
-                        if (isToday) {
-                            Modifier.background(accentColor)
-                        } else if (selected) {
-                            Modifier.border(2.dp, accentColor.copy(alpha = 0.6f), CircleShape)
-                        } else {
-                            Modifier
-                        }
-                    ),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = dayNum,
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = if (isToday || selected) FontWeight.Bold else FontWeight.Normal,
-                        fontSize = 16.sp,
-                        color = if (isToday) Color.White else dayTextColor,
-                    ),
-                )
-                if (isExamDay) {
-                    Icon(
-                        imageVector = Icons.Default.Flag,
-                        contentDescription = stringResource(R.string.planner_exam_day),
-                        tint = PlannerAccent.Coral,
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .size(10.dp),
-                    )
-                }
-            }
+    val day = LocalDate.parse(dateIso).dayOfMonth.toString()
+    val workload = stringResource(R.string.planner_warm_due_load, items.size)
+    val rest = stringResource(R.string.planner_warm_rest)
+    val exam = stringResource(R.string.planner_exam_day)
+    val label = listOfNotNull(readableDate(dateIso), workload, rest.takeIf { isOff }, exam.takeIf { isExamDay }).joinToString(", ")
+    Column(modifier.clip(RoundedCornerShape(14.dp))
+        .background(if (isToday) scheme.primary else if (selected) scheme.primaryContainer else Color.Transparent)
+        .then(if (selected && !isToday) Modifier.border(1.dp, scheme.primary, RoundedCornerShape(14.dp)) else Modifier)
+        .clickable(role = Role.Button, onClick = onClick)
+        .semantics { contentDescription = label; this.selected = selected }
+        .padding(vertical = 3.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(day, fontSize = 16.sp, fontWeight = if (isToday || selected) FontWeight.Bold else FontWeight.Medium,
+                color = if (isToday) scheme.onPrimary else scheme.onSurface)
+            if (isOff || isExamDay) Text(if (isExamDay) "★" else "☾", fontSize = 11.sp,
+                color = if (isToday) scheme.onPrimary else scheme.onSurfaceVariant)
         }
+        if (items.isNotEmpty()) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+            Box(Modifier.size(4.dp).clip(CircleShape).background(if (isToday) scheme.onPrimary else statusColor))
+            Text("${items.size}", fontSize = 11.sp, color = if (isToday) scheme.onPrimary else scheme.onSurfaceVariant)
+        }
+
     }
 }
 
@@ -527,6 +478,38 @@ internal fun SelectedDayLogSheet(
     items: List<CalendarTopicItem>,
     actions: PlannerActions,
     onDismiss: () -> Unit,
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        dragHandle = { BottomSheetDefaults.DragHandle() },
+        containerColor = PlannerFlatColors.BgCream,
+    ) {
+        SafarEnableSheetBackdropBlur()
+        SelectedDayTargets(
+            dateIso = dateIso,
+            plan = plan,
+            items = items,
+            actions = actions,
+            modifier = Modifier.fillMaxWidth()
+                .wrapContentWidth(Alignment.CenterHorizontally)
+                .widthIn(max = 600.dp)
+                .heightIn(max = 480.dp)
+                .padding(horizontal = 20.dp),
+        )
+    }
+}
+
+/** Shared day details: a sheet on compact screens and an inline panel on tablets. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun SelectedDayTargets(
+    dateIso: String,
+    plan: StudyPlan,
+    items: List<CalendarTopicItem>,
+    actions: PlannerActions,
+    modifier: Modifier = Modifier,
+    embedded: Boolean = false,
 ) {
     val todayK = todayKey()
     val planned = items.count { calendarTopicStatus(it, dateIso, todayK) == CalendarDateStatus.PLANNED }
@@ -578,68 +561,60 @@ internal fun SelectedDayLogSheet(
         }
     }
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        dragHandle = { BottomSheetDefaults.DragHandle() },
-        containerColor = PlannerFlatColors.BgCream,
+    LazyColumn(
+        modifier = modifier,
+        contentPadding = PaddingValues(bottom = 28.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        SafarEnableSheetBackdropBlur()
-        // Everything — header, badges, AND the topic rows — lives in one single
-        // LazyColumn. Nesting a scrollable LazyColumn inside a Modifier.verticalScroll
-        // Column (the old layout) creates two competing vertical-scroll containers;
-        // Compose can't always tell whether a drag should scroll the inner list or
-        // drag the sheet itself, so scrolling through topics could accidentally
-        // swipe the whole sheet closed. A single flat LazyColumn removes the
-        // ambiguity — there is only one scrollable, so the sheet's own
-        // nested-scroll-to-dismiss only kicks in once that one list is at its top.
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxWidth()
-                .wrapContentWidth(Alignment.CenterHorizontally)
-                .widthIn(max = 600.dp)
-                .heightIn(max = 480.dp)
-                .padding(horizontal = 20.dp),
-            contentPadding = PaddingValues(bottom = 28.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            item {
-                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    val dateTitle = readableDate(dateIso).split(",").firstOrNull() ?: readableDate(dateIso)
-                    Text(
-                        "Your targets for $dateTitle",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(readableDate(dateIso), fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                val dateTitle = readableDate(dateIso).split(",").firstOrNull() ?: readableDate(dateIso)
+                Text(
+                    stringResource(R.string.planner_calendar_targets_for, dateTitle),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(readableDate(dateIso), fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
 
-                    // Day load in effort points vs the daily budget (goal × 2):
-                    // "Light day" under budget, "Full day" at/over. Big topics
-                    // count as more, so 2 big topics can already fill a 3-topic day.
-                    run {
-                        val pointsByTopicId = remember(PlannerReferenceKey(plan.subjects)) {
-                            plan.flattenTopics().associate { it.topic.id to it.topic.effortPoints(it.chapter).toFloat() }
+                // Day load in effort points vs the daily budget (goal × 2):
+                // "Light day" under budget, "Full day" at/over. Big topics
+                // count as more, so 2 big topics can already fill a 3-topic day.
+                run {
+                    val pointsByTopicId = remember(PlannerReferenceKey(plan.subjects)) {
+                        plan.flattenTopics().associate { it.topic.id to it.topic.effortPoints(it.chapter).toFloat() }
+                    }
+                    val pendingPoints = items
+                        .filter { calendarTopicStatus(it, dateIso, todayK) != CalendarDateStatus.DONE }
+                        .sumOf { (pointsByTopicId[it.topicId] ?: 2f).toDouble() }
+                    val budget = (plan.dailyGoal ?: 3).coerceAtLeast(1) * 2.0
+                    if (items.isNotEmpty()) {
+                        val label = when {
+                            pendingPoints <= 0.0 -> "All done for this day"
+                            pendingPoints < budget -> "Light day — room for more"
+                            else -> "Full day — big topics count as more"
                         }
-                        val pendingPoints = items
-                            .filter { calendarTopicStatus(it, dateIso, todayK) != CalendarDateStatus.DONE }
-                            .sumOf { (pointsByTopicId[it.topicId] ?: 2f).toDouble() }
-                        val budget = (plan.dailyGoal ?: 3).coerceAtLeast(1) * 2.0
-                        if (items.isNotEmpty()) {
-                            val label = when {
-                                pendingPoints <= 0.0 -> "All done for this day"
-                                pendingPoints < budget -> "Light day — room for more"
-                                else -> "Full day — big topics count as more"
-                            }
-                            Text(
-                                text = label,
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
+                        Text(
+                            text = label,
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+
+                if (embedded) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            DayStatBox(value = planned, label = stringResource(R.string.planner_to_study), color = Blue500, icon = Icons.AutoMirrored.Filled.MenuBook, modifier = Modifier.weight(1f), compact = true)
+                            DayStatBox(value = done, label = stringResource(R.string.common_completed), color = Emerald500, icon = Icons.Rounded.CheckCircle, modifier = Modifier.weight(1f), compact = true)
+                        }
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            DayStatBox(value = revisedCount, label = stringResource(R.string.planner_to_revise), color = Orange500, icon = Icons.Default.TrackChanges, modifier = Modifier.weight(1f), compact = true)
+                            DayStatBox(value = missed, label = stringResource(R.string.planner_missed), color = Rose500, icon = Icons.Default.Cancel, modifier = Modifier.weight(1f), compact = true)
                         }
                     }
-
+                } else {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -649,32 +624,32 @@ internal fun SelectedDayLogSheet(
                         DayStatBox(value = revisedCount, label = stringResource(R.string.planner_to_revise), color = Orange500, icon = Icons.Default.TrackChanges, modifier = Modifier.weight(1f))
                         DayStatBox(value = missed, label = stringResource(R.string.planner_missed), color = Rose500, icon = Icons.Default.Cancel, modifier = Modifier.weight(1f))
                     }
+                }
 
-                    HorizontalDivider()
-                    if (items.isEmpty()) {
-                        Text(
-                            "No topics planned for this day.",
-                            modifier = Modifier.padding(vertical = 24.dp),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
+                HorizontalDivider(color = PlannerFlatColors.BorderSoft)
+                if (items.isEmpty()) {
+                    Text(
+                        stringResource(R.string.planner_calendar_no_topics),
+                        modifier = Modifier.padding(vertical = 24.dp),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
+        }
 
-            // Compact one-line-per-topic rows: with a full daily goal (e.g. 15
-            // topics/day) the old tall cards (name + subject line + a wrapping row
-            // of action chips each) made this sheet scroll for several screens.
-            // Status is shown as a read-only badge — marking done/revision happens
-            // from the topic's own card, not here — and "Change date" replaces the
-            // old swap-only flow with a real date picker that can move a topic to
-            // any date directly.
-            items(items, key = { it.topicId }) { item ->
-                CompactDayTopicRow(
-                    item = item,
-                    dateIso = dateIso,
-                    onChangeDate = { changeDateTarget = item },
-                )
-            }
+        // Compact one-line-per-topic rows: with a full daily goal (e.g. 15
+        // topics/day) the old tall cards (name + subject line + a wrapping row
+        // of action chips each) made this sheet scroll for several screens.
+        // Status is shown as a read-only badge — marking done/revision happens
+        // from the topic's own card, not here — and "Change date" replaces the
+        // old swap-only flow with a real date picker that can move a topic to
+        // any date directly.
+        items(items, key = { it.topicId }) { item ->
+            CompactDayTopicRow(
+                item = item,
+                dateIso = dateIso,
+                onChangeDate = { changeDateTarget = item },
+            )
         }
     }
 }
@@ -686,59 +661,14 @@ private fun DayStatBox(
     color: Color,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     modifier: Modifier = Modifier,
+    compact: Boolean = false,
 ) {
-    // The day sheet is a pop-up, so it belongs to the glass layer: each tile
-    // keeps its own status colour but renders as tinted glass rather than a
-    // solid block. Alphas are raised because the tile carries white content.
-    Column(
-        modifier = modifier
-            .glassSurface(
-                shape = RoundedCornerShape(12.dp),
-                tint = color,
-                tintTopAlpha = 0.78f,
-                tintBottomAlpha = 0.58f,
-            )
-            .padding(10.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Box(
-            modifier = Modifier.fillMaxWidth(),
-            contentAlignment = Alignment.TopStart
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(22.dp)
-                    .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.2f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
-            }
+    Surface(modifier = modifier, color = MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(18.dp)) {
+        Column(Modifier.padding(8.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Icon(icon, null, Modifier.size(18.dp), tint = color)
+            Text("$value", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface)
+            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 3, overflow = TextOverflow.Ellipsis)
         }
-        
-        Spacer(Modifier.height(4.dp))
-        
-        Text(
-            text = "$value",
-            style = MaterialTheme.typography.titleLarge.copy(
-                fontWeight = FontWeight.ExtraBold,
-                color = Color.White,
-                fontSize = 28.sp
-            ),
-        )
-        
-        Spacer(Modifier.height(4.dp))
-        
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall.copy(
-                color = Color.White.copy(alpha = 0.9f),
-                fontWeight = FontWeight.Medium,
-                fontSize = 11.sp
-            ),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
     }
 }
 
@@ -752,7 +682,7 @@ private fun CompactDayTopicRow(
     val topicStatus = calendarTopicStatus(item, dateIso, todayK)
     val revisionTypeLabel = calendarRevisionTypeLabel(item)
     val scheme = MaterialTheme.colorScheme
-    
+
     var showFullName by remember { mutableStateOf(false) }
 
     // Pop-up layer → glass. Each row keeps its status colour as a light tint.
@@ -784,7 +714,7 @@ private fun CompactDayTopicRow(
                 Text(
                     item.topicName,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp,
+                    fontSize = 16.sp,
                     color = scheme.onSurface,
                     maxLines = if (showFullName) Int.MAX_VALUE else 1,
                     overflow = if (showFullName) TextOverflow.Clip else TextOverflow.Ellipsis,
@@ -892,7 +822,7 @@ private fun CalendarActionRow(
         Icon(
             imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
             contentDescription = null,
-            tint = PlannerFlatColors.BorderSoft,
+            tint = PlannerFlatColors.ProgressTrack,
             modifier = Modifier.size(18.dp),
         )
     }
@@ -907,12 +837,12 @@ internal fun PlannerMonthGrid(
     onDay: (String) -> Unit,
 ) {
     Column(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().flatCard(RoundedCornerShape(24.dp)).padding(10.dp).tutorialTarget("planner.calendar"),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Row(
             Modifier
-                .fillMaxWidth().tutorialTarget("planner.calendar")
+                .fillMaxWidth()
                 .padding(horizontal = 8.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -981,7 +911,7 @@ internal fun PlannerMonthGrid(
                         Box(
                             Modifier
                                 .weight(1f)
-                                .aspectRatio(1f)
+                                .heightIn(min = 56.dp)
                                 .padding(2.dp),
                         ) {
                             if (date != null) {
@@ -1005,6 +935,11 @@ internal fun PlannerMonthGrid(
                     }
                 }
             }
+        }
+        Row(Modifier.fillMaxWidth().padding(top = 12.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
+            Text("● " + stringResource(R.string.planner_warm_planned), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+            Text("● " + stringResource(R.string.planner_warm_done), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
+            Text("☾ " + stringResource(R.string.planner_warm_rest), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

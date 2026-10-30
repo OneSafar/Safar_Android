@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="mehfil_post_options">Post options</string>
+    <string name="mehfil_unsave_post">Remove from saved</string>
+    <plurals name="mehfil_announcement_count">
+        <item quantity="one">%d announcement</item>
+        <item quantity="other">%d announcements</item>
+    </plurals>
+    <plurals name="mehfil_days_ago">
+        <item quantity="one">%d day ago</item>
+        <item quantity="other">%d days ago</item>
+    </plurals>
+    <string name="mehfil_post_heading">Title</string>
+    <string name="mehfil_post_heading_hint">Give your post a heading</string>
+    <string name="mehfil_post_body">Post body</string>
+    <string name="mehfil_community_description">Conversations, questions and support from your peers.</string>
+    <string name="mehfil_official_description">Official announcements from SAFAR.</string>
+    <string name="mehfil_view_details">View details</string>
+    <string name="mehfil_subtitle">A space to share, learn and grow together.</string>
+</resources>

@@ -86,7 +86,7 @@ fun DailyTopicsStep(
         Spacer(Modifier.height(8.dp))
         Text(
             text = stringResource(R.string.planner_add_daily_topics),
-            fontFamily = LoraFontFamily,
+            fontFamily = com.safarparmar.app.ui.theme.MulishFontFamily,
             fontSize = 26.sp,
             fontWeight = FontWeight.Normal,
             color = ink,
@@ -219,7 +219,7 @@ fun DailyTopicsStep(
                 modifier = Modifier
                     .weight(1f)
                     .clip(RoundedCornerShape(20.dp))
-                    .border(1.dp, scheme.outlineVariant.copy(alpha = 0.55f), RoundedCornerShape(20.dp))
+                    .border(1.dp, PlannerFlatColors.BorderSoft, RoundedCornerShape(20.dp))
                     .clickable(enabled = !isSaving) { onContinue(emptyList()) }
                     .padding(vertical = 14.dp),
                 contentAlignment = Alignment.Center,

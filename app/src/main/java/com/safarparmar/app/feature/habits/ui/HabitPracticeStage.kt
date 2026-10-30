@@ -25,7 +25,7 @@ internal fun HabitPracticeStage(scene: PracticeScene) {
     Box(Modifier.fillMaxSize().background(HabitColors.Background)) {
         when (scene) {
             PracticeScene.HABIT_NAME, PracticeScene.HABIT_REPEAT -> HabitFormBottomSheet(
-                onDismiss = {}, onSubmit = { _, _, _, _ -> }, inlinePreview = true, initialName = habit.name)
+                onDismiss = {}, onSubmit = { _, _, _, _, _ -> }, inlinePreview = true, initialName = habit.name)
             else -> {
                 val tab = when (scene) { PracticeScene.HABIT_WEEK -> HabitTab.WEEKLY; PracticeScene.HABIT_MONTH -> HabitTab.MONTHLY; else -> HabitTab.TODAY }
                 Column(Modifier.fillMaxSize()) {

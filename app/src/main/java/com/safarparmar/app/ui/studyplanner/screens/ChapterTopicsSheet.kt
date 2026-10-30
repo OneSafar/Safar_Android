@@ -109,7 +109,7 @@ internal fun ChapterTopicsSheet(
             Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp)) {
                 Text(
                     text = chapterName,
-                    fontFamily = LoraFontFamily,
+                    fontFamily = com.safarparmar.app.ui.theme.MulishFontFamily,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Normal,
                     color = PlannerFlatColors.TextDark,
@@ -186,7 +186,7 @@ internal fun ChapterTopicsSheet(
                 ) {
                     Text(
                         text = stringResource(R.string.planner_topics),
-                        fontFamily = LoraFontFamily,
+                        fontFamily = com.safarparmar.app.ui.theme.MulishFontFamily,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Normal,
                         color = PlannerFlatColors.TextDark,
@@ -214,7 +214,7 @@ internal fun ChapterTopicsSheet(
                 ) {
                     itemsIndexed(topics, key = { _, topic -> topic.id }) { _, topic ->
                         key(topic.id) {
-                            PlanHairline(alpha = 0.6f)
+                            PlanHairline()
                             SyllabusMagazineTopicRow(
                                 topic = topic,
                                 chapter = chapter,

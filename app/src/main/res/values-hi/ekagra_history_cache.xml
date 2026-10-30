@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ekagra_history_cache_error">इस फ़ोन पर इतिहास की कॉपी सेव नहीं हो सकी। आपके सेव किए गए सत्र सुरक्षित हैं। जगह खाली करके फिर कोशिश करें।</string>
+    <string name="ekagra_history_connect_once">सेव किया गया इतिहास डाउनलोड करने के लिए एक बार इंटरनेट से जुड़ें। सिंक का इंतज़ार कर रहे सत्र अभी भी दिखते हैं।</string>
+    <string name="ekagra_history_offline_updated">ऑफ़लाइन · पिछला अपडेट %1$s</string>
+    <string name="ekagra_history_last_updated">पिछला अपडेट %1$s · रीफ़्रेश बाकी है</string>
+    <string name="ekagra_bubble_time_focused">एकाग्रता का समय</string>
+    <string name="ekagra_bubble_time_remaining">बाकी समय</string>
+    <string name="ekagra_bubble_paused">रुका हुआ</string>
+</resources>

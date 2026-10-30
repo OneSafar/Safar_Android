@@ -67,28 +67,28 @@ fun WeeklyView(
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text("${weekStart.format(dateFormat)} – ${days.last().format(dateFormat)}",
                         modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium, color = HabitColors.TextSecondary)
-                    IconButton(onClick = onPrevWeek, style = ButtonStyle.Secondary, modifier = Modifier.size(48.dp)) {
+                    IconButton(onClick = onPrevWeek, style = ButtonStyle.Secondary, modifier = Modifier.size(48.dp).habitPress(scaleDown = HabitMotion.ScaleIcon)) {
                         Icon(Icons.AutoMirrored.Rounded.KeyboardArrowLeft, contentDescription = "Previous week", modifier = Modifier.size(20.dp))
                     }
                     Spacer(Modifier.width(8.dp))
-                    IconButton(onClick = onNextWeek, style = ButtonStyle.Secondary, modifier = Modifier.size(48.dp)) {
+                    IconButton(onClick = onNextWeek, style = ButtonStyle.Secondary, modifier = Modifier.size(48.dp).habitPress(scaleDown = HabitMotion.ScaleIcon)) {
                         Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = "Next week", modifier = Modifier.size(20.dp))
                     }
                 }
-                if (!isCurrentWeek) Button(onClick = onCurrent, style = ButtonStyle.Ghost) { Text("Back to this week") }
+                if (!isCurrentWeek) Button(onClick = onCurrent, modifier = Modifier.habitPress(scaleDown = HabitMotion.ScaleButton), style = ButtonStyle.Ghost) { Text("Back to this week") }
             }
         }
         if (habits.isEmpty()) {
             item(key = "empty") {
                 ModernSoftCard(Modifier.fillMaxWidth().padding(0.dp)) {
                     ModernEmptyState("Start with one habit", "Choose something small you want to practise regularly.")
-                    Button(onClick = onAdd, modifier = Modifier.fillMaxWidth()) { Text("Add your first habit") }
+                    Button(onClick = onAdd, modifier = Modifier.fillMaxWidth().habitPress(scaleDown = HabitMotion.ScaleButton)) { Text("Add your first habit") }
                 }
             }
         } else {
             if (habits.size > 1 || filterState.totalCount() > 0) {
                 item(key = "filters") {
-                    Button(onClick = { showFilterSheet = true }, style = ButtonStyle.Secondary) {
+                    Button(onClick = { showFilterSheet = true }, modifier = Modifier.habitPress(scaleDown = HabitMotion.ScaleButton), style = ButtonStyle.Secondary) {
                         Text(if (filterState.totalCount() > 0) "Filter habits · ${filterState.totalCount()} selected" else "Filter habits")
                     }
                 }
@@ -97,7 +97,7 @@ fun WeeklyView(
                 item(key = "no-match") {
                     ModernSoftCard(Modifier.fillMaxWidth().padding(0.dp)) {
                         Text("No habits match your filters", style = MaterialTheme.typography.titleMedium, color = HabitColors.TextPrimary)
-                        Button(onClick = { filterState = HabitFilterState() }, style = ButtonStyle.Ghost) { Text("Show all habits") }
+                        Button(onClick = { filterState = HabitFilterState() }, modifier = Modifier.habitPress(scaleDown = HabitMotion.ScaleButton), style = ButtonStyle.Ghost) { Text("Show all habits") }
                     }
                 }
             } else {
@@ -151,7 +151,7 @@ private fun WeeklyHabitCard(
                     if (upcoming > 0) append(" · $upcoming upcoming")
                 }, style = MaterialTheme.typography.bodySmall, color = HabitColors.TextSecondary)
             }
-            Button(onClick = { onEditHabit(item.habit) }, style = ButtonStyle.Ghost) { Text("Edit") }
+            Button(onClick = { onEditHabit(item.habit) }, modifier = Modifier.habitPress(scaleDown = HabitMotion.ScaleButton), style = ButtonStyle.Ghost) { Text("Edit") }
         }
         Spacer(Modifier.height(14.dp))
         BoxWithConstraints(Modifier.fillMaxWidth()) {

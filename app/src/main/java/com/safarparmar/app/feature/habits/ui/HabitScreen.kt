@@ -6,37 +6,21 @@ import android.content.Intent
 import android.content.IntentFilter
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.border
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowForward
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
-import com.safarparmar.app.feature.habits.viewmodel.HabitTab
 import com.safarparmar.app.feature.habits.viewmodel.HabitViewModel
 import com.safarparmar.app.ui.drawer.SafarDrawerScaffold
 import com.safarparmar.app.ui.navigation.Routes
@@ -55,7 +39,10 @@ fun HabitScreen(
     viewModel: HabitViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val iconViewModel: com.safarparmar.app.feature.habits.viewmodel.HabitIconViewModel = hiltViewModel()
+    val habitIcons by iconViewModel.icons.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
+    var openDrawer by remember { mutableStateOf<() -> Unit>({}) }
     var showAddHabit by rememberSaveable { mutableStateOf(false) }
     var editingId by rememberSaveable { mutableStateOf<Long?>(null) }
     com.safarparmar.app.ui.tutorial.ScreenPracticeEntry(
@@ -64,16 +51,8 @@ fun HabitScreen(
 
     val selectedHabit = state.weeklyHabits.firstOrNull { it.habit.id == editingId }?.habit
     val snackbar = remember { SnackbarHostState() }
-    val pager = rememberPagerState(initialPage = state.selectedTab.ordinal) { HabitTab.entries.size }
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     val context = LocalContext.current
-
-    LaunchedEffect(pager.settledPage) {
-        viewModel.selectTab(HabitTab.entries[pager.settledPage])
-    }
-    LaunchedEffect(state.selectedTab) {
-        if (pager.currentPage != state.selectedTab.ordinal) pager.scrollToPage(state.selectedTab.ordinal)
-    }
 
     LaunchedEffect(viewModel) {
         launch { viewModel.messages.collect { snackbar.showSnackbar(it) } }
@@ -112,95 +91,20 @@ fun HabitScreen(
             isDarkTheme = isDarkTheme,
             onNavigate = onNavigate,
             onToggleDarkTheme = onToggleDarkTheme,
+            showTopBar = false,
+            onDrawerControllerReady = { openDrawer = it },
             containerColor = HabitColors.Background
         ) { padding ->
-            Box(
-                Modifier
-                    .fillMaxSize()
-                    .background(HabitColors.Background)
-                    .padding(padding)
-            ) {
-                Column(
-                    Modifier
-                        .fillMaxHeight()
-                        .widthIn(max = 920.dp)
-                        .fillMaxWidth()
-                        .align(Alignment.TopCenter)
-                ) {
-                    ModernTabs(
-                        selected = HabitTab.entries[pager.currentPage],
-                        onSelected = { tab -> scope.launch { pager.animateScrollToPage(tab.ordinal) } },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 6.dp)
-                    )
-
-                    state.syncError?.let { message ->
-                        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Text(message, modifier = Modifier.weight(1f), color = HabitColors.TextSecondary)
-                            TextButton(onClick = { scope.launch { viewModel.refreshBackend() } }) { Text("Retry") }
-                        }
-                    }
-                    if (state.isLoading) {
-                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator(color = HabitColors.RoyalPurple)
-                        }
-                    } else {
-                        HorizontalPager(
-                            state = pager,
-                            beyondViewportPageCount = 1,
-                            modifier = Modifier.weight(1f)
-                        ) { page ->
-                            when (HabitTab.entries[page]) {
-                                HabitTab.TODAY -> TodayView(
-                                    date = state.selectedDate,
-                                    habits = state.todayHabits,
-                                    allHabits = state.weeklyHabits.map { it.habit },
-                                    onToggle = { id, done -> viewModel.toggleTodayHabit(id, state.selectedDate, done) },
-                                    onEditHabit = { editingId = it.id },
-                                    modifier = Modifier.fillMaxSize(),
-                                    hasHabits = state.weeklyHabits.isNotEmpty(),
-                                    onAdd = { showAddHabit = true }
-                                )
-                                HabitTab.WEEKLY -> WeeklyView(
-                                    weekStart = state.weekStart,
-                                    habits = state.weeklyHabits,
-                                    onToggleDay = viewModel::toggleHabit,
-                                    onPrevWeek = { viewModel.changeWeek(false) },
-                                    onNextWeek = { viewModel.changeWeek(true) },
-                                    onEditHabit = { editingId = it.id },
-                                    modifier = Modifier.fillMaxSize(),
-                                    today = state.selectedDate,
-                                    onCurrent = viewModel::currentWeek,
-                                    onAdd = { showAddHabit = true }
-                                )
-                                HabitTab.MONTHLY -> MonthlyView(
-                                    monthAnchor = state.monthAnchor,
-                                    habits = state.monthlyHabits,
-                                    onToggleDay = viewModel::toggleHabit,
-                                    onPrevMonth = { viewModel.changeMonth(false) },
-                                    onNextMonth = { viewModel.changeMonth(true) },
-                                    onEditHabit = { editingId = it.id },
-                                    modifier = Modifier.fillMaxSize(),
-                                    today = state.selectedDate,
-                                    onCurrent = viewModel::currentMonth,
-                                    onAdd = { showAddHabit = true }
-                                )
-                                HabitTab.INSIGHTS -> com.safarparmar.app.feature.habits.ui.insights.HabitInsightsContent(
-                                    onShowSnackbar = { msg -> scope.launch { snackbar.showSnackbar(msg) } },
-                                    modifier = Modifier.fillMaxSize()
-                                )
-                            }
-                        }
-                    }
-                }
-
-                if (pager.currentPage != HabitTab.INSIGHTS.ordinal) {
-                    ModernPrimaryFab(
-                        onClick = { showAddHabit = true },
-                        modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp)
-                    )
-                }
+            Box(Modifier.fillMaxSize().background(HabitColors.Background).padding(padding).consumeWindowInsets(padding), contentAlignment = Alignment.TopCenter) {
+                HabitTimetableContent(
+                    state = state,
+                    habitIcons = habitIcons,
+                    habitViewModel = viewModel,
+                    onAddHabit = { showAddHabit = true },
+                    onEditHabit = { editingId = it.id },
+                    onMore = { openDrawer() },
+                    snackbar = snackbar
+                )
 
                 SnackbarHost(
                     hostState = snackbar,
@@ -212,7 +116,7 @@ fun HabitScreen(
         if (showAddHabit) {
             AddHabitBottomSheet(
                 onDismiss = { showAddHabit = false },
-                onCreate = { name, days, isEveryDay, reminderTime -> viewModel.createHabit(name, days, isEveryDay, reminderTime) },
+                onCreate = { name, days, isEveryDay, reminderTime, emoji -> viewModel.createHabit(name, days, isEveryDay, reminderTime, emoji) },
                 onCreated = { name, days ->
                     scope.launch { snackbar.showSnackbar(habitCreatedMessage(name, days, LocalDate.now())) }
                 }
@@ -223,7 +127,8 @@ fun HabitScreen(
             EditHabitBottomSheet(
                 habit = selectedHabit,
                 onDismiss = { editingId = null },
-                onSave = viewModel::editHabit,
+                onSave = { habit, emoji -> viewModel.editHabit(habit, emoji) },
+                initialEmoji = habitIcons[selectedHabit.remoteId] ?: "🌱",
                 onArchive = { id ->
                     viewModel.archiveHabit(id)
                     editingId = null

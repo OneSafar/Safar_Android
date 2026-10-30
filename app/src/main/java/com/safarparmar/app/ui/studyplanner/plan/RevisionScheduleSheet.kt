@@ -347,7 +347,7 @@ private fun SpacedRevisionOptionCard(
 
                 Column {
                     selectedDates.forEachIndexed { index, dateStr ->
-                        if (index > 0) PlanHairline(alpha = 0.6f)
+                        if (index > 0) PlanHairline()
                         SpacedRevisionDateRow(index = index, dateStr = dateStr)
                     }
                 }

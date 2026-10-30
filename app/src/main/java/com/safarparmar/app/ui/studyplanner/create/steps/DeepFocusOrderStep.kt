@@ -274,7 +274,7 @@ private fun DeepFocusTopicsSheet(
                             modifier = Modifier.animateItem(),
                         )
                         if (index < topicNames.lastIndex) {
-                            HorizontalDivider(color = PlannerFlatColors.BorderSoft.copy(alpha = 0.7f))
+                            HorizontalDivider(color = PlannerFlatColors.BorderSoft)
                         }
                     }
                 }
@@ -315,7 +315,7 @@ private fun DeepFocusRow(
     val badgeBg = if (usePlannerFlatColors) PlannerFlatColors.AccentTint else scheme.primaryContainer
     val badgeFg = if (usePlannerFlatColors) PlannerFlatColors.PrimaryAccent else scheme.onPrimaryContainer
     val rowBg = when {
-        usePlannerFlatColors && isDragging -> PlannerFlatColors.BorderSoft.copy(alpha = 0.35f)
+        usePlannerFlatColors && isDragging -> PlannerFlatColors.ProgressTrack.copy(alpha = 0.35f)
         usePlannerFlatColors -> PlannerFlatColors.CardWhite
         useCardSurface && isDragging -> scheme.surfaceContainerLow
         useCardSurface -> scheme.surfaceContainerLowest
@@ -324,7 +324,7 @@ private fun DeepFocusRow(
     }
     val rowBorder = when {
         usePlannerFlatColors -> BorderStroke(0.5.dp, PlannerFlatColors.BorderSoft)
-        useCardSurface -> BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.45f))
+        useCardSurface -> BorderStroke(1.dp, PlannerFlatColors.BorderSoft)
         else -> null
     }
 

@@ -103,10 +103,18 @@ interface YoutubeStudyV2Dao {
         """
         SELECT alias.channelId FROM youtube_v2_alias AS alias
         WHERE alias.aliasType = 'handle' AND alias.normalizedAlias = :handle
-        GROUP BY alias.normalizedAlias HAVING COUNT(DISTINCT alias.channelId) = 1
+        LIMIT 1
         """,
     )
     suspend fun channelIdForHandle(handle: String): String?
+
+    @Query(
+        """
+        SELECT DISTINCT alias.channelId FROM youtube_v2_alias AS alias
+        WHERE alias.aliasType = 'handle' AND alias.normalizedAlias = :handle
+        """,
+    )
+    suspend fun channelIdsForHandle(handle: String): List<String>
 
     @Query(
         """
@@ -169,21 +177,26 @@ class YoutubeStudyV2Repository(
     val visitedChannels: Flow<List<YoutubeV2IdentityEntity>> = dao.observeIdentities()
     val classifications: Flow<List<YoutubeV2ClassificationEntity>> = dao.observeClassifications()
 
-    suspend fun resolveAndAllow(reference: String): Result<YoutubeV2Resolution> = runCatching {
+    suspend fun resolveAndAllow(
+        reference: String,
+        pairedDisplayName: String? = null,
+    ): Result<YoutubeV2Resolution> = runCatching {
         val entered = reference.trim().replace(Regex("\\s+"), " ")
         require(entered.length in 2..120) { "Enter the channel name or @handle shown by YouTube." }
         val handle = entered.takeIf { it.startsWith('@') }?.let(::normalizeHandle)
-        if (handle != null) require(HANDLE.matches(handle)) { "Enter the complete @handle shown by YouTube." }
-        val display = handle?.let { entered } ?: entered
+            ?: pairedDisplayName?.takeIf { it.startsWith('@') }?.let(::normalizeHandle)
+            ?: (if (HANDLE.matches("@$entered")) normalizeHandle("@$entered") else null)
+        val display = pairedDisplayName?.takeUnless { it.startsWith('@') }?.trim()
+            ?: entered.removePrefix("@").trim()
         val normalized = handle ?: normalizeDisplay(display)
         val entity = YoutubeV2IdentityEntity(
             channelId = "accessibility:${if (handle != null) "handle" else "display"}:$normalized",
             handle = handle.orEmpty(),
-            displayName = display,
+            displayName = display.ifBlank { entered },
             thumbnailUrl = null,
             resolvedAtMs = System.currentTimeMillis(),
         )
-        saveAccessibilityIdentity(entity, handle, display.takeIf { handle == null })
+        saveAccessibilityIdentity(entity, handle, display)
         setClassification(entity.channelId, YoutubeChannelClassification.PRODUCTIVE)
         YoutubeV2Resolution(channel = entity, source = "accessibility")
     }
@@ -271,16 +284,31 @@ class YoutubeStudyV2Repository(
         handle: String?,
         displayName: String?,
     ) {
+        val normalizedHandle = handle?.let(::normalizeHandle)?.takeIf(HANDLE::matches)
+        val normalizedDisplay = displayName?.let(::normalizeDisplay)?.takeIf { it.isNotBlank() }
+        val candidateDisplay = normalizedHandle?.removePrefix("@")?.let(::normalizeDisplay)
+        val candidateHandle = normalizedDisplay?.replace(" ", "")?.let { "@$it" }?.takeIf(HANDLE::matches)
+
         val aliases = buildList {
-            handle?.let { add(YoutubeV2AliasEntity("handle", it, entity.channelId, it)) }
-            displayName?.let {
-                add(YoutubeV2AliasEntity("display", normalizeDisplay(it), entity.channelId, it))
+            normalizedHandle?.let {
+                add(YoutubeV2AliasEntity("handle", it, entity.channelId, entity.displayName.ifBlank { it }))
             }
-        }
+            candidateHandle?.takeIf { it != normalizedHandle }?.let {
+                add(YoutubeV2AliasEntity("handle", it, entity.channelId, entity.displayName.ifBlank { it }))
+            }
+            normalizedDisplay?.let {
+                add(YoutubeV2AliasEntity("display", it, entity.channelId, entity.displayName))
+            }
+            candidateDisplay?.takeIf { it != normalizedDisplay }?.let {
+                add(YoutubeV2AliasEntity("display", it, entity.channelId, entity.displayName))
+            }
+        }.distinctBy { it.aliasType to it.normalizedAlias }
+
         database.withTransaction {
             dao.upsertIdentity(entity)
             dao.deleteAliases(entity.channelId)
-            if (handle != null) dao.deleteHandleAlias(handle)
+            normalizedHandle?.let { dao.deleteHandleAlias(it) }
+            candidateHandle?.let { dao.deleteHandleAlias(it) }
             dao.upsertAliases(aliases)
         }
     }
@@ -294,11 +322,24 @@ class YoutubeStudyV2Repository(
         exactDisplayName: String?,
         exactChannelId: String? = null,
     ): YoutubeV2RuntimeEvaluation {
-        val handleId = exactHandle?.let(::normalizeHandle)?.takeIf(HANDLE::matches)
-            ?.let { dao.channelIdForHandle(it) }
-        val displayIds = exactDisplayName?.let(::normalizeDisplay)?.takeIf { it.isNotBlank() }
-            ?.let { dao.channelIdsForDisplay(it) }.orEmpty()
-        val matchedIds = (listOfNotNull(exactChannelId, handleId) + displayIds).distinct()
+        val normHandle = exactHandle?.let(::normalizeHandle)?.takeIf(HANDLE::matches)
+        val normDisplay = exactDisplayName?.let(::normalizeDisplay)?.takeIf { it.isNotBlank() }
+
+        val candidateDisplay = normHandle?.removePrefix("@")?.let(::normalizeDisplay)
+        val candidateHandle = normDisplay?.replace(" ", "")?.let { "@$it" }?.takeIf(HANDLE::matches)
+
+        val handleCandidates = listOfNotNull(normHandle, candidateHandle).distinct()
+        val displayCandidates = listOfNotNull(normDisplay, candidateDisplay).distinct()
+
+        val handleIds = handleCandidates.flatMap { h ->
+            val list = dao.channelIdsForHandle(h)
+            if (list.isNotEmpty()) list else listOfNotNull(dao.channelIdForHandle(h))
+        }
+        val displayIds = displayCandidates.flatMap { d ->
+            dao.channelIdsForDisplay(d)
+        }
+
+        val matchedIds = (listOfNotNull(exactChannelId) + handleIds + displayIds).distinct()
         val allowedId = matchedIds.firstOrNull { dao.isAllowed(it) }
         var classifiedMatch: Pair<String, YoutubeChannelClassification>? = null
         if (allowedId == null) {

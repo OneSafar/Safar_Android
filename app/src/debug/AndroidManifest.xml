@@ -2,6 +2,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <application>
+        <activity
+            android:name=".ui.mehfil.MehfilTabletPreviewActivity"
+            android:exported="true"
+            android:theme="@style/Theme.Safar" />
         <!-- Offline emulator probe; excluded from release variants. -->
         <activity
             android:name=".ui.ekagra.EkagraRecoveryProbeActivity"

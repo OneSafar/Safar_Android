@@ -66,5 +66,5 @@ private fun PreviewTheme(dark: Boolean = false, content: @Composable () -> Unit)
 @Preview(widthDp = 375, heightDp = 800)
 @Composable fun HabitEditPreview() = PreviewTheme {
     // onArchive and onDelete added to match updated signature
-    EditHabitBottomSheet(previewHabit, {}, { }, onArchive = { }, onDelete = { })
+    EditHabitBottomSheet(previewHabit, {}, { _, _ -> }, onArchive = { }, onDelete = { })
 }

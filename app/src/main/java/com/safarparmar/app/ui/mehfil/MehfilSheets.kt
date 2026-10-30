@@ -41,7 +41,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import com.safarparmar.app.ui.components.popups.SafarModalBottomSheet as ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
+import com.safarparmar.app.ui.components.SafarRichTextField as OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -550,17 +550,19 @@ internal fun CreatePostSheet(
     inlinePreview: Boolean = false,
     initialContent: String = "",
 ) {
-    var content by remember { mutableStateOf(initialContent) }
+    val initialParts = remember(initialContent) { splitMehfilContent(initialContent) }
+    var title by remember { mutableStateOf(initialParts.first.orEmpty()) }
+    var content by remember { mutableStateOf(initialParts.second) }
     var space by remember { mutableStateOf(if (selectedSpace == "ALL") "REFLECTIVE" else selectedSpace) }
     var isAnonymous by remember { mutableStateOf(false) }
-    val canPost = content.isNotBlank() && !isPosting
+    val canPost = title.isNotBlank() && content.isNotBlank() && !isPosting
 
     val form: @Composable () -> Unit = {
         Column(
             Modifier
                 .fillMaxWidth()
                 .wrapContentWidth(Alignment.CenterHorizontally)
-                .widthIn(max = 600.dp)
+                .widthIn(max = 480.dp)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp)
                 .padding(bottom = 40.dp),
@@ -576,7 +578,21 @@ internal fun CreatePostSheet(
             )
             PlanHairline()
             OutlinedTextField(
+                value = title,
+                onValueChange = { title = it.replace('\n', ' ').replace('\r', ' ').take(180) },
+                label = { Text(stringResource(R.string.mehfil_post_heading)) },
+                placeholder = { Text(stringResource(R.string.mehfil_post_heading_hint)) },
+                singleLine = true,
+                enabled = !isPosting,
+                modifier = Modifier.fillMaxWidth(),
+                textStyle = androidx.compose.ui.text.TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Bold),
+                shape = RoundedCornerShape(12.dp),
+                colors = mehfilFlatFieldColors(),
+            )
+            OutlinedTextField(
                 value = content,
+                label = { Text(stringResource(R.string.mehfil_post_body)) },
+                enabled = !isPosting,
                 onValueChange = { content = it },
                 placeholder = { Text(stringResource(R.string.mehfil_whats_on_mind), color = MehfilFlatColors.Muted) },
                 modifier = Modifier.fillMaxWidth().heightIn(min = 120.dp).tutorialTarget("mehfil.write"),
@@ -613,24 +629,21 @@ internal fun CreatePostSheet(
                     }
                 }
                 AnonymousPostToggle(isAnonymous = isAnonymous, onCheckedChange = { isAnonymous = it })
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(
-                            if (canPost) MehfilFlatColors.Primary
-                            else MehfilFlatColors.Hairline.copy(alpha = 0.55f),
-                        )
-                        .clickable(enabled = canPost) {
-                            if (content.isNotBlank()) onPost(content, space, isAnonymous)
-                        }
-                        .padding(vertical = 14.dp),
-                    contentAlignment = Alignment.Center,
+                com.composables.ui.components.Button(
+                    onClick = { onPost(composeMehfilContent(title, content), space, isAnonymous) },
+                    enabled = canPost,
+                    style = com.composables.ui.components.ButtonStyle.Ghost,
+                    shape = RoundedCornerShape(14.dp),
+                    contentColor = if (canPost) Color.White else MehfilFlatColors.Muted,
+                    modifier = Modifier.fillMaxWidth().background(
+                        if (canPost) MehfilFlatColors.Primary else MehfilFlatColors.Hairline.copy(alpha = 0.55f),
+                        RoundedCornerShape(14.dp)),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 14.dp),
                 ) {
                     if (isPosting) {
                         CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp, color = Color.White)
                     } else {
-                        Text(
+                        com.composables.ui.components.Text(
                             if (isAnonymous) stringResource(R.string.mehfil_post_anonymously) else stringResource(R.string.mehfil_share_post),
                             fontWeight = FontWeight.SemiBold,
                             fontSize = 14.sp,
@@ -643,6 +656,7 @@ internal fun CreatePostSheet(
     }
     if (inlinePreview) form() else ModalBottomSheet(
         onDismissRequest = onDismiss, containerColor = MehfilFlatColors.Bg,
+        sheetMaxWidth = 480.dp,
         shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
         dragHandle = { BottomSheetDefaults.DragHandle(color = MehfilFlatColors.Hairline) },
     ) { form() }

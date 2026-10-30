@@ -6,6 +6,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import com.safarparmar.app.ui.adaptive.usePlannerTopNavigation
+import com.safarparmar.app.ui.adaptive.plannerPanesFit
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -19,9 +21,14 @@ import com.safarparmar.app.ui.studyplanner.logic.*
 import com.safarparmar.app.ui.tutorial.*
 import java.time.LocalDate
 
-/** Five bottom-tab overviews using native presentation controls and an isolated sample plan. */
+/** Five planner-tab overviews using native presentation controls and an isolated sample plan. */
 @Composable
 internal fun PlannerPracticeStage(scene: PracticeScene, dark: Boolean) {
+    com.safarparmar.app.ui.studyplanner.components.PlannerWarmClarityTheme(dark) { PlannerPracticeContent(scene, dark) }
+}
+
+@Composable
+private fun PlannerPracticeContent(scene: PracticeScene, dark: Boolean) {
     val today = LocalDate.now()
     val subject = StudySubject(id = "sample-subject", name = stringResource(R.string.practice_next_sample_subject), chapters = listOf(
         StudyChapter(id = "sample-chapter", name = stringResource(R.string.practice_next_sample_chapter), topics = listOf(
@@ -37,7 +44,12 @@ internal fun PlannerPracticeStage(scene: PracticeScene, dark: Boolean) {
         PracticeScene.PLANNER_PROGRESS -> PlannerSection.INSIGHTS
         else -> PlannerSection.PLAN
     }
+    val adaptive = com.safarparmar.app.ui.adaptive.rememberSafarAdaptiveState()
+    val useTopNavigation = adaptive.usePlannerTopNavigation
     Column(Modifier.fillMaxSize().background(if (scene == PracticeScene.PLANNER_HOME) PlannerFlatColors.BgCream else com.safarparmar.app.ui.theme.SafarSemanticColors.plannerBackground())) {
+        if (useTopNavigation) {
+            Box(Modifier.fillMaxWidth().padding(horizontal = 20.dp)) { PlannerTopNavigation(selected, {}) }
+        }
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
             when (scene) {
                 PracticeScene.PLANNER_EXAMS -> Column( verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -45,12 +57,12 @@ internal fun PlannerPracticeStage(scene: PracticeScene, dark: Boolean) {
                     PlannerTargetExamRow(plan = plan, planNumber = 1, isActive = true, isLight = !dark, onOpen = {}, onRename = {}, onDelete = {})
                 }
                 PracticeScene.PLANNER_HOME -> {
-                    PlanHomeHeader(plan.title, {})
-                    PlanHomeHero(plan, PlanProgress(totalTopics = 4, doneTopics = 1, completionPercent = 25))
+                    PlanHomeHeader(plan.title, {}, onSelectExam = {})
+                    PlanHomeTodaySummary(1, 3, 1, 0, {}, {}, {})
                     Column {
                         PlanHomeTabs(StudyPlannerTab.TODAY, {})
                         Box(Modifier.tutorialTarget(scene.target)) { PlanHomeDailyTodoRow(1, 3, false, {}, expandedContent = {}) }
-                        PlanHomeTaskRow(TopicRef(subject, subject.chapters.first(), subject.chapters.first().topics.first()), {})
+                        PlanHomeTaskRow(TopicRef(subject, subject.chapters.first(), subject.chapters.first().topics.first()), {}, onFocus = {})
                         PlanHomeAddActions({}, {})
                     }
                 }
@@ -76,6 +88,6 @@ internal fun PlannerPracticeStage(scene: PracticeScene, dark: Boolean) {
                 else -> Unit
             }
         }
-        PlannerBottomBar(selected, {})
+        if (!useTopNavigation) PlannerBottomBar(selected, {})
     }
 }

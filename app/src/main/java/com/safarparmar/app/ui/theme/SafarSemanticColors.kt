@@ -21,7 +21,9 @@ object SafarSemanticColors {
     /** Warm off-white canvas for the Study Planner feature only — not the app-wide theme. */
     @Composable
     fun plannerBackground(): Color =
-        if (MaterialTheme.colorScheme.background.luminance() < 0.5f) {
+        if (com.safarparmar.app.ui.studyplanner.components.LocalPlannerWarmClarity.current) {
+            MaterialTheme.colorScheme.background
+        } else if (MaterialTheme.colorScheme.background.luminance() < 0.5f) {
             MaterialTheme.colorScheme.background
         } else {
             PlannerWarmBackground

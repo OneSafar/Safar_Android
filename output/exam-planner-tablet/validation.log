@@ -1,0 +1,82 @@
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preQaDebugBuild UP-TO-DATE
+> Task :app:mergeQaDebugJniLibFolders
+> Task :app:generateQaDebugBuildConfig UP-TO-DATE
+> Task :app:generateQaDebugResValues UP-TO-DATE
+> Task :app:mergeQaDebugNativeLibs
+> Task :app:generateQaDebugResources UP-TO-DATE
+> Task :app:injectCrashlyticsMappingFileIdQaDebug UP-TO-DATE
+> Task :app:injectCrashlyticsVersionControlInfoQaDebug UP-TO-DATE
+> Task :app:processQaDebugGoogleServices UP-TO-DATE
+
+> Task :app:stripQaDebugDebugSymbols
+Unable to strip the following libraries, packaging them as they are: libandroidx.graphics.path.so, libdatastore_shared_counter.so. Run with --info option to learn more.
+
+> Task :app:packageQaDebugResources UP-TO-DATE
+> Task :app:extractQaDebugNativeDebugMetadata
+> Task :app:processQaDebugNavigationResources UP-TO-DATE
+> Task :app:mergeQaDebugNativeDebugMetadata NO-SOURCE
+> Task :app:parseQaDebugLocalResources UP-TO-DATE
+> Task :app:generateQaDebugRFile UP-TO-DATE
+> Task :app:generateQaDebugAssets UP-TO-DATE
+> Task :app:javaPreCompileQaDebug
+> Task :app:mergeQaDebugAssets
+> Task :app:compressQaDebugAssets
+> Task :app:desugarQaDebugFileDependencies
+> Task :app:mapQaDebugSourceSetPaths
+> Task :app:checkQaDebugDuplicateClasses
+> Task :app:compileQaDebugNavigationResources
+> Task :app:checkQaDebugAarMetadata
+> Task :app:mergeLibDexQaDebug
+> Task :app:createQaDebugCompatibleScreenManifests
+> Task :app:extractDeepLinksQaDebug
+> Task :app:processQaDebugMainManifest
+> Task :app:processQaDebugManifest
+> Task :app:validateSigningQaDebug
+> Task :app:writeQaDebugAppMetadata
+> Task :app:writeQaDebugSigningConfigVersions
+> Task :app:preQaDebugUnitTestBuild UP-TO-DATE
+> Task :app:javaPreCompileQaDebugUnitTest
+> Task :app:processQaDebugManifestForPackage
+> Task :app:mergeQaDebugResources
+> Task :app:processQaDebugResources
+> Task :app:kspQaDebugKotlin
+> Task :app:mergeExtDexQaDebug
+> Task :app:compileQaDebugKotlin
+> Task :app:compileQaDebugJavaWithJavac
+> Task :app:hiltSyncQaDebug
+> Task :app:hiltAggregateDepsQaDebug
+> Task :app:processQaDebugJavaRes
+> Task :app:hiltJavaCompileQaDebug
+> Task :app:bundleQaDebugClassesToCompileJar
+> Task :app:mergeQaDebugJavaResource
+> Task :app:kspQaDebugUnitTestKotlin
+> Task :app:transformQaDebugClassesWithAsm
+> Task :app:compileQaDebugUnitTestKotlin
+> Task :app:dexBuilderQaDebug
+
+> Task :app:compileQaDebugUnitTestKotlin
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/app/src/test/java/com/safarparmar/app/feature/toppersbatch/BatchColourUpdateTest.kt:16:45 Unnecessary non-null assertion (!!) on a non-null receiver of type 'BatchOverview'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/app/src/test/java/com/safarparmar/app/feature/toppersbatch/BatchColourUpdateTest.kt:18:42 Unnecessary non-null assertion (!!) on a non-null receiver of type 'BatchToday'.
+w: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/app/src/test/java/com/safarparmar/app/feature/toppersbatch/BatchColourUpdateTest.kt:20:45 Unnecessary non-null assertion (!!) on a non-null receiver of type 'BatchCalendar'.
+
+> Task :app:processQaDebugUnitTestJavaRes
+> Task :app:compileQaDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :app:hiltSyncQaDebugUnitTest
+> Task :app:mergeProjectDexQaDebug
+> Task :app:mergeQaDebugGlobalSynthetics
+> Task :app:bundleQaDebugClassesToRuntimeJar
+> Task :app:hiltAggregateDepsQaDebugUnitTest
+> Task :app:packageQaDebug
+> Task :app:createQaDebugApkListingFileRedirect
+> Task :app:assembleQaDebug
+> Task :app:copyApksToOutputs
+> Task :app:hiltJavaCompileQaDebugUnitTest NO-SOURCE
+> Task :app:transformQaDebugUnitTestClassesWithAsm
+> Task :app:testQaDebugUnitTest
+
+[Incubating] Problems report is available at: file:///Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/build/reports/problems/problems-report.html
+
+BUILD SUCCESSFUL in 4m 11s
+57 actionable tasks: 47 executed, 10 up-to-date
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.3.1/userguide/configuration_cache_enabling.html

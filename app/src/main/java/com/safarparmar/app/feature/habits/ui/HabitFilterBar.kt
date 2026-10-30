@@ -54,7 +54,7 @@ fun HabitFilterBar(
                 width = 1.dp,
                 color = if (isFilterActive) HabitColors.RoyalPurple else HabitColors.Outline
             ),
-            modifier = Modifier.height(38.dp)
+            modifier = Modifier.height(38.dp).habitPress(scaleDown = HabitMotion.ScaleButton)
         ) {
             Row(
                 modifier = Modifier.padding(horizontal = 12.dp),
@@ -102,7 +102,7 @@ fun HabitFilterBar(
                 shape = RoundedCornerShape(12.dp),
                 color = HabitColors.Surface,
                 border = androidx.compose.foundation.BorderStroke(1.dp, HabitColors.Outline.copy(alpha = 0.6f)),
-                modifier = Modifier.height(38.dp)
+                modifier = Modifier.height(38.dp).habitPress(scaleDown = HabitMotion.ScaleButton)
             ) {
                 Box(
                     modifier = Modifier.padding(horizontal = 12.dp),
@@ -172,7 +172,7 @@ private fun RemovableFilterChip(
                 modifier = Modifier
                     .size(20.dp)
                     .clip(CircleShape)
-                    .clickable(onClick = onRemove),
+                    .habitClickable(scaleDown = HabitMotion.ScaleIcon, onClick = onRemove),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(

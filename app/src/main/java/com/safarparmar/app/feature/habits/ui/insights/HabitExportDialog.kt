@@ -18,6 +18,8 @@ import androidx.compose.ui.unit.sp
 import com.safarparmar.app.ui.components.popups.SafarDialog as Dialog
 import com.safarparmar.app.feature.habits.data.HabitEntity
 import com.safarparmar.app.feature.habits.export.ExportDateRangeOption
+import com.safarparmar.app.feature.habits.ui.HabitMotion
+import com.safarparmar.app.feature.habits.ui.habitPress
 import com.safarparmar.app.feature.habits.ui.HabitColors
 import java.time.LocalDate
 
@@ -225,7 +227,7 @@ fun HabitExportDialog(
                     horizontalArrangement = Arrangement.End,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    TextButton(onClick = onDismiss) {
+                    TextButton(onClick = onDismiss, modifier = Modifier.habitPress(scaleDown = HabitMotion.ScaleButton)) {
                         Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.common_cancel), color = textSecondary)
                     }
 
@@ -237,6 +239,7 @@ fun HabitExportDialog(
                             onExport(selectedRange, null, null, habitIds)
                             onDismiss()
                         },
+                        modifier = Modifier.habitPress(scaleDown = HabitMotion.ScaleButton),
                         colors = ButtonDefaults.buttonColors(containerColor = purple),
                         shape = RoundedCornerShape(12.dp)
                     ) {

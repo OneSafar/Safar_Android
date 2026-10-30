@@ -4,6 +4,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import com.safarparmar.app.ui.theme.isLightBackground
 
 /**
@@ -46,15 +47,9 @@ object DhyanFlatColors {
     val Calm @Composable get() = if (isDark) Color(0xFF8A133B) else Color(0xFFE37A9A)
     val Sky @Composable get() = if (isDark) Color(0xFF7CB9E8) else Color(0xFF5B9BD5)
 
-    /** Pink gradient canvas behind the session screen. */
+    /** Pink gradient canvas behind the session screen in light mode; canonical ground zero in dark. */
     val CanvasBrush @Composable get() = if (isDark) {
-        Brush.verticalGradient(
-            listOf(
-                Color(0xFF1A1016),
-                Color(0xFF2A1520),
-                Color(0xFF1A1016),
-            ),
-        )
+        SolidColor(Color(0xFF131316))
     } else {
         Brush.verticalGradient(
             listOf(

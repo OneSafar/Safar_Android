@@ -25,7 +25,8 @@ class HabitRemoteStore @Inject constructor(
     private val api: HabitApi,
     private val accounts: SafarDataStore,
     private val legacyDatabase: HabitDatabase,
-    private val reminders: com.safarparmar.app.feature.habits.reminders.HabitReminderScheduler? = null
+    private val reminders: com.safarparmar.app.feature.habits.reminders.HabitReminderScheduler? = null,
+    private val icons: HabitIconStore? = null
 ) {
     private data class Projection(
         val owner: String? = null,
@@ -60,30 +61,34 @@ class HabitRemoteStore @Inject constructor(
     suspend fun refresh() = withContext(Dispatchers.IO) {
         mutex.withLock {
             val owner = owner()
-            if (state.value.owner != owner) {
-                state.value = Projection(owner = owner)
-                retryBatches.clear()
-                createIds.clear()
+            refreshInternal(owner)
+        }
+    }
+
+    private suspend fun refreshInternal(owner: String) {
+        if (state.value.owner != owner) {
+            state.value = Projection(owner = owner)
+            retryBatches.clear()
+            createIds.clear()
+        }
+        try {
+            // Existing server records win over older local copies of the same remote habit.
+            val legacy = legacyDatabase.habitDao()
+            val importing = legacy.getLegacyHabits(owner).isNotEmpty() || legacy.pendingMutationCount(owner) > 0
+            val before = readSnapshot(owner, if (importing) null else state.value.version)
+            if (importing) applySnapshot(owner, migrateLegacy(owner, before!!.habits))
+            else if (before != null) applySnapshot(owner, before)
+            else {
+                // Restore alarms/cache even after logout/login or a local cache reset.
+                // The server has confirmed that this in-memory snapshot is unchanged.
+                reminders?.replace(owner, state.value.remoteRecords)
+                state.value = state.value.copy(status = HabitSyncStatus(false))
             }
-            try {
-                // Existing server records win over older local copies of the same remote habit.
-                val legacy = legacyDatabase.habitDao()
-                val importing = legacy.getLegacyHabits(owner).isNotEmpty() || legacy.pendingMutationCount(owner) > 0
-                val before = readSnapshot(owner, if (importing) null else state.value.version)
-                if (importing) applySnapshot(owner, migrateLegacy(owner, before!!.habits))
-                else if (before != null) applySnapshot(owner, before)
-                else {
-                    // Restore alarms/cache even after logout/login or a local cache reset.
-                    // The server has confirmed that this in-memory snapshot is unchanged.
-                    reminders?.replace(owner, state.value.remoteRecords)
-                    state.value = state.value.copy(status = HabitSyncStatus(false))
-                }
-            } catch (e: CancellationException) { throw e }
-            catch (e: Exception) {
-                if (ownerFlow.first() == owner) state.value = state.value.copy(status = HabitSyncStatus(false,
-                    "Could not load habits. Check your connection and retry."))
-                throw e
-            }
+        } catch (e: CancellationException) { throw e }
+        catch (e: Exception) {
+            if (ownerFlow.first() == owner) state.value = state.value.copy(status = HabitSyncStatus(false,
+                "Could not load habits. Check your connection and retry."))
+            throw e
         }
     }
 
@@ -151,13 +156,53 @@ class HabitRemoteStore @Inject constructor(
         val result = api.mutate(owner, HabitBatchRequest(batch))
         checkOwner(owner)
         check(result.acknowledged.toSet().containsAll(batch.map { it.get("mutationId").asString })) { "Habit save was not acknowledged" }
-        applySnapshot(owner, readSnapshot(owner, null)!!)
+        // The POST is authoritative. Project only acknowledged edits locally; keep the
+        // old snapshot cursor so the next refresh still discovers concurrent device edits.
+        val records = state.value.remoteRecords.toMutableList()
+        mutations.forEach { edit ->
+            val id = edit.get("habitId").asString
+            val index = records.indexOfFirst { it.id == id }
+            val old = records.getOrNull(index)
+            fun days() = edit.getAsJsonArray("targetDays").map { it.asInt }
+            val updated = when (edit.get("type").asString) {
+                "create" -> old ?: HabitRemoteRecord(id = id, name = edit.get("name").asString,
+                    targetDays = days(), isEveryDay = edit.get("isEveryDay").asBoolean,
+                    isActive = edit.get("isActive").asBoolean, scheduledSince = edit.get("scheduledSince").asString,
+                    order = edit.get("order").asInt, reminderTime = edit.get("reminderTime")?.takeUnless { it.isJsonNull }?.asString,
+                    revisions = listOf(HabitRemoteRevision(edit.get("scheduledSince").asString, days(), edit.get("isEveryDay").asBoolean)))
+                "patch" -> old?.let { record ->
+                    val fields = edit.getAsJsonObject("fields")
+                    record.copy(name = fields.get("name")?.asString ?: record.name,
+                        order = fields.get("order")?.asInt ?: record.order,
+                        isActive = fields.get("isActive")?.asBoolean ?: record.isActive,
+                        reminderTime = if (fields.has("reminderTime")) fields.get("reminderTime").takeUnless { it.isJsonNull }?.asString else record.reminderTime)
+                }
+                "schedule" -> old?.let { record ->
+                    val revision = HabitRemoteRevision(edit.get("effectiveFrom").asString, days(), edit.get("isEveryDay").asBoolean)
+                    record.copy(revisions = record.revisions.filterNot { it.effectiveFrom == revision.effectiveFrom } + revision)
+                }
+                "archive" -> old?.copy(archivedAt = edit.get("archivedAt").asString)
+                "delete" -> old?.copy(deleted = true)
+                else -> old
+            }
+            if (updated != null) { if (index >= 0) records[index] = updated else records.add(updated) }
+        }
+        applySnapshot(owner, HabitSnapshotResponse(state.value.version ?: 0, records))
         retryBatches.remove(key)
     }
 
     private suspend fun <T> write(block: suspend (String) -> T): T = withContext(Dispatchers.IO) {
         mutex.withLock {
             val owner = owner()
+            if (state.value.owner != owner || state.value.version == null) {
+                try {
+                    refreshInternal(owner)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (_: Exception) {
+                    // Let the check below report if version could not be loaded
+                }
+            }
             check(state.value.owner == owner && state.value.version != null) { "Load your habits before saving changes." }
             try { block(owner) }
             catch (e: CancellationException) { throw e }
@@ -169,13 +214,14 @@ class HabitRemoteStore @Inject constructor(
         }
     }
 
-    suspend fun insertHabit(habit: HabitEntity): Long = write { owner ->
+    suspend fun insertHabit(habit: HabitEntity, emoji: String? = null): Long = write { owner ->
         // A background refresh may change the display order after a lost response.
         // Keep the same remote identity when the student retries the same form.
         val key = owner + gson.toJson(mapOf("name" to habit.name.trim(),
             "days" to habit.targetDays.map { it.value }.sorted(), "everyDay" to habit.isEveryDay,
             "reminderTime" to habit.reminderTime))
         val id = createIds.getOrPut(key) { UUID.randomUUID().toString() }
+        if (emoji != null) icons?.save(owner, id, emoji)
         send(owner, listOf(mutation(id, "create", mapOf("name" to habit.name.trim(),
             "targetDays" to habit.targetDays.map { it.value }.sorted(), "isEveryDay" to habit.isEveryDay,
             "isActive" to habit.isActive, "scheduledSince" to habit.scheduledSince.toString(),
@@ -184,7 +230,7 @@ class HabitRemoteStore @Inject constructor(
         state.value.habits.first { it.remoteId == id }.id
     }
 
-    suspend fun updateHabit(habit: HabitEntity) = write { owner ->
+    suspend fun updateHabit(habit: HabitEntity, emoji: String? = null) = write { owner ->
         val previous = owned(habit.id, owner)
         val fields = mutableMapOf<String, Any?>()
         if (previous.name != habit.name) fields["name"] = habit.name.trim()
@@ -197,11 +243,55 @@ class HabitRemoteStore @Inject constructor(
             mutations += mutation(previous.remoteId!!, "schedule", mapOf("effectiveFrom" to LocalDate.now().toString(),
                 "targetDays" to habit.targetDays.map { it.value }.sorted(), "isEveryDay" to habit.isEveryDay))
         if (mutations.isNotEmpty()) send(owner, mutations)
+        if (emoji != null) icons?.save(owner, previous.remoteId!!, emoji)
     }
+
     suspend fun upsertCompletion(completion: HabitCompletionEntity) = write { owner ->
-        send(owner, listOf(mutation(owned(completion.habitId, owner).remoteId!!, "completion",
-            mapOf("date" to completion.date.toString(), "completed" to completion.completed))))
+        val habit = owned(completion.habitId, owner)
+        val remoteHabitId = habit.remoteId ?: error("Habit has no remote ID")
+        val previousCompletions = state.value.completions
+        val previousRemoteRecords = state.value.remoteRecords
+
+        // 1. Optimistic update: instantly reflect the new completion in memory
+        val updatedCompletions = previousCompletions.filterNot { it.habitId == completion.habitId && it.date == completion.date }.toMutableList()
+        if (completion.completed) {
+            updatedCompletions.add(completion)
+        }
+        val updatedRemoteRecords = previousRemoteRecords.map { r ->
+            if (r.id == remoteHabitId) {
+                val updatedC = r.completions.filterNot { it.date == completion.date.toString() }.toMutableList()
+                if (completion.completed) {
+                    updatedC.add(HabitRemoteCompletion(completion.date.toString(), true))
+                }
+                r.copy(completions = updatedC)
+            } else r
+        }
+        state.value = state.value.copy(completions = updatedCompletions, remoteRecords = updatedRemoteRecords)
+
+        // 2. Dispatch completion mutation to server
+        try {
+            sendCompletion(owner, remoteHabitId, completion.date, completion.completed)
+        } catch (e: Exception) {
+            if (state.value.owner == owner) state.value = state.value.copy(completions = previousCompletions, remoteRecords = previousRemoteRecords)
+            throw e
+        }
     }
+
+    private suspend fun sendCompletion(owner: String, remoteId: String, date: LocalDate, completed: Boolean) {
+        checkOwner(owner)
+        val key = "$owner:completion:$remoteId:$date:$completed"
+        val mut = mutation(remoteId, "completion", mapOf("date" to date.toString(), "completed" to completed))
+        val mutationWithId = retryBatches.getOrPut(key) {
+            listOf(mut.deepCopy().apply { addProperty("mutationId", UUID.randomUUID().toString()) })
+        }.first()
+        val result = api.mutate(owner, HabitBatchRequest(listOf(mutationWithId)))
+        checkOwner(owner)
+        check(result.acknowledged.contains(mutationWithId.get("mutationId").asString)) { "Habit completion was not acknowledged" }
+        retryBatches.remove(key)
+        reminders?.replace(owner, state.value.remoteRecords)
+        state.value = state.value.copy(status = HabitSyncStatus(false))
+    }
+
     suspend fun clearCompletion(habitId: Long, date: LocalDate) = upsertCompletion(HabitCompletionEntity(habitId, date, false))
     suspend fun archiveHabit(habitId: Long, date: LocalDate) = write { owner ->
         send(owner, listOf(mutation(owned(habitId, owner).remoteId!!, "archive", mapOf("archivedAt" to date.toString()))))

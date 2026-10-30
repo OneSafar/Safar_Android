@@ -28,6 +28,14 @@
         </intent>
     </queries>
 
+    <supports-screens
+        android:smallScreens="true"
+        android:normalScreens="true"
+        android:largeScreens="true"
+        android:xlargeScreens="true"
+        android:anyDensity="true"
+        android:resizeable="true" />
+
     <application
         android:name=".SafarApplication"
         android:allowBackup="${allowBackup}"
@@ -39,7 +47,8 @@
         android:roundIcon="@mipmap/ic_safar_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Safar"
-        android:hardwareAccelerated="true">
+        android:hardwareAccelerated="true"
+        android:resizeableActivity="true">
 
         <!-- Navigation Compose's predictive-back transition can race with our auth/onboarding
              stack replacement. Keep normal Back handling while avoiding that transition. -->
@@ -49,7 +58,7 @@
             android:enableOnBackInvokedCallback="false"
             android:theme="@style/Theme.App.Starting"
             android:windowSoftInputMode="adjustResize"
-            android:screenOrientation="portrait"
+            android:resizeableActivity="true"
             android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation|keyboardHidden">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -119,6 +128,39 @@
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
                 <action android:name="android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED" />
             </intent-filter>
+        </receiver>
+        <!-- Safar Today Home Screen Widget -->
+        <receiver
+            android:name=".widget.SafarTodayWidget"
+            android:exported="true"
+            android:label="@string/widget_title">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.safarparmar.app.widget.REFRESH_TODAY" />
+                <action android:name="android.intent.action.DATE_CHANGED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/safar_today_widget" />
+        </receiver>
+
+        <!-- Safar Bento Hub Home Screen Widget -->
+        <receiver
+            android:name=".widget.SafarBentoWidget"
+            android:exported="true"
+            android:label="@string/widget_bento_title">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.safarparmar.app.widget.REFRESH_BENTO" />
+                <action android:name="android.intent.action.DATE_CHANGED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/safar_bento_widget" />
         </receiver>
         <service
             android:name=".ui.ekagra.TimerService"

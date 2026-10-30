@@ -1,5 +1,6 @@
 package com.safarparmar.app.ui.ekagra
 
+import com.safarparmar.app.ui.adaptive.isSpaciousLandscape
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.draw.drawBehind
 
@@ -667,24 +668,12 @@ fun EkagraScreen(
     val themeColorScheme = remember(selectedTheme, isDarkTheme, isBreakActive) {
         val seed = if (isBreakActive) {
             if (isDarkTheme) Color(0xFFE2E8F0) else Color(0xFF1E293B)
-        } else if (isDarkTheme) {
-            val darkGradient = selectedTheme.gradientColors
-            if (darkGradient != null && darkGradient.isNotEmpty()) {
-                darkGradient.first()
-            } else {
-                when (selectedTheme.name) {
-                    "Serene" -> Color(0xFF64B5F6)     // Lighter Cerulean/Blue
-                    "Nostalgia" -> Color(0xFF81C784)  // Lighter Kelly Green
-                    "Amber" -> Color(0xFFA5D6A7)      // Lighter Forest Green
-                    "Solitude" -> Color(0xFFB39DDB)   // Lighter Violet/Purple
-                    else -> selectedTheme.accent
-                }
-            }
         } else {
-            selectedTheme.accent
+            ekagraControlAccent(selectedTheme.name, isDarkTheme)
         }
+
         if (isDarkTheme) {
-            val bgTint = blendColors(seed, Color(0xFF0F1115), 0.08f)
+            val bgTint = Color(0xFF131316)
             val surfaceTint = blendColors(seed, Color(0xFF111416), 0.10f)
             val surfaceVariantTint = blendColors(seed, Color(0xFF272C35), 0.12f)
             val containerLowestTint = blendColors(seed, Color(0xFF0C0E10), 0.05f)
@@ -774,6 +763,7 @@ fun EkagraScreen(
         LocalPlannerIsDarkTheme provides isDarkTheme,
     ) {
         MaterialTheme(colorScheme = themeColorScheme) {
+        com.safarparmar.app.ui.theme.SafarComposablesTheme {
 
             // ── Kavach overlay screens ───────────────────────────────────────────
             when {
@@ -1473,6 +1463,9 @@ fun EkagraScreen(
                             .fillMaxSize()
                             .saturation(breakSaturation)
                     ) {
+                        if (selectedTab == EkagraNavTab.TIMER) {
+                            EkagraTimerBackground(selectedTheme, isDarkTheme, isBreakActive, timerImmersiveActive)
+                        }
                         SafarDrawerScaffold(
                             title              = stringResource(R.string.module_ekagra),
                             subtitle           = stringResource(R.string.app_name),
@@ -1485,10 +1478,6 @@ fun EkagraScreen(
                             onDrawerControllerReady = { openDrawer = it },
                         ) { padding ->
 
-                            // Background + scrim only on timer tab
-                            if (selectedTab == EkagraNavTab.TIMER) {
-                                EkagraTimerBackground(selectedTheme, isDarkTheme, isBreakActive, timerImmersiveActive)
-                            }
 
                             Scaffold(
                                 containerColor      = Color.Transparent,
@@ -1522,6 +1511,7 @@ fun EkagraScreen(
                                             // On timer tab the nav sits over the video scrim — use contrasting colours
                                             isOnVideo   = selectedTab == EkagraNavTab.TIMER,
                                             isDarkTheme = isDarkTheme,
+                                            selectedTheme = selectedTheme,
                                         )
                                     }
                                 },
@@ -1779,6 +1769,7 @@ fun EkagraScreen(
                 model = tutorialModel,
                 selectedTheme = selectedTheme,
             )
+        }
         }
     }
 

@@ -18,7 +18,11 @@ internal fun HabitDatePickerButton(
     latest: LocalDate? = null
 ) {
     var open by remember { mutableStateOf(false) }
-    com.composables.ui.components.IconButton(style = com.composables.ui.components.ButtonStyle.Ghost, onClick = { open = true }) {
+    com.composables.ui.components.IconButton(
+        style = com.composables.ui.components.ButtonStyle.Ghost,
+        modifier = androidx.compose.ui.Modifier.habitPress(scaleDown = HabitMotion.ScaleIcon),
+        onClick = { open = true }
+    ) {
         Icon(Icons.Default.DateRange, contentDescription = label, tint = HabitColors.RoyalPurple)
     }
     if (open) {

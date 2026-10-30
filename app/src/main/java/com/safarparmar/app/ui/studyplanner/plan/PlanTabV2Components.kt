@@ -188,7 +188,7 @@ fun StudyStyleOption(
         color = if (selected) scheme.primaryContainer.copy(alpha = 0.5f) else scheme.surfaceContainerLow,
         border = BorderStroke(
             width = if (selected) 2.dp else 1.dp,
-            color = if (selected) scheme.primary else scheme.outlineVariant.copy(alpha = 0.45f),
+            color = if (selected) scheme.primary else PlannerFlatColors.BorderSoft,
         ),
     ) {
         Row(
@@ -235,7 +235,7 @@ fun PlanSectionHeader(
     Row(modifier = modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Text(
             text = title,
-            fontFamily = LoraFontFamily,
+            fontFamily = com.safarparmar.app.ui.theme.MulishFontFamily,
             fontStyle = FontStyle.Normal,
             fontWeight = FontWeight.Normal,
             fontSize = 22.sp,
@@ -395,7 +395,7 @@ fun PlanSettingsSheet(
                 Card(
                     shape = RoundedCornerShape(20.dp),
                     colors = CardDefaults.cardColors(containerColor = scheme.surfaceContainerLow),
-                    border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.5f)),
+                    border = BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Column(
@@ -429,7 +429,7 @@ fun PlanSettingsSheet(
                 Card(
                     shape = RoundedCornerShape(20.dp),
                     colors = CardDefaults.cardColors(containerColor = scheme.surfaceContainerLow),
-                    border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.5f)),
+                    border = BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Column(
@@ -508,7 +508,7 @@ fun PlanSettingsSheet(
                         onClick = onExport,
                         modifier = Modifier.fillMaxWidth().heightIn(min = 50.dp),
                         shape = RoundedCornerShape(16.dp),
-                        border = BorderStroke(1.dp, scheme.outlineVariant),
+                        border = BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
                     ) {
                         Icon(Icons.Default.FileDownload, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(8.dp))
@@ -668,7 +668,7 @@ fun ReplaceTopicSheet(
             ) {
                 Surface(
                     shape = CircleShape,
-                    color = if (selected || complete) scheme.primary else scheme.outlineVariant,
+                    color = if (selected || complete) scheme.primary else PlannerFlatColors.BorderSoft,
                     contentColor = if (selected || complete) scheme.onPrimary else scheme.onSurfaceVariant,
                 ) {
                     Text(
@@ -704,7 +704,7 @@ fun ReplaceTopicSheet(
             colors = CardDefaults.cardColors(
                 containerColor = scheme.surfaceContainerLowest,
             ),
-            border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.65f)),
+            border = BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
             elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         ) {
             Row(
@@ -941,7 +941,7 @@ fun ReplaceTopicSheet(
                             colors = CardDefaults.cardColors(
                                 containerColor = scheme.surfaceContainerLowest,
                             ),
-                            border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.65f)),
+                            border = BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
                             elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
                         ) {
                             Row(
@@ -1177,7 +1177,7 @@ fun AnimatedCheckCircle(
                 .size(20.dp)
                 .border(
                     width = 2.dp,
-                    color = if (isDone) scheme.primary.copy(alpha = 0.5f) else scheme.outline.copy(alpha = 0.6f),
+                    color = if (isDone) scheme.primary.copy(alpha = 0.5f) else PlannerFlatColors.BorderSoft,
                     shape = CircleShape
                 )
         )
@@ -1251,7 +1251,7 @@ fun DailyTodoSetupSheet(
             Spacer(Modifier.height(8.dp))
             Text(
                 text = stringResource(R.string.planner_add_daily_topics),
-                fontFamily = LoraFontFamily,
+                fontFamily = com.safarparmar.app.ui.theme.MulishFontFamily,
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Normal,
                 color = ink,
@@ -1310,7 +1310,7 @@ fun DailyTodoSetupSheet(
                     Icon(
                         imageVector = Icons.Default.Add,
                         contentDescription = stringResource(R.string.planner_add_daily_topic),
-                        tint = Color.White,
+                        tint = androidx.compose.material3.LocalContentColor.current,
                         modifier = Modifier.size(22.dp),
                     )
                 }
@@ -1353,7 +1353,7 @@ fun DailyTodoSetupSheet(
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Medium,
                                 modifier = Modifier.weight(1f),
-                                color = ink,
+                                color = androidx.compose.material3.LocalContentColor.current,
                             )
                             GlassButton(
                                 onClick = { todoToEditInSheet = todo },
@@ -1368,7 +1368,7 @@ fun DailyTodoSetupSheet(
                                 Icon(
                                     imageVector = Icons.Default.Edit,
                                     contentDescription = stringResource(R.string.planner_rename_named, todo.name),
-                                    tint = ink,
+                                    tint = androidx.compose.material3.LocalContentColor.current,
                                     modifier = Modifier.size(16.dp),
                                 )
                             }
@@ -1385,7 +1385,7 @@ fun DailyTodoSetupSheet(
                                 Icon(
                                     imageVector = Icons.Default.Close,
                                     contentDescription = stringResource(R.string.planner_remove_named, todo.name),
-                                    tint = ink,
+                                    tint = androidx.compose.material3.LocalContentColor.current,
                                     modifier = Modifier.size(16.dp),
                                 )
                             }
@@ -1434,7 +1434,7 @@ fun DailyTodoSetupSheet(
                         text = stringResource(R.string.common_not_now),
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 15.sp,
-                        color = ink,
+                        color = androidx.compose.material3.LocalContentColor.current,
                         modifier = Modifier.fillMaxWidth(),
                         textAlign = TextAlign.Center,
                     )
@@ -1456,7 +1456,7 @@ fun DailyTodoSetupSheet(
                         text = if (pendingTodos.isEmpty()) "Continue" else "Save topics",
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 15.sp,
-                        color = Color.White,
+                        color = androidx.compose.material3.LocalContentColor.current,
                         modifier = Modifier.fillMaxWidth(),
                         textAlign = TextAlign.Center,
                     )
@@ -1466,19 +1466,28 @@ fun DailyTodoSetupSheet(
     }
 }
 
+/** Owned above adaptive branches so moving the checklist retains unfinished input and dialogs. */
+@androidx.compose.runtime.Stable
+class DailyTodoEditorState {
+    var newTaskName by mutableStateOf("")
+    var todoToEdit by mutableStateOf<com.safarparmar.app.domain.model.studyplanner.DailyTodo?>(null)
+    var todoToDelete by mutableStateOf<com.safarparmar.app.domain.model.studyplanner.DailyTodo?>(null)
+}
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun DailyTodoSection(
     plan: com.safarparmar.app.domain.model.studyplanner.StudyPlan,
     actions: com.safarparmar.app.ui.studyplanner.PlannerActions,
     todayStr: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    editorState: DailyTodoEditorState = remember(plan.id) { DailyTodoEditorState() },
 ) {
     val scheme = MaterialTheme.colorScheme
     val isDark = !scheme.background.isLightBackground()
-    var newTaskName by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("") }
-    var todoToEdit by remember { mutableStateOf<com.safarparmar.app.domain.model.studyplanner.DailyTodo?>(null) }
-    var todoToDelete by remember { mutableStateOf<com.safarparmar.app.domain.model.studyplanner.DailyTodo?>(null) }
+    var newTaskName by editorState::newTaskName
+    var todoToEdit by editorState::todoToEdit
+    var todoToDelete by editorState::todoToDelete
     
     val todos = plan.dailyTodos.orEmpty()
     val logs = plan.dailyTodoLogs?.get(todayStr).orEmpty()
@@ -1524,7 +1533,7 @@ fun DailyTodoSection(
                     Icon(
                         imageVector = if (isAllDone) Icons.Default.CheckCircle else Icons.Default.CheckCircle, 
                         contentDescription = null, 
-                        tint = if (isAllDone) scheme.primary else scheme.outline.copy(alpha = 0.6f),
+                        tint = if (isAllDone) scheme.primary else PlannerFlatColors.BorderSoft,
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(Modifier.width(4.dp))
@@ -1553,7 +1562,7 @@ fun DailyTodoSection(
                 shape = RoundedCornerShape(12.dp),
                 colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = scheme.primary,
-                    unfocusedBorderColor = scheme.outline.copy(alpha = 0.4f),
+                    unfocusedBorderColor = PlannerFlatColors.BorderSoft,
                     focusedContainerColor = scheme.surface,
                     unfocusedContainerColor = scheme.surface
                 )
@@ -1596,7 +1605,7 @@ fun DailyTodoSection(
                 colors = CardDefaults.cardColors(
                     containerColor = scheme.surfaceVariant.copy(alpha = 0.2f)
                 ),
-                border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.3f))
+                border = BorderStroke(1.dp, PlannerFlatColors.BorderSoft)
             ) {
                 Column(
                     modifier = Modifier.fillMaxWidth().padding(24.dp),
@@ -1628,7 +1637,7 @@ fun DailyTodoSection(
                 modifier = Modifier.fillMaxWidth(),
                 shape = MaterialTheme.shapes.large,
                 colors = CardDefaults.cardColors(containerColor = scheme.surface),
-                border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.4f))
+                border = BorderStroke(1.dp, PlannerFlatColors.BorderSoft)
             ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     todos.forEachIndexed { index, todo ->
@@ -1713,7 +1722,7 @@ fun DailyTodoSection(
                         }
                         if (index < todos.lastIndex) {
                             androidx.compose.material3.HorizontalDivider(
-                                color = scheme.outlineVariant.copy(alpha = 0.3f),
+                                color = PlannerFlatColors.BorderSoft,
                                 thickness = 0.5.dp,
                                 modifier = Modifier.padding(horizontal = 16.dp)
                             )

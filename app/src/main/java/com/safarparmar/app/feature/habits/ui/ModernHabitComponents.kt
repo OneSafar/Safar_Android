@@ -42,6 +42,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
@@ -78,9 +79,8 @@ internal val MondayFirst = listOf(
 internal fun ModernTabs(
     selected: HabitTab,
     onSelected: (HabitTab) -> Unit,
-    modifier: Modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)
-) {
-    val tabs = remember {
+    modifier: Modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+    visibleTabs: List<Pair<HabitTab, String>> = remember {
         listOf(
             HabitTab.TODAY to "Daily",
             HabitTab.WEEKLY to "Weekly",
@@ -88,6 +88,8 @@ internal fun ModernTabs(
             HabitTab.INSIGHTS to "Insights"
         )
     }
+) {
+    val tabs = visibleTabs
     val purpleBorder = HabitColors.RoyalPurple
     val pillShape = CircleShape
 
@@ -123,6 +125,7 @@ internal fun ModernTabs(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight()
+                    .habitPress(scaleDown = HabitMotion.ScaleButton)
                     .background(tabBackground)
                     .clickable(
                         role = Role.Tab,
@@ -237,6 +240,7 @@ internal fun ModernPeriodToolbar(
         Row(horizontalArrangement = Arrangement.spacedBy(7.dp), verticalAlignment = Alignment.CenterVertically) {
             TextButton(
                 onClick = onNow,
+                modifier = Modifier.habitPress(scaleDown = HabitMotion.ScaleButton),
                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
                 colors = ButtonDefaults.textButtonColors(contentColor = HabitColors.RoyalPurple)
             ) {
@@ -262,6 +266,7 @@ private fun ModernSquareIconButton(
         onClick = onClick,
         modifier = Modifier
             .size(44.dp)
+            .habitPress(scaleDown = HabitMotion.ScaleIcon)
             .clip(RoundedCornerShape(13.dp))
             .background(HabitColors.Surface)
             .border(1.dp, HabitColors.Outline, RoundedCornerShape(13.dp))
@@ -338,7 +343,7 @@ internal fun ModernHabitRow(
                 overflow = TextOverflow.Ellipsis
             )
         }
-        IconButton(onClick = onEdit, modifier = Modifier.size(44.dp).tutorialTarget("habit.edit")) {
+        IconButton(onClick = onEdit, modifier = Modifier.size(44.dp).habitPress(scaleDown = HabitMotion.ScaleIcon).tutorialTarget("habit.edit")) {
             Icon(Icons.Default.Edit, contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_edit_named, habit.name), tint = HabitColors.TextTertiary, modifier = Modifier.size(18.dp))
         }
         ModernCheckButton(
@@ -359,34 +364,47 @@ internal fun ModernCheckButton(
     modifier: Modifier = Modifier,
     contentDescription: String? = null
 ) {
+    val popScale by rememberHabitCompletionPop(completed)
     val bg by animateColorAsState(if (completed) HabitColors.CheckDone else Color.Transparent, tween(160), label = "checkBg")
     val border by animateColorAsState(if (completed) HabitColors.CheckDone else HabitColors.OutlineStrong, tween(160), label = "checkBorder")
     val motion = LocalMotionPolicy.current
-    val buttonScale by animateFloatAsState(
-        targetValue = if (completed) 1f else 0.96f,
-        animationSpec = if (motion.animationsEnabled) spring(dampingRatio = 0.62f, stiffness = 520f) else tween(0),
-        label = "checkScale",
-    )
+
     Box(
         modifier = modifier
             .size(44.dp)
-            .scale(buttonScale)
-            .clip(CircleShape)
-            .background(bg)
-            .border(2.dp, border, CircleShape)
+            .habitClickable(
+                enabled = enabled,
+                scaleDown = HabitMotion.ScaleCheckbox,
+                role = Role.Checkbox,
+                onClick = onClick
+            )
             .then(
                 if (contentDescription != null) Modifier.semantics { this.contentDescription = contentDescription }
                 else Modifier
-            )
-            .clickable(enabled = enabled, role = Role.Checkbox, onClick = onClick),
+            ),
         contentAlignment = Alignment.Center
     ) {
-        AnimatedVisibility(
-            visible = completed,
-            enter = fadeIn(tween(if (motion.animationsEnabled) 140 else 0)) + scaleIn(initialScale = 0.55f),
-            exit = fadeOut(tween(if (motion.animationsEnabled) 100 else 0)) + scaleOut(targetScale = 0.55f),
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer {
+                    scaleX = popScale
+                    scaleY = popScale
+                }
+                .clip(CircleShape)
+                .background(bg)
+                .border(2.dp, border, CircleShape),
+            contentAlignment = Alignment.Center
         ) {
-            Icon(Icons.Default.Check, contentDescription = null, tint = HabitColors.OnRoyalPurple, modifier = Modifier.size(20.dp))
+            AnimatedVisibility(
+                visible = completed,
+                enter = fadeIn(tween(if (motion.animationsEnabled) 140 else 0)) +
+                        scaleIn(initialScale = 0.55f, animationSpec = HabitMotion.PressSpecUp),
+                exit = fadeOut(tween(if (motion.animationsEnabled) 100 else 0)) +
+                        scaleOut(targetScale = 0.55f),
+            ) {
+                Icon(Icons.Default.Check, contentDescription = null, tint = HabitColors.OnRoyalPurple, modifier = Modifier.size(20.dp))
+            }
         }
     }
 }
@@ -408,7 +426,7 @@ internal fun ModernHabitIdentity(habit: HabitEntity, onEdit: () -> Unit) {
             Text(habit.name, color = HabitColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(if (habit.isEveryDay) "Every day" else scheduleSummary(habit.targetDays), color = HabitColors.TextSecondary, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
-        IconButton(onClick = onEdit, modifier = Modifier.size(40.dp)) {
+        IconButton(onClick = onEdit, modifier = Modifier.size(40.dp).habitPress(scaleDown = HabitMotion.ScaleIcon)) {
             Icon(Icons.Default.Edit, contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_edit_named, habit.name), tint = HabitColors.TextTertiary, modifier = Modifier.size(17.dp))
         }
     }
@@ -443,13 +461,18 @@ internal fun ModernWeekDayCell(
         !scheduled || future -> HabitColors.TextTertiary
         else -> HabitColors.TextPrimary
     }
+    val popScale by rememberHabitCompletionPop(completed)
     Column(
         modifier = modifier
             .heightIn(min = if (showWeekday) 68.dp else 60.dp)
+            .habitClickable(enabled = scheduled && (!future || completed), scaleDown = HabitMotion.ScaleChip, onClick = onToggle)
+            .graphicsLayer {
+                scaleX = popScale
+                scaleY = popScale
+            }
             .clip(RoundedCornerShape(12.dp))
             .background(bg)
             .border(if (isToday && !completed) 2.dp else 1.dp, borderColor, RoundedCornerShape(12.dp))
-            .clickable(enabled = scheduled && (!future || completed), onClick = onToggle)
             .padding(horizontal = 2.dp, vertical = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
@@ -533,7 +556,7 @@ internal fun ModernWeeklyProgressCard(
                             },
                             RoundedCornerShape(11.dp)
                         )
-                        .clickable { onOpenDay(date) }
+                        .habitClickable(scaleDown = HabitMotion.ScaleChip) { onOpenDay(date) }
                         .padding(vertical = 6.dp, horizontal = 1.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
@@ -568,7 +591,7 @@ internal fun ModernHabitFilterPicker(
         modifier = modifier
             .fillMaxWidth()
             .clip(ModernCardShape)
-            .clickable(role = Role.Button, onClick = onClick)
+            .habitClickable(scaleDown = HabitMotion.ScaleCard, role = Role.Button, onClick = onClick)
     ) {
         Row(
             modifier = Modifier
@@ -633,7 +656,7 @@ internal fun ModernHabitFilterPicker(
             if (onEditSelected != null) {
                 IconButton(
                     onClick = onEditSelected,
-                    modifier = Modifier.size(36.dp)
+                    modifier = Modifier.size(36.dp).habitPress(scaleDown = HabitMotion.ScaleIcon)
                 ) {
                     Icon(
                         Icons.Default.Edit,
@@ -722,7 +745,7 @@ internal fun ModernHabitFilterSheet(
                         fontSize = 13.sp
                     )
                 }
-                IconButton(onClick = onDismiss, modifier = Modifier.size(40.dp)) {
+                IconButton(onClick = onDismiss, modifier = Modifier.size(40.dp).habitPress(scaleDown = HabitMotion.ScaleIcon)) {
                     Icon(Icons.Default.Close, contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.common_close), tint = HabitColors.TextPrimary)
                 }
             }
@@ -833,7 +856,7 @@ private fun ModernFilterOptionRow(
                 if (selected) HabitColors.RoyalPurple.copy(alpha = 0.35f) else HabitColors.Outline,
                 RoundedCornerShape(14.dp)
             )
-            .clickable(role = Role.RadioButton, onClick = onClick)
+            .habitClickable(scaleDown = HabitMotion.ScaleCard, role = Role.RadioButton, onClick = onClick)
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -887,20 +910,24 @@ internal fun ModernFilterRow(
 
 @Composable
 private fun ModernFilterChip(label: String, selected: Boolean, onClick: () -> Unit) {
+    val chipBg by animateColorAsState(if (selected) HabitColors.RoyalPurple else HabitColors.Surface, tween(160), label = "filterChipBg")
+    val chipBorder by animateColorAsState(if (selected) HabitColors.RoyalPurple else HabitColors.OutlineStrong, tween(160), label = "filterChipBorder")
+    val chipText by animateColorAsState(if (selected) HabitColors.OnRoyalPurple else HabitColors.TextSecondary, tween(160), label = "filterChipText")
+
     Box(
         modifier = Modifier
             .heightIn(min = 44.dp)
             .widthIn(max = 180.dp)
             .clip(RoundedCornerShape(999.dp))
-            .background(if (selected) HabitColors.RoyalPurple else HabitColors.Surface)
-            .border(1.dp, if (selected) HabitColors.RoyalPurple else HabitColors.OutlineStrong, RoundedCornerShape(999.dp))
-            .clickable(onClick = onClick)
+            .background(chipBg)
+            .border(1.dp, chipBorder, RoundedCornerShape(999.dp))
+            .habitClickable(scaleDown = HabitMotion.ScaleChip, onClick = onClick)
             .padding(horizontal = 14.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(
             label,
-            color = if (selected) HabitColors.OnRoyalPurple else HabitColors.TextSecondary,
+            color = chipText,
             fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold,
             maxLines = 1,
@@ -946,7 +973,7 @@ internal fun ModernPrimaryFab(onClick: () -> Unit, modifier: Modifier = Modifier
             .heightIn(min = 54.dp)
             .clip(RoundedCornerShape(17.dp))
             .background(Brush.linearGradient(listOf(HabitColors.RoyalPurple, HabitColors.RoyalPurple2)))
-            .clickable(onClick = onClick)
+            .habitClickable(scaleDown = HabitMotion.ScaleButton, onClick = onClick)
             .padding(horizontal = 18.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -1002,7 +1029,7 @@ internal fun ModernDayDetailSheet(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable(enabled = !future || completed) { onToggle(item.habit.id, date, completed) }
+                            .habitClickable(enabled = !future || completed, scaleDown = HabitMotion.ScaleCard) { onToggle(item.habit.id, date, completed) }
                             .padding(vertical = 14.dp, horizontal = 2.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {

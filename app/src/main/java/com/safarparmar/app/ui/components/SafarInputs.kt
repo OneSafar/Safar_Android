@@ -38,7 +38,7 @@ fun SafarCustomTextField(
 ) {
     val hasError = !errorText.isNullOrBlank()
     val scheme = MaterialTheme.colorScheme
-    val isDark = scheme.background == Color(0xFF0F1115)
+    val isDark = scheme.background == Color(0xFF131316)
 
     val containerBg = if (enabled) {
         scheme.surfaceVariant
@@ -157,7 +157,7 @@ fun SafarCustomDropdownMenu(
 ) {
     var expanded by remember { mutableStateOf(false) }
     val scheme = MaterialTheme.colorScheme
-    val isDark = scheme.background == Color(0xFF0F1115)
+    val isDark = scheme.background == Color(0xFF131316)
 
     val containerBg = scheme.surfaceVariant
     val borderColor = scheme.outlineVariant

@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.EventNote
+import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -105,6 +106,7 @@ val drawerSections = listOf(
             ),
             DrawerItem(R.string.module_ekagra, Icons.Default.Timer, Routes.EKAGRA),
             DrawerItem(R.string.nav_habit_tracker, Icons.Default.CheckCircle, Routes.HABIT_TRACKER),
+            DrawerItem(R.string.nav_youtube_study_mode, Icons.Default.PlayCircle, Routes.YOUTUBE_STUDY_MODE_V2),
             DrawerItem(
                 R.string.nav_focus_shield,
                 Icons.Default.Shield,
@@ -124,6 +126,7 @@ val drawerSections = listOf(
         items = listOf(
             DrawerItem(R.string.module_nishtha, Icons.Default.SelfImprovement, Routes.NISHTHA),
             DrawerItem(R.string.module_dhyan, Icons.Default.Spa, Routes.DHYAN),
+            DrawerItem(R.string.nav_live_sessions, Icons.Default.LiveTv, Routes.LIVE_SESSIONS_ROOT),
             DrawerItem(R.string.module_mehfil, Icons.Default.Groups, Routes.MEHFIL),
             DrawerItem(R.string.nav_study_circle, Icons.Default.GroupWork, Routes.STUDY_CIRCLES),
         ),
@@ -131,6 +134,8 @@ val drawerSections = listOf(
 )
 
 val drawerPinnedBottom = listOf(
+    DrawerItem(R.string.sidebar_resources, Icons.AutoMirrored.Filled.MenuBook, Routes.COURSES),
+    DrawerItem(R.string.sidebar_help_support, Icons.AutoMirrored.Filled.HelpOutline, Routes.SUPPORT),
     DrawerItem(R.string.nav_premium, Icons.Default.WorkspacePremium, Routes.PREMIUM),
     DrawerItem(R.string.nav_profile, Icons.Default.Person, Routes.PROFILE),
     DrawerItem(R.string.profile_section_settings, Icons.Default.Settings, Routes.SETTINGS),
@@ -154,7 +159,7 @@ val drawerItems: List<DrawerItem> =
 // ─────────────────────────────────────────────────────────────────────────────
 
 private object DarkFlat {
-    val bg            = Color(0xFF1B1B1F) // M3 Dark Surface
+    val bg            = Color(0xFF131316) // Canonical Ground Zero Dark Surface
     val cardBg        = Color(0xFF2B2B30)
     val textPrimary   = Color(0xFFE3E2E6)
     val textSecondary = Color(0xFFC7C5D0)
@@ -190,7 +195,7 @@ private object LightFlat {
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
-fun SafarDrawer(
+private fun LegacySafarDrawer(
     currentRoute: String,
     isDarkTheme: Boolean,
     isAdmin: Boolean,
@@ -415,10 +420,18 @@ fun SafarDrawer(
                     }
                 }
 
-                HorizontalDivider(
-                    thickness = 1.dp,
-                    color     = containerBorderColor,
-                )
+                Box(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .width(56.dp)
+                            .height(1.dp)
+                            .clip(RoundedCornerShape(1.dp))
+                            .background(containerBorderColor)
+                    )
+                }
 
                 val currentLanguageLabel = when {
                     AppCompatDelegate.getApplicationLocales().toLanguageTags().startsWith("hi-Latn") ->
@@ -739,14 +752,14 @@ private fun DrawerSectionHeader(
                 imageVector = icon,
                 contentDescription = null,
                 tint = iconColor,
-                modifier = Modifier.size(20.dp),
+                modifier = Modifier.size(24.dp),
             )
             Text(
                 text = label,
                 modifier = Modifier.weight(1f),
                 style = MaterialTheme.typography.labelMedium.copy(
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 13.5.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 16.sp,
                     letterSpacing = 0.2.sp,
                 ),
                 color = textColor,
@@ -851,16 +864,16 @@ private fun DrawerNavRow(
                 imageVector = item.icon,
                 contentDescription = label,
                 tint = iconColor,
-                modifier = Modifier.size(23.dp),
+                modifier = Modifier.size(if (indented) 20.dp else 23.dp),
             )
 
             Text(
                 text = label,
                 modifier = Modifier.weight(1f),
                 style = MaterialTheme.typography.bodyMedium.copy(
-                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                    fontSize = 16.sp,
-                    lineHeight = 22.sp,
+                    fontWeight = if (selected) FontWeight.SemiBold else if (indented) FontWeight.Normal else FontWeight.Medium,
+                    fontSize = if (indented) 14.sp else 16.sp,
+                    lineHeight = if (indented) 20.sp else 22.sp,
                 ),
                 color = textColor,
             )
@@ -916,11 +929,13 @@ private fun DrawerNavRow(
     }
 }
 
-private fun isDrawerItemSelected(item: DrawerItem, currentBase: String): Boolean {
+internal fun isDrawerItemSelected(item: DrawerItem, currentBase: String): Boolean {
     val itemBase = item.route.substringBefore("?")
     return when {
         itemBase == Routes.COURSES ->
-            currentBase == Routes.COURSES || currentBase.startsWith("live/")
+            currentBase == Routes.COURSES
+        itemBase == Routes.LIVE_SESSIONS_ROOT ->
+            currentBase.startsWith("live/")
         else -> currentBase == itemBase || currentBase.startsWith("$itemBase/")
     }
 }
@@ -1014,25 +1029,28 @@ fun JetCoSwitchButton(
     knobColor: Color = Color.White,
     iconColor: Color = Color(0xFF16212B),
     animationDuration: Int = 600,
+    iconSize: androidx.compose.ui.unit.Dp = 16.dp,
 ) {
+    val effectiveDuration = if (com.safarparmar.app.performance.LocalMotionPolicy.current.animationsEnabled) animationDuration else 0
+    val direction = if (androidx.compose.ui.platform.LocalLayoutDirection.current == androidx.compose.ui.unit.LayoutDirection.Ltr) 1f else -1f
     val knobSize = buttonHeight - (switchPadding * 2)
     val maxOffset = buttonWidth - knobSize - (switchPadding * 2)
 
-    val animatedOffset by animateDpAsState(
+    val animatedOffset = animateDpAsState(
         targetValue = if (checked) maxOffset else 0.dp,
-        animationSpec = tween(durationMillis = animationDuration, easing = FastOutSlowInEasing),
+        animationSpec = tween(durationMillis = effectiveDuration, easing = FastOutSlowInEasing),
         label = "jetCoSwitchSlide",
     )
 
     val animatedBgColor by animateColorAsState(
         targetValue = if (checked) selectedTrackColor else unselectedTrackColor,
-        animationSpec = tween(durationMillis = animationDuration, easing = FastOutSlowInEasing),
+        animationSpec = tween(durationMillis = effectiveDuration, easing = FastOutSlowInEasing),
         label = "jetCoSwitchBgColor",
     )
 
     val rotation by animateFloatAsState(
         targetValue = if (checked) 360f else 0f,
-        animationSpec = tween(durationMillis = animationDuration, easing = FastOutSlowInEasing),
+        animationSpec = tween(durationMillis = effectiveDuration, easing = FastOutSlowInEasing),
         label = "jetCoSwitchRotation",
     )
 
@@ -1052,7 +1070,7 @@ fun JetCoSwitchButton(
     ) {
         Box(
             modifier = Modifier
-                .offset(x = animatedOffset)
+                .graphicsLayer { translationX = direction * animatedOffset.value.toPx() }
                 .size(knobSize)
                 .shadow(elevation = 2.dp, shape = CircleShape)
                 .clip(CircleShape)
@@ -1061,21 +1079,15 @@ fun JetCoSwitchButton(
         ) {
             Crossfade(
                 targetState = checked,
-                animationSpec = tween(durationMillis = animationDuration, easing = FastOutSlowInEasing),
+                animationSpec = tween(durationMillis = effectiveDuration, easing = FastOutSlowInEasing),
                 label = "jetCoSwitchCrossfade",
             ) { isDark ->
                 Icon(
-                    painter = painterResource(
-                        id = if (isDark) {
-                            R.drawable.ic_switch_partly_cloudy_night
-                        } else {
-                            R.drawable.ic_switch_partly_cloudy_day
-                        }
-                    ),
+                    imageVector = if (isDark) Icons.Default.DarkMode else Icons.Default.LightMode,
                     contentDescription = null,
                     tint = iconColor,
                     modifier = Modifier
-                        .size(16.dp)
+                        .size(iconSize)
                         .graphicsLayer {
                             rotationZ = rotation
                         },

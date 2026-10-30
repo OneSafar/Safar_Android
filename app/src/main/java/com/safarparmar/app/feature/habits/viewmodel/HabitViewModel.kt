@@ -34,6 +34,7 @@ internal fun weekOf(date: LocalDate): LocalDate = date.with(TemporalAdjusters.pr
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class HabitViewModel @Inject constructor(private val repository: HabitRepository) : ViewModel() {
+    private val pendingTicks = MutableStateFlow<Map<Pair<Long, LocalDate>, Boolean>>(emptyMap())
     private val selectedTab = MutableStateFlow(HabitTab.TODAY)
     private val selectedDate = MutableStateFlow(LocalDate.now())
     private val weekStart = MutableStateFlow(weekOf(LocalDate.now()))
@@ -78,6 +79,10 @@ class HabitViewModel @Inject constructor(private val repository: HabitRepository
         catch (_: Exception) { /* Persistent error and retry action are shown in the screen. */ }
     }
 
+    fun habitsForDate(date: LocalDate) = combine(repository.observeForDate(date), pendingTicks) { habits, pending ->
+        habits.map { entry -> pending[entry.habit.id to date]?.let { entry.copy(completed = it) } ?: entry }
+    }
+
     fun selectTab(tab: HabitTab) { selectedTab.value = tab }
 
     fun refreshToday(now: LocalDate = LocalDate.now()) {
@@ -108,6 +113,9 @@ class HabitViewModel @Inject constructor(private val repository: HabitRepository
      * silently writing or silently blocking.
      */
     fun toggleHabit(habitId: Long, date: LocalDate, currentlyDone: Boolean) {
+        val key = habitId to date
+        if (key in pendingTicks.value) return
+        if (date <= LocalDate.now()) pendingTicks.update { it + (key to !currentlyDone) }
         viewModelScope.launch {
             try {
                 when (repository.toggle(habitId, date, currentlyDone)) {
@@ -125,6 +133,7 @@ class HabitViewModel @Inject constructor(private val repository: HabitRepository
                 }
             } catch (e: CancellationException) { throw e }
             catch (e: Exception) { errors.send("Unable to update habit. Please try again.") }
+            finally { pendingTicks.update { it - key } }
         }
     }
 
@@ -137,20 +146,21 @@ class HabitViewModel @Inject constructor(private val repository: HabitRepository
         }
     }
 
-    suspend fun createHabit(name: String, targetDays: Set<DayOfWeek>, isEveryDay: Boolean, reminderTime: String? = null) {
+    suspend fun createHabit(name: String, targetDays: Set<DayOfWeek>, isEveryDay: Boolean, reminderTime: String? = null, emoji: String? = null) {
         val habits = repository.observeHabits().first()
         repository.createHabit(
             name = name,
             targetDays = targetDays,
             isEveryDay = isEveryDay,
             order = (habits.maxOfOrNull { it.order } ?: -1) + 1,
-            reminderTime = reminderTime
+            reminderTime = reminderTime,
+            emoji = emoji
         )
     }
 
-    suspend fun editHabit(habit: HabitEntity) {
+    suspend fun editHabit(habit: HabitEntity, emoji: String? = null) {
         // The backend records a dated revision while retaining the original start date.
-        repository.editHabit(habit)
+        repository.editHabit(habit, emoji)
     }
 
     /** BUG-02: Archive (soft-delete) by default. History is preserved. */

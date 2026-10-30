@@ -443,7 +443,10 @@ private fun ToppersBatchScreenContent(
     val overview = state.overview ?: return
     val subject = overview.subjects.firstOrNull { it.id == state.selectedSubjectId }
     LazyColumn(
-        modifier = Modifier.fillMaxSize().testTag("toppers-batch-body"),
+        modifier = Modifier
+            .fillMaxWidth()
+            .widthIn(max = 920.dp)
+            .testTag("toppers-batch-body"),
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,

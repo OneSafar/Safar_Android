@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Gavel
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Nightlight
 import androidx.compose.material.icons.filled.Notifications
@@ -132,6 +133,10 @@ fun SettingsScreen(
     var hasOverlayPermission by remember { mutableStateOf(false) }
     var hasNotificationPermission by remember { mutableStateOf(false) }
     var hasNotificationShieldPermission by remember { mutableStateOf(false) }
+    var showLanguageDialog by remember { mutableStateOf(false) }
+    if (showLanguageDialog) {
+        com.safarparmar.app.ui.components.LanguageSelectionDialog(onDismiss = { showLanguageDialog = false })
+    }
     var showTimePickerDialog by remember { mutableStateOf(false) }
     var showPermissionInfoDialog by remember { mutableStateOf(false) }
 
@@ -160,7 +165,7 @@ fun SettingsScreen(
             isDarkTheme = isDarkTheme,
             onNavigate = onNavigate,
             onToggleDarkTheme = onToggleDarkTheme,
-            containerColor = if (LocalPlannerIsDarkTheme.current == true) Color(0xFF111111) else Color(0xFFF7F8FA),
+            containerColor = if (LocalPlannerIsDarkTheme.current == true) Color(0xFF131316) else Color(0xFFF7F8FA),
         ) { paddingValues ->
             var settingsVisible by remember { mutableStateOf(false) }
             LaunchedEffect(Unit) {
@@ -214,6 +219,12 @@ fun SettingsScreen(
                     StaggeredSettingsEntranceBox(index = 2, isVisible = settingsVisible) {
                         val haptic = LocalHapticFeedback.current
                         SettingsSheetSection(title = stringResource(R.string.settings_preferences_appearance)) {
+                            SettingsNavigationRow(
+                                title = stringResource(R.string.profile_language_title),
+                                subtitle = stringResource(R.string.sidebar_settings_hint),
+                                icon = Icons.Default.Language,
+                                onClick = { showLanguageDialog = true },
+                            )
                             SettingsSwitchRow(
                                 title = stringResource(R.string.settings_dark_theme),
                                 subtitle = stringResource(R.string.settings_dark_theme_subtitle),
@@ -773,7 +784,7 @@ private fun TimePickerDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = if (LocalPlannerIsDarkTheme.current == true) Color(0xFF111111) else Color(0xFFF7F8FA),
+        containerColor = if (LocalPlannerIsDarkTheme.current == true) Color(0xFF131316) else Color(0xFFF7F8FA),
         title = {
             Text(
                 text = stringResource(R.string.settings_select_reminder_time),
@@ -834,7 +845,7 @@ private fun TimePickerDialog(
 private fun PermissionExplanationDialog(onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = if (LocalPlannerIsDarkTheme.current == true) Color(0xFF111111) else Color(0xFFF7F8FA),
+        containerColor = if (LocalPlannerIsDarkTheme.current == true) Color(0xFF131316) else Color(0xFFF7F8FA),
         icon = { Icon(Icons.Default.Security, null, tint = SafarSemanticColors.brandPurple()) },
         title = {
             Text(

@@ -74,7 +74,7 @@ fun MixedBagSubjectPickerStep(
     ) {
         Text(
             "Pick your 2-3 hardest subjects",
-            fontFamily = LoraFontFamily,
+            fontFamily = com.safarparmar.app.ui.theme.MulishFontFamily,
             fontSize = 24.sp,
             fontWeight = FontWeight.Normal,
             color = scheme.onSurface,
@@ -132,7 +132,7 @@ fun MixedBagSubjectPickerStep(
                             }
                         }
                     }
-                    PlanHairline(alpha = 0.5f)
+                    PlanHairline()
                 }
             }
         }
@@ -214,7 +214,7 @@ private fun MixedBagOrderOption(
             .clip(CircleShape)
             .then(
                 if (selected) Modifier.background(accent.copy(alpha = 0.14f))
-                else Modifier.border(1.dp, scheme.outlineVariant.copy(alpha = 0.5f), CircleShape),
+                else Modifier.border(1.dp, PlannerFlatColors.BorderSoft, CircleShape),
             )
             .clickable(onClick = onClick)
             .padding(start = 14.dp, end = 4.dp, top = 6.dp, bottom = 6.dp),

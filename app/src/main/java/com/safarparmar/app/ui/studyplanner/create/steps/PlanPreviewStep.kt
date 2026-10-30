@@ -168,7 +168,7 @@ fun PlanPreviewStep(
             item {
                 Text(
                     stringResource(R.string.planner_schedule_preview_title),
-                    fontFamily = LoraFontFamily,
+                    fontFamily = com.safarparmar.app.ui.theme.MulishFontFamily,
                     fontSize = 26.sp,
                     fontWeight = FontWeight.Normal,
                     color = scheme.onSurface,
@@ -198,7 +198,7 @@ fun PlanPreviewStep(
                                 Modifier
                                     .width(1.dp)
                                     .fillMaxHeight()
-                                    .background(scheme.outlineVariant.copy(alpha = 0.4f)),
+                                    .background(PlannerFlatColors.BorderSoft),
                             )
                         }
                         Column(
@@ -207,7 +207,7 @@ fun PlanPreviewStep(
                         ) {
                             Text(
                                 text = value,
-                                fontFamily = LoraFontFamily,
+                                fontFamily = com.safarparmar.app.ui.theme.MulishFontFamily,
                                 fontSize = 22.sp,
                                 fontWeight = FontWeight.Normal,
                                 color = if (isHero) PlannerAccent.Coral else scheme.onSurface,
@@ -364,7 +364,7 @@ fun PlanPreviewStep(
                 if (weekIndex == weeks.lastIndex && examDateLabel != null) {
                     item {
                         Column(modifier = Modifier.padding(top = 14.dp, bottom = 6.dp)) {
-                            PlanHairline(alpha = 0.6f)
+                            PlanHairline()
                             Spacer(Modifier.height(10.dp))
                             Text(
                                 "Your exam",
@@ -375,7 +375,7 @@ fun PlanPreviewStep(
                             )
                             Text(
                                 examDateLabel,
-                                fontFamily = LoraFontFamily,
+                                fontFamily = com.safarparmar.app.ui.theme.MulishFontFamily,
                                 fontSize = 20.sp,
                                 color = PlannerAccent.Coral,
                             )
@@ -401,7 +401,7 @@ fun PlanPreviewStep(
                 modifier = Modifier
                     .weight(1f)
                     .clip(CircleShape)
-                    .border(1.dp, scheme.outlineVariant.copy(alpha = 0.5f), CircleShape)
+                    .border(1.dp, PlannerFlatColors.BorderSoft, CircleShape)
                     .clickable(enabled = !isConfirming) { onAdjust() }
                     .padding(vertical = 12.dp),
                 contentAlignment = Alignment.Center,
@@ -530,7 +530,7 @@ private fun DayHeader(
 
     Column {
         Spacer(Modifier.height(12.dp))
-        PlanHairline(alpha = 0.6f)
+        PlanHairline()
         Spacer(Modifier.height(8.dp))
         Row(
             modifier = Modifier
@@ -604,7 +604,7 @@ private fun TopicPill(
                 .then(
                     if (onLongPress != null) {
                         Modifier.combinedClickable(
-                            onClick = {},
+                            onClick = onLongPress,
                             onLongClick = {
                                 haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                                 onLongPress()
@@ -685,7 +685,7 @@ private fun TopicPill(
                 modifier = Modifier.padding(end = 4.dp),
             )
         }
-        PlanHairline(alpha = 0.4f)
+        PlanHairline()
     }
 }
 
@@ -934,7 +934,7 @@ private fun DeferredSubjectsCard(
                             Box(
                                 modifier = Modifier
                                     .clip(CircleShape)
-                                    .border(1.dp, scheme.outlineVariant.copy(alpha = 0.5f), CircleShape)
+                                    .border(1.dp, PlannerFlatColors.BorderSoft, CircleShape)
                                     .padding(horizontal = 10.dp, vertical = 5.dp),
                             ) {
                                 Text(

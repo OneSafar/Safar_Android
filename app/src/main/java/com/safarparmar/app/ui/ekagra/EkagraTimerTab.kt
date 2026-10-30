@@ -1,5 +1,6 @@
 package com.safarparmar.app.ui.ekagra
 
+import com.safarparmar.app.ui.adaptive.isSpaciousLandscape
 import com.safarparmar.app.ui.tutorial.tutorialTarget
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
@@ -147,8 +148,8 @@ internal fun ModeTabs(
 ) {
     val modes = remember { TimerMode.entries.filter { it.showInPill } }
 
-    val trackBg = if (isDarkTheme) Color.White.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.22f)
-    val trackBorder = if (isDarkTheme) Color.White.copy(alpha = 0.14f) else Color.White.copy(alpha = 0.38f)
+    val trackBg = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)
+    val trackBorder = MaterialTheme.colorScheme.outlineVariant
 
     Row(
         modifier = modifier
@@ -161,14 +162,8 @@ internal fun ModeTabs(
     ) {
         modes.forEach { mode ->
             val isSelected = mode == selected
-            val pillBg = if (isSelected) {
-                if (isDarkTheme) Color(0xFF1E293B) else Color.White
-            } else Color.Transparent
-            val contentColor = if (isSelected) {
-                if (isDarkTheme) Color.White else Color(0xFF0F172A)
-            } else {
-                if (isDarkTheme) Color.White.copy(alpha = 0.70f) else Color(0xFF334155)
-            }
+            val pillBg = if (isSelected) accentColor else Color.Transparent
+            val contentColor = if (isSelected) contrastOn(accentColor) else MaterialTheme.colorScheme.onSurfaceVariant
 
             val iconVector = when (mode) {
                 TimerMode.FOCUS -> Icons.Default.HourglassEmpty
@@ -177,18 +172,13 @@ internal fun ModeTabs(
                 else -> Icons.Default.Timer
             }
 
-            Row(
-                modifier = Modifier
-                    .clip(CircleShape)
-                    .then(
-                        if (isSelected) Modifier.shadow(elevation = 3.dp, shape = CircleShape)
-                        else Modifier
-                    )
-                    .background(pillBg)
-                    .clickable { onSelect(mode) }
-                    .padding(horizontal = 14.dp, vertical = 7.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            com.composables.ui.components.Button(
+                onClick = { onSelect(mode) },
+                style = com.composables.ui.components.ButtonStyle.Ghost,
+                shape = CircleShape,
+                contentColor = contentColor,
+                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 7.dp),
+                modifier = Modifier.height(30.dp).background(pillBg, CircleShape),
             ) {
                 Icon(
                     imageVector = iconVector,
@@ -196,7 +186,8 @@ internal fun ModeTabs(
                     tint = contentColor,
                     modifier = Modifier.size(14.dp),
                 )
-                Text(
+                Spacer(Modifier.width(6.dp))
+                com.composables.ui.components.Text(
                     text = stringResource(mode.labelRes),
                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                     fontSize = 12.sp,
@@ -257,6 +248,8 @@ internal fun TimerFocusTab(
     val scheme  = MaterialTheme.colorScheme
     val configuration   = LocalConfiguration.current
     val isCompactHeight = configuration.screenHeightDp < 600
+    val adaptive = com.safarparmar.app.ui.adaptive.rememberSafarAdaptiveState()
+    val tabletLayout = adaptive.isSpaciousLandscape
     val ink = rememberEkagraInk(onCanvas = true, theme = selectedTheme, isDarkTheme = isDarkTheme)
 
     val pulse by animateFloatAsState(
@@ -265,8 +258,13 @@ internal fun TimerFocusTab(
         label          = "timerPulse",
     )
 
-    Box(modifier = modifier) {
-      Column(Modifier.fillMaxSize()) {
+    BoxWithConstraints(modifier = modifier, contentAlignment = Alignment.TopCenter) {
+      val contentWidth = if (tabletLayout) ekagraTabletChromeWidth(maxWidth) else maxWidth
+      val ringDiameter = if (tabletLayout) {
+          val extraProtectionChip = shieldState.hasUsageStats && shieldState.hasOverlayPermission
+          (maxHeight - if (extraProtectionChip) 390.dp else 330.dp).coerceIn(180.dp, 280.dp)
+      } else timerDiameter
+      Column(Modifier.width(contentWidth).fillMaxHeight()) {
         // Pinned above the scrolling, vertically-centred timer column so the
         // summary sits just under the top bar. Inside controlsVisible on purpose:
         // once a session is running the chrome hides.
@@ -284,7 +282,8 @@ internal fun TimerFocusTab(
                 selectedCircle = selectedStudyCircle,
                 onSelectCircle = onSelectStudyCircle,
                 onNavigate = onNavigate,
-                modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 2.dp, bottom = 4.dp),
+                modifier = if (tabletLayout) Modifier.padding(top = 2.dp, bottom = 4.dp)
+                    else Modifier.padding(start = 20.dp, end = 20.dp, top = 2.dp, bottom = 4.dp),
             )
         }
 
@@ -314,7 +313,7 @@ internal fun TimerFocusTab(
                         onSelect = onModeChange,
                         modifier = Modifier.tutorialTarget("ekagra.mode"),
                     )
-                    Spacer(Modifier.height(if (isCompactHeight) 20.dp else 36.dp))
+                    Spacer(Modifier.height(if (tabletLayout) 20.dp else if (isCompactHeight) 20.dp else 36.dp))
 
                     val hasAllPermissions = shieldState.hasUsageStats &&
                                             shieldState.hasOverlayPermission
@@ -378,7 +377,7 @@ internal fun TimerFocusTab(
             val ringColor  = if (isDarkTheme) Color.White else Color.White
             val trackColor = if (isDarkTheme) Color.White.copy(alpha = 0.20f) else Color.White.copy(alpha = 0.40f)
 
-            Box(contentAlignment = Alignment.Center, modifier = Modifier.size(timerDiameter)) {
+            Box(contentAlignment = Alignment.Center, modifier = Modifier.size(ringDiameter)) {
                 // Ambient glow and soft radial background
                 androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize().padding(4.dp)) {
                     // Soft outer bloom
@@ -488,7 +487,7 @@ internal fun TimerFocusTab(
             }
 
 
-            Spacer(Modifier.height(28.dp))
+            Spacer(Modifier.height(if (tabletLayout) 20.dp else 28.dp))
 
             // ── Controls — symmetrical horizontal control group ──
             Row(
@@ -553,14 +552,22 @@ internal fun TimerFocusTab(
                         textAlign  = TextAlign.Center,
                     )
 
-                    Spacer(Modifier.height(if (showYoutubeBanner) 72.dp else 16.dp))
+                    Spacer(Modifier.height(if (tabletLayout) 16.dp else if (showYoutubeBanner) 72.dp else 16.dp))
                 }
+            }
+            if (tabletLayout) {
+                AnimatedVisibility(visible = showYoutubeBanner && controlsVisible,
+                    enter = fadeIn(tween(220)), exit = fadeOut(tween(120))) {
+                    EkagraYouTubeStudyBanner(onEnableClick = onEnableYoutubeFocus,
+                        onDismiss = onDismissYoutubeFocus)
+                }
+                Spacer(Modifier.height(12.dp))
             }
         }
       }
 
       AnimatedVisibility(
-          visible = showYoutubeBanner && controlsVisible,
+          visible = !tabletLayout && showYoutubeBanner && controlsVisible,
           enter = fadeIn(animationSpec = tween(500, easing = FastOutSlowInEasing)),
           exit = fadeOut(animationSpec = tween(500, easing = FastOutSlowInEasing)),
           modifier = Modifier

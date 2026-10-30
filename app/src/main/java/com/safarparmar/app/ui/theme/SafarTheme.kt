@@ -41,7 +41,7 @@ val LightExpressiveGradient = Brush.verticalGradient(
 val DarkExpressiveGradient = Brush.verticalGradient(
     colors = listOf(
         Color(0xFF1C2022), // surfaceContainerDark
-        Color(0xFF101416)  // surfaceDark
+        Color(0xFF131316)  // surfaceDark
     )
 )
 

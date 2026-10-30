@@ -73,7 +73,7 @@ private data class BuilderPalette(
 private fun builderPalette() = BuilderPalette(
     ink = MaterialTheme.colorScheme.onSurface,
     muted = MaterialTheme.colorScheme.onSurfaceVariant,
-    rule = MaterialTheme.colorScheme.outlineVariant,
+    rule = PlannerFlatColors.BorderSoft,
     surface = MaterialTheme.colorScheme.surfaceContainerLow,
     subject = Color(0xFF7357B6),
     chapter = Color(0xFF287BA3),

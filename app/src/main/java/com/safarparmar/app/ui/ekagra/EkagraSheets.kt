@@ -166,7 +166,7 @@ internal fun VisualThemeChoices(current: VisualTheme, onSelect: (VisualTheme) ->
                                         modifier = Modifier
                                             .size(30.dp)
                                             .clip(CircleShape)
-                                            .background(theme.accent.copy(alpha = 0.18f)),
+                                            .background(ekagraControlAccent(theme.name, com.safarparmar.app.ui.studyplanner.components.isPlannerDark).copy(alpha = 0.18f)),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Text(theme.emoji, fontSize = 15.sp)
@@ -983,7 +983,7 @@ internal fun PostSaveGoalLinkingSheet(
     var pendingConfirmation by remember { mutableStateOf<PendingGoalLinkConfirmation?>(null) }
 
     val ink = rememberEkagraInk(onCanvas = false, theme = selectedTheme, isDarkTheme = isDarkTheme)
-    val themeAccent = selectedTheme?.accent ?: MaterialTheme.colorScheme.primary
+    val themeAccent = selectedTheme?.let { ekagraControlAccent(it.name, isDarkTheme) } ?: MaterialTheme.colorScheme.primary
     val maxSheetHeight = LocalConfiguration.current.screenHeightDp.dp * 0.85f
 
     com.safarparmar.app.ui.components.popups.SafarComposablesBottomSheet(

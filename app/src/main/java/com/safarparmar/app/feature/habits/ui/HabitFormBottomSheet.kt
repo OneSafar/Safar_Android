@@ -26,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -50,13 +51,16 @@ import java.util.Locale
 internal fun HabitFormBottomSheet(
     habit: HabitEntity? = null,
     onDismiss: () -> Unit,
-    onSubmit: suspend (String, Set<DayOfWeek>, Boolean, String?) -> Unit,
+    onSubmit: suspend (String, Set<DayOfWeek>, Boolean, String?, String) -> Unit,
     onSuccess: (String, Set<DayOfWeek>) -> Unit = { _, _ -> },
     onArchive: (suspend () -> Unit)? = null,
     onDelete: (suspend () -> Unit)? = null,
     inlinePreview: Boolean = false,
     initialName: String? = null,
+    initialEmoji: String = "🌱",
 ) {
+    var emoji by rememberSaveable(habit?.id) { mutableStateOf(initialEmoji) }
+    var showEmojiPicker by rememberSaveable { mutableStateOf(false) }
     var name by rememberSaveable(habit?.id) { mutableStateOf(initialName ?: habit?.name.orEmpty()) }
     var dayMask by rememberSaveable(habit?.id) {
         mutableIntStateOf(habit?.targetDays?.fold(0) { mask, day -> mask or (1 shl (day.value - 1)) } ?: 127)
@@ -121,13 +125,13 @@ internal fun HabitFormBottomSheet(
         error = null
         scope.launch {
             try {
-                onSubmit(savedName, savedDays, !specificDays, reminderTime.takeIf { reminderEnabled })
+                onSubmit(savedName, savedDays, !specificDays, reminderTime.takeIf { reminderEnabled }, emoji)
                 onSuccess(savedName, savedDays)
                 onDismiss()
             } catch (e: CancellationException) {
                 throw e
-            } catch (_: Exception) {
-                error = "Unable to save habit. Please try again."
+            } catch (e: Exception) {
+                error = e.message?.takeIf { it.isNotBlank() && !it.contains("Exception") } ?: "Unable to save habit. Please try again."
                 busy = false
             }
         }
@@ -199,8 +203,24 @@ internal fun HabitFormBottomSheet(
                         lineHeight = 20.sp
                     )
                 }
-                IconButton(onClick = ::dismissSafely, enabled = !busy, modifier = Modifier.size(48.dp)) {
+                IconButton(onClick = ::dismissSafely, enabled = !busy, modifier = Modifier.size(48.dp).habitPress(scaleDown = HabitMotion.ScaleIcon)) {
                     Icon(Icons.Default.Close, contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.common_close), tint = HabitColors.TextPrimary)
+                }
+            }
+
+            FormSection {
+                FormLabel("Habit icon")
+                Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(15.dp)).background(HabitColors.Parchment)
+                    .habitClickable(enabled = !busy, scaleDown = HabitMotion.ScaleCard, role = androidx.compose.ui.semantics.Role.Button) {
+                        focus.clearFocus()
+                        showEmojiPicker = true
+                    }.padding(12.dp).semantics { contentDescription = "Choose habit emoji, current icon $emoji" },
+                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Text(emoji, fontSize = 32.sp, modifier = Modifier.padding(4.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text("Choose an emoji", fontWeight = FontWeight.SemiBold, color = HabitColors.TextPrimary, fontSize = 14.sp)
+                        Text("Open emoji palette", color = HabitColors.TextSecondary, fontSize = 12.sp, modifier = Modifier.padding(top = 3.dp))
+                    }
                 }
             }
 
@@ -259,23 +279,43 @@ internal fun HabitFormBottomSheet(
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                             MondayFirst.forEach { day ->
                                 val selected = day in selectedDays
+                                val bg by androidx.compose.animation.animateColorAsState(
+                                    if (selected) HabitColors.RoyalPurpleBg else HabitColors.Surface,
+                                    androidx.compose.animation.core.tween(150),
+                                    label = "dayChipBg"
+                                )
+                                val border by androidx.compose.animation.animateColorAsState(
+                                    if (selected) HabitColors.RoyalPurple.copy(alpha = .35f) else HabitColors.Outline,
+                                    androidx.compose.animation.core.tween(150),
+                                    label = "dayChipBorder"
+                                )
+                                val textColor by androidx.compose.animation.animateColorAsState(
+                                    if (selected) HabitColors.RoyalPurple else HabitColors.TextPrimary,
+                                    androidx.compose.animation.core.tween(150),
+                                    label = "dayChipText"
+                                )
+                                val popScale by rememberHabitCompletionPop(selected)
                                 Box(
                                     modifier = Modifier
                                         .weight(1f)
                                         .heightIn(min = 46.dp)
-                                        .clip(RoundedCornerShape(11.dp))
-                                        .background(if (selected) HabitColors.RoyalPurpleBg else HabitColors.Surface)
-                                        .border(1.dp, if (selected) HabitColors.RoyalPurple.copy(alpha = .35f) else HabitColors.Outline, RoundedCornerShape(11.dp))
-                                        .clickable(enabled = !busy) {
+                                        .habitClickable(enabled = !busy, scaleDown = HabitMotion.ScaleChip) {
                                             val bit = 1 shl (day.value - 1)
                                             dayMask = dayMask xor bit
                                             daysError = false
-                                        },
+                                        }
+                                        .graphicsLayer {
+                                            scaleX = popScale
+                                            scaleY = popScale
+                                        }
+                                        .clip(RoundedCornerShape(11.dp))
+                                        .background(bg)
+                                        .border(1.dp, border, RoundedCornerShape(11.dp)),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(
                                         day.getDisplayName(TextStyle.SHORT, LocalLocale.current.platformLocale),
-                                        color = if (selected) HabitColors.RoyalPurple else HabitColors.TextPrimary,
+                                        color = textColor,
                                         fontSize = 10.sp,
                                         fontWeight = FontWeight.Bold,
                                         maxLines = 1
@@ -316,7 +356,7 @@ internal fun HabitFormBottomSheet(
                     )
                 }
                 if (reminderEnabled) {
-                    TextButton(onClick = { showReminderTime = true }, enabled = !busy) {
+                    TextButton(onClick = { showReminderTime = true }, enabled = !busy, modifier = Modifier.habitPress(scaleDown = HabitMotion.ScaleButton)) {
                         Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habit_reminder_time, reminderTime))
                     }
                     Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habit_reminder_help),
@@ -325,7 +365,7 @@ internal fun HabitFormBottomSheet(
                         context.startActivity(android.content.Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS)
                             .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
                             .putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, context.packageName))
-                    }, enabled = !busy && !inlinePreview) {
+                    }, enabled = !busy && !inlinePreview, modifier = Modifier.habitPress(scaleDown = HabitMotion.ScaleButton)) {
                         Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habit_reminder_settings))
                     }
                 }
@@ -340,7 +380,7 @@ internal fun HabitFormBottomSheet(
             Button(
                 onClick = ::submit,
                 enabled = !busy,
-                modifier = Modifier.fillMaxWidth().heightIn(min = 54.dp),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 54.dp).habitPress(scaleDown = HabitMotion.ScaleButton),
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = HabitColors.RoyalPurple, contentColor = HabitColors.OnRoyalPurple)
             ) {
@@ -350,14 +390,14 @@ internal fun HabitFormBottomSheet(
             if (habit != null && (onArchive != null || onDelete != null)) {
                 Spacer(Modifier.height(8.dp))
                 if (onArchive != null) {
-                    TextButton(onClick = { confirmArchive = true }, enabled = !busy, modifier = Modifier.fillMaxWidth()) {
+                    TextButton(onClick = { confirmArchive = true }, enabled = !busy, modifier = Modifier.fillMaxWidth().habitPress(scaleDown = HabitMotion.ScaleButton)) {
                         Icon(Icons.Default.Archive, contentDescription = null, modifier = Modifier.size(16.dp), tint = HabitColors.TextSecondary)
                         Spacer(Modifier.width(6.dp))
                         Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_archive), color = HabitColors.TextSecondary, fontSize = 13.sp)
                     }
                 }
                 if (onDelete != null) {
-                    TextButton(onClick = { confirmDelete = true }, enabled = !busy, modifier = Modifier.fillMaxWidth()) {
+                    TextButton(onClick = { confirmDelete = true }, enabled = !busy, modifier = Modifier.fillMaxWidth().habitPress(scaleDown = HabitMotion.ScaleButton)) {
                         Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(15.dp), tint = HabitColors.Error)
                         Spacer(Modifier.width(5.dp))
                         Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_delete_permanently), color = HabitColors.Error, fontSize = 12.sp)
@@ -376,6 +416,8 @@ internal fun HabitFormBottomSheet(
                 .background(HabitColors.TextSecondary, CircleShape))
         },
     ) { Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) { form() } }
+
+    if (showEmojiPicker) HabitEmojiPicker(onDismiss = { showEmojiPicker = false }, onPicked = { emoji = it; showEmojiPicker = false })
 
     if (confirmArchive) {
         AlertDialog(
@@ -426,18 +468,28 @@ private fun ScheduleChoice(
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
+    val bg by androidx.compose.animation.animateColorAsState(
+        if (selected) HabitColors.Surface else Color.Transparent,
+        androidx.compose.animation.core.tween(150),
+        label = "choiceBg"
+    )
+    val textColor by androidx.compose.animation.animateColorAsState(
+        if (selected) HabitColors.RoyalPurple else HabitColors.TextSecondary,
+        androidx.compose.animation.core.tween(150),
+        label = "choiceText"
+    )
     Box(
         modifier = modifier
             .heightIn(min = 48.dp)
+            .habitClickable(enabled = enabled, scaleDown = HabitMotion.ScaleButton, onClick = onClick)
             .clip(RoundedCornerShape(12.dp))
-            .background(if (selected) HabitColors.Surface else Color.Transparent)
-            .then(if (selected) Modifier.border(1.dp, HabitColors.Outline, RoundedCornerShape(12.dp)) else Modifier)
-            .clickable(enabled = enabled, onClick = onClick),
+            .background(bg)
+            .then(if (selected) Modifier.border(1.dp, HabitColors.Outline, RoundedCornerShape(12.dp)) else Modifier),
         contentAlignment = Alignment.Center
     ) {
         Text(
             label,
-            color = if (selected) HabitColors.RoyalPurple else HabitColors.TextSecondary,
+            color = textColor,
             fontSize = 13.sp,
             fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
             maxLines = 1,

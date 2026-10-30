@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sidebar_home_hint">आपके दिन की झलक</string>
+    <string name="sidebar_study_hint">प्लानर, फ़ोकस टूल और संसाधन</string>
+    <string name="sidebar_wellbeing_hint">निष्ठा, ध्यान और लाइव सत्र</string>
+    <string name="sidebar_community_hint">महफ़िल, सर्कल और लीडरबोर्ड</string>
+    <string name="sidebar_progress">प्रगति</string>
+    <string name="sidebar_progress_hint">विश्लेषण और डैशबोर्ड</string>
+    <string name="sidebar_settings_hint">भाषा और रूप</string>
+    <string name="sidebar_close">नेविगेशन बंद करें</string>
+    <string name="sidebar_expand">साइडबार खोलें</string>
+    <string name="sidebar_collapse">साइडबार समेटें</string>
+    <string name="sidebar_premium_active">प्रीमियम सक्रिय</string>
+    <string name="sidebar_free_plan">निःशुल्क प्लान</string>
+    <string name="sidebar_admin">एडमिन टूल</string>
+</resources>

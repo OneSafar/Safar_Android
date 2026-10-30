@@ -234,7 +234,7 @@ fun LedgerSegmentedTabs(
                         if (isSelected) Modifier.border(1.dp, HabitColors.OutlineStrong, RoundedCornerShape(8.dp))
                         else Modifier
                     )
-                    .clickable { onTabSelected(tab) },
+                    .habitClickable(scaleDown = HabitMotion.ScaleButton) { onTabSelected(tab) },
                 contentAlignment = Alignment.Center
             ) {
                 Text(
@@ -356,7 +356,7 @@ internal fun HabitIdentity(
         // UX-08 FIX: explicit onClickLabel for edit icon
         IconButton(
             onClick = onEdit,
-            modifier = Modifier.size(32.dp)
+            modifier = Modifier.size(32.dp).habitPress(scaleDown = HabitMotion.ScaleIcon)
         ) {
             Icon(
                 Icons.Default.Edit,
@@ -427,6 +427,16 @@ internal fun HabitDayCell(
         else -> HabitColors.OutlineStrong
     }
 
+    val popScale by rememberHabitCompletionPop(completed)
+    val motion = com.safarparmar.app.performance.LocalMotionPolicy.current
+    val pressScale by animateFloatAsState(
+        targetValue = if (isPressed) HabitMotion.ScaleChip else 1f,
+        animationSpec = if (!motion.animationsEnabled) tween(0)
+        else if (isPressed) HabitMotion.PressSpecDown
+        else HabitMotion.PressSpecUp,
+        label = "cellPressScale"
+    )
+
     val description = "${habit.name}, ${date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL))}" +
             if (isToday) ", Today" else ""
 
@@ -434,8 +444,8 @@ internal fun HabitDayCell(
         modifier = modifier
             .heightIn(min = minHeight)
             .graphicsLayer {
-                scaleX = if (isPressed) 0.95f else 1f
-                scaleY = if (isPressed) 0.95f else 1f
+                scaleX = pressScale * popScale
+                scaleY = pressScale * popScale
             }
             .clip(RoundedCornerShape(8.dp))
             .background(cellBackground)
@@ -555,7 +565,7 @@ internal fun AggregateDayCell(
             .clip(RoundedCornerShape(8.dp))
             .background(cellBackground)
             .border(borderStroke, borderColor, RoundedCornerShape(8.dp))
-            .clickable(onClick = onClick)
+            .habitClickable(scaleDown = HabitMotion.ScaleChip, onClick = onClick)
             .semantics {
                 contentDescription = description
             }
@@ -665,7 +675,7 @@ internal fun PeriodNavigation(
                     .clip(RoundedCornerShape(6.dp))
                     .background(HabitColors.Parchment)
                     .border(1.dp, HabitColors.Outline, RoundedCornerShape(6.dp))
-                    .clickable(onClick = onCurrent)
+                    .habitClickable(scaleDown = HabitMotion.ScaleButton, onClick = onCurrent)
                     .padding(horizontal = 10.dp, vertical = 5.dp),
                 contentAlignment = Alignment.Center
             ) {
@@ -684,7 +694,7 @@ internal fun PeriodNavigation(
                     .clip(RoundedCornerShape(6.dp))
                     .background(HabitColors.Parchment)
                     .border(1.dp, HabitColors.Outline, RoundedCornerShape(6.dp))
-                    .clickable(onClick = onPrevious)
+                    .habitClickable(scaleDown = HabitMotion.ScaleIcon, onClick = onPrevious)
                     .semantics { contentDescription = previousDescription },
                 contentAlignment = Alignment.Center
             ) {
@@ -703,7 +713,7 @@ internal fun PeriodNavigation(
                     .clip(RoundedCornerShape(6.dp))
                     .background(HabitColors.Parchment)
                     .border(1.dp, HabitColors.Outline, RoundedCornerShape(6.dp))
-                    .clickable(onClick = onNext)
+                    .habitClickable(scaleDown = HabitMotion.ScaleIcon, onClick = onNext)
                     .semantics { contentDescription = nextDescription },
                 contentAlignment = Alignment.Center
             ) {
@@ -780,6 +790,7 @@ internal fun HabitEmptyState(
         Spacer(Modifier.height(4.dp))
         Button(
             onClick = onAdd,
+            modifier = Modifier.habitPress(scaleDown = HabitMotion.ScaleButton),
             colors = ButtonDefaults.buttonColors(
                 containerColor = HabitColors.RoyalPurple,
                 contentColor = HabitColors.OnRoyalPurple

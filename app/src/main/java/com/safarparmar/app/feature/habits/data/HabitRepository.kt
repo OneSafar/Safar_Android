@@ -131,10 +131,10 @@ class HabitRepository @Inject constructor(
 
     suspend fun deleteHabit(habit: HabitEntity) = remoteStore.deleteHabit(habit)
 
-    suspend fun createHabit(name: String, targetDays: Set<DayOfWeek>, isEveryDay: Boolean, order: Int, reminderTime: String? = null) {
+    suspend fun createHabit(name: String, targetDays: Set<DayOfWeek>, isEveryDay: Boolean, order: Int, reminderTime: String? = null, emoji: String? = null) {
         val today = LocalDate.now()
         remoteStore.insertHabit(HabitEntity(name = name, targetDays = targetDays,
-            isEveryDay = isEveryDay, scheduledSince = today, order = order, reminderTime = reminderTime))
+            isEveryDay = isEveryDay, scheduledSince = today, order = order, reminderTime = reminderTime), emoji)
     }
 
     /**
@@ -142,8 +142,8 @@ class HabitRepository @Inject constructor(
      * recurrence actually changed. Multiple edits on the same day replace that day's
      * revision, which is what users expect before the day has finished.
      */
-    suspend fun editHabit(habit: HabitEntity) {
-        remoteStore.updateHabit(habit)
+    suspend fun editHabit(habit: HabitEntity, emoji: String? = null) {
+        remoteStore.updateHabit(habit, emoji)
     }
 
     suspend fun streaks(habit: HabitEntity): StreakInfo = withContext(Dispatchers.Default) {

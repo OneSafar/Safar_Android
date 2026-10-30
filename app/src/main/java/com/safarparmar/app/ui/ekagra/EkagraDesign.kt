@@ -43,6 +43,15 @@ import com.safarparmar.app.ui.theme.LoraFontFamily
  * sits on the Timer tab's video/gradient canvas).
  */
 
+/** Control accents are separate from the existing visual background gradients. */
+internal fun ekagraControlAccent(name: String, dark: Boolean): Color = when (name) {
+    "Habits" -> if (dark) Color(0xFF8CD5C3) else Color(0xFF226957)
+    "Journal" -> if (dark) Color(0xFFF0B49B) else Color(0xFF99533C)
+    "Peace" -> if (dark) Color(0xFFCAB4ED) else Color(0xFF73519D)
+    "Focus" -> if (dark) Color(0xFFB7C3F2) else Color(0xFF485B9D)
+    else -> if (dark) Color(0xFFB7C3F2) else Color(0xFF485B9D)
+}
+
 /** +5% size / +15% stroke weight for timer chrome (nav, ring, action pills). */
 internal object EkagraChrome {
     const val SizeScale = 1.05f
@@ -135,13 +144,16 @@ internal fun EkagraTopBar(
             .padding(horizontal = 12.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        com.composables.ui.components.IconButton(style = com.composables.ui.components.ButtonStyle.Ghost, onClick = onOpenDrawer) {
-            Icon(
-                Icons.Default.Menu,
-                contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.common_open_menu),
-                tint = ink.primaryText,
-                modifier = Modifier.size(EkagraChrome.size(24f)),
-            )
+        val isWide = com.safarparmar.app.ui.adaptive.rememberSafarAdaptiveState().isWideScreen
+        if (!isWide) {
+            com.composables.ui.components.IconButton(style = com.composables.ui.components.ButtonStyle.Ghost, onClick = onOpenDrawer) {
+                Icon(
+                    Icons.Default.Menu,
+                    contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.common_open_menu),
+                    tint = ink.primaryText,
+                    modifier = Modifier.size(EkagraChrome.size(24f)),
+                )
+            }
         }
         Spacer(Modifier.weight(1f))
         trailing()
@@ -211,23 +223,19 @@ internal fun EkagraPill(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Box(
-        modifier
-            .clip(CircleShape)
-            .then(
-                if (selected) Modifier.background(accent)
-                else Modifier.border(EkagraChrome.stroke(1f), ink.hairline, CircleShape),
-            )
-            .clickable { onClick() }
-            .padding(horizontal = EkagraChrome.size(14f), vertical = EkagraChrome.size(7f)),
-        contentAlignment = Alignment.Center,
+    com.composables.ui.components.Button(
+        onClick = onClick,
+        style = com.composables.ui.components.ButtonStyle.Ghost,
+        shape = CircleShape,
+        contentColor = if (selected) contrastOn(accent) else ink.secondaryText,
+        contentPadding = PaddingValues(horizontal = EkagraChrome.size(14f), vertical = EkagraChrome.size(7f)),
+        modifier = modifier.height(EkagraChrome.size(32f)).then(
+            if (selected) Modifier.background(accent, CircleShape)
+            else Modifier.border(EkagraChrome.stroke(1f), ink.hairline, CircleShape)),
     ) {
-        Text(
-            text = label,
-            fontSize = EkagraChrome.text(12f),
+        com.composables.ui.components.Text(label, fontSize = EkagraChrome.text(12f),
             fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
-            color = if (selected) contrastOn(accent) else ink.secondaryText,
-        )
+            color = if (selected) contrastOn(accent) else ink.secondaryText)
     }
 }
 
@@ -295,25 +303,17 @@ internal fun EkagraPrimaryAction(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val bg = if (accent == MaterialTheme.colorScheme.primary) Color(0xFF0F2347) else accent
-    Box(
-        modifier
-            .height(EkagraChrome.size(46f))
-            .shadow(elevation = 6.dp, shape = CircleShape)
-            .clip(CircleShape)
-            .background(bg)
-            .clickable(interactionSource = remembered(), indication = null) { onClick() }
-            .padding(horizontal = EkagraChrome.size(26f)),
-        contentAlignment = Alignment.Center,
+    com.composables.ui.components.Button(
+        onClick = onClick,
+        style = com.composables.ui.components.ButtonStyle.Ghost,
+        shape = CircleShape,
+        contentColor = contrastOn(accent),
+        contentPadding = PaddingValues(horizontal = EkagraChrome.size(26f)),
+        modifier = modifier.height(EkagraChrome.size(46f))
+            .shadow(4.dp, CircleShape, clip = false).background(accent, CircleShape),
     ) {
-        Text(
-            text = label,
-            fontSize = EkagraChrome.text(14.5f),
-            fontWeight = FontWeight.Bold,
-            color = Color.White,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
+        com.composables.ui.components.Text(label, fontSize = EkagraChrome.text(14.5f),
+            fontWeight = FontWeight.Bold, color = contrastOn(accent), maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
@@ -325,24 +325,19 @@ internal fun EkagraGhostAction(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Box(
-        modifier
-            .height(EkagraChrome.size(46f))
-            .clip(CircleShape)
-            .background(Color.White.copy(alpha = 0.22f))
-            .border(1.dp, Color.White.copy(alpha = 0.40f), CircleShape)
-            .clickable(interactionSource = remembered(), indication = null) { onClick() }
-            .padding(horizontal = EkagraChrome.size(20f)),
-        contentAlignment = Alignment.Center,
+    val scheme = MaterialTheme.colorScheme
+    com.composables.ui.components.Button(
+        onClick = onClick,
+        style = com.composables.ui.components.ButtonStyle.Ghost,
+        shape = CircleShape,
+        contentColor = scheme.onSurface,
+        contentPadding = PaddingValues(horizontal = EkagraChrome.size(20f)),
+        modifier = modifier.height(EkagraChrome.size(46f))
+            .background(scheme.surface.copy(alpha = 0.94f), CircleShape)
+            .border(1.dp, scheme.outlineVariant, CircleShape),
     ) {
-        Text(
-            text = label,
-            fontSize = EkagraChrome.text(14f),
-            fontWeight = FontWeight.SemiBold,
-            color = ink.primaryText,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
+        com.composables.ui.components.Text(label, fontSize = EkagraChrome.text(14f),
+            fontWeight = FontWeight.SemiBold, color = scheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 

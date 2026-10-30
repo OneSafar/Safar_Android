@@ -221,7 +221,7 @@ private fun ModernCalendarDay(
             .clip(RoundedCornerShape(11.dp))
             .background(background)
             .border(if (current && !complete) 2.dp else 1.dp, border, RoundedCornerShape(11.dp))
-            .clickable { onOpenDay(date) },
+            .habitClickable(scaleDown = HabitMotion.ScaleChip) { onOpenDay(date) },
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {

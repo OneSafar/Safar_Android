@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ekagra_history_cache_error">History could not be cached on this phone. Your saved sessions are safe. Retry after freeing storage.</string>
+    <string name="ekagra_history_connect_once">Connect once to download your saved history. Sessions waiting to sync are still shown.</string>
+    <string name="ekagra_history_offline_updated">Offline · Last updated %1$s</string>
+    <string name="ekagra_history_last_updated">Last updated %1$s · Refresh pending</string>
+    <string name="ekagra_bubble_time_focused">Time focused</string>
+    <string name="ekagra_bubble_time_remaining">Time remaining</string>
+    <string name="ekagra_bubble_paused">Paused</string>
+</resources>

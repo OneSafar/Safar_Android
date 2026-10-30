@@ -26,6 +26,7 @@ import javax.inject.Singleton
 @Singleton
 class EkagraRepositoryImpl @Inject constructor(
     private val focusApi: FocusApi,
+    private val historyStore: com.safarparmar.app.ui.ekagra.EkagraHistoryStore,
 ) : EkagraRepository {
 
     override suspend fun getStats(): Resource<FocusStatsResponse> {
@@ -35,7 +36,10 @@ class EkagraRepositoryImpl @Inject constructor(
     override suspend fun getEkagraAnalytics(): Resource<EkagraAnalyticsStats> {
         return try {
             val res = focusApi.getEkagraAnalytics()
-            if (res.isSuccessful) Resource.Success((res.body() ?: EkagraAnalyticsStatsDto()).toDomain())
+            if (res.isSuccessful) {
+                val body = res.body() ?: return Resource.Error("Analytics failed: empty response body")
+                Resource.Success(body.toDomain())
+            }
             else Resource.Error("Analytics failed: ${res.code()}")
         } catch (e: Exception) {
             Resource.Error("Network error: ${e.message}")
@@ -120,9 +124,13 @@ class EkagraRepositoryImpl @Inject constructor(
     }
 
     override suspend fun deleteSession(sessionId: String): Resource<Unit> {
+        val cacheOwner = historyStore.account()
         return try {
             val res = focusApi.deleteSession(sessionId)
-            if (res.isSuccessful) Resource.Success(Unit)
+            if (res.isSuccessful) {
+                historyStore.confirmedDeletion(cacheOwner, sessionId)
+                Resource.Success(Unit)
+            }
             else Resource.Error("Delete failed: ${res.code()}")
         } catch (e: Exception) {
             Resource.Error("Network error: ${e.message}")
@@ -138,6 +146,7 @@ class EkagraRepositoryImpl @Inject constructor(
         planId: String?,
         topicTitle: String?,
     ): Resource<Unit> {
+        val cacheOwner = historyStore.account()
         return try {
             val res = focusApi.updateSession(
                 sessionId,
@@ -150,7 +159,10 @@ class EkagraRepositoryImpl @Inject constructor(
                     topicTitle = topicTitle,
                 ),
             )
-            if (res.isSuccessful) Resource.Success(Unit)
+            if (res.isSuccessful) {
+                historyStore.confirmedEdit(cacheOwner, sessionId, taskTitle, goalId)
+                Resource.Success(Unit)
+            }
             else Resource.Error("Update failed: ${res.code()}")
         } catch (e: Exception) {
             Resource.Error("Network error: ${e.message}")
@@ -162,12 +174,16 @@ class EkagraRepositoryImpl @Inject constructor(
         goalId: String,
         markGoalComplete: Boolean,
     ): Resource<Unit> {
+        val cacheOwner = historyStore.account()
         return try {
             val res = focusApi.linkSessionToGoal(
                 sessionId,
                 com.safarparmar.app.data.remote.dto.LinkEkagraGoalRequest(goalId, markGoalComplete),
             )
-            if (res.isSuccessful && res.body()?.ok == true) Resource.Success(Unit)
+            if (res.isSuccessful && res.body()?.ok == true) {
+                historyStore.confirmedEdit(cacheOwner, sessionId, goalId = goalId)
+                Resource.Success(Unit)
+            }
             else Resource.Error("Link failed: ${res.code()}")
         } catch (e: Exception) {
             Resource.Error("Network error: ${e.message}")

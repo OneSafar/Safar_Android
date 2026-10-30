@@ -103,7 +103,8 @@ private fun MacOSControlCard(
                 brush = borderBrush,
                 shape = shape
             )
-            .padding(contentPadding)
+            .padding(contentPadding),
+        contentAlignment = Alignment.CenterStart,
     ) {
         Column(
             modifier = Modifier.fillMaxWidth(),
@@ -139,7 +140,12 @@ private fun MacOSControlButton(
     val shadowElevation = if (isDarkTheme) 12.dp else 4.dp
     val shadowColor = if (isDarkTheme) Color.Black.copy(alpha = 0.8f) else Color.Black.copy(alpha = 0.12f)
 
-    Box(
+    ComposablesButton(
+        onClick = onClick,
+        style = ButtonStyle.Ghost,
+        shape = shape,
+        contentPadding = PaddingValues(0.dp),
+        contentColor = textColor,
         modifier = modifier
             .height(68.dp)
             .shadow(
@@ -155,7 +161,6 @@ private fun MacOSControlButton(
                 brush = borderBrush,
                 shape = shape
             )
-            .clickable(onClick = onClick)
     ) {
         Row(
             modifier = Modifier
@@ -171,14 +176,14 @@ private fun MacOSControlButton(
                 contentAlignment = Alignment.Center
             ) {
                 if (iconVector != null) {
-                    Icon(
+                    com.composables.ui.components.Icon(
                         imageVector = iconVector,
                         contentDescription = null,
                         tint = Color.White,
                         modifier = Modifier.size(20.dp)
                     )
                 } else if (iconLetter != null) {
-                    Text(
+                    com.composables.ui.components.Text(
                         text = iconLetter,
                         color = Color.White,
                         fontSize = 18.sp,
@@ -190,7 +195,7 @@ private fun MacOSControlButton(
             Spacer(modifier = Modifier.width(10.dp))
 
             Column(verticalArrangement = Arrangement.Center) {
-                Text(
+                com.composables.ui.components.Text(
                     text = title,
                     color = textColor,
                     fontSize = 13.sp,
@@ -199,7 +204,7 @@ private fun MacOSControlButton(
                     overflow = TextOverflow.Ellipsis
                 )
                 Spacer(modifier = Modifier.height(1.dp))
-                Text(
+                com.composables.ui.components.Text(
                     text = subtitle,
                     color = subtitleColor,
                     fontSize = 11.sp,
@@ -222,22 +227,23 @@ private fun MacOSButton(
     modifier: Modifier = Modifier,
     buttonColor: Color = Color(0xFF0A84FF),
 ) {
-    Row(
+    ComposablesButton(
+        onClick = onClick,
+        style = ButtonStyle.Ghost,
+        shape = RoundedCornerShape(14.dp),
+        contentColor = Color.White,
+        contentPadding = PaddingValues(horizontal = 16.dp),
         modifier = modifier
             .fillMaxWidth()
             .height(50.dp)
             .clip(RoundedCornerShape(14.dp))
-            .background(buttonColor)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Center,
+            .background(buttonColor),
     ) {
         if (icon != null) {
-            Icon(icon, null, tint = Color.White, modifier = Modifier.size(18.dp))
+            com.composables.ui.components.Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(8.dp))
         }
-        Text(
+        com.composables.ui.components.Text(
             text = text,
             color = Color.White,
             fontSize = 14.sp,
@@ -265,7 +271,7 @@ fun DashboardScreen(
     onNavigate: (String) -> Unit = {},
     onToggleDarkTheme: () -> Unit = {},
     onToggleNightMode: () -> Unit = {},
-    viewModel: DashboardViewModel = hiltViewModel()
+    viewModel: DashboardViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var activeSheet by remember { mutableStateOf(DashboardSheetType.NONE) }
@@ -279,6 +285,7 @@ fun DashboardScreen(
         onNavigate = onNavigate,
         onToggleDarkTheme = onToggleDarkTheme,
         containerColor = DashboardFlatColors.Bg,
+        showTopBar = true,
         useGlassTopBar = false,
         useDetachedMenuGlass = false,
     ) { padding ->
@@ -304,8 +311,46 @@ fun DashboardScreen(
                     onRefresh = { viewModel.onEvent(DashboardEvent.Refresh) },
                     modifier = Modifier.fillMaxSize(),
                 ) {
+                    val adaptive = com.safarparmar.app.ui.adaptive.rememberSafarAdaptiveState()
+                    BoxWithConstraints(Modifier.fillMaxSize().padding(padding)) {
+                    if (adaptive.isTablet && maxWidth >= 500.dp) {
+                        TabletDashboardLayout(
+                            landscape = adaptive.isLandscape && maxWidth >= 900.dp,
+                            welcome = { cardModifier -> WelcomeBanner(uiState.userName, isDarkTheme, cardModifier) },
+                            title = { cardModifier ->
+                                Box(cardModifier) {
+                                    DashboardSectionContent(uiState, setOf(DashboardSection.TITLE, DashboardSection.ACHIEVEMENTS), { viewModel.onEvent(DashboardEvent.Refresh) }) {
+                                        ActiveTitleCard(uiState.activeTitle, uiState.activeTitleImageUrl, isDarkTheme,
+                                            uiState.earnedAchievements.isNotEmpty(), { onNavigate(Routes.ACHIEVEMENTS) }, Modifier.fillMaxSize())
+                                    }
+                                }
+                            },
+                            progress = { cardModifier ->
+                                Box(cardModifier) {
+                                    DashboardSectionContent(uiState, setOf(DashboardSection.PLAN), { viewModel.onEvent(DashboardEvent.Refresh) }) {
+                                        TabletDashboardProgress(uiState.studyPlan, isDarkTheme, onNavigate, Modifier.fillMaxSize())
+                                    }
+                                }
+                            },
+                            shortcuts = { singleRow ->
+                                DashboardSectionContent(uiState, setOf(DashboardSection.MOODS, DashboardSection.GOALS, DashboardSection.STREAKS, DashboardSection.ACHIEVEMENTS), { viewModel.onEvent(DashboardEvent.Refresh) }) {
+                                    MacOSQuickControlGrid(uiState, isDarkTheme, { activeSheet = it }, singleRow)
+                                }
+                            },
+                            report = if (uiState.monthlyReport == null && DashboardSection.REPORT in uiState.loadedSections && DashboardSection.REPORT !in uiState.sectionErrors) null else { cardModifier ->
+                                Box(cardModifier) {
+                                    DashboardSectionContent(uiState, setOf(DashboardSection.REPORT), { viewModel.onEvent(DashboardEvent.Refresh) }) {
+                                        MonthlyCard(uiState.monthlyReport, isDarkTheme, onNavigate, Modifier.fillMaxSize())
+                                    }
+                                }
+                            },
+                            mood = if (uiState.weeklyMoods.isEmpty()) null else { cardModifier ->
+                                WeeklyMoodChart(uiState.weeklyMoods, isDarkTheme, cardModifier)
+                            },
+                        )
+                    } else {
                     LazyColumn(
-                        modifier = Modifier.fillMaxSize().padding(padding),
+                        modifier = Modifier.fillMaxSize().wrapContentWidth(Alignment.CenterHorizontally).widthIn(max = 900.dp),
                         verticalArrangement = Arrangement.spacedBy(14.dp),
                         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 32.dp)
                     ) {
@@ -371,6 +416,8 @@ fun DashboardScreen(
                             }
                         }
                     }
+                    }
+                    }
                 }
             }
 
@@ -429,13 +476,10 @@ fun DashboardScreen(
 private fun MacOSQuickControlGrid(
     uiState: DashboardUiState,
     isDark: Boolean,
-    onOpenSheet: (DashboardSheetType) -> Unit
+    onOpenSheet: (DashboardSheetType) -> Unit,
+    singleRow: Boolean = false,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
+    val firstPair: @Composable RowScope.() -> Unit = {
             MacOSControlButton(
                 iconVector = Icons.Default.Favorite,
                 title = stringResource(R.string.dashboard_today_mood),
@@ -455,12 +499,8 @@ private fun MacOSQuickControlGrid(
                 modifier = Modifier.weight(1f),
                 onClick = { onOpenSheet(DashboardSheetType.GOALS) }
             )
-        }
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
+    }
+    val secondPair: @Composable RowScope.() -> Unit = {
             MacOSControlButton(
                 iconVector = Icons.Default.LocalFireDepartment,
                 title = stringResource(R.string.dashboard_streak),
@@ -480,6 +520,16 @@ private fun MacOSQuickControlGrid(
                 modifier = Modifier.weight(1f),
                 onClick = { onOpenSheet(DashboardSheetType.BADGES) }
             )
+    }
+    if (singleRow) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            firstPair()
+            secondPair()
+        }
+    } else {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp), content = firstPair)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp), content = secondPair)
         }
     }
 }
@@ -487,8 +537,8 @@ private fun MacOSQuickControlGrid(
 // ── Welcome Banner Section ──────────────────────────────────────────────────
 
 @Composable
-private fun WelcomeBanner(userName: String, isDark: Boolean) {
-    MacOSControlCard(isDarkTheme = isDark) {
+private fun WelcomeBanner(userName: String, isDark: Boolean, modifier: Modifier = Modifier) {
+    MacOSControlCard(isDarkTheme = isDark, modifier = modifier) {
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
@@ -559,6 +609,7 @@ private fun StudyPlanProgressCard(
     state: DashboardStudyPlanState,
     isDark: Boolean,
     onNavigate: (String) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     fun openPlanner() {
         StudyPlannerAnalytics.track(
@@ -574,7 +625,7 @@ private fun StudyPlanProgressCard(
     }
 
     if (state.status == DashboardStudyPlanStatus.NO_ACTIVE_PLAN) {
-        MacOSControlCard(isDarkTheme = isDark) {
+        MacOSControlCard(isDarkTheme = isDark, modifier = modifier) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -623,6 +674,62 @@ private fun StudyPlanProgressCard(
     }
 }
 
+/** Original dashboard ring, independent of the planner's own progress presentation. */
+@Composable
+private fun TabletDashboardProgress(
+    state: DashboardStudyPlanState,
+    isDark: Boolean,
+    onNavigate: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    if (state.status == DashboardStudyPlanStatus.NO_ACTIVE_PLAN) {
+        StudyPlanProgressCard(state, isDark, onNavigate, modifier)
+        return
+    }
+    val percent = state.overallCompletionPercent.coerceIn(0, 100)
+    val accent = Color(0xFFAC9AD6)
+    ComposablesButton(
+        onClick = {
+            StudyPlannerAnalytics.track(StudyPlannerAnalytics.DASHBOARD_TODAY_CARD_CLICKED,
+                mapOf("state" to state.status.name.lowercase(), "plan_id" to state.planId.orEmpty()))
+            onNavigate(if (state.planId.isNullOrBlank()) Routes.STUDY_PLANNER
+                else "${Routes.STUDY_PLANNER}?planId=${state.planId}")
+        },
+        modifier = modifier,
+        shape = RoundedCornerShape(20.dp),
+        style = ButtonStyle.Ghost,
+        contentPadding = PaddingValues(0.dp),
+    ) {
+        MacOSControlCard(isDark, Modifier.fillMaxSize()) {
+            Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Box(Modifier.size(144.dp), contentAlignment = Alignment.Center) {
+                    com.safarparmar.app.ui.components.SafarCircularProgressIndicator(
+                        progress = { percent / 100f },
+                        modifier = Modifier.fillMaxSize(),
+                        color = accent,
+                        trackColor = accent.copy(alpha = 0.20f),
+                        strokeWidth = 8.dp,
+                        strokeCap = StrokeCap.Round,
+                        gapSize = 0.dp,
+                    )
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        com.composables.ui.components.Text("$percent%", fontSize = 32.sp,
+                            fontWeight = FontWeight.Bold, color = DashboardFlatColors.Text)
+                        com.composables.ui.components.Text(stringResource(R.string.planner_syllabus_done),
+                            fontSize = 11.sp, color = macSubtitleColor(isDark))
+                    }
+                }
+                com.composables.ui.components.Text(stringResource(R.string.planner_done_to_go,
+                    state.overallDoneTopics, (state.overallTotalTopics - state.overallDoneTopics).coerceAtLeast(0)),
+                    fontSize = 12.sp, color = macSubtitleColor(isDark), textAlign = TextAlign.Center)
+                com.composables.ui.components.Text(stringResource(R.string.planner_big_topics_count_more),
+                    fontSize = 11.sp, color = macSubtitleColor(isDark), textAlign = TextAlign.Center)
+            }
+        }
+    }
+}
+
 // ── Active Title Card ───────────────────────────────────────────────────────
 
 @Composable
@@ -632,10 +739,11 @@ private fun ActiveTitleCard(
     isDark: Boolean,
     hasEarnedAchievements: Boolean,
     onNavigateToAchievements: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     MacOSControlCard(
         isDarkTheme = isDark,
-        modifier = Modifier.clickable { onNavigateToAchievements() }
+        modifier = modifier.clickable { onNavigateToAchievements() }
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -1039,9 +1147,9 @@ private fun StreakRow(label: String, value: String, isDark: Boolean) {
 // ── Monthly Report Section ──────────────────────────────────────────────────
 
 @Composable
-private fun MonthlyCard(report: DashboardMonthlySummary?, isDark: Boolean, onNavigate: (String) -> Unit) {
+private fun MonthlyCard(report: DashboardMonthlySummary?, isDark: Boolean, onNavigate: (String) -> Unit, modifier: Modifier = Modifier) {
     if (report == null) return
-    MacOSControlCard(isDarkTheme = isDark) {
+    MacOSControlCard(isDarkTheme = isDark, modifier = modifier) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Box(
@@ -1094,12 +1202,12 @@ private fun StatRow(label: String, value: String, isDark: Boolean) {
 // ── Weekly Mood Chart Section ───────────────────────────────────────────────
 
 @Composable
-private fun WeeklyMoodChart(moods: List<Mood>, isDark: Boolean) {
+private fun WeeklyMoodChart(moods: List<Mood>, isDark: Boolean, modifier: Modifier = Modifier) {
     val days = listOf(
         R.string.day_mon, R.string.day_tue, R.string.day_wed, R.string.day_thu,
         R.string.day_fri, R.string.day_sat, R.string.day_sun,
     ).map { stringResource(it) }
-    MacOSControlCard(isDarkTheme = isDark) {
+    MacOSControlCard(isDarkTheme = isDark, modifier = modifier) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Box(
                 modifier = Modifier

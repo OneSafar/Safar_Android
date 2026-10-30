@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sidebar_home_hint">Aapke din ki jhalak</string>
+    <string name="sidebar_study_hint">Planner, focus tools aur resources</string>
+    <string name="sidebar_wellbeing_hint">Nishtha, Dhyan aur live sessions</string>
+    <string name="sidebar_community_hint">Mehfil, circles aur leaderboard</string>
+    <string name="sidebar_progress">Pragati</string>
+    <string name="sidebar_progress_hint">Analytics aur dashboard</string>
+    <string name="sidebar_settings_hint">Bhasha aur appearance</string>
+    <string name="sidebar_close">Navigation band karein</string>
+    <string name="sidebar_expand">Sidebar kholein</string>
+    <string name="sidebar_collapse">Sidebar sametein</string>
+    <string name="sidebar_premium_active">Premium active</string>
+    <string name="sidebar_free_plan">Free plan</string>
+    <string name="sidebar_admin">Admin tools</string>
+</resources>

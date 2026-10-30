@@ -103,7 +103,7 @@ object LiveThemeColors {
     val RoyalPurpleContainerDark = Color(0xFF3A1828)
 
     // Background Canvas
-    val ScreenBgDark = Color(0xFF171014)
+    val ScreenBgDark = Color(0xFF131316)
     val ScreenBgLight = Color(0xFFFFF8FA)
 
     // Cards & Surfaces

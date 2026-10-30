@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="planner_tablet_title">Study planner</string>
+    <string name="planner_tablet_subtitle">Track progress, performance and your batch journey.</string>
+    <string name="planner_tablet_new_plan_body">Start fresh or build from a template</string>
+    <string name="planner_tablet_preview_empty">Create a plan to start organizing your preparation.</string>
+    <string name="planner_tablet_plan_number">Plan %1$d</string>
+    <string name="planner_tablet_plan_options">Options for %1$s</string>
+    <string name="planner_tablet_open_plan">Open plan</string>
+    <string name="planner_tablet_about_plan">About this plan</string>
+    <string name="planner_tablet_plan_number_label">Plan number</string>
+    <string name="planner_tablet_created_on">Created on</string>
+    <string name="planner_tablet_exam_date">Exam date</string>
+    <string name="planner_calendar_target_exam">Target exam</string>
+    <string name="planner_calendar_day_left">day left</string>
+    <string name="planner_calendar_days_left">days left</string>
+    <string name="planner_calendar_select_date">Select a date to view your targets</string>
+    <string name="planner_calendar_targets_for">Your targets for %1$s</string>
+    <string name="planner_calendar_no_topics">No topics planned for this day.</string>
+</resources>

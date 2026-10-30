@@ -49,6 +49,7 @@ class EkagraViewModel @Inject constructor(
     private val plannerRepo: StudyPlannerRepository,
     val dataStore: com.safarparmar.app.data.local.SafarDataStore,
     val focusShieldRepo: com.safarparmar.app.ui.ekagra.focusshield.FocusShieldRepository,
+    private val historyStore: EkagraHistoryStore,
     private val studyCircleApi: com.safarparmar.app.data.remote.api.StudyCircleApi,
 ) : ViewModel() {
 
@@ -87,8 +88,22 @@ class EkagraViewModel @Inject constructor(
     internal val draftOwner = _draftOwner.asStateFlow()
     private val journal = EkagraSessionJournal.get(appContext)
     val saveError = journal.errors.asStateFlow()
-    val ekagraAnalytics = combine(_ekagraAnalytics, journal.observe()) { server, local ->
-        mergeJournalHistory(server, local)
+    val historyState = historyStore.state
+    val ekagraAnalytics = combine(_ekagraAnalytics, journal.observe(), historyState) { server, local, history ->
+        if (history.owner != accountId) return@combine EkagraAnalyticsStats()
+        val cachedById = history.data.focusSessions.associateBy { it.id }
+        val recentById = history.data.recentSessions.associateBy { it.id }
+        val visible = server.copy(
+            focusSessions = server.focusSessions.filter {
+                it.id !in history.suppressedSessionIds && it.sourceSessionId !in history.suppressedSessionIds
+            }.map { row ->
+                val cached = cachedById[row.id] ?: row
+                pendingTitleOverrides[row.id]?.let { cached.copy(taskText = it) } ?: cached
+            },
+            recentSessions = server.recentSessions.filter { it.id !in history.suppressedSessionIds }
+                .map { recentById[it.id] ?: it },
+        )
+        mergeJournalHistory(visible, local.filter { it.ownerId == accountId && it.clientSessionId !in history.suppressedSessionIds && it.serverId !in history.suppressedSessionIds })
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), EkagraAnalyticsStats())
 
     fun retryPendingSaves() {
@@ -218,6 +233,8 @@ class EkagraViewModel @Inject constructor(
                     _draftOwner.value = id
                     pendingSessionIds.clear()
                     pendingTitleOverrides.clear()
+                    val cached = historyStore.activate(id)
+                    if (accountId == id) _ekagraAnalytics.value = cached.data
                     if (id != null) loadEkagraAnalytics()
                 }
             }
@@ -286,11 +303,14 @@ class EkagraViewModel @Inject constructor(
     fun loadEkagraAnalytics() {
         viewModelScope.launch {
             val requestingAccount = accountId ?: return@launch
+            val request = historyStore.beginRefresh(requestingAccount) ?: return@launch
             when (val r = repo.getEkagraAnalytics()) {
                 is Resource.Success -> {
                     if (requestingAccount != accountId) return@launch
-                    val raw = r.data
-                    journal.reconcile(raw.focusSessions.flatMap { listOfNotNull(it.id, it.sourceSessionId) }.toSet())
+                    val commit = historyStore.commit(request, r.data)
+                    if (commit == HistoryCommit.REJECTED || requestingAccount != accountId) return@launch
+                    val raw = historyStore.state.value.data
+                    if (commit == HistoryCommit.STORED) journal.reconcile(raw.focusSessions.flatMap { listOfNotNull(it.id, it.sourceSessionId) }.toSet(), requestingAccount)
                     val serverIds = raw.focusSessions.map { it.id }.toSet()
                     pendingSessionIds.removeIf { serverIds.contains(it) }
 
@@ -322,8 +342,8 @@ class EkagraViewModel @Inject constructor(
                         recentSessions = updatedRecent,
                     )
                 }
-                is Resource.Error -> Unit
-                is Resource.Loading -> Unit
+                is Resource.Error -> historyStore.failed(request)
+                is Resource.Loading -> historyStore.failed(request)
             }
         }
     }

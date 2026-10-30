@@ -32,6 +32,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -123,6 +125,17 @@ internal fun MehfilContent(
     dataStore: com.safarparmar.app.data.local.SafarDataStore? = null,
 ) {
     val searchFocusRequester = remember { FocusRequester() }
+    val tablet = com.safarparmar.app.ui.adaptive.rememberSafarAdaptiveState().isTablet
+    // Inherit SafarTheme's density/font-scale clamp, exactly as Home does.
+    // A feature-local native-density override makes the entire sidebar and feed oversized.
+    androidx.compose.runtime.CompositionLocalProvider(
+        LocalMehfilTabletStyle provides tablet,
+    ) {
+    androidx.compose.material3.ProvideTextStyle(
+        MaterialTheme.typography.bodyLarge.copy(
+            fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif, letterSpacing = 0.sp,
+        ),
+    ) {
     SafarDrawerScaffold(
         title = stringResource(R.string.mehfil_title),
         subtitle = stringResource(R.string.app_name),
@@ -130,16 +143,29 @@ internal fun MehfilContent(
         isDarkTheme = isDarkTheme,
         onNavigate = onNavigate,
         onToggleDarkTheme = onToggleDarkTheme,
-        containerColor = SafarSemanticColors.plannerBackground(),
+        containerColor = MehfilFlatColors.Bg,
+        topBarTitleContent = if (tablet) ({
+            Column {
+                Text(stringResource(R.string.mehfil_title), fontSize = 34.sp, fontWeight = FontWeight.Bold, color = MehfilFlatColors.Text)
+                Text(stringResource(R.string.mehfil_subtitle), fontSize = 16.sp, color = MehfilFlatColors.Text)
+            }
+        }) else null,
+        showTutorialButton = !tablet,
         topBarActions = {
-                FlatTopIconChip(
+                if (tablet) {
+                    val controller = com.safarparmar.app.ui.tutorial.LocalTitliController.current
+                    com.safarparmar.app.ui.tutorial.TitliGuideButton(onClick = if (controller == null) onTourClick else null)
+                }
+                if (tablet) {
+                    MehfilLibrarySearch(searchQuery, onSearchQueryChange, onClearSearch, Modifier.width(360.dp))
+                } else FlatTopIconChip(
                     onClick = { onSearchActiveChange(!searchActive) },
                 ) {
                     Icon(
                         if (searchActive) Icons.Default.Close else Icons.Default.Search,
                         contentDescription = stringResource(R.string.common_search),
                         tint = MehfilFlatColors.Muted,
-                        modifier = Modifier.size(18.dp),
+                        modifier = Modifier.size(if (tablet) 24.dp else 18.dp),
                     )
                 }
                 FlatTopIconChip(onClick = onGuidelinesClick) {
@@ -147,7 +173,7 @@ internal fun MehfilContent(
                         Icons.Default.Info,
                         contentDescription = stringResource(R.string.mehfil_guidelines),
                         tint = MehfilFlatColors.Muted,
-                        modifier = Modifier.size(18.dp),
+                        modifier = Modifier.size(if (tablet) 24.dp else 18.dp),
                     )
                 }
             },
@@ -155,7 +181,7 @@ internal fun MehfilContent(
             Box(Modifier.fillMaxSize()) {
                 Scaffold(
                     containerColor = MehfilFlatColors.Bg,
-                    contentWindowInsets = WindowInsets.safeDrawing,
+                    contentWindowInsets = WindowInsets(0, 0, 0, 0),
                     bottomBar = {
                         MehfilBottomBar(
                             selectedTab = selectedTab,
@@ -171,7 +197,7 @@ internal fun MehfilContent(
                                 .fillMaxSize()
                                 .padding(
                                     top = padding.calculateTopPadding(),
-                                    bottom = innerPadding.calculateBottomPadding(),
+                                    bottom = innerPadding.calculateBottomPadding() + 6.dp,
                                 ),
                             contentAlignment = Alignment.Center,
                         ) {
@@ -195,12 +221,12 @@ internal fun MehfilContent(
                             .fillMaxSize()
                             .padding(
                                 top = padding.calculateTopPadding(),
-                                bottom = innerPadding.calculateBottomPadding(),
+                                bottom = innerPadding.calculateBottomPadding() + 6.dp,
                             ),
                     ) {
                         Column(modifier = Modifier.fillMaxSize()) {
                             AnimatedVisibility(
-                                visible = searchActive && selectedTab == MehfilTab.COMMUNITY,
+                                visible = !tablet && searchActive && selectedTab == MehfilTab.COMMUNITY,
                                 enter = expandVertically() + fadeIn(),
                                 exit = shrinkVertically() + fadeOut(),
                             ) {
@@ -260,29 +286,21 @@ internal fun MehfilContent(
             }
         }
 }
+}
+}
 
 @Composable
 private fun FlatTopIconChip(
     onClick: () -> Unit,
     content: @Composable () -> Unit,
 ) {
-    val chipShape = RoundedCornerShape(8.dp)
-    Box(
-        modifier = Modifier
-            .padding(horizontal = 2.dp)
-            .size(36.dp)
-            .clip(chipShape)
-            .background(MehfilFlatColors.Surface)
-            .border(1.dp, MehfilFlatColors.Hairline, chipShape)
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = onClick,
-            ),
-        contentAlignment = Alignment.Center,
-    ) {
-        content()
-    }
+    com.composables.ui.components.IconButton(
+        onClick = onClick,
+        style = com.composables.ui.components.ButtonStyle.Ghost,
+        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier.padding(horizontal = 3.dp).size(44.dp),
+        content = content,
+    )
 }
 
 @Composable
@@ -292,60 +310,33 @@ private fun MehfilSearchBar(
     onClearSearch: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        OutlinedTextField(
-            value = searchQuery,
-            onValueChange = onSearchQueryChange,
-            placeholder = {
-                Text(stringResource(R.string.mehfil_search_placeholder), fontSize = 13.sp, color = MehfilFlatColors.Muted)
-            },
-            leadingIcon = {
-                Icon(
-                    Icons.Default.Search,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                    tint = MehfilFlatColors.Muted,
-                )
-            },
-            trailingIcon = {
-                if (searchQuery.isNotEmpty()) {
-                    Box(
-                        modifier = Modifier
-                            .size(28.dp)
-                            .clip(CircleShape)
-                            .clickable(onClick = onClearSearch),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            Icons.Default.Close,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp),
-                            tint = MehfilFlatColors.Muted,
-                        )
-                    }
-                }
-            },
-            modifier = modifier.weight(1f),
-            singleLine = true,
-            shape = RoundedCornerShape(12.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = MehfilFlatColors.Primary,
-                unfocusedBorderColor = MehfilFlatColors.Hairline,
-                focusedTextColor = MehfilFlatColors.Text,
-                unfocusedTextColor = MehfilFlatColors.Text,
-                cursorColor = MehfilFlatColors.Primary,
-                focusedContainerColor = Color.Transparent,
-                unfocusedContainerColor = Color.Transparent,
-            ),
-            textStyle = TextStyle(fontSize = 13.sp),
-        )
+    MehfilLibrarySearch(searchQuery, onSearchQueryChange, onClearSearch,
+        modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp))
+}
+
+@Composable
+private fun MehfilLibrarySearch(value: String, onValueChange: (String) -> Unit, onClear: () -> Unit, modifier: Modifier = Modifier) {
+    val state = androidx.compose.foundation.text.input.rememberTextFieldState(value)
+    val callback by androidx.compose.runtime.rememberUpdatedState(onValueChange)
+    LaunchedEffect(value) {
+        if (state.text.toString() != value) state.edit { replace(0, length, value) }
     }
+    LaunchedEffect(state) {
+        androidx.compose.runtime.snapshotFlow { state.text.toString() }.collect { callback(it) }
+    }
+    com.composables.ui.components.TextField(
+        state = state, modifier = modifier, shape = RoundedCornerShape(18.dp),
+        backgroundColor = MehfilFlatColors.Surface,
+        contentColor = MehfilFlatColors.Text, borderColor = MehfilFlatColors.Hairline,
+        accessibilityLabel = stringResource(R.string.common_search),
+        placeholder = { com.composables.ui.components.Text(stringResource(R.string.mehfil_search_placeholder), fontSize = 14.sp) },
+        leading = { com.composables.ui.components.Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(20.dp)) },
+        trailing = if (value.isNotEmpty()) ({
+            com.composables.ui.components.IconButton(onClick = onClear, style = com.composables.ui.components.ButtonStyle.Ghost) {
+                com.composables.ui.components.Icon(Icons.Default.Close, contentDescription = stringResource(R.string.common_search), modifier = Modifier.size(18.dp))
+            }
+        }) else null,
+    )
 }
 
 /**
@@ -358,156 +349,66 @@ internal fun MehfilBottomBar(
     onTabSelected: (MehfilTab) -> Unit,
     onCreatePostClick: () -> Unit,
 ) {
-    val scheme = MaterialTheme.colorScheme
     val haptic = LocalHapticFeedback.current
-
-    val leftTabs = listOf(MehfilTab.COMMUNITY, MehfilTab.SAVED)
-    val rightTabs = listOf(MehfilTab.ANALYTICS, MehfilTab.CONNECTIONS)
-
+    val primary = MehfilFlatColors.Primary
     Box(
-        modifier = Modifier.fillMaxWidth(),
-        contentAlignment = Alignment.BottomCenter,
+        modifier = Modifier
+            .fillMaxWidth()
+            .navigationBarsPadding()
+            .padding(start = 12.dp, end = 12.dp, top = 2.dp, bottom = 8.dp),
+        contentAlignment = Alignment.Center,
     ) {
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .border(
-                    width = 0.8.dp,
-                    color = MehfilFlatColors.Hairline,
-                    shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
-                ),
-            color = scheme.surface,
-            shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .navigationBarsPadding()
-                    .height(60.dp)
-                    .padding(horizontal = 6.dp, vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically,
+        Box(Modifier.widthIn(max = 600.dp).fillMaxWidth()) {
+            val dockShape = RoundedCornerShape(30.dp)
+            Surface(
+                modifier = Modifier.fillMaxWidth()
+                    .shadow(18.dp, dockShape, clip = false,
+                        ambientColor = Color(0x1F29203F), spotColor = Color(0x3329203F)),
+                shape = dockShape,
+                color = MehfilFlatColors.Surface,
+                border = androidx.compose.foundation.BorderStroke(1.dp, MehfilFlatColors.Primary.copy(alpha = 0.12f)),
             ) {
-                // Left Tabs
-                leftTabs.forEach { tab ->
-                    val isSelected = selectedTab == tab
-                    val contentColor = if (isSelected) MehfilFlatColors.Primary else MehfilFlatColors.Muted
-
-                    Column(
-                        modifier = Modifier
-                            .weight(1f).tutorialTarget("mehfil.${tab.name.lowercase(java.util.Locale.ROOT)}")
-                            .fillMaxHeight()
-                            .clip(RoundedCornerShape(12.dp))
-                            .clickable {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                onTabSelected(tab)
-                            },
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center,
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                MehfilTab.entries.forEachIndexed { index, tab ->
+                    if (index == 2) Spacer(Modifier.width(62.dp))
+                    com.composables.ui.components.NavigationBarItem(
+                        selected = selectedTab == tab,
+                        onClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); onTabSelected(tab) },
+                        modifier = Modifier.weight(1f).tutorialTarget("mehfil.${tab.name.lowercase(java.util.Locale.ROOT)}"),
+                        shape = RoundedCornerShape(18.dp),
                     ) {
-                        Icon(
-                            imageVector = tab.icon,
-                            contentDescription = stringResource(tab.labelRes),
-                            tint = contentColor,
-                            modifier = Modifier.size(22.dp),
-                        )
-                        Spacer(Modifier.height(3.dp))
-                        Text(
-                            text = stringResource(tab.labelRes),
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                            color = contentColor,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                }
-
-                // Center gap reserved for the overlapping FAB
-                Spacer(Modifier.width(64.dp))
-
-                // Right Tabs
-                rightTabs.forEach { tab ->
-                    val isSelected = selectedTab == tab
-                    val contentColor = if (isSelected) MehfilFlatColors.Primary else MehfilFlatColors.Muted
-
-                    Column(
-                        modifier = Modifier
-                            .weight(1f).tutorialTarget("mehfil.${tab.name.lowercase(java.util.Locale.ROOT)}")
-                            .fillMaxHeight()
-                            .clip(RoundedCornerShape(12.dp))
-                            .clickable {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                onTabSelected(tab)
-                            },
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center,
-                    ) {
-                        Box {
-                            Icon(
-                                imageVector = tab.icon,
-                                contentDescription = stringResource(tab.labelRes),
-                                tint = contentColor,
-                                modifier = Modifier.size(22.dp),
-                            )
-                            if (tab == MehfilTab.CONNECTIONS && pendingCount > 0) {
-                                Box(
-                                    modifier = Modifier
-                                        .align(Alignment.TopEnd)
-                                        .offset(x = 8.dp, y = (-4).dp)
-                                        .size(14.dp)
-                                        .clip(CircleShape)
-                                        .background(MehfilFlatColors.Like),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    Text(
-                                        if (pendingCount > 9) "9+" else pendingCount.toString(),
-                                        fontSize = 8.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color.White,
-                                    )
+                        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                            val tint = if (selectedTab == tab) primary else MehfilFlatColors.Muted
+                            Box {
+                                com.composables.ui.components.Icon(tab.icon, contentDescription = stringResource(tab.labelRes), modifier = Modifier.size(24.dp), tint = tint)
+                                if (tab == MehfilTab.CONNECTIONS && pendingCount > 0) {
+                                    Box(Modifier.align(Alignment.TopEnd).offset(x = 6.dp, y = (-2).dp).size(8.dp).background(MehfilFlatColors.Like, CircleShape))
                                 }
                             }
+                            com.composables.ui.components.Text(stringResource(tab.labelRes), fontSize = 11.sp, color = tint, maxLines = 1)
+                            Box(Modifier.width(22.dp).height(3.dp).background(if (selectedTab == tab) primary else Color.Transparent, CircleShape))
                         }
-                        Spacer(Modifier.height(3.dp))
-                        Text(
-                            text = stringResource(tab.labelRes),
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                            color = contentColor,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
                     }
                 }
             }
-        }
-
-        // Center Floating Action Button (Overlapping half on bottom bar, half above)
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .offset(y = (-24).dp)
-                .size(54.dp)
-                .clip(CircleShape)
-                .background(MehfilFlatColors.Primary)
-                .tutorialTarget("mehfil.post")
-                .border(3.5.dp, MehfilFlatColors.Bg, CircleShape)
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    onClick = {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        onCreatePostClick()
-                    },
-                ),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = Icons.Default.Add,
-                contentDescription = stringResource(R.string.mehfil_create_post),
-                tint = Color.White,
-                modifier = Modifier.size(28.dp),
-            )
+            }
+            com.composables.ui.components.IconButton(
+                onClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); onCreatePostClick() },
+                style = com.composables.ui.components.ButtonStyle.Ghost,
+                shape = CircleShape,
+                modifier = Modifier.align(Alignment.TopCenter).offset(y = (-10).dp).size(62.dp)
+                    .shadow(16.dp, CircleShape, clip = false,
+                        ambientColor = primary.copy(alpha = 0.22f), spotColor = primary.copy(alpha = 0.32f))
+                    .background(primary, CircleShape)
+                    .border(2.dp, MehfilFlatColors.Surface, CircleShape).tutorialTarget("mehfil.post"),
+                contentColor = Color.White,
+            ) {
+                com.composables.ui.components.Icon(Icons.Default.Add, contentDescription = stringResource(R.string.mehfil_create_post), modifier = Modifier.size(30.dp), tint = Color.White)
+            }
         }
     }
 }

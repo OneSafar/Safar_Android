@@ -128,10 +128,19 @@ internal fun FocusHistoryTab(
     var editingSession by remember { mutableStateOf<com.safarparmar.app.domain.model.EkagraAnalyticsFocusSession?>(null) }
 
     val saveError by ekagraViewModel.saveError.collectAsStateWithLifecycle()
+    val history by ekagraViewModel.historyState.collectAsStateWithLifecycle()
+    val lastUpdated = history.lastRefreshAtMs?.let { java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.SHORT, java.text.DateFormat.SHORT).format(java.util.Date(it)) }
+    val historyMessage = when {
+        history.cacheError -> stringResource(R.string.ekagra_history_cache_error)
+        history.offline && lastUpdated == null -> stringResource(R.string.ekagra_history_connect_once)
+        history.offline -> stringResource(R.string.ekagra_history_offline_updated, lastUpdated.orEmpty())
+        history.stale && lastUpdated != null -> stringResource(R.string.ekagra_history_last_updated, lastUpdated)
+        else -> null
+    }
     FocusHistoryContent(
         modifier = modifier, analytics = analytics, ekagraTags = ekagraTags,
         ekagraTagColors = ekagraTagColors, completedGoalIds = completedGoalIds,
-        saveError = saveError, onRetry = ekagraViewModel::retryPendingSaves,
+        historyMessage = historyMessage, saveError = saveError, onRetry = ekagraViewModel::retryPendingSaves,
         onLongPress = { if (!it.isGoalLinked) goalLinkingSession = it },
         onEditSession = { editingSession = it },
     )
@@ -190,6 +199,7 @@ internal fun FocusHistoryContent(
     ekagraTags: List<String> = DEFAULT_EKAGRA_TAGS,
     ekagraTagColors: Map<String, String> = DEFAULT_TAG_COLORS,
     completedGoalIds: Set<String> = emptySet(),
+    historyMessage: String? = null,
     saveError: String? = null,
     onRetry: () -> Unit = {},
     onLongPress: ((com.safarparmar.app.domain.model.EkagraAnalyticsFocusSession) -> Unit)? = null,
@@ -293,6 +303,10 @@ internal fun FocusHistoryContent(
             .padding(horizontal = 20.dp)
             .padding(top = 12.dp),
     ) {
+        historyMessage?.let { message ->
+            Text(message, color = ink.secondaryText, style = MaterialTheme.typography.bodySmall)
+            Spacer(Modifier.height(8.dp))
+        }
         saveError?.let { message ->
             Text(message, color = MaterialTheme.colorScheme.error)
             TextButton(onClick = onRetry) { Text(stringResource(R.string.ekagra_retry_save)) }

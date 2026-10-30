@@ -107,6 +107,7 @@ fun SafarNavGraph(
     //    directly to the exact screen they came from.
 
     val topLevelDestinations = setOf(
+        Routes.STUDY_HUB, Routes.WELLBEING_HUB, Routes.COMMUNITY_HUB, Routes.PROGRESS_HUB,
         Routes.HOME,
         Routes.DASHBOARD,
         Routes.STUDY_PLANNER,
@@ -293,6 +294,14 @@ fun SafarNavGraph(
         }
 
         // ── Dashboard ─────────────────────────────────────────────────────────
+
+        listOf(Routes.STUDY_HUB, Routes.WELLBEING_HUB, Routes.COMMUNITY_HUB, Routes.PROGRESS_HUB).forEach { hubRoute ->
+            composable(hubRoute) {
+                com.safarparmar.app.ui.drawer.NavigationHubScreen(
+                    hubRoute, isDarkTheme, ::navigate, onToggleDarkTheme,
+                )
+            }
+        }
 
         composable(Routes.DASHBOARD) {
             DashboardScreen(

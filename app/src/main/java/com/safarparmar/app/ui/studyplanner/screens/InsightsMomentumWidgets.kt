@@ -42,6 +42,8 @@ import androidx.compose.material.icons.filled.TrackChanges
 import androidx.compose.material.icons.rounded.Whatshot
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -83,7 +85,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.rounded.MonitorHeart
 import androidx.compose.material3.TextButton
@@ -156,6 +157,7 @@ private fun sharedExamTierLabel(subjects: List<PlannerInsightSubjectRow>): Strin
 
 @Composable
 internal fun rememberStaggeredEntrance(delayMs: Int = 0): Float {
+    if (com.safarparmar.app.ui.studyplanner.components.LocalPlannerWarmClarity.current) return 1f
     // Fresh Animatable each composition entry — InsightsTab is disposed when leaving the tab.
     val progress = remember { Animatable(0f) }
     LaunchedEffect(Unit) {
@@ -173,6 +175,7 @@ internal fun Modifier.insightsEntrance(progress: Float): Modifier = this.graphic
 
 @Composable
 internal fun rememberCountUp(target: Int, durationMs: Int = 900, delayMs: Int = 0): Int {
+    if (com.safarparmar.app.ui.studyplanner.components.LocalPlannerWarmClarity.current) return target
     val anim = remember { Animatable(0f) }
     // Unit key: re-run every time this screen enters composition (tab revisit).
     LaunchedEffect(Unit, target) {
@@ -194,97 +197,20 @@ internal fun InsightsOverallProgressRedesign(
     totalTopics: Int,
     isLight: Boolean = false,
 ) {
-    @Suppress("UNUSED_PARAMETER")
-    val unusedTodo = dailyTodoProgressPercent
-
-    val progress = overallProgressPercent.coerceIn(0, 100)
-    val primaryText = PlannerFlatColors.TextDark
-    val secondaryText = PlannerFlatColors.TextMuted
-    val entrance = rememberStaggeredEntrance(delayMs = 0)
-    val ringProgress = remember { Animatable(0f) }
-    val counted = rememberCountUp(progress, durationMs = 1000, delayMs = 80)
-
-    LaunchedEffect(Unit, progress) {
-        ringProgress.snapTo(0f)
-        delay(80)
-        ringProgress.animateTo(
-            progress / 100f,
-            animationSpec = tween(1100, easing = FastOutSlowInEasing),
-        )
-    }
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .insightsEntrance(entrance)
-            .safarFrostedPanel(
-                isLight = isLight,
-                shape = RoundedCornerShape(SafarGlassChromeRadius),
-            )
-            .padding(vertical = 24.dp, horizontal = 18.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            Box(
-                modifier = Modifier.size(156.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Canvas(Modifier.size(156.dp)) {
-                    val stroke = 10.dp.toPx()
-                    // Faint purple track so 0% still reads as "a ring waiting to fill".
-                    drawArc(
-                        color = ExamRingPurple.copy(alpha = if (isLight) 0.18f else 0.28f),
-                        startAngle = -90f,
-                        sweepAngle = 360f,
-                        useCenter = false,
-                        style = Stroke(width = stroke, cap = StrokeCap.Round),
-                    )
-                    drawArc(
-                        color = ExamRingPurple,
-                        startAngle = -90f,
-                        sweepAngle = 360f * ringProgress.value,
-                        useCenter = false,
-                        style = Stroke(width = stroke, cap = StrokeCap.Round),
-                    )
-                }
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(2.dp),
-                ) {
-                    Text(
-                        text = "$counted%",
-                        style = MaterialTheme.typography.displaySmall,
-                        fontWeight = FontWeight.Black,
-                        color = primaryText,
-                    )
-                    Text(
-                        text = stringResource(R.string.planner_syllabus_done),
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = secondaryText,
-                    )
-                }
+    val scheme = MaterialTheme.colorScheme
+    Surface(color = scheme.surface, shape = RoundedCornerShape(24.dp)) {
+        Column(Modifier.fillMaxWidth().flatCard(RoundedCornerShape(24.dp)).padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(stringResource(R.string.planner_syllabus_done), style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                Text("${overallProgressPercent.coerceIn(0, 100)}%", style = MaterialTheme.typography.headlineSmall)
             }
-            // "12 of 40 topics done" used to sit directly under the ring, but the
-            // ring is effort-weighted (a big topic counts for more) so the two
-            // numbers disagreed — teaching the student that the app's maths can't
-            // be trusted. Now the caption states what is finished and what is
-            // left, and one plain line explains why the % isn't just done/total.
-            Text(
-                text = stringResource(R.string.planner_done_to_go, doneTopics, (totalTopics - doneTopics).coerceAtLeast(0)),
-                style = MaterialTheme.typography.bodySmall,
-                color = secondaryText,
-                textAlign = TextAlign.Center,
-            )
-            Text(
-                text = stringResource(R.string.planner_big_topics_count_more),
-                style = MaterialTheme.typography.labelSmall,
-                color = secondaryText,
-                textAlign = TextAlign.Center,
-            )
+            LinearProgressIndicator(progress = { overallProgressPercent.coerceIn(0, 100) / 100f }, modifier = Modifier.fillMaxWidth().height(8.dp).clip(CircleShape), color = scheme.secondary, trackColor = scheme.outlineVariant)
+            Text(stringResource(R.string.planner_done_to_go, doneTopics, (totalTopics - doneTopics).coerceAtLeast(0)), style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant)
+            Text(stringResource(R.string.planner_big_topics_count_more), style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(stringResource(R.string.planner_daily_todo), style = MaterialTheme.typography.bodyMedium)
+                Text("${dailyTodoProgressPercent.coerceIn(0, 100)}%", style = MaterialTheme.typography.titleMedium)
+            }
         }
     }
 }
@@ -406,7 +332,7 @@ internal fun ConsistencyStreakCard(
             .fillMaxWidth()
             .insightsEntrance(entrance)
             .animateContentSize()
-            .padding(18.dp),
+            .flatCard(RoundedCornerShape(24.dp)).padding(18.dp),
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Row(
@@ -515,8 +441,8 @@ private fun TappableWeekStreak(
                             color = when {
                                 selected -> StreakPeach
                                 active -> Color.Transparent
-                                isLight -> Color.Black.copy(alpha = 0.18f)
-                                else -> Color.White.copy(alpha = 0.22f)
+                                isLight -> PlannerFlatColors.BorderSoft
+                                else -> PlannerFlatColors.BorderSoft
                             },
                             shape = CircleShape,
                         ),
@@ -526,7 +452,7 @@ private fun TappableWeekStreak(
                         Icon(
                             imageVector = Icons.Default.Check,
                             contentDescription = stringResource(R.string.planner_studied),
-                            tint = Color.White,
+                            tint = Color(0xFF39132E),
                             modifier = Modifier.size(14.dp),
                         )
                     }
@@ -716,132 +642,25 @@ internal fun SubjectProgressChart(
     subjects: List<PlannerInsightSubjectRow>,
     isLight: Boolean = false,
 ) {
-    val chartSubjects = remember(subjects) { subjects.take(4) }
-    var selectedSubjectId by remember(chartSubjects) { mutableStateOf<String?>(null) }
-    val haptic = LocalHapticFeedback.current
-    val panelTint = if (isLight) Color.Black else Color.White
-    val primaryText = PlannerFlatColors.TextDark
-    val secondaryText = PlannerFlatColors.TextMuted
-    val entrance = rememberStaggeredEntrance(delayMs = 480)
-    val tierLabel = remember(chartSubjects) { sharedExamTierLabel(chartSubjects) }
-    val selectedSubject = chartSubjects.firstOrNull { it.subjectId == selectedSubjectId }
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .insightsEntrance(entrance)
-            .animateContentSize()
-            .padding(18.dp),
-    ) {
-        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(
-                    text = stringResource(R.string.planner_by_subject),
-                    fontWeight = FontWeight.Black,
-                    fontSize = 18.sp,
-                    color = primaryText,
-                )
-                if (tierLabel != null) {
-                    Text(
-                        text = tierLabel,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = secondaryText,
-                    )
-                }
-            }
-            if (chartSubjects.isEmpty()) {
-                Text(text = stringResource(R.string.planner_add_topics_progress), color = secondaryText)
-            } else {
-                BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-                    val stackVertically = maxWidth < 340.dp
-                    val ringSize = if (stackVertically) 132.dp else 120.dp
-
-                    if (stackVertically) {
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(14.dp),
-                        ) {
-                            ConcentricSubjectRings(
-                                subjects = chartSubjects,
-                                selectedSubjectId = selectedSubjectId,
-                                isLight = isLight,
-                                modifier = Modifier.size(ringSize),
-                            )
-                            SubjectLegendColumn(
-                                subjects = chartSubjects,
-                                selectedSubjectId = selectedSubjectId,
-                                primaryText = primaryText,
-                                secondaryText = secondaryText,
-                                isLight = isLight,
-                                onSelect = { id ->
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    selectedSubjectId = if (selectedSubjectId == id) null else id
-                                },
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-                        }
-                    } else {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(14.dp),
-                        ) {
-                            ConcentricSubjectRings(
-                                subjects = chartSubjects,
-                                selectedSubjectId = selectedSubjectId,
-                                isLight = isLight,
-                                modifier = Modifier.size(ringSize),
-                            )
-                            SubjectLegendColumn(
-                                subjects = chartSubjects,
-                                selectedSubjectId = selectedSubjectId,
-                                primaryText = primaryText,
-                                secondaryText = secondaryText,
-                                isLight = isLight,
-                                onSelect = { id ->
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    selectedSubjectId = if (selectedSubjectId == id) null else id
-                                },
-                                modifier = Modifier.weight(1f),
-                            )
-                        }
+    var selectedSubjectId by remember(subjects) { mutableStateOf<String?>(null) }
+    val scheme = MaterialTheme.colorScheme
+    Surface(color = scheme.surface, shape = RoundedCornerShape(24.dp)) {
+        Column(Modifier.fillMaxWidth().flatCard(RoundedCornerShape(24.dp)).padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(stringResource(R.string.planner_warm_all_subjects), style = MaterialTheme.typography.titleLarge)
+            if (subjects.isEmpty()) Text(stringResource(R.string.planner_add_topics_progress), color = scheme.onSurfaceVariant)
+            subjects.forEachIndexed { index, row ->
+                val selected = selectedSubjectId == row.subjectId
+                Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp))
+                    .background(if (selected) scheme.primaryContainer.copy(alpha = 0.4f) else Color.Transparent)
+                    .clickable { selectedSubjectId = if (selected) null else row.subjectId }
+                    .padding(horizontal = 8.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text(row.subjectName, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f), maxLines = 3, overflow = TextOverflow.Ellipsis)
+                        Spacer(Modifier.width(10.dp)); Text("${row.completionPercent}%", fontWeight = FontWeight.Bold)
                     }
-                }
-
-                AnimatedVisibility(
-                    visible = selectedSubject != null,
-                    enter = fadeIn() + expandVertically(),
-                    exit = fadeOut() + shrinkVertically(),
-                ) {
-                    val row = selectedSubject ?: return@AnimatedVisibility
-                    val color = subjectRingColor(row, chartSubjects.indexOf(row).coerceAtLeast(0))
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(color.copy(alpha = if (isLight) 0.08f else 0.12f))
-                            .padding(horizontal = 12.dp, vertical = 10.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        Text(
-                            text = row.subjectName,
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = primaryText,
-                        )
-                        Text(
-                            text = when {
-                                row.remainingTopics <= 0 -> "All topics done"
-                                row.overdueTopics > 0 ->
-                                    "${row.remainingTopics} left · ${row.overdueTopics} late"
-                                else ->
-                                    "${row.remainingTopics} topic${if (row.remainingTopics == 1) "" else "s"} left"
-                            },
-                            style = MaterialTheme.typography.labelMedium,
-                            color = secondaryText,
-                        )
-                    }
+                    LinearProgressIndicator(progress = { row.completionPercent.coerceIn(0, 100) / 100f }, modifier = Modifier.fillMaxWidth().height(6.dp).clip(CircleShape),
+                        color = subjectRingColor(row, index), trackColor = scheme.outlineVariant)
+                    if (selected) Text(stringResource(R.string.planner_warm_subject_remaining, row.remainingTopics, row.overdueTopics, row.revisionTopics), style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant)
                 }
             }
         }
@@ -1040,8 +859,10 @@ internal fun InsightsFinishLineCard(
         )
     }
 
-    val lineProgress = remember { Animatable(0f) }
+    val warmMotion = com.safarparmar.app.ui.studyplanner.components.LocalPlannerWarmClarity.current
+    val lineProgress = remember { Animatable(1f) }
     LaunchedEffect(Unit, timeline) {
+        if (warmMotion) { lineProgress.snapTo(1f); return@LaunchedEffect }
         lineProgress.snapTo(0f)
         if (timeline != null) {
             delay(200)
@@ -1053,7 +874,7 @@ internal fun InsightsFinishLineCard(
         modifier = Modifier
             .fillMaxWidth()
             .insightsEntrance(entrance)
-            .padding(18.dp),
+            .clip(RoundedCornerShape(24.dp)).background(if (timeline?.isBehind == true) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.secondaryContainer).padding(18.dp),
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Row(
@@ -1068,7 +889,7 @@ internal fun InsightsFinishLineCard(
                     modifier = Modifier.size(20.dp),
                 )
                 Text(
-                    text = stringResource(R.string.planner_when_finish),
+                    text = stringResource(R.string.planner_warm_track_title),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Black,
                     color = primaryText,
@@ -1320,8 +1141,10 @@ internal fun InsightsRevisionPulseCard(
     val primaryText = PlannerFlatColors.TextDark
     val secondaryText = PlannerFlatColors.TextMuted
     val entrance = rememberStaggeredEntrance(delayMs = 560)
-    val towerProgress = remember { Animatable(0f) }
+    val warmMotion = com.safarparmar.app.ui.studyplanner.components.LocalPlannerWarmClarity.current
+    val towerProgress = remember { Animatable(1f) }
     LaunchedEffect(towers.size, doneSessions) {
+        if (warmMotion) { towerProgress.snapTo(1f); return@LaunchedEffect }
         towerProgress.snapTo(0f)
         if (towers.isNotEmpty()) {
             delay(120)
@@ -1334,7 +1157,7 @@ internal fun InsightsRevisionPulseCard(
             .fillMaxWidth()
             .insightsEntrance(entrance)
             .animateContentSize()
-            .padding(18.dp),
+            .flatCard(RoundedCornerShape(24.dp)).padding(18.dp),
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Row(

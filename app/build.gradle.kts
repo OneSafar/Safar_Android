@@ -216,6 +216,7 @@ configurations.all {
 }
 
 dependencies {
+    implementation("androidx.emoji2:emoji2-emojipicker:1.7.0")
     implementation("com.composables:ui:0.2.0")
     implementation("com.composables:composeunstyled:2.7.0")
     implementation("com.composables:compose-interaction-capabilities:1.1.0")

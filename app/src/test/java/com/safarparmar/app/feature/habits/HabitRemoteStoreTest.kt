@@ -36,6 +36,7 @@ class HabitRemoteStoreTest {
         val records = mutableMapOf<String, MutableMap<String, HabitRemoteRecord>>()
         val receipts = mutableSetOf<String>()
         val requests = mutableListOf<HabitBatchRequest>()
+        var snapshotCalls = 0
         var version = 0L
         var fail = false
         var loseResponse = false
@@ -79,12 +80,31 @@ class HabitRemoteStoreTest {
             return HabitBatchResponse(version, request.mutations.map { it.get("mutationId").asString })
         }
         override suspend fun snapshot(owner: String, knownVersion: Long?, cursor: String?, limit: Int): HabitSnapshotResponse {
+            snapshotCalls++
             requested?.complete(Unit)
             hold?.await()
             if (fail) throw IOException("offline")
             return HabitSnapshotResponse(version, if (knownVersion == version) emptyList() else records[owner]?.values?.toList().orEmpty(),
                 unchanged = knownVersion == version)
         }
+    }
+
+    @Test fun `confirmed creation and edit do not wait for a second snapshot download`() = runTest {
+        val backend = Backend()
+        val device = Device(backend)
+        device.source.refresh()
+        val snapshots = backend.snapshotCalls
+        device.repository.createHabit("Read", DayOfWeek.entries.toSet(), true, 0)
+        val habit = device.repository.observeHabits().first().single()
+        device.repository.editHabit(habit.copy(name = "Read a book"))
+        assertEquals(snapshots, backend.snapshotCalls)
+        assertEquals("Read a book", device.repository.observeHabits().first().single().name)
+        // A concurrent phone's changes still arrive: acknowledged writes never advance
+        // the full-snapshot cursor past data we have not downloaded.
+        backend.records["alice"]!![habit.remoteId!!] = backend.records["alice"]!![habit.remoteId]!!.copy(reminderTime = "09:00")
+        backend.version++
+        device.source.refresh()
+        assertEquals("09:00", device.repository.observeHabits().first().single().reminderTime)
     }
 
     @Test fun `two phones and fresh install share all backend history without writing Room`() = runTest {

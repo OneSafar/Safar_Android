@@ -1,0 +1,13 @@
+{
+  "target": "Safar_Android_v4",
+  "viewModelUnchangedFromTaskStart": true,
+  "dialogHandlersUnchangedFromTaskStart": true,
+  "titliUnchanged": true,
+  "runtimeTestsRun": false,
+  "newDependencies": false,
+  "widthBreakpointsAfterRailDp": {
+    "singleColumn": "below 700, or fontScale >= 1.5",
+    "tabletPortrait": "700\u2013999",
+    "wide": "1000+"
+  }
+}

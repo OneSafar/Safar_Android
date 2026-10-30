@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="premium_membership_headline">Your next chapter,\nwith Safar.</string>
+    <string name="premium_group_preparation">A plan that fits your preparation</string>
+    <string name="premium_group_preparation_summary">Exam planner &amp; revision reminders</string>
+    <string name="premium_group_progress">Progress you can actually see</string>
+    <string name="premium_group_progress_summary">Detailed activity insights</string>
+    <string name="premium_group_focus">A calmer way to stay consistent</string>
+    <string name="premium_group_focus_summary">Guided audio, live sessions &amp; Mehfil</string>
+</resources>

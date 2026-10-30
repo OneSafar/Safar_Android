@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="sidebar_section_wellbeing">Well-being</string>
+    <string name="sidebar_section_community_resources">Community &amp; Resources</string>
+    <string name="sidebar_resources">Resources</string>
+    <string name="sidebar_help_support">Help &amp; Support</string>
     <!-- App -->
     <string name="app_name">SAFAR</string>
     <!-- Technical Google sign-in ID. It must stay exactly the same in every language. -->

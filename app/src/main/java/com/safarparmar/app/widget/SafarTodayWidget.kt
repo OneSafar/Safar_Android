@@ -38,6 +38,8 @@ class SafarTodayWidget : AppWidgetProvider() {
             .getAppWidgetIds(ComponentName(context, SafarTodayWidget::class.java))
 
         internal fun render(context: Context, value: SafarWidgetSnapshot?) {
+            val widgetIds = ids(context)
+            if (widgetIds.isEmpty()) return
             val snapshot = value?.takeIf { it.day == LocalDate.now(widgetZone).toString() }
             val views = RemoteViews(context.packageName, R.layout.widget_safar_today)
             fun open(id: Int, route: String) {
@@ -85,7 +87,7 @@ class SafarTodayWidget : AppWidgetProvider() {
             views.setContentDescription(R.id.widget_refresh, context.getString(R.string.widget_refresh) + ". " + status)
             views.setViewVisibility(R.id.widget_status, if (value != null && (snapshot == null || snapshot.stale || snapshot.updatedAt == 0L)) View.VISIBLE else View.GONE)
             views.setTextViewText(R.id.widget_status, status)
-            AppWidgetManager.getInstance(context).updateAppWidget(ids(context), views)
+            AppWidgetManager.getInstance(context).updateAppWidget(widgetIds, views)
         }
 
         /** RemoteViews cannot host a custom View; send only the small ring bitmap. */

@@ -44,6 +44,24 @@ class SafarApplication : Application(), coil.ImageLoaderFactory {
         return coil.ImageLoader.Builder(this)
             .memoryCache { coil.memory.MemoryCache.Builder(this).maxSizeBytes(maxBytes.toInt()).build() }
             .components {
+                add(coil.map.Mapper<String, android.net.Uri> { data, _ ->
+                    if (!data.startsWith("/")) return@Mapper null
+                    val base = com.safarparmar.app.BuildConfig.BASE_URL.trimEnd('/')
+                    val origin = try {
+                        val parsed = android.net.Uri.parse(base)
+                        val scheme = parsed.scheme
+                        val host = parsed.host
+                        if (!scheme.isNullOrEmpty() && !host.isNullOrEmpty()) {
+                            val portPart = if (parsed.port != -1 && parsed.port != 80 && parsed.port != 443) ":${parsed.port}" else ""
+                            "$scheme://$host$portPart"
+                        } else {
+                            base.replace(Regex("/api/?$", RegexOption.IGNORE_CASE), "")
+                        }
+                    } catch (_: Exception) {
+                        base.replace(Regex("/api/?$", RegexOption.IGNORE_CASE), "")
+                    }
+                    android.net.Uri.parse("$origin$data")
+                })
                 if (android.os.Build.VERSION.SDK_INT >= 28) add(coil.decode.ImageDecoderDecoder.Factory())
                 else add(coil.decode.GifDecoder.Factory())
             }

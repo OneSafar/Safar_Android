@@ -1,5 +1,7 @@
 package com.safarparmar.app.ui.studyplanner.screens
 
+import com.safarparmar.app.ui.adaptive.plannerPanesFit
+import com.safarparmar.app.ui.adaptive.usePlannerTopNavigation
 import com.safarparmar.app.ui.studyplanner.components.PlannerDialogTextAction
 import com.safarparmar.app.ui.studyplanner.components.PlannerDialogText
 import com.safarparmar.app.ui.studyplanner.components.PlannerDialogAction
@@ -112,6 +114,8 @@ import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import com.safarparmar.app.ui.studyplanner.components.LocalPlannerWarmClarity
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -156,7 +160,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.material.icons.filled.ChevronLeft
-import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.rounded.Whatshot
 import androidx.compose.material.icons.rounded.EmojiEvents
 import androidx.compose.material.icons.rounded.AutoAwesome
@@ -229,9 +232,6 @@ import com.safarparmar.app.ui.studyplanner.logic.*
 import com.safarparmar.app.ui.components.PlanCardSkeleton
 import com.safarparmar.app.ui.components.SafarInlineRefreshIndicator
 import com.safarparmar.app.ui.components.SafarPullRefreshBox
-import com.safarparmar.app.ui.components.PlanCardSkeleton
-import com.safarparmar.app.ui.components.SafarInlineRefreshIndicator
-import com.safarparmar.app.ui.components.SafarPullRefreshBox
 import com.safarparmar.app.ui.studyplanner.plan.PlanTabScreen
 import com.safarparmar.app.ui.studyplanner.plan.StudyStyleOption
 import com.safarparmar.app.ui.butterfly.ButterflyTourState
@@ -274,6 +274,7 @@ private data class StudyPlannerChromeState(
     val deleteUndoToken: String? = null,
     val finishDayUndoAvailable: Boolean = false,
     val pendingOpenUnscheduledTopics: Boolean = false,
+    val revisionParent: PlannerSection = PlannerSection.PLAN,
 )
 
 @Immutable
@@ -313,9 +314,26 @@ private data class StudyPlannerHomeTarget(
     val selectedPlanId: String?,
 )
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
 @Composable
 fun StudyPlannerScreen(
+    currentRoute: String = Routes.STUDY_PLANNER,
+    isDarkTheme: Boolean = false,
+    planId: String? = null,
+    showDailyTodoSetup: Boolean = false,
+    openTab: String? = null,
+    onNavigate: (String) -> Unit = {},
+    onBack: () -> Unit = {},
+    onToggleDarkTheme: () -> Unit = {},
+    viewModel: StudyPlannerViewModel = hiltViewModel(),
+) {
+    com.safarparmar.app.ui.studyplanner.components.PlannerWarmClarityTheme(isDarkTheme) {
+        StudyPlannerScreenContent(currentRoute, isDarkTheme, planId, showDailyTodoSetup, openTab, onNavigate, onBack, onToggleDarkTheme, viewModel)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
+@Composable
+private fun StudyPlannerScreenContent(
     currentRoute: String = Routes.STUDY_PLANNER,
     isDarkTheme: Boolean = false,
     planId: String? = null,
@@ -366,6 +384,7 @@ fun StudyPlannerScreen(
             deleteUndoToken = state.deleteUndoToken,
             finishDayUndoAvailable = state.finishDayUndo != null,
             pendingOpenUnscheduledTopics = state.pendingOpenUnscheduledTopics,
+                    revisionParent = state.backDestination?.section ?: PlannerSection.PLAN,
         )
     }
     val chromeState by remember(viewModel) {
@@ -383,6 +402,7 @@ fun StudyPlannerScreen(
                     deleteUndoToken = state.deleteUndoToken,
                     finishDayUndoAvailable = state.finishDayUndo != null,
                     pendingOpenUnscheduledTopics = state.pendingOpenUnscheduledTopics,
+                    revisionParent = state.backDestination?.section ?: PlannerSection.PLAN,
                 )
             }
             .distinctUntilChanged()
@@ -639,6 +659,21 @@ fun StudyPlannerScreen(
     com.safarparmar.app.ui.tutorial.ScreenPracticeEntry(com.safarparmar.app.ui.tutorial.TitliFeature.EXAM_PLANNER,
         isDarkTheme, eligible = !chromeState.loading && !chromeState.mutating && !dailyTodoSetupVisible)
 
+    val adaptive = com.safarparmar.app.ui.adaptive.rememberSafarAdaptiveState()
+    val useTopNavigation = adaptive.usePlannerTopNavigation
+    val selectedNavigationSection = (if (chromeState.section == PlannerSection.REVISION) chromeState.revisionParent else chromeState.section).takeIf { chromeState.selectedPlan != null }
+        ?: if (plansState.plans.isEmpty()) PlannerSection.PLAN else PlannerSection.YOUR_EXAMS
+    val onPlannerSectionSelect: (PlannerSection) -> Unit = { section ->
+        if (chromeState.section == PlannerSection.REVISION) actions.navigateBack()
+        when {
+            section == PlannerSection.YOUR_EXAMS || chromeState.selectedPlan != null ->
+                actions.setSection(section)
+            else -> coroutineScope.launch {
+                snackbar.showSnackbar("Please select an exam plan first.")
+            }
+        }
+    }
+
     val selectedPlanForDrawer = chromeState.selectedPlan
     val drawerTitle = when {
         selectedPlanForDrawer != null &&
@@ -667,32 +702,23 @@ fun StudyPlannerScreen(
             isDarkTheme = isDarkTheme,
             onNavigate = onNavigate,
             onToggleDarkTheme = onToggleDarkTheme,
-            showTopBarTitle = chromeState.section != PlannerSection.SYLLABUS,
+            showTopBarTitle = useTopNavigation || chromeState.section != PlannerSection.SYLLABUS,
+            topBarTitleContent = if (useTopNavigation && canUsePremiumPlannerFeatures) {
+                { PlannerTopNavigation(selectedNavigationSection, onPlannerSectionSelect) }
+            } else null,
         ) { padding ->
             Scaffold(
                 modifier = Modifier.padding(top = padding.calculateTopPadding()),
                 containerColor = SafarSemanticColors.plannerBackground(),
                 contentWindowInsets = WindowInsets.safeDrawing.only(
-                    androidx.compose.foundation.layout.WindowInsetsSides.Horizontal
+                    androidx.compose.foundation.layout.WindowInsetsSides.Horizontal +
+                        if (useTopNavigation) androidx.compose.foundation.layout.WindowInsetsSides.Bottom
+                        else androidx.compose.foundation.layout.WindowInsetsSides.Horizontal
                 ),
                 snackbarHost = { SnackbarHost(snackbar) },
                 bottomBar = {
-                    if (canUsePremiumPlannerFeatures) {
-                        PlannerBottomBar(
-                            selected = chromeState.section.takeIf { chromeState.selectedPlan != null }
-                                // A first-time user is on Home, not the plan picker.
-                                ?: if (plansState.plans.isEmpty()) PlannerSection.PLAN else PlannerSection.YOUR_EXAMS,
-                            onSelect = { section ->
-                                val activePlan = chromeState.selectedPlan
-                                when {
-                                    section == PlannerSection.YOUR_EXAMS || activePlan != null ->
-                                        actions.setSection(section)
-                                    else -> coroutineScope.launch {
-                                        snackbar.showSnackbar("Please select an exam plan first.")
-                                    }
-                                }
-                            },
-                        )
+                    if (canUsePremiumPlannerFeatures && !useTopNavigation) {
+                        PlannerBottomBar(selectedNavigationSection, onPlannerSectionSelect)
                     }
                 },
             ) { innerPadding ->
@@ -851,9 +877,9 @@ private fun StudyPlannerPremiumLockOverlay(
                 shape = MaterialTheme.shapes.extraLarge,
                 modifier = Modifier.fillMaxWidth(0.75f),
             ) {
-                Icon(Icons.Default.Star, contentDescription = null, modifier = Modifier.size(16.dp), tint = scheme.onPrimary)
+                Icon(Icons.Default.Star, contentDescription = null, modifier = Modifier.size(16.dp), tint = androidx.compose.material3.LocalContentColor.current)
                 Spacer(Modifier.width(6.dp))
-                Text(stringResource(R.string.planner_upgrade_premium), fontWeight = FontWeight.Bold, color = scheme.onPrimary)
+                Text(stringResource(R.string.planner_upgrade_premium), fontWeight = FontWeight.Bold, color = androidx.compose.material3.LocalContentColor.current)
             }
         }
     }
@@ -905,104 +931,130 @@ private fun StudyPlansScreen(
         )
     }
 
-    // ── Modern Flat Dashboard (Variant 3) ─────────────────────────
-    Box(modifier = Modifier.fillMaxSize()) {
-        SafarPullRefreshBox(
-            isRefreshing = state.loading && state.plans.isNotEmpty(),
-            onRefresh = { actions.refreshPlans() },
-            modifier = Modifier.fillMaxSize(),
-        ) {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(start = 16.dp, top = 20.dp, end = 16.dp, bottom = 32.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                item(key = "toppers_batch") {
-                    PlannerPosterEntry(onClick = { onNavigate(Routes.TOPPERS_BATCH) })
-                }
-                item(key = "gk5_batch") {
-                    PlannerGk5Entry(onClick = { onNavigate(Routes.GK5_BATCH) })
-                }
-                item(key = "new_plan") {
-                    PlannerEntryAction(
-                        title = stringResource(R.string.planner_new_plan),
-                        subtitle = "Start fresh or build from a template",
-                        icon = Icons.Default.Add,
-                        primary = true,
-                        onClick = { onAdvanceTour(); onNavigate(Routes.CREATE_PLAN) },
-                    )
-                }
-                if (state.draftSyllabi.isNotEmpty()) {
-                    item(key = "drafts") {
-                        PlannerEntryAction(
-                            title = stringResource(R.string.planner_drafts_count, state.draftSyllabi.size),
-                            subtitle = stringResource(R.string.planner_resume_building),
-                            icon = Icons.AutoMirrored.Outlined.Article,
-                            onClick = { onAdvanceTour(); onNavigate("${Routes.CREATE_PLAN}?startAtSaved=true") },
-                        )
+    var previewId by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
+    val examsListState = androidx.compose.foundation.lazy.rememberLazyListState()
+    val previewScrollState = rememberScrollState()
+    val adaptive = com.safarparmar.app.ui.adaptive.rememberSafarAdaptiveState()
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        if (adaptive.plannerPanesFit(maxWidth, maxHeight)) {
+            TabletPlannerOverview(
+                previewId = previewId, onPreviewSelect = { previewId = it },
+                listState = examsListState, previewScrollState = previewScrollState,
+                plans = state.plans,
+                draftCount = state.draftSyllabi.size,
+                loading = state.loading,
+                activePlanId = activePlanAnchorId,
+                onRefresh = actions::refreshPlans,
+                onNewPlan = { onAdvanceTour(); onNavigate(Routes.CREATE_PLAN) },
+                onDrafts = { onAdvanceTour(); onNavigate("${Routes.CREATE_PLAN}?startAtSaved=true") },
+                onTopperBatch = { onNavigate(Routes.TOPPERS_BATCH) },
+                onGkBatch = { onNavigate(Routes.GK5_BATCH) },
+                onOpenPlan = { plan -> actions.openPlan(plan.id); actions.setSection(PlannerSection.PLAN) },
+                onRename = { pendingRename = it },
+                onDelete = { pendingDelete = it },
+            )
+        } else {
+            // Exams and compact study tools in the approved Warm Clarity layout.
+            Box(modifier = Modifier.fillMaxSize()) {
+                SafarPullRefreshBox(
+                    isRefreshing = state.loading && state.plans.isNotEmpty(),
+                    onRefresh = { actions.refreshPlans() },
+                    modifier = Modifier.fillMaxSize(),
+                ) {
+                    LazyColumn(
+                        state = examsListState,
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(start = 16.dp, top = 20.dp, end = 16.dp, bottom = 32.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        item(key = "new_plan") {
+                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Text(stringResource(R.string.planner_warm_my_exams), style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f))
+                                Button(onClick = { onAdvanceTour(); onNavigate(Routes.CREATE_PLAN) }, shape = RoundedCornerShape(18.dp)) {
+                                    Icon(Icons.Default.Add, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text(stringResource(R.string.planner_warm_new_plan))
+                                }
+                            }
+                        }
+
+                        // ── Loading skeletons ────────────────────────────────────
+                        if (state.loading && state.plans.isEmpty()) {
+                            items(3) {
+                                PlanCardSkeleton(modifier = Modifier.padding(vertical = 4.dp))
+                            }
+                        }
+
+                        // ── Empty state ──────────────────────────────────────────
+                        if (state.plans.isEmpty() && !state.loading) {
+                            item {
+                                PlannerEmptyState(
+                                    title = stringResource(R.string.planner_no_target_exam),
+                                    body = stringResource(R.string.planner_empty_plan_body),
+                                    action = "Plan Your Exams",
+                                    isLight = !isDark,
+                                    onAction = {
+                                        onAdvanceTour()
+                                        onNavigate(Routes.CREATE_PLAN)
+                                    },
+                                )
+                            }
+                        }
+
+                        // ── Section Header ───────────────────────────────────────
+                        if (state.plans.isNotEmpty()) {
+                            item {
+                                Text(
+                                    text = stringResource(R.string.planner_active_exams_count, state.plans.size),
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = PlannerFlatColors.TextMuted,
+                                    modifier = Modifier.padding(top = 8.dp, bottom = 2.dp)
+                                )
+                            }
+                        }
+
+                        // ── Plan cards ───────────────────────────────────────────
+                        if (state.plans.isNotEmpty()) {
+                            items(state.plans.sortedByDescending { it.id == activePlanAnchorId }, key = { it.id }) { plan ->
+                                val planNumber = state.plans
+                                    .sortedWith(compareBy<StudyPlan>({ it.createdAt.orEmpty() }, { it.id }))
+                                    .indexOfFirst { it.id == plan.id }
+                                    .let { if (it >= 0) it + 1 else 1 }
+                                PlannerTargetExamRow(
+                                    plan = plan,
+                                    planNumber = planNumber,
+                                    isActive = plan.id == activePlanAnchorId,
+                                    isLight = !isDark,
+                                    onOpen = {
+                                        actions.openPlan(plan.id)
+                                        actions.setSection(PlannerSection.PLAN)
+                                    },
+                                    onRename = { pendingRename = plan },
+                                    onDelete = { pendingDelete = plan },
+                                )
+                            }
+                        }
+
+                        item { Spacer(Modifier.height(12.dp)) }
+                        if (state.draftSyllabi.isNotEmpty()) {
+                            item(key = "drafts") {
+                                PlannerEntryAction(
+                                    title = stringResource(R.string.planner_drafts_count, state.draftSyllabi.size),
+                                    subtitle = stringResource(R.string.planner_resume_building),
+                                    icon = Icons.AutoMirrored.Outlined.Article,
+                                    onClick = { onAdvanceTour(); onNavigate("${Routes.CREATE_PLAN}?startAtSaved=true") },
+                                )
+                            }
+                        }
+
+                        item(key = "study_tools") {
+                            Text(stringResource(R.string.planner_warm_study_tools), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 12.dp, bottom = 8.dp))
+                            PlannerPosterEntry(onClick = { onNavigate(Routes.TOPPERS_BATCH) })
+                        }
+                        item(key = "gk5_batch") {
+                            PlannerGk5Entry(onClick = { onNavigate(Routes.GK5_BATCH) })
+                        }
                     }
                 }
-
-                // ── Loading skeletons ────────────────────────────────────
-                if (state.loading && state.plans.isEmpty()) {
-                    items(3) {
-                        PlanCardSkeleton(modifier = Modifier.padding(vertical = 4.dp))
-                    }
-                }
-
-                // ── Empty state ──────────────────────────────────────────
-                if (state.plans.isEmpty() && !state.loading) {
-                    item {
-                        PlannerEmptyState(
-                            title = stringResource(R.string.planner_no_target_exam),
-                            body = stringResource(R.string.planner_empty_plan_body),
-                            action = "Plan Your Exams",
-                            isLight = !isDark,
-                            onAction = {
-                                onAdvanceTour()
-                                onNavigate(Routes.CREATE_PLAN)
-                            },
-                        )
-                    }
-                }
-
-                // ── Section Header ───────────────────────────────────────
-                if (state.plans.isNotEmpty()) {
-                    item {
-                        Text(
-                            text = stringResource(R.string.planner_active_exams_count, state.plans.size),
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 0.5.sp,
-                            color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
-                            modifier = Modifier.padding(top = 8.dp, bottom = 2.dp)
-                        )
-                    }
-                }
-
-                // ── Plan cards ───────────────────────────────────────────
-                if (state.plans.isNotEmpty()) {
-                    items(state.plans, key = { it.id }) { plan ->
-                        val planNumber = state.plans
-                            .sortedWith(compareBy<StudyPlan>({ it.createdAt.orEmpty() }, { it.id }))
-                            .indexOfFirst { it.id == plan.id }
-                            .let { if (it >= 0) it + 1 else 1 }
-                        PlannerTargetExamRow(
-                            plan = plan,
-                            planNumber = planNumber,
-                            isActive = plan.id == activePlanAnchorId,
-                            isLight = !isDark,
-                            onOpen = {
-                                actions.openPlan(plan.id)
-                                actions.setSection(PlannerSection.PLAN)
-                            },
-                            onRename = { pendingRename = plan },
-                            onDelete = { pendingDelete = plan },
-                        )
-                    }
-                }
-
-                item { Spacer(Modifier.height(12.dp)) }
             }
         }
     }
@@ -1021,9 +1073,9 @@ fun PlannerQuickActionCard(
     modifier: Modifier = Modifier,
     onInfoClick: (() -> Unit)? = null,
 ) {
-    val bg = if (isLight) Color.White else Color(0xFF181B20)
-    val textPrimary = if (isLight) Color(0xFF0F172A) else Color(0xFFF8FAFC)
-    val textSecondary = if (isLight) Color(0xFF64748B) else Color(0xFF94A3B8)
+    val bg = if (LocalPlannerWarmClarity.current) PlannerFlatColors.CardWhite else if (isLight) Color.White else Color(0xFF181B20)
+    val textPrimary = if (LocalPlannerWarmClarity.current) PlannerFlatColors.TextDark else if (isLight) Color(0xFF0F172A) else Color(0xFFF8FAFC)
+    val textSecondary = if (LocalPlannerWarmClarity.current) PlannerFlatColors.TextMuted else if (isLight) Color(0xFF64748B) else Color(0xFF94A3B8)
 
     Surface(
         onClick = onClick,
@@ -1096,11 +1148,11 @@ private fun DraftsInfoDialog(
     onDismiss: () -> Unit,
     isLight: Boolean = false,
 ) {
-    val bg = if (isLight) Color.White else Color(0xFF181B20)
-    val border = if (isLight) Color(0xFFE2E8F0) else Color(0xFF272C35)
-    val textPrimary = if (isLight) Color(0xFF0F172A) else Color(0xFFF8FAFC)
-    val textSecondary = if (isLight) Color(0xFF64748B) else Color(0xFF94A3B8)
-    val accent = if (isLight) Color(0xFF064E3B) else Color(0xFF34D399)
+    val bg = if (LocalPlannerWarmClarity.current) PlannerFlatColors.CardWhite else if (isLight) Color.White else Color(0xFF181B20)
+    val border = if (LocalPlannerWarmClarity.current) PlannerFlatColors.BorderSoft else if (isLight) Color(0xFFE2E8F0) else Color(0xFF272C35)
+    val textPrimary = if (LocalPlannerWarmClarity.current) PlannerFlatColors.TextDark else if (isLight) Color(0xFF0F172A) else Color(0xFFF8FAFC)
+    val textSecondary = if (LocalPlannerWarmClarity.current) PlannerFlatColors.TextMuted else if (isLight) Color(0xFF64748B) else Color(0xFF94A3B8)
+    val accent = if (LocalPlannerWarmClarity.current) PlannerFlatColors.PrimaryAccent else if (isLight) Color(0xFF064E3B) else Color(0xFF34D399)
 
     com.safarparmar.app.ui.components.popups.SafarDialog(onDismissRequest = onDismiss) {
         Surface(
@@ -1154,7 +1206,7 @@ private fun DraftsInfoDialog(
                         shape = RoundedCornerShape(10.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = accent,
-                            contentColor = Color.White
+                            contentColor = if (LocalPlannerWarmClarity.current) MaterialTheme.colorScheme.onPrimary else Color.White
                         ),
                         contentPadding = PaddingValues(horizontal = 18.dp, vertical = 8.dp)
                     ) {
@@ -1174,11 +1226,11 @@ private fun PlannerEmptyState(
     isLight: Boolean = false,
     onAction: () -> Unit,
 ) {
-    val bg = if (isLight) Color.White else Color(0xFF181B20)
-    val border = if (isLight) Color(0xFFE2E8F0) else Color(0xFF272C35)
-    val textPrimary = if (isLight) Color(0xFF0F172A) else Color(0xFFF8FAFC)
-    val textSecondary = if (isLight) Color(0xFF64748B) else Color(0xFF94A3B8)
-    val accent = if (isLight) Color(0xFF064E3B) else Color(0xFF34D399)
+    val bg = if (LocalPlannerWarmClarity.current) PlannerFlatColors.CardWhite else if (isLight) Color.White else Color(0xFF181B20)
+    val border = if (LocalPlannerWarmClarity.current) PlannerFlatColors.BorderSoft else if (isLight) Color(0xFFE2E8F0) else Color(0xFF272C35)
+    val textPrimary = if (LocalPlannerWarmClarity.current) PlannerFlatColors.TextDark else if (isLight) Color(0xFF0F172A) else Color(0xFFF8FAFC)
+    val textSecondary = if (LocalPlannerWarmClarity.current) PlannerFlatColors.TextMuted else if (isLight) Color(0xFF64748B) else Color(0xFF94A3B8)
+    val accent = if (LocalPlannerWarmClarity.current) PlannerFlatColors.PrimaryAccent else if (isLight) Color(0xFF064E3B) else Color(0xFF34D399)
 
     Surface(
         shape = RoundedCornerShape(16.dp),
@@ -1229,7 +1281,7 @@ private fun PlannerEmptyState(
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = accent,
-                    contentColor = Color.White
+                    contentColor = if (LocalPlannerWarmClarity.current) MaterialTheme.colorScheme.onPrimary else Color.White
                 ),
                 contentPadding = PaddingValues(horizontal = 20.dp, vertical = 10.dp)
             ) {
@@ -1241,7 +1293,7 @@ private fun PlannerEmptyState(
     }
 }
 
-private fun planCreatedDate(value: String?): String? {
+internal fun planCreatedDate(value: String?): String? {
     if (value.isNullOrBlank()) return null
     val date = runCatching {
         Instant.parse(value).atZone(ZoneId.systemDefault()).toLocalDate()
@@ -1261,33 +1313,48 @@ internal fun PlannerTargetExamRow(
     onRename: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    val isDark = !isLight
-    val title = plan.title.ifBlank { plan.examType ?: "Study plan" }
-    val createdDate = remember(plan.createdAt) { planCreatedDate(plan.createdAt) }
-    val subtitle = buildString {
-        append("Plan ")
-        append(planNumber)
-        createdDate?.let {
-            append(" · Created ")
-            append(it)
+    val progress = remember(plan) { plan.rollup() }
+    val days = daysUntil(plan.examDate)
+    var expanded by remember { mutableStateOf(false) }
+    val scheme = MaterialTheme.colorScheme
+    Card(shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(
+        containerColor = if (isActive) scheme.primaryContainer.copy(alpha = 0.55f) else scheme.surface)) {
+        Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Surface(shape = RoundedCornerShape(14.dp), color = scheme.primaryContainer) {
+                    Icon(Icons.Default.School, null, Modifier.padding(12.dp).size(24.dp), tint = scheme.onPrimaryContainer)
+                }
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(plan.title.ifBlank { plan.examType.orEmpty() }, style = MaterialTheme.typography.titleLarge, maxLines = 2)
+                    plan.examType?.takeIf { it.isNotBlank() && it != plan.title }?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant) }
+                }
+                Box {
+                    IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, stringResource(R.string.planner_topic_options)) }
+                    PlannerOverflowMenu(expanded, { expanded = false }) {
+                        PlannerOverflowMenuItem(stringResource(R.string.common_rename), icon = Icons.Default.Edit) { expanded = false; onRename() }
+                        PlannerOverflowMenuItem(stringResource(R.string.common_delete), icon = Icons.Default.Delete, destructive = true) { expanded = false; onDelete() }
+                    }
+                }
+            }
+            Text(listOfNotNull(plan.examDate?.let(::readableDate), days?.let {
+                when {
+                    it < 0 -> stringResource(R.string.planner_warm_exam_passed)
+                    it == 0L -> stringResource(R.string.planner_warm_exam_today)
+                    else -> stringResource(R.string.planner_warm_days_left, it.toInt())
+                }
+            }).joinToString(" · "),
+                style = MaterialTheme.typography.bodyMedium, color = scheme.onSurfaceVariant)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                LinearProgressIndicator(progress = { progress.overallProgressPercent / 100f }, modifier = Modifier.weight(1f).height(7.dp).clip(CircleShape), color = scheme.secondary, trackColor = scheme.outlineVariant)
+                Text("${progress.overallProgressPercent}%", fontWeight = FontWeight.Bold)
+            }
+            Button(onClick = onOpen, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp), shape = RoundedCornerShape(18.dp)) {
+                Text(stringResource(if (isActive) R.string.planner_warm_continue else R.string.common_open)); Spacer(Modifier.width(8.dp))
+                Icon(Icons.AutoMirrored.Filled.ArrowForward, null, Modifier.size(18.dp))
+            }
         }
     }
-    val days = daysUntil(plan.examDate)
-    var menuExpanded by remember { mutableStateOf(false) }
-
-    val bg = if (isLight) Color.White else Color(0xFF181B20)
-    val border = when {
-        isActive -> if (isDark) Color(0xFF34D399) else Color(0xFF064E3B)
-        else -> if (isLight) Color(0xFFE2E8F0) else Color(0xFF272C35)
-    }
-    val textPrimary = if (isLight) Color(0xFF0F172A) else Color(0xFFF8FAFC)
-    val textSecondary = if (isLight) Color(0xFF64748B) else Color(0xFF94A3B8)
-
-    PlannerExamEntry(
-        title = title, subtitle = subtitle, badge = examBadgeLabel(days),
-        upcoming = days != null && days >= 0, active = isActive,
-        onOpen = onOpen, onRename = onRename, onDelete = onDelete,
-    )
 }
 
 @Composable
@@ -1421,6 +1488,14 @@ private fun PlannerHome(
     }
 
     Column(Modifier.fillMaxSize()) {
+        if (plan != null && chromeState.section != PlannerSection.YOUR_EXAMS && chromeState.section != PlannerSection.PLAN) {
+            Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
+                FilledTonalButton(onClick = { actions.setSection(PlannerSection.YOUR_EXAMS) }, shape = RoundedCornerShape(16.dp)) {
+                    Text(plan.title, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    Icon(Icons.Default.ExpandMore, null, Modifier.size(18.dp))
+                }
+            }
+        }
         Box(Modifier.weight(1f)) {
             if (plan == null) {
                 if (
@@ -1466,6 +1541,7 @@ private fun PlannerHome(
                         plan = plan,
                         actions = actions,
                         activeTab = detailState.activePlanTab,
+                        onSelectExam = { actions.setSection(PlannerSection.YOUR_EXAMS) },
                         onNavigate = { route ->
                             if (route.startsWith("syllabus/subjects/")) {
                                 actions.setSection(PlannerSection.SYLLABUS)
@@ -1561,161 +1637,21 @@ private fun PlannerHomeEmptyState(onCreatePlan: () -> Unit) {
 
 @Composable
 internal fun PlannerBottomBar(selected: PlannerSection, onSelect: (PlannerSection) -> Unit) {
-    val sections = listOf(
-        PlannerSection.YOUR_EXAMS,
-        PlannerSection.PLAN,
-        PlannerSection.SYLLABUS,
-        PlannerSection.CALENDAR,
-        PlannerSection.INSIGHTS,
-    )
-    val icons = mapOf(
-        PlannerSection.YOUR_EXAMS to Icons.Default.School,
-        PlannerSection.PLAN to Icons.Default.Today,
-        PlannerSection.SYLLABUS to Icons.AutoMirrored.Filled.FactCheck,
-        PlannerSection.CALENDAR to Icons.Default.CalendarMonth,
-        PlannerSection.INSIGHTS to Icons.Default.Insights,
-    )
-    val scheme = MaterialTheme.colorScheme
-    val isLight = scheme.background.isLightBackground()
-    val haptic = LocalHapticFeedback.current
-
-    val selectedIndex = sections.indexOf(selected).coerceAtLeast(0)
-    val animatedIndex by animateFloatAsState(
-        targetValue = selectedIndex.toFloat(),
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioLowBouncy,
-            stiffness = Spring.StiffnessMediumLow,
-        ),
-        label = "macOSGlassTabSlide",
-    )
-
-    // macOS Glass Pill Recipe colors
-    val glassBodyColor = if (isLight) Color(0xFFF9F9FB) else Color(0xFF2C2C2E).copy(alpha = 0.65f)
-    val glassBorderBrush = if (!isLight) {
-        Brush.verticalGradient(
-            colors = listOf(Color.White.copy(alpha = 0.25f), Color.White.copy(alpha = 0.02f))
-        )
-    } else {
-        Brush.verticalGradient(
-            colors = listOf(Color(0xFFE5E5EA), Color(0xFFD1D1D6))
-        )
-    }
-    val shadowElevation = if (isLight) 6.dp else 14.dp
-    val shadowColor = if (isLight) Color.Black.copy(alpha = 0.14f) else Color.Black.copy(alpha = 0.85f)
-
-    // macOS Top-Arch Floating Surface Shape
-    val barShape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
-    val topBorderBrush = if (!isLight) {
-        Brush.verticalGradient(
-            colors = listOf(Color.White.copy(alpha = 0.18f), Color.Transparent)
-        )
-    } else {
-        Brush.verticalGradient(
-            colors = listOf(Color(0xFFE5E5EA), Color.Transparent)
-        )
-    }
-
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .shadow(
-                elevation = shadowElevation,
-                shape = barShape,
-                spotColor = shadowColor,
-                ambientColor = shadowColor,
-            )
-            .border(
-                width = 0.5.dp,
-                brush = topBorderBrush,
-                shape = barShape,
-            ),
-        color = scheme.surface,
-        shape = barShape,
-    ) {
-        BoxWithConstraints(
-            modifier = Modifier
-                .fillMaxWidth()
-                .navigationBarsPadding()
-                .padding(vertical = 6.dp, horizontal = 6.dp),
-        ) {
-            val totalWidth = maxWidth
-            val itemWidth = totalWidth / sections.size
-            val pillShape = RoundedCornerShape(20.dp)
-
-            // ── Single Sliding macOS Translucent Glass Indicator Pill ──
-            // Soft coral wash so the active pill matches planner PrimaryAccent.
-            Box(
-                modifier = Modifier
-                    .offset(x = itemWidth * animatedIndex)
-                    .width(itemWidth)
-                    .height(56.dp)
-                    .padding(horizontal = 4.dp, vertical = 2.dp)
-                    .shadow(
-                        elevation = shadowElevation,
-                        shape = pillShape,
-                        spotColor = shadowColor,
-                        ambientColor = shadowColor,
-                    )
-                    .clip(pillShape)
-                    .background(glassBodyColor)
-                    .background(PlannerFlatColors.PrimaryAccent.copy(alpha = if (isLight) 0.10f else 0.16f))
-                    .border(
-                        width = 0.5.dp,
-                        brush = glassBorderBrush,
-                        shape = pillShape,
-                    )
-            )
-
-            // ── Tab Items ──
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                sections.forEach { section ->
-                    val isSelected = selected == section
-
-                    val contentColor by animateColorAsState(
-                        targetValue = if (isSelected) {
-                            PlannerFlatColors.PrimaryAccent
-                        } else {
-                            scheme.onSurfaceVariant.copy(alpha = 0.6f)
-                        },
-                        animationSpec = tween(200),
-                        label = "tabContentColor",
-                    )
-
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
-                            .clip(pillShape)
-                            .clickable {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                onSelect(section)
-                            },
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center,
-                    ) {
-                        Icon(
-                            imageVector = icons.getValue(section),
-                            contentDescription = section.label,
-                            tint = contentColor,
-                            modifier = Modifier.size(22.dp),
-                        )
-                        Spacer(Modifier.height(3.dp))
-                        Text(
-                            text = section.label,
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                            color = contentColor,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                }
-            }
+    val sections = listOf(PlannerSection.YOUR_EXAMS, PlannerSection.PLAN, PlannerSection.SYLLABUS, PlannerSection.CALENDAR, PlannerSection.INSIGHTS)
+    val icons = listOf(Icons.Default.School, Icons.Default.Today, Icons.AutoMirrored.Filled.FactCheck, Icons.Default.CalendarMonth, Icons.Default.Insights)
+    val labels = listOf(R.string.planner_warm_exams, R.string.planner_warm_today, R.string.planner_warm_syllabus, R.string.planner_warm_calendar, R.string.planner_warm_progress)
+    val parent = if (selected == PlannerSection.REVISION) PlannerSection.PLAN else selected
+    NavigationBar(containerColor = MaterialTheme.colorScheme.surface, tonalElevation = 0.dp) {
+        sections.forEachIndexed { index, section ->
+            NavigationBarItem(selected = parent == section, onClick = { onSelect(section) },
+                icon = { Icon(icons[index], null, Modifier.size(22.dp)) },
+                label = { Text(stringResource(labels[index]), maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = MaterialTheme.colorScheme.primary,
+                    selectedTextColor = MaterialTheme.colorScheme.primary,
+                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    indicatorColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f)))
         }
     }
 }
@@ -2030,11 +1966,11 @@ fun PlannerContinueBuildingCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val bg = if (isLight) Color.White else Color(0xFF181B20)
-    val border = if (isLight) Color(0xFFE2E8F0) else Color(0xFF272C35)
-    val textPrimary = if (isLight) Color(0xFF0F172A) else Color(0xFFF8FAFC)
-    val textSecondary = if (isLight) Color(0xFF64748B) else Color(0xFF94A3B8)
-    
+    val bg = if (LocalPlannerWarmClarity.current) PlannerFlatColors.CardWhite else if (isLight) Color.White else Color(0xFF181B20)
+    val border = if (LocalPlannerWarmClarity.current) PlannerFlatColors.BorderSoft else if (isLight) Color(0xFFE2E8F0) else Color(0xFF272C35)
+    val textPrimary = if (LocalPlannerWarmClarity.current) PlannerFlatColors.TextDark else if (isLight) Color(0xFF0F172A) else Color(0xFFF8FAFC)
+    val textSecondary = if (LocalPlannerWarmClarity.current) PlannerFlatColors.TextMuted else if (isLight) Color(0xFF64748B) else Color(0xFF94A3B8)
+
     // Most recent draft
     val mostRecent = drafts.maxByOrNull { it.updatedAt.orEmpty() } ?: drafts.firstOrNull() ?: return
     val totalSubjects = maxOf(mostRecent.subjectCount, mostRecent.subjects.size)
@@ -2085,20 +2021,20 @@ fun PlannerContinueBuildingCard(
                         overflow = TextOverflow.Ellipsis
                     )
                 }
-                
+
                 // Stats row
                 val stats = mutableListOf<String>()
                 if (totalSubjects > 0) stats.add("$totalSubjects subjects")
                 if (totalChapters > 0) stats.add("$totalChapters chapters")
                 if (totalTopics > 0) stats.add("$totalTopics topics")
-                
+
                 Text(
                     text = if (stats.isNotEmpty()) stats.joinToString(" · ") else "Tap to continue building",
                     fontSize = 13.sp,
                     color = textSecondary
                 )
             }
-            
+
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                 contentDescription = null,

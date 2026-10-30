@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="mehfil_post_options">पोस्ट के विकल्प</string>
+    <string name="mehfil_unsave_post">सेव की गई पोस्ट से हटाएँ</string>
+    <plurals name="mehfil_announcement_count">
+        <item quantity="one">%d घोषणा</item>
+        <item quantity="other">%d घोषणाएँ</item>
+    </plurals>
+    <plurals name="mehfil_days_ago">
+        <item quantity="one">%d दिन पहले</item>
+        <item quantity="other">%d दिन पहले</item>
+    </plurals>
+    <string name="mehfil_post_heading">शीर्षक</string>
+    <string name="mehfil_post_heading_hint">अपनी पोस्ट का शीर्षक लिखें</string>
+    <string name="mehfil_post_body">पोस्ट का विवरण</string>
+    <string name="mehfil_community_description">साथियों से बातचीत, सवाल और सहयोग।</string>
+    <string name="mehfil_official_description">SAFAR की आधिकारिक घोषणाएँ।</string>
+    <string name="mehfil_view_details">विवरण देखें</string>
+    <string name="mehfil_subtitle">साझा करें, सीखें और साथ आगे बढ़ें।</string>
+</resources>

@@ -70,6 +70,19 @@ class DashboardViewModel @Inject constructor(
         viewModelScope.launch { dataStore.setWelcomeSeen(true) }
     }
 
+    fun toggleGoal(goal: Goal) {
+        viewModelScope.launch(exceptionHandler) {
+            val today = com.safarparmar.app.util.IstDateUtils.todayKey()
+            if (goal.completed) {
+                homeRepository.reopenGoal(goal.id)
+            } else {
+                homeRepository.completeGoal(id = goal.id, studiedMinutes = 0, scheduledDate = today)
+            }
+            homeRepository.invalidateReadSnapshots()
+            loadAll()
+        }
+    }
+
     fun selectAchievement(achievementId: String?) {
         viewModelScope.launch(exceptionHandler) {
             when (val result = homeRepository.selectAchievement(achievementId)) {

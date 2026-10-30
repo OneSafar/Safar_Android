@@ -1,5 +1,8 @@
 package com.safarparmar.app.ui.studyplanner.plan
 
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.lazy.LazyListScope
+import com.safarparmar.app.ui.adaptive.plannerPanesFit
 import com.safarparmar.app.ui.studyplanner.components.PlannerDialogTextAction
 import com.safarparmar.app.ui.studyplanner.components.PlannerDialogActionRow
 import com.safarparmar.app.ui.studyplanner.components.PlannerDialogAction
@@ -130,6 +133,7 @@ fun PlanTabScreen(
     plan: StudyPlan,
     actions: PlannerActions,
     activeTab: StudyPlannerTab,
+    onSelectExam: (() -> Unit)? = null,
     onNavigate: (String) -> Unit,
     onboardingCompletedSteps: Set<String> = emptySet(),
     preferredStudyStrategy: String = "interleaved",
@@ -542,69 +546,9 @@ fun PlanTabScreen(
     val remainingToday = todayTopics.filter { !it.topic.status.isStudied }
     val todayCompleted = todayTopics.isNotEmpty() && remainingToday.isEmpty()
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        if (!hasTopics) {
-        EmptyPlanTabState(onCreateClick = { showCreatePlanSheet = true })
-      } else {
-        // ── One flat surface ──────────────────────────────────────────────
-        // Header, ring, stats, Daily To-Do, tabs and agenda used to be four
-        // separate bordered cards. They are now one continuous page divided
-        // only by hairlines, so no vertical gap between items either.
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(start = 24.dp, top = 16.dp, end = 24.dp, bottom = 112.dp),
-            verticalArrangement = Arrangement.spacedBy(0.dp),
-        ) {
-            item(key = "status", contentType = "status") {
-                PlanHomeHeader(
-                    planTitle = plan.title,
-                    onSettingsClick = { showSettings = true },
-                )
-                Spacer(Modifier.height(18.dp))
-                PlanHairline()
-                PlanHomeHero(plan = plan, progress = progress)
-                PlanHairline()
-                PlanHomeStatStrip(
-                    todayCount = todayTopics.size,
-                    overdueCount = overdueTopics.size,
-                    upcomingCount = upcomingTopics.size,
-                    completedCount = completedTopics.size,
-                    onTodayClick = { actions.setPlanTab(StudyPlannerTab.TODAY) },
-                    // Missed opens the missed-topics list in place; Upcoming is
-                    // date-shaped so it hands off to the Calendar month grid.
-                    onOverdueClick = { showMissedTopicsScreen = true },
-                    onUpcomingClick = { actions.setSection(PlannerSection.CALENDAR) },
-                    onDoneClick = { actions.setPlanTab(StudyPlannerTab.COMPLETED) },
-                )
-                PlanHairline()
-                if (unscheduledTopics.isNotEmpty()) {
-                    UnscheduledWarningBanner(
-                        count = unscheduledTopics.size,
-                        onClick = { showUnscheduledTopicsScreen = true }
-                    )
-                }
-            }
+    val checklistEditorState = remember(plan.id) { DailyTodoEditorState() }
 
-            item(key = "daily_todo_collapsible", contentType = "daily_todo_collapsible") {
-                val todos = plan.dailyTodos.orEmpty()
-                val logs = plan.dailyTodoLogs?.get(today).orEmpty()
-                PlanHomeDailyTodoRow(
-                    doneCount = todos.count { it.id in logs },
-                    totalCount = todos.size,
-                    expanded = dailyTodoExpanded,
-                    onToggleExpanded = { dailyTodoExpanded = !dailyTodoExpanded },
-                ) {
-                    DailyTodoSection(plan = plan, actions = actions, todayStr = today)
-                }
-                PlanHairline()
-                PlanHomeTabs(
-                    activeTab = activeTab,
-                    onTabSelected = { actions.setPlanTab(it) },
-                    modifier = Modifier.padding(top = 22.dp),
-                )
-            }
-
-            // Tab Content Items
+    val agendaItems: LazyListScope.() -> Unit = {
             when (activeTab) {
                 StudyPlannerTab.TODAY -> {
                     if (todayTopics.isEmpty()) {
@@ -779,7 +723,7 @@ fun PlanTabScreen(
                             )
                         }
                         items(
-                            items = completedTopics.take(15),
+                            items = completedTopics,
                             key = { ref -> "completed_${ref.topic.id}" },
                             contentType = { "completedTopic" }
                         ) { ref ->
@@ -796,21 +740,111 @@ fun PlanTabScreen(
                     }
                 }
             }
-        }
-      }
+    }
+    val agendaListState = androidx.compose.foundation.lazy.rememberLazyListState()
+    val checklistScrollState = androidx.compose.foundation.rememberScrollState()
+    val adaptive = com.safarparmar.app.ui.adaptive.rememberSafarAdaptiveState()
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val tabletHome = adaptive.plannerPanesFit(maxWidth, maxHeight, 760.dp)
+        if (tabletHome && hasTopics) {
+            TabletPlanHomeLayout(
+                agendaListState = agendaListState, checklistScrollState = checklistScrollState,
+                summary = {
+                    PlanHomeHero(plan, progress, Modifier.weight(0.32f))
+                    Spacer(Modifier.width(20.dp))
+                    PlanHomeStatStrip(
+                        todayTopics.size, overdueTopics.size, upcomingTopics.size, completedTopics.size,
+                        modifier = Modifier.weight(0.68f),
+                        onTodayClick = { actions.setPlanTab(StudyPlannerTab.TODAY) },
+                        onOverdueClick = { showMissedTopicsScreen = true },
+                        onUpcomingClick = { actions.setSection(PlannerSection.CALENDAR) },
+                        onDoneClick = { actions.setPlanTab(StudyPlannerTab.COMPLETED) },
+                    )
+                },
+                warning = if (unscheduledTopics.isNotEmpty()) {
+                    { UnscheduledWarningBanner(unscheduledTopics.size) { showUnscheduledTopicsScreen = true } }
+                } else null,
+                agendaHeader = {
+                    PlanHomeHeader(plan.title, { showSettings = true }, onSelectExam = onSelectExam)
+                    PlanHomeTabs(activeTab, onTabSelected = { actions.setPlanTab(it) })
+                },
+                agendaItems = agendaItems,
+                dailyTodo = { DailyTodoSection(plan, actions, today, editorState = checklistEditorState) },
+                showFinishDay = activeTab == StudyPlannerTab.TODAY && !todayCompleted && todayTopics.isNotEmpty(),
+                onFinishDay = { actions.finishDay(remainingToday.map { it.topic.id }) },
+            )
+        } else {
+            if (!hasTopics) {
+                EmptyPlanTabState(onCreateClick = { showCreatePlanSheet = true })
+            } else {
+                LazyColumn(
+                    state = agendaListState,
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 112.dp),
+                    verticalArrangement = Arrangement.spacedBy(0.dp),
+                ) {
+                    item(key = "status", contentType = "status") {
+                        PlanHomeHeader(
+                            planTitle = plan.title,
+                            onSettingsClick = { showSettings = true },
+                            onSelectExam = onSelectExam,
+                        )
+                        Spacer(Modifier.height(18.dp))
+                        PlanHairline()
+                        PlanHomeTodaySummary(
+                            done = todayDoneCount, total = todayTopics.size,
+                            revision = refs.count { it.topic.status == TopicStatus.REVISION_NEEDED },
+                            missed = overdueTopics.size,
+                            onRevision = { actions.openRevisionTopics() },
+                            onMissed = { showMissedTopicsScreen = true },
+                            onUpcoming = { actions.setSection(PlannerSection.CALENDAR) },
+                        )
+                        PlanHairline()
+                        if (unscheduledTopics.isNotEmpty()) {
+                            UnscheduledWarningBanner(
+                                count = unscheduledTopics.size,
+                                onClick = { showUnscheduledTopicsScreen = true }
+                            )
+                        }
+                    }
 
-      if (hasTopics && activeTab == StudyPlannerTab.TODAY && !todayCompleted && todayTopics.isNotEmpty()) {
-          DoneForTheDayBar(
-              onClick = {
-                  val incompleteTopics = todayTopics.filter { !it.topic.status.isStudied }
-                  val topicIds = incompleteTopics.map { it.topic.id }
-                  if (topicIds.isNotEmpty()) {
-                      actions.finishDay(topicIds)
-                  }
-              },
-              modifier = Modifier.align(Alignment.BottomCenter)
-          )
-      }
+                    item(key = "agenda_tabs") {
+                        PlanHomeTabs(
+                            activeTab = activeTab,
+                            onTabSelected = { actions.setPlanTab(it) },
+                            modifier = Modifier.padding(top = 22.dp),
+                        )
+                    }
+
+                    // Tab Content Items
+                    agendaItems()
+                    item(key = "daily_todo_collapsible", contentType = "daily_todo_collapsible") {
+                        val todos = plan.dailyTodos.orEmpty()
+                        val logs = plan.dailyTodoLogs?.get(today).orEmpty()
+                        PlanHomeDailyTodoRow(
+                            doneCount = todos.count { it.id in logs },
+                            totalCount = todos.size,
+                            expanded = dailyTodoExpanded,
+                            onToggleExpanded = { dailyTodoExpanded = !dailyTodoExpanded },
+                        ) {
+                            DailyTodoSection(plan, actions, today, editorState = checklistEditorState)
+                        }
+                        PlanHairline()
+                    }
+
+                }
+            }
+            if (hasTopics && activeTab == StudyPlannerTab.TODAY && !todayCompleted && todayTopics.isNotEmpty()) {
+                DoneForTheDayBar(
+                    onClick = {
+                        if (remainingToday.isNotEmpty()) {
+                            actions.finishDay(remainingToday.map { it.topic.id })
+                        }
+                    },
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                )
+            }
+        }
         if (showUnscheduledTopicsScreen) {
             UnscheduledTopicsScreen(
                 plan = plan,

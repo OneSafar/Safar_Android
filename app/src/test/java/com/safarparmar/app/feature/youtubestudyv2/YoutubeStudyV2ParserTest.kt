@@ -246,6 +246,43 @@ class YoutubeStudyV2ParserTest {
     }
 
     @Test
+    fun `bottom navigation shorts tab with desc Shorts selected is classified as shorts`() {
+        val nodes = listOf(
+            node(parent = null, left = 0, top = 0, right = 1080, bottom = 1920),
+            node(id = "pivot_shorts", description = "Shorts, selected", parent = 0, left = 200, top = 1800, right = 400, bottom = 1920),
+        )
+        val result = YoutubeStudyV2Parser.parse(snapshot(nodes))
+        assertTrue(result.watchScreenConfirmed)
+        assertEquals(YoutubeV2ContentKind.SHORTS, result.kind)
+    }
+
+    @Test
+    fun `bottom navigation shorts tab with parent selection is classified as shorts`() {
+        val nodes = listOf(
+            node(parent = null, left = 0, top = 0, right = 1080, bottom = 1920),
+            node(id = "tab_shorts", parent = 0, left = 200, top = 1800, right = 400, bottom = 1920).copy(selected = true),
+            node(text = "Shorts", parent = 1, left = 200, top = 1800, right = 400, bottom = 1920).copy(selected = false),
+        )
+        val result = YoutubeStudyV2Parser.parse(snapshot(nodes))
+        assertTrue(result.watchScreenConfirmed)
+        assertEquals(YoutubeV2ContentKind.SHORTS, result.kind)
+    }
+
+    @Test
+    fun `vertical action bar controls with surface are classified as shorts`() {
+        val nodes = listOf(
+            node(parent = null, left = 0, top = 0, right = 1080, bottom = 1920),
+            node(clazz = "SurfaceView", parent = 0, left = 0, top = 0, right = 1080, bottom = 1920),
+            node(description = "Like this video along with 45K others", parent = 0, left = 900, top = 1000, right = 1050, bottom = 1100),
+            node(description = "Dislike this video", parent = 0, left = 900, top = 1150, right = 1050, bottom = 1250),
+            node(description = "Comments", parent = 0, left = 900, top = 1300, right = 1050, bottom = 1400),
+        )
+        val result = YoutubeStudyV2Parser.parse(snapshot(nodes))
+        assertTrue(result.watchScreenConfirmed)
+        assertEquals(YoutubeV2ContentKind.SHORTS, result.kind)
+    }
+
+    @Test
     fun `shorts text and thumbnail in home feed are not a shorts viewer`() {
         val nodes = listOf(
             node(parent = null, left = 0, top = 0, right = 1080, bottom = 1920),
@@ -847,6 +884,78 @@ class YoutubeStudyV2ParserTest {
         val nodes = baseWatchNodes() + node(description = "Exit fullscreen", clickable = true,
             left = 920, top = 300, right = 1030, bottom = 420)
         assertTrue(YoutubeStudyV2Parser.parse(snapshot(nodes)).fullscreen)
+    }
+
+    @Test fun `subscribe button extracts owner when direct owner row is missing`() {
+        val nodes = listOf(
+            node(parent = null, left = 0, top = 0, right = 1080, bottom = 1920),
+            node(id = "player_view", clazz = "SurfaceView", parent = 0, left = 0, top = 100, right = 1080, bottom = 800),
+            node(id = "video_title", text = "The Universe is not locally real", clazz = "TextView", parent = 0, left = 20, top = 810, right = 900, bottom = 880),
+            node(description = "Subscribe to Veritasium.", clazz = "android.widget.Button", parent = 0, left = 700, top = 900, right = 1000, bottom = 980),
+        )
+        val result = YoutubeStudyV2Parser.parse(snapshot(nodes))
+        assertTrue(result.watchScreenConfirmed)
+        assertEquals("Veritasium", result.displayName)
+        assertTrue(result.hasOwnerEvidence)
+    }
+
+    @Test fun `hindi subscribe button extracts owner`() {
+        val nodes = listOf(
+            node(parent = null, left = 0, top = 0, right = 1080, bottom = 1920),
+            node(id = "player_fragment_container", clazz = "SurfaceView", parent = 0, left = 0, top = 100, right = 1080, bottom = 800),
+            node(id = "video_title", text = "Complete Modern History for SSC CGL", clazz = "TextView", parent = 0, left = 20, top = 810, right = 900, bottom = 880),
+            node(description = "Parmar SSC की सदस्यता लें.", clazz = "android.widget.Button", parent = 0, left = 700, top = 900, right = 1000, bottom = 980),
+        )
+        val result = YoutubeStudyV2Parser.parse(snapshot(nodes))
+        assertTrue(result.watchScreenConfirmed)
+        assertEquals("Parmar SSC", result.displayName)
+        assertTrue(result.hasOwnerEvidence)
+    }
+
+    @Test fun `emoji picker accessibility label is never a channel name`() {
+        assertFalse(YoutubeStudyV2Parser.isPlausibleOwnerLabel("Open custom emoji picker"))
+        assertFalse(YoutubeStudyV2Parser.isPlausibleOwnerLabel("Open custom emoji picker."))
+        assertFalse(YoutubeStudyV2Parser.isPlausibleOwnerLabel("Close emoji picker"))
+        assertFalse(YoutubeStudyV2Parser.isPlausibleOwnerLabel("Custom emoji picker"))
+        assertFalse(YoutubeStudyV2Parser.isPlausibleOwnerLabel("Open comments"))
+        assertFalse(YoutubeStudyV2Parser.isPlausibleOwnerLabel("View channel"))
+        assertFalse(YoutubeStudyV2Parser.isPlausibleOwnerLabel("Add a comment..."))
+    }
+
+    @Test fun `feed scrolling with autoplay player and feed filter bar is non playback`() {
+        val nodes = listOf(
+            node(parent = null, left = 0, top = 0, right = 1080, bottom = 2400),
+            node(id = "logo", description = "YouTube", parent = 0, left = 32, top = 60, right = 200, bottom = 120),
+            node(id = "feed_filter_bar_container", parent = 0, left = 0, top = 130, right = 1080, bottom = 230),
+            node(id = "player_view", clazz = "SurfaceView", parent = 0, left = 0, top = 250, right = 1080, bottom = 850),
+            node(clazz = "ImageView", parent = 0, left = 32, top = 870, right = 112, bottom = 950),
+            node(description = "Open custom emoji picker", clazz = "Button", parent = 0, left = 130, top = 870, right = 250, bottom = 950),
+        )
+        val result = YoutubeStudyV2Parser.parse(snapshot(nodes))
+        assertEquals(YoutubeV2ContentKind.NON_PLAYBACK, result.kind)
+        assertFalse(result.watchScreenConfirmed)
+        assertNull(result.displayName)
+    }
+
+    @Test fun `scrolling home feed with results recycler and unselected pivot bar is non playback`() {
+        val nodes = listOf(
+            node(parent = null, left = 0, top = 0, right = 1080, bottom = 2400),
+            node(id = "results_recycler", parent = 0, left = 0, top = 0, right = 1080, bottom = 2400),
+            node(id = "player_fragment_container", clazz = "SurfaceView", parent = 1, left = 0, top = 300, right = 1080, bottom = 900),
+            node(id = "pivot_bar", parent = 0, left = 0, top = 2200, right = 1080, bottom = 2400),
+        )
+        val result = YoutubeStudyV2Parser.parse(snapshot(nodes))
+        assertEquals(YoutubeV2ContentKind.NON_PLAYBACK, result.kind)
+        assertFalse(result.watchScreenConfirmed)
+    }
+
+    @Test fun `emoji picker next to avatar on watch screen is never treated as channel name`() {
+        val nodes = baseWatchNodes() + listOf(
+            node(clazz = "ImageView", parent = 0, left = 30, top = 920, right = 110, bottom = 1000),
+            node(description = "Open custom emoji picker", clazz = "Button", parent = 0, left = 130, top = 920, right = 250, bottom = 1000),
+        )
+        val result = YoutubeStudyV2Parser.parse(snapshot(nodes))
+        assertNull(result.displayName)
     }
 
     private fun baseWatchNodes() = listOf(

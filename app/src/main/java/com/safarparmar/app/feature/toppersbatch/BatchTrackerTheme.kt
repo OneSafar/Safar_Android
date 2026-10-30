@@ -8,7 +8,7 @@ import androidx.compose.ui.graphics.Color
  * Dark mode keeps the pink hue with enough contrast for text and controls.
  */
 internal fun ColorScheme.batchTrackerColors(dark: Boolean): ColorScheme = copy(
-    background = if (dark) Color(0xFF19151A) else Color(0xFFFAF7F2),
+    background = if (dark) Color(0xFF131316) else Color(0xFFFAF7F2),
     surface = if (dark) Color(0xFF251E25) else Color(0xFFFFFDFC),
     surfaceVariant = if (dark) Color(0xFF352C35) else Color(0xFFF2ECEF),
     outlineVariant = if (dark) Color(0xFF514450) else Color(0xFFE8DCE2),

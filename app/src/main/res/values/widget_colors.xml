@@ -1,14 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Light Mode Surfaces (Warm Cream/Parchment palette) -->
     <color name="widget_background">#FAF8F5</color>
-    <color name="widget_text">#211C29</color>
-    <color name="widget_secondary">#635B6C</color>
+    <color name="widget_surface">#FFFFFF</color>
+    <color name="widget_surface_subtle">#F4EEFA</color>
+    <color name="widget_surface_kavach">#FFF4EE</color>
+    <color name="widget_surface_dock">#F2EDF7</color>
+
+    <!-- Typography -->
+    <color name="widget_text">#1D1726</color>
+    <color name="widget_secondary">#665D72</color>
+    <color name="widget_tertiary">#8D839B</color>
+
+    <!-- Brand Violet Accents -->
     <color name="widget_accent">#6B3296</color>
-    <color name="widget_tint">#EBE2F2</color>
-    <color name="widget_divider">#E4DEE7</color>
-    <color name="widget_orange">#B34314</color>
-    <color name="widget_orange_tint">#FBE9DD</color>
-    <color name="widget_focus_surface">#EFE7F6</color>
+    <color name="widget_accent_subtle">#8E4BBF</color>
+    <color name="widget_tint">#EFE6F7</color>
+    <color name="widget_divider">#E4DDE9</color>
+    <color name="widget_panel_border">#E2DAE7</color>
+
+    <!-- Kavach Orange / Shield -->
+    <color name="widget_orange">#C2410C</color>
+    <color name="widget_orange_tint">#FBE8DE</color>
+
+    <!-- Success Green / Streaks -->
+    <color name="widget_green">#047857</color>
+    <color name="widget_green_tint">#D1FAE5</color>
+
+    <!-- Planner Blue -->
+    <color name="widget_blue">#1D4ED8</color>
+    <color name="widget_blue_tint">#DBEAFE</color>
+
+    <!-- Existing Aliases for Backward Compatibility -->
+    <color name="widget_focus_surface">#F4EEFA</color>
     <color name="widget_goals_surface">#FFFFFF</color>
-    <color name="widget_panel_border">#E6DFE8</color>
-    <color name="widget_progress_track">#F8D8BB</color>
+    <color name="widget_progress_track">#EFE8F5</color>
 </resources>

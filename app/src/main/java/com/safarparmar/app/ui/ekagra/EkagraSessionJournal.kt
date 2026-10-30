@@ -262,8 +262,10 @@ internal class EkagraSessionJournal internal constructor(
         errors.value = null
     }
 
-    fun reconcile(serverIds: Set<String>): Deferred<Unit> = ordered {
-        val account = owner()
+    fun reconcile(serverIds: Set<String>, expectedOwner: String? = null): Deferred<Unit> = ordered {
+        // Bind a cached response to the account that fetched it, even if this ordered
+        // command executes after the user switches accounts.
+        val account = expectedOwner ?: owner()
         database.withTransaction {
             dao.rows(account).filter { it.state != "active" && (it.id in serverIds || it.serverId in serverIds) }
                 .forEach { dao.put(it.copy(state = "synced")) }

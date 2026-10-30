@@ -87,4 +87,26 @@ class YoutubeStudyV2RepositoryTest {
         assertEquals(YoutubeV2RuntimeDecision.ALLOW, result.decision)
         assertEquals(id, result.channelId)
     }
+
+    @Test fun `handle candidate derived from display name matches allowed handle alias`() = runTest {
+        val channelId = "accessibility:handle:@veritasium"
+        coEvery { dao.channelIdForHandle("@veritasium") } returns channelId
+        coEvery { dao.isAllowed(channelId) } returns true
+
+        // Runtime only has display name "Veritasium" (no handle exposed by YouTube in portrait)
+        val result = repository.evaluate(null, "Veritasium")
+        assertEquals(YoutubeV2RuntimeDecision.ALLOW, result.decision)
+        assertEquals(channelId, result.channelId)
+    }
+
+    @Test fun `display candidate derived from handle matches allowed display alias`() = runTest {
+        val channelId = "accessibility:display:veritasium"
+        coEvery { dao.channelIdsForDisplay("veritasium") } returns listOf(channelId)
+        coEvery { dao.isAllowed(channelId) } returns true
+
+        // Runtime only has handle "@veritasium" in landscape HUD
+        val result = repository.evaluate("@veritasium", null)
+        assertEquals(YoutubeV2RuntimeDecision.ALLOW, result.decision)
+        assertEquals(channelId, result.channelId)
+    }
 }

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Safar Today Widget -->
     <string name="widget_title">Safar · आज</string>
     <string name="widget_description">आज का एकाग्र समय, कवच सुरक्षा और लक्ष्य प्रगति।</string>
     <string name="widget_focus">एकाग्र समय</string>
@@ -18,4 +19,25 @@
     <string name="widget_goal_summary">%1$s पूरे · %2$s बाकी</string>
     <string name="widget_goals_compact">लक्ष्य</string>
     <string name="widget_goal_fraction">%1$s/%2$s</string>
+
+    <!-- Safar Bento Hub Widget -->
+    <string name="widget_bento_title">Safar · Bento हब</string>
+    <string name="widget_bento_description">दैनिक एकाग्र हब, कवच सुरक्षा, प्राथमिक लक्ष्य और त्वरित क्रियाएं।</string>
+    <string name="widget_bento_focus_label">आज का एकाग्र समय</string>
+    <string name="widget_bento_kavach_label">कवच सुरक्षा</string>
+    <string name="widget_bento_priority_label">अगला लक्ष्य</string>
+    <string name="widget_bento_focus_target">लक्ष्य: %1$d घं</string>
+    <string name="widget_bento_focus_empty">पढ़ाई शुरू करें</string>
+    <string name="widget_bento_shield_on">सक्रिय</string>
+    <string name="widget_bento_shield_off">तैयार</string>
+    <string name="widget_bento_shield_saved">%1$s सुरक्षित</string>
+    <string name="widget_bento_shield_ready">कवच चालू करें</string>
+    <string name="widget_bento_all_goals_done">सभी लक्ष्य पूरे! 🎉</string>
+    <string name="widget_bento_add_goal">आज का लक्ष्य जोड़ें</string>
+    <string name="widget_bento_action_focus">⏱️ एकाग्र</string>
+    <string name="widget_bento_action_kavach">🛡️ कवच</string>
+    <string name="widget_bento_action_goals">📋 लक्ष्य</string>
+    <string name="widget_bento_action_planner">📅 प्लानर</string>
+    <string name="widget_bento_streak">%1$d दिन</string>
+    <string name="widget_bento_greeting">%1$s · Safar</string>
 </resources>

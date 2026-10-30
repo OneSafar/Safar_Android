@@ -569,7 +569,7 @@ private fun DrillDownRow(
             modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
             shape = RoundedCornerShape(14.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+            border = BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 12.dp),

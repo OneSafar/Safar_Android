@@ -7,6 +7,7 @@ import android.media.MediaPlayer
 import android.net.Uri
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -841,21 +842,9 @@ private fun BreathingTab(
         0 -> "1"; 1 -> "2"; 2 -> "3"; 3 -> "4"; else -> "1"
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = DhyanContentHorizontal)
-            .padding(top = 2.dp, bottom = 8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        // Hero cluster (orb + timer) — shares remaining height so lower controls stay compact.
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-        ) {
+    // The same state and callbacks drive both compact and tablet arrangements.
+    @Composable
+    fun MeditationStage() {
             AnimatedContent(
                 targetState = selectedTechnique,
                 transitionSpec = {
@@ -942,13 +931,10 @@ private fun BreathingTab(
                 letterSpacing = (-2).sp,
                 color = DhyanFlatColors.Text,
             )
-        }
-
-        Spacer(Modifier.height(DhyanSectionGap))
-
-        // Flat hairline session length — structure only (no card).
-        PlanHairline(alpha = 0.7f)
-        Spacer(Modifier.height(12.dp))
+    }
+    @Composable
+    fun SessionLength() {
+        Column {
         Row(
             Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -980,11 +966,11 @@ private fun BreathingTab(
             valueRange = 1f..60f,
             modifier = Modifier.fillMaxWidth(),
         )
-        Spacer(Modifier.height(12.dp))
-        PlanHairline(alpha = 0.7f)
 
-        Spacer(Modifier.height(DhyanSectionGap))
-
+        }
+    }
+    @Composable
+    fun PlaybackControls() {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(DhyanControlGap, Alignment.CenterHorizontally),
@@ -1015,15 +1001,96 @@ private fun BreathingTab(
                 contentDescription = stringResource(if (isSessionAudioMuted) R.string.common_unmute else R.string.common_mute),
             )
         }
-
-        Spacer(Modifier.height(22.dp))
-
+    }
+    @Composable
+    fun Guidance(compact: Boolean = false) {
         DhyanGuidanceSheet(
             isDarkTheme = isDarkTheme,
             technique = selectedTechnique,
             onEdit = onBreatheWithMe,
             onOpenAudioLibrary = onOpenAudioLibrary,
+            compact = compact,
         )
+    }
+    val adaptive = com.safarparmar.app.ui.adaptive.LocalSafarAdaptiveState.current
+    if (adaptive.isTablet) {
+        BoxWithConstraints(Modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 12.dp)) {
+            val horizontalConsole = maxWidth >= 900.dp
+            val minimumContentHeight = if (horizontalConsole) 450.dp else 680.dp
+            val contentHeight = maxOf(maxHeight, minimumContentHeight)
+            Column(
+                Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Column(
+                    Modifier.widthIn(max = 1200.dp).fillMaxWidth()
+                        .heightIn(min = contentHeight),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(24.dp),
+                ) {
+                    Column(
+                        Modifier.weight(1f).fillMaxWidth().padding(vertical = 12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                    ) { MeditationStage() }
+                    Surface(
+                        modifier = Modifier.widthIn(max = if (horizontalConsole) 1200.dp else 620.dp).fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.72f),
+                        border = BorderStroke(0.5.dp, DhyanFlatColors.BorderHairline),
+                    ) {
+                        if (horizontalConsole) {
+                            Row(
+                                Modifier.padding(20.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(24.dp),
+                            ) {
+                                Box(Modifier.weight(1f)) { SessionLength() }
+                                Box(Modifier.width(1.dp).height(112.dp).background(DhyanFlatColors.Hairline))
+                                Box(Modifier.width(220.dp)) { PlaybackControls() }
+                                Box(Modifier.width(1.dp).height(112.dp).background(DhyanFlatColors.Hairline))
+                                Box(Modifier.weight(1.15f)) { Guidance(compact = true) }
+                            }
+                        } else {
+                            // Portrait keeps controls centered, then settings and guidance
+                            // in one bounded console rather than stretching across the tablet.
+                            Column(
+                                Modifier.padding(24.dp),
+                                verticalArrangement = Arrangement.spacedBy(20.dp),
+                            ) {
+                                PlaybackControls()
+                                HorizontalDivider(color = DhyanFlatColors.Hairline)
+                                SessionLength()
+                                HorizontalDivider(color = DhyanFlatColors.Hairline)
+                                Guidance(compact = true)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    } else {
+        Column(
+            modifier = Modifier.fillMaxSize().padding(horizontal = DhyanContentHorizontal)
+                .padding(top = 2.dp, bottom = 8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Column(
+                Modifier.weight(1f).fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+            ) { MeditationStage() }
+            Spacer(Modifier.height(DhyanSectionGap))
+            PlanHairline(alpha = 0.7f)
+            Spacer(Modifier.height(12.dp))
+            SessionLength()
+            Spacer(Modifier.height(12.dp))
+            PlanHairline(alpha = 0.7f)
+            Spacer(Modifier.height(DhyanSectionGap))
+            PlaybackControls()
+            Spacer(Modifier.height(22.dp))
+            Guidance()
+        }
     }
 }
 
@@ -1036,6 +1103,7 @@ internal fun DhyanGuidanceSheet(
     technique: BreathingTechnique?,
     onEdit: () -> Unit,
     onOpenAudioLibrary: () -> Unit,
+    compact: Boolean = false,
 ) {
     val isLight = !isDarkTheme
     val title = technique?.let {
@@ -1046,6 +1114,7 @@ internal fun DhyanGuidanceSheet(
             .fillMaxWidth()
             .padding(bottom = 8.dp),
     ) {
+        if (!compact) {
         Box(
             modifier = Modifier
                 .align(Alignment.CenterHorizontally)
@@ -1057,6 +1126,7 @@ internal fun DhyanGuidanceSheet(
         Spacer(Modifier.height(14.dp))
         PlanHairline(alpha = 0.65f)
         Spacer(Modifier.height(12.dp))
+        }
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,

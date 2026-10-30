@@ -47,6 +47,15 @@ class EkagraJournalInstrumentedTest {
         assertEquals(1, restarted.pending().size)
     }
 
+    @Test fun cachedResponseReconciliationRemainsBoundToTheFetchingAccount() = runBlocking {
+        journal.enqueue(session(), "student-a").await()
+        journal.enqueue(session(), "student-b").await()
+        owner.value = "student-b"
+        journal.reconcile(setOf("local-test"), "student-a").await()
+        assertEquals("synced", database.journal().rows("student-a").single().state)
+        assertEquals("pending", database.journal().rows("student-b").single().state)
+    }
+
     @Test fun sameProcessScreenRecreationDoesNotFinalize() = runBlocking {
         journal.checkpoint(session(), "student-a").await()
         val rebound = EkagraSessionJournal(context, database, owner, "process-a", false)

@@ -73,14 +73,14 @@ class EkagraProcessDeathInstrumentedTest {
                     "pomodoro-chain" -> 60 - 6
                     else -> 12 * 60
                 }
-                setField(timer, "periodStartElapsed", SystemClock.elapsedRealtime() - activeSeconds * 1000L)
+                seedRecordedProgress(timer, activeSeconds)
                 timer.focusProgressSnapshot()
                 when (case) {
                     "paused" -> timer.pause()
                     "manual-break", "manual-break-completion" -> {
                         assertTrue(timer.startBreak(TimerMode.BREAK, 5 * 60))
                         if (case == "manual-break-completion") {
-                            setField(timer, "periodStartElapsed", SystemClock.elapsedRealtime() - 294_000L)
+                            seedRecordedProgress(timer, 294)
                             timer.focusProgressSnapshot()
                         }
                     }
@@ -186,7 +186,13 @@ class EkagraProcessDeathInstrumentedTest {
                 if (case != "focus-completion" || stoppedExplicitly) timer.endAndSave()
             }
             runBlocking { EkagraSessionJournal.get(context).recover().await() }
-            val row = readRows().single()
+            val recoveredRows = readRows()
+            val row = recoveredRows.single { it.id == seed.getString("id") }
+            if (case == "pomodoro-chain" && !stoppedExplicitly) {
+                val breaks = recoveredRows.filter { it.id != row.id }
+                assertEquals("The elapsed break must have one separate durable identity", 1, breaks.size)
+                assertEquals(60, gson.fromJson(breaks.single().payload, PendingEkagraSessionSave::class.java).actualDurationSeconds)
+            }
             val saved = gson.fromJson(row.payload, PendingEkagraSessionSave::class.java)
             assertEquals("Recovery and finalization must keep the original session identity", seed.getString("id"), row.id)
             assertEquals("pending", row.state)
@@ -217,6 +223,20 @@ class EkagraProcessDeathInstrumentedTest {
             finally { db.close() }
             runBlocking { SafarDataStore(context).setUserId("") }
         }
+    }
+
+    private fun seedRecordedProgress(timer: TimerService, seconds: Int) {
+        // Model already-recorded progress at the current boot checkpoint. Backdating
+        // elapsedRealtime by hours creates invalid negative clocks on a fresh emulator.
+        val remaining = if (timer.timerMode.value == TimerMode.STOPWATCH) seconds
+            else (timer.totalSeconds.value - seconds).coerceAtLeast(0)
+        @Suppress("UNCHECKED_CAST")
+        val clock = TimerService::class.java.getDeclaredField("_secondsLeft").apply { isAccessible = true }
+            .get(timer) as kotlinx.coroutines.flow.MutableStateFlow<Int>
+        clock.value = remaining
+        setField(timer, "periodStartRemaining", remaining)
+        setField(timer, "periodStartElapsed", SystemClock.elapsedRealtime())
+        setField(timer, "periodStartAtMs", System.currentTimeMillis())
     }
 
     private fun requireDisposableOfflineEmulator() {

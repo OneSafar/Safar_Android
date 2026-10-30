@@ -32,6 +32,23 @@ class HabitViewModelTest {
         models.clear()
         Dispatchers.resetMain()
     }
+    @Test fun `tick feedback does not wait for repository and failed save rolls back`() = runTest {
+        val repository = mockk<HabitRepository>(relaxed = true)
+        val today = LocalDate.now()
+        val habit = HabitEntity(id = 77, name = "Read")
+        every { repository.observeForDate(today) } returns MutableStateFlow(listOf(HabitWithCompletion(habit, today, false)))
+        val gate = kotlinx.coroutines.CompletableDeferred<Unit>()
+        coEvery { repository.toggle(77, today, false) } coAnswers { gate.await(); throw java.io.IOException("offline") }
+        val vm = createViewModel(repository)
+        vm.toggleHabit(77, today, false)
+        assertTrue(vm.habitsForDate(today).first().single().completed)
+        vm.toggleHabit(77, today, true)
+        gate.complete(Unit)
+        advanceUntilIdle()
+        assertFalse(vm.habitsForDate(today).first().single().completed)
+        coVerify(exactly = 1) { repository.toggle(77, today, false) }
+    }
+
     @Test fun `history calculations run off the collecting thread and preserve results`() = runTest {
         val collectingThread = Thread.currentThread()
         val days = java.time.DayOfWeek.entries.toSet()

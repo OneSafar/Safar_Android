@@ -10,6 +10,8 @@ import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,6 +19,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -112,7 +115,7 @@ internal fun RevisionTopicCard(
 
     Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(24.dp),
         color = scheme.surface,
         border = androidx.compose.foundation.BorderStroke(
             1.dp,
@@ -141,7 +144,7 @@ internal fun RevisionTopicCard(
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
-                IconButton(onClick = onEdit, modifier = Modifier.size(32.dp)) {
+                IconButton(onClick = onEdit, modifier = Modifier.size(48.dp)) {
                     Icon(
                         imageVector = Icons.Default.Edit,
                         contentDescription = stringResource(R.string.planner_edit_revision_schedule),
@@ -222,7 +225,7 @@ private fun RevisionSessionRow(
 
     val accent = when {
         session.done -> PlannerStatusAccent.Done
-        session.overdue -> RevisionRed
+        session.overdue -> scheme.error
         else -> pendingAccent
     }
     val circleColor by animateColorAsState(
@@ -238,8 +241,9 @@ private fun RevisionSessionRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .heightIn(min = 48.dp)
             .clip(RoundedCornerShape(10.dp))
-            .clickable {
+            .toggleable(value = session.done, role = Role.Checkbox) {
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 onToggle()
             }
@@ -287,7 +291,7 @@ private fun RevisionSessionRow(
                 Text(
                     text = stringResource(R.string.planner_due_mark_revised),
                     style = MaterialTheme.typography.labelSmall,
-                    color = RevisionRed,
+                    color = scheme.error,
                     fontWeight = FontWeight.SemiBold,
                 )
             }

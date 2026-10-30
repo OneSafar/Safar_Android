@@ -199,6 +199,12 @@ internal fun CommunityTab(
         }
     }
 
+    MehfilFeedLayout(
+        sandeshes = uiState.sandeshes,
+        reactedSandeshIds = uiState.reactedSandeshIds,
+        onReact = onReactSandesh,
+        onCommentClick = onSandeshCommentClick,
+    ) { expanded ->
     Column(Modifier.fillMaxSize()) {
         if (searchQuery.isNotBlank()) {
             CommunityHeader(
@@ -209,11 +215,15 @@ internal fun CommunityTab(
             )
         }
 
-        Spacer(Modifier.height(4.dp))
+        Column(Modifier.padding(horizontal = if (expanded) 0.dp else 16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(stringResource(R.string.mehfil_tab_community).uppercase(java.util.Locale.getDefault()), fontSize = 20.sp, fontWeight = FontWeight.Bold, color = MehfilFlatColors.Primary)
+            Text(stringResource(R.string.mehfil_community_description), fontSize = 16.sp, color = MehfilFlatColors.Muted)
+        }
+        Spacer(Modifier.height(16.dp))
         RoomSelector(selectedSpace = uiState.selectedSpace, onJoinRoom = onJoinRoom)
-        Spacer(Modifier.height(6.dp))
+        Spacer(Modifier.height(if (expanded) 20.dp else 6.dp))
 
-        if (uiState.sandeshes.isNotEmpty()) {
+        if (!expanded && uiState.sandeshes.isNotEmpty()) {
             CollapsibleSandeshCard(
                 sandeshes = uiState.sandeshes,
                 reactedSandeshIds = uiState.reactedSandeshIds,
@@ -243,10 +253,10 @@ internal fun CommunityTab(
                 LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+                    contentPadding = PaddingValues(horizontal = if (expanded) 0.dp else 16.dp, vertical = 4.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    item(key = "__community_posts_header__") {
+                    if (!expanded) item(key = "__community_posts_header__") {
                         Text(
                             stringResource(R.string.mehfil_community_posts),
                             fontSize = 11.5.sp,
@@ -303,6 +313,7 @@ internal fun CommunityTab(
         }
     }
 }
+}
 
 @Composable
 private fun CommunityHeader(
@@ -344,45 +355,7 @@ private fun CommunityHeader(
 
 @Composable
 private fun RoomSelector(selectedSpace: String, onJoinRoom: (String) -> Unit) {
-    val rooms = listOf(
-        "ALL" to stringResource(R.string.common_all),
-        "ACADEMIC" to stringResource(R.string.mehfil_academic),
-        "REFLECTIVE" to stringResource(R.string.mehfil_reflective),
-    )
-    Row(
-        Modifier
-            .fillMaxWidth().tutorialTarget("mehfil.space")
-            .padding(horizontal = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        rooms.forEach { (room, label) ->
-            val selected = selectedSpace.equals(room, ignoreCase = true)
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(10.dp))
-                    .then(
-                        if (selected) {
-                            Modifier.background(MehfilFlatColors.Primary)
-                        } else {
-                            Modifier
-                                .background(MehfilFlatColors.Surface)
-                                .border(1.dp, MehfilFlatColors.Hairline, RoundedCornerShape(10.dp))
-                        },
-                    )
-                    .clickable { onJoinRoom(room) }
-                    .padding(horizontal = if (room == "ALL") 24.dp else 18.dp, vertical = 10.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    label,
-                    fontSize = 13.5.sp,
-                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                    color = if (selected) Color.White else MehfilFlatColors.Text,
-                    maxLines = 1,
-                )
-            }
-        }
-    }
+    MehfilRoomSelector(selectedSpace, onJoinRoom)
 }
 
 @Composable
@@ -522,7 +495,7 @@ private fun CollapsibleSandeshCard(
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
             .clip(RoundedCornerShape(14.dp))
-            .background(MehfilFlatColors.Surface)
+            .background(MehfilFlatColors.SandeshPanel)
             .border(1.dp, MehfilFlatColors.Hairline, RoundedCornerShape(14.dp)),
     ) {
         Row(
@@ -553,7 +526,7 @@ private fun CollapsibleSandeshCard(
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 1.sp,
-                    color = MehfilFlatColors.Muted,
+                    color = MehfilFlatColors.SandeshAccent,
                 )
                 Text(
                     if (sandeshes.size == 1) "1 announcement" else "${sandeshes.size} announcements",
@@ -594,77 +567,13 @@ private fun CollapsibleSandeshCard(
 }
 
 @Composable
-private fun SandeshAnnouncementCard(
+internal fun SandeshAnnouncementCard(
     sandesh: Sandesh,
     isReacted: Boolean,
     onReact: (String) -> Unit,
     onCommentClick: (String) -> Unit,
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(MehfilFlatColors.Surface)
-            .border(1.dp, MehfilFlatColors.Hairline, RoundedCornerShape(14.dp))
-            .padding(14.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Box(
-                modifier = Modifier.size(34.dp).clip(RoundedCornerShape(10.dp)).background(MehfilFlatColors.Connect),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(Icons.Default.VerifiedUser, contentDescription = stringResource(R.string.mehfil_admin), tint = Color.White, modifier = Modifier.size(16.dp))
-            }
-            Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(stringResource(R.string.mehfil_parmar_corner), fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold, color = MehfilFlatColors.Text)
-                    Box(
-                        Modifier
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(MehfilFlatColors.Connect.copy(alpha = 0.14f))
-                            .padding(horizontal = 6.dp, vertical = 2.dp),
-                    ) {
-                        Text(stringResource(R.string.mehfil_faculty), fontSize = 9.sp, fontWeight = FontWeight.Bold, color = MehfilFlatColors.Connect)
-                    }
-                }
-                Text(formatPostDate(sandesh.createdAt), fontSize = 11.sp, color = MehfilFlatColors.Muted)
-            }
-        }
-        Text(sandesh.content, fontSize = 14.sp, lineHeight = 20.sp, color = MehfilFlatColors.Text)
-        SandeshMedia(sandesh = sandesh)
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Spacer(Modifier.weight(1f))
-            Row(
-                Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .clickable { onReact(sandesh.id) }
-                    .padding(horizontal = 6.dp, vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(5.dp),
-            ) {
-                Icon(
-                    if (isReacted) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                    contentDescription = null,
-                    modifier = Modifier.size(14.dp),
-                    tint = if (isReacted) MehfilFlatColors.Like else MehfilFlatColors.Muted,
-                )
-                Text("${sandesh.reactionCount}", fontSize = 11.sp, color = if (isReacted) MehfilFlatColors.Like else MehfilFlatColors.Muted)
-            }
-            Spacer(Modifier.width(8.dp))
-            Row(
-                Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .clickable { onCommentClick(sandesh.id) }
-                    .padding(horizontal = 6.dp, vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(5.dp),
-            ) {
-                Icon(Icons.Default.ChatBubbleOutline, contentDescription = null, modifier = Modifier.size(14.dp), tint = MehfilFlatColors.Primary)
-                Text("${sandesh.commentCount}", fontSize = 11.sp, color = MehfilFlatColors.Primary)
-            }
-        }
-    }
+    MehfilAnnouncementCard(sandesh, isReacted, onReact, onCommentClick) { SandeshMedia(sandesh) }
 }
 
 @Composable
@@ -742,159 +651,7 @@ private fun PostCard(
     onSave: () -> Unit,
     onConnect: () -> Unit,
 ) {
-    val canConnect = post.userId.isNotBlank() && post.userId != currentUserId
-    val isConnectLocked = canConnect && !mehfilDm && !isLoadingPremiumFeatures
-    val tagColor = spaceColor(post.space)
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth().tutorialTarget("mehfil.react")
-            .clip(RoundedCornerShape(14.dp))
-            .background(MehfilFlatColors.Surface)
-            .border(1.dp, MehfilFlatColors.Hairline, RoundedCornerShape(14.dp))
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Box(
-                Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(Color(0xFFEDE9FE)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    post.authorName.firstOrNull()?.uppercase() ?: "A",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MehfilFlatColors.Primary,
-                )
-            }
-            Column(Modifier.weight(1f)) {
-                Text(
-                    post.authorName,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.5.sp,
-                    color = MehfilFlatColors.Text,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    formatPostDate(post.createdAt),
-                    fontSize = 11.5.sp,
-                    color = MehfilFlatColors.Muted,
-                )
-            }
-            if (post.space.isNotBlank()) {
-                Box(
-                    Modifier
-                        .clip(RoundedCornerShape(6.dp))
-                        .border(1.dp, tagColor, RoundedCornerShape(6.dp))
-                        .padding(horizontal = 8.dp, vertical = 3.dp),
-                ) {
-                    Text(
-                        post.space.uppercase(),
-                        fontSize = 10.sp,
-                        color = tagColor,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 0.5.sp,
-                    )
-                }
-            }
-        }
-
-        Text(
-            post.content,
-            fontSize = 14.5.sp,
-            lineHeight = 21.sp,
-            color = MehfilFlatColors.Text,
-            modifier = Modifier.padding(top = 2.dp),
-        )
-
-        HorizontalDivider(
-            thickness = 0.8.dp,
-            color = MehfilFlatColors.Hairline.copy(alpha = 0.6f),
-            modifier = Modifier.padding(vertical = 2.dp),
-        )
-
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(18.dp),
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                modifier = Modifier.clickable(onClick = onLike),
-            ) {
-                Icon(
-                    if (post.userLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                    contentDescription = stringResource(R.string.mehfil_like),
-                    modifier = Modifier.size(18.dp),
-                    tint = if (post.userLiked) MehfilFlatColors.Like else MehfilFlatColors.Muted,
-                )
-                Text(
-                    "${post.reactionCount}",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = if (post.userLiked) MehfilFlatColors.Like else MehfilFlatColors.Muted,
-                )
-            }
-
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                modifier = Modifier.clickable(onClick = onComment),
-            ) {
-                Icon(
-                    Icons.Default.ChatBubbleOutline,
-                    contentDescription = stringResource(R.string.mehfil_comment),
-                    modifier = Modifier.size(18.dp),
-                    tint = MehfilFlatColors.Muted,
-                )
-                Text(
-                    "${post.commentCount}",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = MehfilFlatColors.Muted,
-                )
-            }
-
-            if (canConnect) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(5.dp),
-                    modifier = Modifier.clickable(onClick = onConnect),
-                ) {
-                    Icon(
-                        if (isConnectLocked) Icons.Default.Lock else Icons.Default.PersonAdd,
-                        contentDescription = stringResource(R.string.mehfil_connect),
-                        modifier = Modifier.size(17.dp),
-                        tint = if (isConnectLocked) MehfilFlatColors.Muted else MehfilFlatColors.Connect,
-                    )
-                    Text(
-                        stringResource(R.string.mehfil_connect),
-                        fontSize = 12.5.sp,
-                        color = if (isConnectLocked) MehfilFlatColors.Muted else MehfilFlatColors.Connect,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                }
-            }
-
-            Spacer(Modifier.weight(1f))
-
-            Icon(
-                if (isSaved) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
-                contentDescription = stringResource(R.string.common_save),
-                modifier = Modifier
-                    .size(18.dp)
-                    .clickable(onClick = onSave),
-                tint = if (isSaved) MehfilFlatColors.Primary else MehfilFlatColors.Muted,
-            )
-        }
-    }
+    MehfilReferencePostCard(post, isSaved, currentUserId, mehfilDm, isLoadingPremiumFeatures, onLike, onComment, onSave, onConnect)
 }
 
 @Composable

@@ -170,6 +170,7 @@ data class Achievement(
 data class LoginHistoryEntry(val timestamp: String = "")
 
 @Immutable
+@androidx.annotation.Keep
 data class EkagraAnalyticsStats(
     val totalFocusMinutes: Int = 0,
     val goalLinkedTime: Int = 0,
@@ -200,6 +201,7 @@ data class EkagraAnalyticsStats(
 )
 
 @Immutable
+@androidx.annotation.Keep
 data class EkagraTimerDurationUsage(
     val durationMinutes: Int = 0,
     val count: Int = 0,
@@ -207,6 +209,7 @@ data class EkagraTimerDurationUsage(
 )
 
 @Immutable
+@androidx.annotation.Keep
 data class EkagraAnalyticsRecentSession(
     val id: String = "",
     val startedAt: String? = null,
@@ -223,6 +226,7 @@ data class EkagraAnalyticsRecentSession(
 )
 
 @Immutable
+@androidx.annotation.Keep
 data class EkagraAnalyticsFocusSession(
     val sourceSessionId: String? = null,
     val endReason: String? = null,

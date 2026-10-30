@@ -1,5 +1,7 @@
 package com.safarparmar.app.ui.studyplanner.screens
 
+import com.safarparmar.app.ui.studyplanner.components.PlannerFlatColors
+
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -63,12 +65,12 @@ internal fun PlannerGk5Entry(onClick: () -> Unit) {
 
 @Composable
 internal fun PlannerEntryAction(title: String, subtitle: String, icon: ImageVector, primary: Boolean = false, onClick: () -> Unit) {
-    val coral = Color(0xFFFF6555)
-    val ink = if (primary) Color.White else MaterialTheme.colorScheme.onSurface
+    val coral = MaterialTheme.colorScheme.primary
+    val ink = if (primary) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
     SafarButton(onClick = onClick, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp),
         colors = androidx.compose.material3.ButtonDefaults.buttonColors(
             containerColor = if (primary) coral else MaterialTheme.colorScheme.surface, contentColor = ink),
-        border = if (primary) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        border = if (primary) null else BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
         contentPadding = PaddingValues(16.dp)) {
         Box(Modifier.size(46.dp).clip(RoundedCornerShape(14.dp))
             .background(if (primary) Color.White else Color(0xFF6255D9).copy(alpha = 0.12f)), contentAlignment = Alignment.Center) {
@@ -76,7 +78,7 @@ internal fun PlannerEntryAction(title: String, subtitle: String, icon: ImageVect
         }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(title, color = ink, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Text(subtitle, color = if (primary) Color.White.copy(alpha = 0.9f) else MaterialTheme.colorScheme.onSurfaceVariant,
+            Text(subtitle, color = if (primary) MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.9f) else MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodySmall)
         }
         Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = ink, modifier = Modifier.size(22.dp))
@@ -90,7 +92,7 @@ internal fun PlannerExamEntry(title: String, subtitle: String, badge: String, up
     val green = if (MaterialTheme.colorScheme.background.red > 0.5f) Color(0xFF00685D) else Color(0xFF69DCC6)
     androidx.compose.material3.Surface(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp),
         color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(if (active) 1.5.dp else 1.dp, if (active) green else MaterialTheme.colorScheme.outlineVariant)) {
+        border = BorderStroke(if (active) 1.5.dp else 1.dp, if (active) green else PlannerFlatColors.BorderSoft)) {
         Row(Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
             Button(onClick = onOpen, style = ButtonStyle.Ghost, modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp)) {
                 Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically,

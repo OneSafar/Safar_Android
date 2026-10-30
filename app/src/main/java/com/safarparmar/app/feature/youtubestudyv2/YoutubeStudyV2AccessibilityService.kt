@@ -482,11 +482,9 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
         if (
             observation.kind == YoutubeV2ContentKind.VIDEO &&
             observation.watchScreenConfirmed &&
-            session.state == YoutubeStudyV2Session.State.BROWSING &&
-            pendingClick != null &&
-            now - pendingClick <= GENERIC_CLICK_TRANSITION_WINDOW_MS
+            session.state == YoutubeStudyV2Session.State.BROWSING
         ) {
-            beginVideoTap(pendingClick)
+            beginVideoTap(pendingClick ?: now)
         }
         if (!observation.watchScreenConfirmed) {
             recordAnalytics(null, YoutubeInsightsRepository.CATEGORY_UNIDENTIFIED, false)
@@ -501,7 +499,7 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
             }
             return
         }
-        if (observation.kind == YoutubeV2ContentKind.VIDEO && observation.adPlaying) {
+        if (observation.kind == YoutubeV2ContentKind.VIDEO && observation.adPlaying && !observation.hasOwnerEvidence) {
             // An ad can replace the title/owner nodes while a decision for the
             // underlying video is waiting for confirmation. Cancel that work so
             // advertiser metadata can never produce a channel-block sheet.
@@ -570,6 +568,11 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
     }
 
     private fun decide(observation: YoutubeV2Observation, generation: Long) {
+        if (!observation.hasOwnerEvidence && !observation.fullscreen) {
+            firstStableRead = null
+            scheduleRead(OWNER_EVIDENCE_RETRY_MS)
+            return
+        }
         blockDismissal.onVideoEntered()
         val requestKey = "$generation:${observation.stableKey}"
         pendingEvaluationKey = requestKey
@@ -729,7 +732,7 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
         if (savingAllowlistEntry) return
         savingAllowlistEntry = true
         scope.launch {
-            val result = repository.resolveAndAllow(reference)
+            val result = repository.resolveAndAllow(reference, displayName)
             withContext(Dispatchers.Main) {
                 savingAllowlistEntry = false
                 if (result.isFailure) {
@@ -1475,6 +1478,7 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
     private fun isShortsRelatedId(id: String): Boolean {
         if (id.isEmpty()) return false
         return id.contains("pivot_shorts") ||
+            id.contains("tab_shorts") ||
             id.contains("reel_") ||
             id.contains("shorts_") ||
             id.contains("short_shelf") ||
@@ -1486,7 +1490,8 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
         val label = value?.toString()?.trim()?.lowercase().orEmpty()
         if (label.isEmpty()) return false
         if (label == "shorts" || label == "शॉर्ट्स" || label == "short" || label == "शॉर्ट") return true
-        if (label.startsWith("play short") || label.contains("short video") || label.startsWith("shorts -") ||
+        if (label.startsWith("shorts") || label.startsWith("शॉर्ट्स") ||
+            label.startsWith("play short") || label.contains("short video") || label.startsWith("shorts -") ||
             label.contains("short •") || label.contains("short ·")
         ) return true
         return false
@@ -1499,6 +1504,7 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
         val desc = event.contentDescription?.toString()?.trim()?.lowercase().orEmpty()
         val text = event.text.joinToString(" ").lowercase()
         return desc == "shorts player" || desc == "शॉर्ट्स प्लेयर" ||
+            desc.startsWith("shorts") || text.startsWith("shorts") ||
             desc.contains("short") || text.contains("short") ||
             desc.contains("शॉर्ट") || text.contains("शॉर्ट") ||
             desc.contains("dislike this short") || desc.contains("like this short") ||

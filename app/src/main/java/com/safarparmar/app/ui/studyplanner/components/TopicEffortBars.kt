@@ -34,7 +34,7 @@ fun TopicEffortBars(
     size: TopicSize,
     modifier: Modifier = Modifier,
     activeColor: Color = PlannerFlatColors.PrimaryAccent,
-    inactiveColor: Color = PlannerFlatColors.BorderSoft,
+    inactiveColor: Color = PlannerFlatColors.ProgressTrack,
     /** Larger variant for rows where the bars are the only trailing element. */
     large: Boolean = false,
 ) {

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="planner_tablet_title">पढ़ाई की योजना</string>
+    <string name="planner_tablet_subtitle">प्रगति, प्रदर्शन और अपने बैच की तैयारी पर नज़र रखें।</string>
+    <string name="planner_tablet_new_plan_body">नई शुरुआत करें या टेम्पलेट चुनें</string>
+    <string name="planner_tablet_preview_empty">अपनी तैयारी व्यवस्थित करने के लिए एक योजना बनाएँ।</string>
+    <string name="planner_tablet_plan_number">योजना %1$d</string>
+    <string name="planner_tablet_plan_options">%1$s के विकल्प</string>
+    <string name="planner_tablet_open_plan">योजना खोलें</string>
+    <string name="planner_tablet_about_plan">इस योजना के बारे में</string>
+    <string name="planner_tablet_plan_number_label">योजना क्रमांक</string>
+    <string name="planner_tablet_created_on">बनाने की तारीख</string>
+    <string name="planner_tablet_exam_date">परीक्षा की तारीख</string>
+    <string name="planner_calendar_target_exam">लक्षित परीक्षा</string>
+    <string name="planner_calendar_day_left">दिन बाकी</string>
+    <string name="planner_calendar_days_left">दिन बाकी</string>
+    <string name="planner_calendar_select_date">अपने लक्ष्य देखने के लिए तारीख चुनें</string>
+    <string name="planner_calendar_targets_for">%1$s के लिए आपके लक्ष्य</string>
+    <string name="planner_calendar_no_topics">इस दिन के लिए कोई विषय नियोजित नहीं है।</string>
+</resources>

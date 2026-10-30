@@ -271,7 +271,7 @@ private fun AnnouncementsSheetContent(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .background(if (isDarkTheme) Color(0xFF18181B) else Color(0xFFF8FAFC)),
+            .background(if (isDarkTheme) Color(0xFF131316) else Color(0xFFF8FAFC)),
     ) {
         // Modern Flat Top Header Bar
         Row(

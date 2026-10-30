@@ -58,6 +58,7 @@ private fun ExpandedPill(
     progress: Float,
     kavachActive: Boolean,
     isRunning: Boolean,
+    timerMode: TimerMode,
     attention: TimerBubbleAttention,
     snappedRight: Boolean,
     themeAccent: Color? = null,
@@ -130,7 +131,11 @@ private fun ExpandedPill(
                     text = when (attention) {
                         TimerBubbleAttention.CHECK_IN -> "Check in now"
                         TimerBubbleAttention.MISSED_CHECK_IN -> "Are you still there?"
-                        TimerBubbleAttention.NONE -> if (isRunning) "Time remaining" else "Paused"
+                        TimerBubbleAttention.NONE -> androidx.compose.ui.res.stringResource(
+                            if (!isRunning) com.safarparmar.app.R.string.ekagra_bubble_paused
+                            else if (timerMode == TimerMode.STOPWATCH) com.safarparmar.app.R.string.ekagra_bubble_time_focused
+                            else com.safarparmar.app.R.string.ekagra_bubble_time_remaining
+                        )
                     },
                     fontSize = 11.sp,
                     color = Color.White.copy(alpha = 0.55f),
@@ -222,6 +227,7 @@ private class BubbleComposeView(context: Context) : AbstractComposeView(context)
     var totalSeconds by mutableIntStateOf(1)
     var kavachActive by mutableStateOf(false)
     var isRunning    by mutableStateOf(true)
+    var timerMode    by mutableStateOf(TimerMode.FOCUS)
     var attention    by mutableStateOf(TimerBubbleAttention.NONE)
     var snappedRight by mutableStateOf(true)
     var collapsed    by mutableStateOf(false)
@@ -302,6 +308,7 @@ private class BubbleComposeView(context: Context) : AbstractComposeView(context)
                     progress = progress,
                     kavachActive = kavachActive,
                     isRunning = isRunning,
+                    timerMode = timerMode,
                     attention = attention,
                     snappedRight = snappedRight,
                     themeAccent = themeAccent,
@@ -373,13 +380,14 @@ object TimerBubbleOverlay {
         kavachActive: Boolean,
         isRunning: Boolean = true,
         attention: TimerBubbleAttention = TimerBubbleAttention.NONE,
+        timerMode: TimerMode = TimerMode.FOCUS,
     ) {
         if (!canDrawOverlays(context)) return
         val wm = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
         if (!attached) {
-            attach(context, wm, secondsLeft, totalSeconds, kavachActive, isRunning, attention)
+            attach(context, wm, secondsLeft, totalSeconds, kavachActive, isRunning, attention, timerMode)
         } else {
-            update(secondsLeft, totalSeconds, kavachActive, isRunning, attention)
+            update(secondsLeft, totalSeconds, kavachActive, isRunning, attention, timerMode)
         }
     }
 
@@ -389,12 +397,14 @@ object TimerBubbleOverlay {
         kavachActive: Boolean,
         isRunning: Boolean = true,
         attention: TimerBubbleAttention = TimerBubbleAttention.NONE,
+        timerMode: TimerMode = TimerMode.FOCUS,
     ) {
         val view = bubbleView ?: return
         view.secondsLeft  = secondsLeft
         view.totalSeconds = totalSeconds.coerceAtLeast(1)
         view.kavachActive = kavachActive
         view.isRunning    = isRunning
+        view.timerMode    = timerMode
         view.attention    = attention
     }
 
@@ -407,7 +417,9 @@ object TimerBubbleOverlay {
         try {
             lifecycleOwner?.onDestroy()
             wm.removeViewImmediate(view)
-        } catch (_: Exception) {}
+        } catch (error: Exception) {
+            EkagraDiagnostics.recordFailure(view.context, "timer_overlay_remove_failed", error)
+        }
         attached       = false
         bubbleView     = null
         windowManager  = null
@@ -469,6 +481,7 @@ object TimerBubbleOverlay {
         kavachActive: Boolean,
         isRunning: Boolean,
         attention: TimerBubbleAttention,
+        timerMode: TimerMode,
     ) {
         val (screenW, screenH) = getScreenDimensions(context)
 
@@ -500,6 +513,7 @@ object TimerBubbleOverlay {
             this.totalSeconds = totalSeconds.coerceAtLeast(1)
             this.kavachActive = kavachActive
             this.isRunning    = isRunning
+            this.timerMode    = timerMode
             this.attention    = attention
             this.snappedRight = currentX > screenW / 2
             setViewTreeLifecycleOwner(lo)
@@ -575,7 +589,9 @@ object TimerBubbleOverlay {
                     putExtra("session", TimerService.live?.currentSessionId())
                 }
                 context.startService(intent)
-            } catch (_: Exception) {}
+            } catch (error: Exception) {
+                EkagraDiagnostics.recordFailure(context, "timer_overlay_action_failed", error)
+            }
         }
 
         view.onOpen = {
@@ -594,7 +610,13 @@ object TimerBubbleOverlay {
         params         = lp
         attached       = true
 
-        try { wm.addView(view, lp) } catch (_: Exception) { attached = false }
+        try { wm.addView(view, lp) } catch (error: Exception) {
+            attached = false
+            lo.onDestroy()
+            bubbleView = null
+            lifecycleOwner = null
+            EkagraDiagnostics.recordFailure(context, "timer_overlay_attach_failed", error)
+        }
 
         view.post {
             val p = params ?: return@post

@@ -1,5 +1,6 @@
 package com.safarparmar.app.ui.auth
 
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalResources
 import com.safarparmar.app.ui.components.popups.SafarExposedDropdownMenu
 
@@ -193,7 +194,8 @@ fun AuthScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(BgCream)
-                    .padding(padding)
+                    .padding(padding),
+                contentAlignment = Alignment.Center
             ) {
                 AnimatedContent(
                     targetState = when {
@@ -202,32 +204,38 @@ fun AuthScreen(
                         else -> 0
                     },
                     transitionSpec = { fadeIn() togetherWith fadeOut() },
+                    contentAlignment = Alignment.Center,
                     label = "authMode",
                     modifier = Modifier.fillMaxSize()
                 ) { mode ->
-                    when (mode) {
-                        2 -> {
-                            ForgotPasswordContent(
-                                uiState = uiState,
-                                onEvent = viewModel::onEvent,
-                                onBackToLogin = { viewModel.onEvent(AuthEvent.BackToLoginClicked) }
-                            )
-                        }
-                        1 -> {
-                            SignupContent(
-                                uiState = uiState,
-                                onEvent = viewModel::onEvent,
-                                onSwitchToLogin = { viewModel.onEvent(AuthEvent.SwitchMode) },
-                                onGoogleClick = { startGoogleSignIn() }
-                            )
-                        }
-                        else -> {
-                            LoginContent(
-                                uiState = uiState,
-                                onEvent = viewModel::onEvent,
-                                onSwitchToSignup = { viewModel.onEvent(AuthEvent.SwitchMode) },
-                                onGoogleClick = { startGoogleSignIn() }
-                            )
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        when (mode) {
+                            2 -> {
+                                ForgotPasswordContent(
+                                    uiState = uiState,
+                                    onEvent = viewModel::onEvent,
+                                    onBackToLogin = { viewModel.onEvent(AuthEvent.BackToLoginClicked) }
+                                )
+                            }
+                            1 -> {
+                                SignupContent(
+                                    uiState = uiState,
+                                    onEvent = viewModel::onEvent,
+                                    onSwitchToLogin = { viewModel.onEvent(AuthEvent.SwitchMode) },
+                                    onGoogleClick = { startGoogleSignIn() }
+                                )
+                            }
+                            else -> {
+                                LoginContent(
+                                    uiState = uiState,
+                                    onEvent = viewModel::onEvent,
+                                    onSwitchToSignup = { viewModel.onEvent(AuthEvent.SwitchMode) },
+                                    onGoogleClick = { startGoogleSignIn() }
+                                )
+                            }
                         }
                     }
                 }
@@ -557,9 +565,12 @@ fun LoginContent(
     var passwordVisible by rememberSaveable { mutableStateOf(false) }
     val scroll = rememberScrollState()
 
+    val screenWidth = LocalConfiguration.current.screenWidthDp.dp
+    val contentWidth = if (screenWidth > 520.dp) 440.dp else screenWidth
+
     Column(
         modifier = Modifier
-            .fillMaxSize()
+            .width(contentWidth)
             .verticalScroll(scroll)
             .padding(horizontal = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -708,9 +719,12 @@ fun SignupContent(
     val genderOptions = listOf("Male", "Female", "Other", "Prefer not to say")
     val scroll = rememberScrollState()
 
+    val screenWidth = LocalConfiguration.current.screenWidthDp.dp
+    val contentWidth = if (screenWidth > 520.dp) 440.dp else screenWidth
+
     Column(
         modifier = Modifier
-            .fillMaxSize()
+            .width(contentWidth)
             .verticalScroll(scroll)
             .padding(horizontal = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -923,9 +937,12 @@ fun ForgotPasswordContent(
     var passwordVisible by rememberSaveable { mutableStateOf(false) }
     val scroll = rememberScrollState()
 
+    val screenWidth = LocalConfiguration.current.screenWidthDp.dp
+    val contentWidth = if (screenWidth > 520.dp) 440.dp else screenWidth
+
     Column(
         modifier = Modifier
-            .fillMaxSize()
+            .width(contentWidth)
             .verticalScroll(scroll)
             .padding(horizontal = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,

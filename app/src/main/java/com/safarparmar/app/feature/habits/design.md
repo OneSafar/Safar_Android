@@ -1,40 +1,16 @@
-# Design — Safar Habit Tracker
+# Safar Habit Tracker — mockup-led design
 
-A locked design system for the Safar Habit Tracker. Every habit tracker component and screen adheres to this system.
+Use the supplied IMG-20261028-WA0005.jpg for the visual structure: warm ivory, forest green pills and actions, rounded cards, a sprout banner, progress ring with category legend, pastel timeline rows and emoji checklist rows.
 
-## Genre
-Editorial / Tactile Desk Journal (Paper Ledger)
+## Four primary screens
 
-## Macrostructure Family
-App Page: Workbench / Ledger
-- Base: Warm Cream Paper ledger background (`#FFFDF6` light / `#141416` dark)
-- Masthead: Left-aligned date diary title with integrated progress stamp (`3/5 Completed`)
-- Segmented Control: Tactile inset journal tab strip (Today · Weekly · Monthly)
-- Rows: Clean rule-divided ledger items with hairline borders, high-contrast typography, and tactile check targets
-- Calendar: Square, proportional planner tiles with tabular date figures and crisp stamp fills
+- Overview: Overview / Timetable / Habits navigation, Stay on Track banner, date strip, progress card, a short daily-habit preview with Add Habit, and schedule preview. Daily habits stay before the schedule preview so habit creation remains easy to find. No floating button covers content.
+- Timetable: opens as its own page with a back arrow. Its single Day / Week / Subjects selector is never shown below the overview navigation. Pastel timed activities and a filled Add Timetable Activity button follow the reference.
+- Habits: opens as its own page with a back arrow, Add Habit, daily checklist, and a plainly labeled From your timetable section for explicitly linked activities. No extra tab strip or empty linked-habit promotion.
+- Add/Edit Timetable Activity: the existing form, category selector, title, subject, date, time, repeat, reminder, colors, Also show in Habits toggle, Save and Delete. The toggle explains that one check updates both lists.
 
-## Theme Tokens
-- `--color-paper`:       `#FFFDF6` (Warm Cream Paper)  / Dark: `#141416`
-- `--color-paper-2`:     `#F7F3E9` (Muted Parchment)   / Dark: `#1E1F24`
-- `--color-surface`:     `#FFFFFF` (Crisp Card Surface)/ Dark: `#23242A`
-- `--color-ink`:         `#1E1B16` (Deep Charcoal Ink) / Dark: `#F3F4F6`
-- `--color-ink-muted`:   `#696357` (Graphite Pencil)   / Dark: `#9CA3AF`
-- `--color-rule`:        `#EBE5D8` (Hairline Divider)  / Dark: `#2E2F38`
-- `--color-rule-strong`: `#D6CEBE` (Firm Rule)         / Dark: `#3E404D`
-- `--color-accent`:      `#581C87` (Royal Purple - max 3% viewport) / Dark: `#C084FC`
-- `--color-accent-bg`:   `#EDE9FE` (Soft Purple Tint)  / Dark: `#2E1065`
-- `--color-done`:        `#581C87` (Royal Purple Stamp)/ Dark: `#C084FC`
-- `--color-done-bg`:     `#F2E8F7` (Soft Purple Wash)  / Dark: `#2E1065`
-- `--color-trend`:       `#9A3412` (Deep Orange)       / Dark: `#FB923C`
-- `--color-error`:       `#B91C1C` (Muted Crimson)     / Dark: `#EF4444`
+## Deliberate user-requested changes from the image
 
-## Typography
-- Masthead: Bold Roman, -0.3.sp tracking
-- Headers: Semi-bold Roman, sentence case, tight tracking
-- Day Numbers: Tabular numerals with crisp vertical baseline
-- Prohibited: No italic headers, no cartoon doodle banners, no rainbow badge letters
+No bottom navigation, no stacked tab bars or underlines, no floating habit-creation control, no random habit icons. Users choose emoji through the AndroidX palette. Timetable actions use clear labels rather than sessions. Habit history and management remain in the overview options menu. Existing responsive save behavior remains intact.
 
-## Spacing & Shapes
-- 4-point scale: 4.dp, 8.dp, 12.dp, 16.dp, 24.dp
-- Borders: Crisp hairline rules (0.75.dp - 1.dp)
-- Corners: 16.dp for sheets, 10.dp for ledger rows, 6.dp for calendar tiles
+The overview progress counts real habits and timetable activities once each; the linked representation does not add a duplicate task. Data and backend contracts are unchanged.

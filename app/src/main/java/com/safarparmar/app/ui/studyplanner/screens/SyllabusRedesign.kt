@@ -29,7 +29,15 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -79,22 +87,7 @@ import com.safarparmar.app.ui.studyplanner.plan.PlanEyebrow
 import com.safarparmar.app.ui.studyplanner.plan.PlanHairline
 import com.safarparmar.app.ui.theme.LoraFontFamily
 
-/**
- * The Syllabus tab in the same flat "magazine" system as the Home redesign.
- *
- * The old screen stacked a bordered overview card (icon, title, %, progress bar,
- * three meta pills), a two-button action row, a boxed search field, a section
- * header, a full-width "Add Subject" button, then one bordered accordion card
- * per subject — a card-on-card list where every subject was the heaviest
- * possible row. These pieces keep every action but read as one flat, scrollable
- * page: one header, one list, divided only by hairlines.
- */
-
-/**
- * Page header: eyebrow + overflow, then the plan title with its completion
- * percent, a thin progress rule, and the subject/chapter/topic count line —
- * replacing the whole overview card and its meta pills.
- */
+/** Syllabus overview and cards share the planner theme and existing editing actions. */
 @Composable
 internal fun SyllabusMagazineHeader(
     planTitle: String,
@@ -107,119 +100,31 @@ internal fun SyllabusMagazineHeader(
     onExamDateClick: () -> Unit,
     onPlanTitleClick: () -> Unit = {},
     modifier: Modifier = Modifier,
+    showTitle: Boolean = true,
 ) {
-    val accent = PlannerFlatColors.PrimaryAccent
-    val animatedPercent by animateFloatAsState(
-        targetValue = (completionPercent / 100f).coerceIn(0f, 1f),
-        label = "syllabusHeaderProgress",
-    )
-    var titleOverflows by remember(planTitle) { mutableStateOf(false) }
-
-    Column(modifier = modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 40.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            PlanEyebrow("Your syllabus", modifier = Modifier.weight(1f))
+    val scheme = MaterialTheme.colorScheme
+    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        if (showTitle) Text(stringResource(R.string.planner_warm_syllabus), style = MaterialTheme.typography.headlineMedium, color = scheme.onSurface)
+        Text(planTitle, style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis,
+            color = scheme.onSurfaceVariant, modifier = Modifier.heightIn(min = 48.dp).clickable(onClick = onPlanTitleClick))
+        Surface(color = scheme.surface, shape = RoundedCornerShape(24.dp)) {
+            Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text(stringResource(R.string.planner_syllabus_done), style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                    Text("$completionPercent%", style = MaterialTheme.typography.headlineSmall)
+                }
+                LinearProgressIndicator(progress = { completionPercent.coerceIn(0, 100) / 100f }, modifier = Modifier.fillMaxWidth().height(8.dp).clip(CircleShape), color = scheme.secondary, trackColor = scheme.outlineVariant)
+                Text(stringResource(R.string.planner_warm_syllabus_counts, subjectCount, chapterCount, topicCount), style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant)
+                if (notStartedChapters > 0) Text(stringResource(R.string.planner_warm_chapters_not_started, notStartedChapters), style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant)
+            }
         }
-
-        Text(
-            text = stringResource(R.string.planner_syllabus_intro),
-            fontSize = 12.sp,
-            color = PlannerFlatColors.TextMuted,
-        )
-
-        Spacer(modifier.height(14.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.Bottom,
-        ) {
-            // Hard clip (no "…") — tap opens the full name card above the bottom bar.
-            Text(
-                text = planTitle,
-                fontFamily = LoraFontFamily,
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Normal,
-                color = PlannerFlatColors.TextDark,
-                maxLines = 1,
-                softWrap = false,
-                overflow = TextOverflow.Clip,
-                onTextLayout = { titleOverflows = it.hasVisualOverflow },
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(RoundedCornerShape(2.dp))
-                    .then(
-                        if (titleOverflows) {
-                            Modifier.clickable(onClick = onPlanTitleClick)
-                        } else {
-                            Modifier
-                        },
-                    ),
-            )
-            Spacer(Modifier.width(10.dp))
-            Text(
-                text = "$completionPercent%",
-                fontFamily = LoraFontFamily,
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Normal,
-                color = accent,
-                maxLines = 1,
-            )
+        TextButton(onClick = onExamDateClick) {
+            Text(if (daysUntilExam == null) stringResource(R.string.planner_warm_set_exam_date) else when {
+                daysUntilExam < 0 -> stringResource(R.string.planner_warm_exam_passed)
+                daysUntilExam == 0 -> stringResource(R.string.planner_warm_exam_today)
+                else -> stringResource(R.string.planner_warm_days_left, daysUntilExam)
+            })
         }
-
-        Spacer(Modifier.height(4.dp))
-
-        val timeContext = when {
-            daysUntilExam == null -> "Set your exam date"
-            daysUntilExam < 0 -> "Exam date passed"
-            daysUntilExam == 0 -> "Exam today"
-            daysUntilExam == 1 -> "1 day left"
-            else -> "$daysUntilExam days left"
-        }
-        val chapterContext = when (notStartedChapters) {
-            0 -> "every chapter started"
-            1 -> "1 chapter not started"
-            else -> "$notStartedChapters chapters not started"
-        }
-        Text(
-            text = if (daysUntilExam == null) timeContext else "$timeContext · $chapterContext",
-            fontSize = 12.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = if (daysUntilExam == null) accent else PlannerFlatColors.TextDark,
-            modifier = if (daysUntilExam == null) Modifier.clickable(onClick = onExamDateClick) else Modifier,
-        )
-
-        Spacer(Modifier.height(8.dp))
-
-        // Thin completion rule — the progress bar without a card around it.
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .height(3.dp)
-                .clip(RoundedCornerShape(2.dp))
-                .background(PlannerFlatColors.BorderSoft),
-        ) {
-            Box(
-                Modifier
-                    .fillMaxWidth(animatedPercent)
-                    .height(3.dp)
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(accent),
-            )
-        }
-
-        Spacer(Modifier.height(6.dp))
-
-        Text(
-            text = "$subjectCount subjects · $chapterCount chapters · $topicCount topics",
-            fontSize = 11.5.sp,
-            color = PlannerFlatColors.TextMuted,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
     }
 }
 
@@ -233,57 +138,8 @@ internal fun SyllabusChangePlanBand(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier = modifier.fillMaxWidth()) {
-        PlanHairline()
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 72.dp)
-                .clickable(enabled = enabled, onClick = onClick)
-                .padding(vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            // Flat accent rule — magazine marker, not a filled card.
-            Box(
-                modifier = Modifier
-                    .width(2.dp)
-                    .height(36.dp)
-                    .clip(RoundedCornerShape(1.dp))
-                    .background(
-                        if (enabled) PlannerFlatColors.PrimaryAccent else PlannerFlatColors.BorderSoft,
-                    ),
-            )
-            Spacer(Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = stringResource(R.string.planner_change_study_plan),
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = PlannerFlatColors.TextDark,
-                )
-                Spacer(Modifier.height(3.dp))
-                Text(
-                    text = stringResource(R.string.planner_change_study_plan_body),
-                    fontSize = 11.5.sp,
-                    color = PlannerFlatColors.TextMuted,
-                )
-            }
-            Spacer(Modifier.width(12.dp))
-            Text(
-                text = stringResource(R.string.planner_change_my_plan),
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
-                color = if (enabled) PlannerFlatColors.PrimaryAccent else PlannerFlatColors.TextMuted,
-            )
-            Spacer(Modifier.width(2.dp))
-            Icon(
-                Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = null,
-                tint = if (enabled) PlannerFlatColors.PrimaryAccent else PlannerFlatColors.TextMuted,
-                modifier = Modifier.size(18.dp),
-            )
-        }
-        PlanHairline()
+    androidx.compose.material3.FilledTonalButton(onClick = onClick, enabled = enabled, modifier = modifier.fillMaxWidth().heightIn(min = 48.dp), shape = RoundedCornerShape(18.dp)) {
+        Text(stringResource(R.string.planner_change_study_plan), maxLines = 2)
     }
 }
 
@@ -346,7 +202,7 @@ internal fun SyllabusFullPlanTitleCard(
     ) {
         Text(
             text = planTitle,
-            fontFamily = LoraFontFamily,
+            fontFamily = com.safarparmar.app.ui.theme.MulishFontFamily,
             fontSize = 16.sp,
             fontWeight = FontWeight.Normal,
             color = PlannerFlatColors.TextDark,
@@ -355,7 +211,7 @@ internal fun SyllabusFullPlanTitleCard(
         Spacer(Modifier.width(8.dp))
         Box(
             modifier = Modifier
-                .size(28.dp)
+                .size(48.dp)
                 .clip(CircleShape)
                 .clickable(onClick = onDismiss),
             contentAlignment = Alignment.Center,
@@ -392,14 +248,14 @@ internal fun SyllabusRatingRebuildBar(
             } else {
                 "Ratings changed. Set an exam date to rebuild."
             },
-            fontSize = 11.5.sp,
+            fontSize = 13.sp,
             color = PlannerFlatColors.TextDark,
             modifier = Modifier.weight(1f),
         )
         Spacer(Modifier.width(8.dp))
         Text(
             text = if (hasExamDate) "Rebuild schedule" else "Set exam date",
-            fontSize = 11.sp,
+            fontSize = 13.sp,
             fontWeight = FontWeight.Bold,
             color = PlannerFlatColors.PrimaryAccent,
             modifier = Modifier.clickable(
@@ -408,7 +264,7 @@ internal fun SyllabusRatingRebuildBar(
             ),
         )
         Box(
-            modifier = Modifier.size(28.dp).clip(CircleShape).clickable(onClick = onDismiss),
+            modifier = Modifier.size(48.dp).clip(CircleShape).clickable(onClick = onDismiss),
             contentAlignment = Alignment.Center,
         ) {
             Icon(Icons.Default.Close, contentDescription = stringResource(R.string.common_dismiss), tint = PlannerFlatColors.TextMuted, modifier = Modifier.size(14.dp))
@@ -454,10 +310,10 @@ internal fun SyllabusCourseMapNudge(
         )
         Spacer(Modifier.width(12.dp))
         if (nudge.chapterName != null) {
-            Text(lead, fontSize = 11.5.sp, color = PlannerFlatColors.TextMuted)
+            Text(lead, fontSize = 13.sp, color = PlannerFlatColors.TextMuted)
             Text(
                 nudge.chapterName,
-                fontFamily = LoraFontFamily,
+                fontFamily = com.safarparmar.app.ui.theme.MulishFontFamily,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Normal,
                 color = PlannerFlatColors.TextDark,
@@ -471,13 +327,13 @@ internal fun SyllabusCourseMapNudge(
             }
             Text(
                 text = " · $detail",
-                fontSize = 11.sp,
+                fontSize = 13.sp,
                 color = if (nudge.kind == CourseMapNudgeKind.LATE) Color(0xFFF97316) else PlannerFlatColors.TextMuted,
             )
         } else {
             Text(
                 text = lead,
-                fontSize = 11.5.sp,
+                fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = if (nudge.kind == CourseMapNudgeKind.NEEDS_SCHEDULE) {
                     PlannerFlatColors.PrimaryAccent
@@ -491,7 +347,7 @@ internal fun SyllabusCourseMapNudge(
             Spacer(Modifier.width(8.dp))
             Text(
                 text = if (nudge.kind == CourseMapNudgeKind.NEEDS_SCHEDULE) "Make dates" else "Open",
-                fontSize = 11.5.sp,
+                fontSize = 13.sp,
                 fontWeight = FontWeight.Bold,
                 color = PlannerFlatColors.PrimaryAccent,
             )
@@ -512,20 +368,8 @@ internal fun SyllabusGlassAddButton(
     modifier: Modifier = Modifier,
     contentDescription: String = "Add",
 ) {
-    val isDark = isPlannerDark
-    Box(
-        modifier = modifier
-            .size(36.dp)
-            .glassSurface(shape = CircleShape, isDarkTheme = isDark)
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            imageVector = Icons.Default.Add,
-            contentDescription = contentDescription,
-            tint = PlannerFlatColors.PrimaryAccent,
-            modifier = Modifier.size(20.dp),
-        )
+    TextButton(onClick = onClick, modifier = modifier.heightIn(min = 48.dp)) {
+        Icon(Icons.Default.Add, null, Modifier.size(20.dp)); Spacer(Modifier.width(4.dp)); Text(contentDescription)
     }
 }
 
@@ -538,7 +382,7 @@ internal fun SyllabusMagazineListHeader(
     addContentDescription: String = "Add",
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
-        PlanHairline(alpha = 0.55f)
+        PlanHairline()
         Spacer(Modifier.height(10.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -546,7 +390,7 @@ internal fun SyllabusMagazineListHeader(
         ) {
             Text(
                 text = title,
-                fontFamily = LoraFontFamily,
+                fontFamily = com.safarparmar.app.ui.theme.MulishFontFamily,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Normal,
                 color = PlannerFlatColors.TextDark,
@@ -599,6 +443,9 @@ internal fun SyllabusMagazineSubjectRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .clip(RoundedCornerShape(22.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .padding(horizontal = 12.dp)
             .zIndex(if (isDragging) 1f else 0f)
             .onGloballyPositioned { itemHeightPx = it.size.height }
             .graphicsLayer { translationY = if (isDragging) dragOffsetY else 0f }
@@ -658,7 +505,7 @@ internal fun SyllabusMagazineSubjectRow(
         ) {
             Text(
                 text = subject.name.trim().take(1).uppercase(),
-                fontFamily = LoraFontFamily,
+                fontFamily = com.safarparmar.app.ui.theme.MulishFontFamily,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Normal,
                 color = accent,
@@ -670,8 +517,8 @@ internal fun SyllabusMagazineSubjectRow(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = subject.name,
-                fontFamily = LoraFontFamily,
-                fontSize = 15.sp,
+                fontFamily = com.safarparmar.app.ui.theme.MulishFontFamily,
+                fontSize = 16.sp,
                 fontWeight = FontWeight.Normal,
                 color = PlannerFlatColors.TextDark,
                 maxLines = 1,
@@ -680,7 +527,7 @@ internal fun SyllabusMagazineSubjectRow(
             Spacer(Modifier.height(3.dp))
             Text(
                 text = "$chapterCount chapters · $topicCount topics",
-                fontSize = 11.sp,
+                fontSize = 13.sp,
                 color = PlannerFlatColors.TextMuted,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -688,7 +535,7 @@ internal fun SyllabusMagazineSubjectRow(
             Spacer(Modifier.height(3.dp))
             Text(
                 text = "${progress.stateLabel()} · ${progress.percent}%",
-                fontSize = 10.5.sp,
+                fontSize = 13.sp,
                 color = PlannerFlatColors.TextMuted,
                 maxLines = 1,
             )
@@ -701,7 +548,7 @@ internal fun SyllabusMagazineSubjectRow(
         Box {
             Box(
                 modifier = Modifier
-                    .size(28.dp)
+                    .size(48.dp)
                     .clip(CircleShape)
                     .clickable { showMenu = true },
                 contentAlignment = Alignment.Center,
@@ -714,6 +561,10 @@ internal fun SyllabusMagazineSubjectRow(
                 )
             }
             PlannerOverflowMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+                if (canReorder) {
+                    PlannerOverflowMenuItem(stringResource(R.string.planner_warm_move_up)) { showMenu = false; onMoveUp(); onDragEnd() }
+                    PlannerOverflowMenuItem(stringResource(R.string.planner_warm_move_down)) { showMenu = false; onMoveDown(); onDragEnd() }
+                }
                 PlannerOverflowMenuItem("Add chapter") { showMenu = false; onAddChapter() }
                 PlannerOverflowMenuItem("Rename") { showMenu = false; onRename() }
                 PlannerOverflowMenuItem("Mark all done") { showMenu = false; onMarkDone() }
@@ -723,7 +574,7 @@ internal fun SyllabusMagazineSubjectRow(
 
         Text(
             text = stringResource(R.string.common_open),
-            fontSize = 11.5.sp,
+            fontSize = 13.sp,
             fontWeight = FontWeight.Bold,
             color = PlannerFlatColors.PrimaryAccent,
         )
@@ -758,7 +609,7 @@ internal fun SyllabusMagazineChapterHeader(
         Row(verticalAlignment = Alignment.Bottom, modifier = Modifier.fillMaxWidth()) {
             Text(
                 text = "$chapterCount chapters · $topicCount topics",
-                fontSize = 11.5.sp,
+                fontSize = 13.sp,
                 color = PlannerFlatColors.TextMuted,
                 modifier = Modifier.weight(1f),
                 maxLines = 1,
@@ -766,7 +617,7 @@ internal fun SyllabusMagazineChapterHeader(
             )
             Text(
                 text = "$completionPercent%",
-                fontFamily = LoraFontFamily,
+                fontFamily = com.safarparmar.app.ui.theme.MulishFontFamily,
                 fontSize = 18.sp,
                 color = accent,
                 maxLines = 1,
@@ -833,7 +684,7 @@ internal fun SyllabusMagazineDifficultyChips(
                 ) {
                     Text(
                         text = option.label,
-                        fontSize = 10.5.sp,
+                        fontSize = 13.sp,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                         color = tint,
                     )
@@ -883,6 +734,9 @@ internal fun SyllabusMagazineChapterRow(
     Column(
         modifier = modifier
             .fillMaxWidth()
+            .clip(RoundedCornerShape(22.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .padding(horizontal = 12.dp)
             .zIndex(if (isDragging) 1f else 0f)
             .onGloballyPositioned { itemHeightPx = it.size.height }
             .graphicsLayer { translationY = if (isDragging) dragOffsetY else 0f }
@@ -947,7 +801,7 @@ internal fun SyllabusMagazineChapterRow(
                 Spacer(Modifier.height(3.dp))
                 Text(
                     text = "${progress.stateLabel()} · ${progress.percent}%",
-                    fontSize = 11.sp,
+                    fontSize = 13.sp,
                     color = PlannerFlatColors.TextMuted,
                     maxLines = 1,
                 )
@@ -960,7 +814,7 @@ internal fun SyllabusMagazineChapterRow(
             Box {
                 Box(
                     modifier = Modifier
-                        .size(28.dp)
+                        .size(48.dp)
                         .clip(CircleShape)
                         .clickable { showMenu = true },
                     contentAlignment = Alignment.Center,
@@ -973,6 +827,10 @@ internal fun SyllabusMagazineChapterRow(
                     )
                 }
                 PlannerOverflowMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+                if (canReorder) {
+                    PlannerOverflowMenuItem(stringResource(R.string.planner_warm_move_up)) { showMenu = false; onMoveUp(); onDragEnd() }
+                    PlannerOverflowMenuItem(stringResource(R.string.planner_warm_move_down)) { showMenu = false; onMoveDown(); onDragEnd() }
+                }
                     PlannerOverflowMenuItem("Rename") { showMenu = false; onRename() }
                     PlannerOverflowMenuItem("Mark all done") { showMenu = false; onMarkDone() }
                     PlannerOverflowMenuItem("Delete", destructive = true) { showMenu = false; onDelete() }
@@ -982,7 +840,7 @@ internal fun SyllabusMagazineChapterRow(
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = null,
-                tint = PlannerFlatColors.BorderSoft,
+                tint = PlannerFlatColors.ProgressTrack,
                 modifier = Modifier.size(18.dp),
             )
         }
@@ -1039,6 +897,9 @@ internal fun SyllabusMagazineTopicRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .clip(RoundedCornerShape(22.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .padding(horizontal = 12.dp)
             .zIndex(if (isDragging) 1f else 0f)
             .onGloballyPositioned { itemHeightPx = it.size.height }
             .graphicsLayer { translationY = if (isDragging) dragOffsetY else 0f }
@@ -1086,31 +947,11 @@ internal fun SyllabusMagazineTopicRow(
             .padding(vertical = 13.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Status circle — tapping it completes the topic, same as the old badge.
-        Box(
-            modifier = Modifier
-                .size(18.dp)
-                .clip(CircleShape)
-                .then(
-                    when {
-                        done -> Modifier.background(accent)
-                        needsRevision -> Modifier.border(1.dp, Color(0xFFF97316), CircleShape)
-                        else -> Modifier.border(1.dp, PlannerFlatColors.BorderSoft, CircleShape)
-                    },
-                )
-                .clickable(enabled = !done, onClick = onMarkDone),
-            contentAlignment = Alignment.Center,
-        ) {
-            if (done) {
-                Icon(
-                    imageVector = Icons.Default.Check,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(11.dp),
-                )
-            }
-        }
-
+        Checkbox(checked = done, enabled = !done, onCheckedChange = { checked -> if (checked && !done) onMarkDone() },
+            modifier = Modifier.size(48.dp).semantics { contentDescription = topic.name },
+            colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.secondary,
+                disabledCheckedColor = MaterialTheme.colorScheme.secondary,
+                uncheckedColor = if (needsRevision) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.outline))
         Spacer(Modifier.width(12.dp))
 
         Column(modifier = Modifier.weight(1f)) {
@@ -1134,7 +975,7 @@ internal fun SyllabusMagazineTopicRow(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = if (hasDate) readableDate(topic.plannedDate) else "Not planned",
-                    fontSize = 11.sp,
+                    fontSize = 13.sp,
                     color = if (needsRevision) Color(0xFFF97316) else PlannerFlatColors.TextMuted,
                     maxLines = 1,
                 )
@@ -1153,7 +994,7 @@ internal fun SyllabusMagazineTopicRow(
             ) {
                 Text(
                     text = stringResource(R.string.planner_study_today),
-                    fontSize = 10.5.sp,
+                    fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = accent,
                     maxLines = 1,
@@ -1165,7 +1006,7 @@ internal fun SyllabusMagazineTopicRow(
         Box {
             Box(
                 modifier = Modifier
-                    .size(28.dp)
+                    .size(48.dp)
                     .clip(CircleShape)
                     .clickable { showMenu = true },
                 contentAlignment = Alignment.Center,
@@ -1178,6 +1019,10 @@ internal fun SyllabusMagazineTopicRow(
                 )
             }
             PlannerOverflowMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+                if (canReorder) {
+                    PlannerOverflowMenuItem(stringResource(R.string.planner_warm_move_up)) { showMenu = false; onMoveUp(); onDragEnd() }
+                    PlannerOverflowMenuItem(stringResource(R.string.planner_warm_move_down)) { showMenu = false; onMoveDown(); onDragEnd() }
+                }
                 PlannerOverflowMenuItem("Rename") { showMenu = false; onRename() }
                 PlannerOverflowMenuItem("Change date") { showMenu = false; onChangeDate() }
                 if (!done) {

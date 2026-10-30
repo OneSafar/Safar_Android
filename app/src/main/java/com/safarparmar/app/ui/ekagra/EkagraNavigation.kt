@@ -1,5 +1,6 @@
 package com.safarparmar.app.ui.ekagra
 
+import com.safarparmar.app.ui.adaptive.isSpaciousLandscape
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
@@ -89,21 +90,28 @@ internal fun EkagraBottomNav(
     val ink = rememberEkagraInk(onCanvas = isOnVideo, theme = selectedTheme, isDarkTheme = isDarkTheme)
     val haptic = LocalHapticFeedback.current
 
-    // ── A hairline, an icon, a dot ───────────────────────────────────────────
-    // The redesign drops the floating frosted panel and the filled icon discs
-    // in favour of a rule and plain per-tab icon + label, with one small accent
-    // dot marking the active tab. The dot and icon both use the live theme
-    // accent, so the bar still recolours per theme.
+    val adaptive = com.safarparmar.app.ui.adaptive.rememberSafarAdaptiveState()
+    val floating = adaptive.isSpaciousLandscape
+    BoxWithConstraints(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+    val dockWidth = if (floating) ekagraTabletChromeWidth(maxWidth) else maxWidth
+    val dockShape = RoundedCornerShape(22.dp)
+
+    // Tablet dock and status row use the same width; phones retain their hairline bar.
     Column(
         modifier = Modifier
-            .fillMaxWidth()
-            .navigationBarsPadding(),
+            .width(dockWidth)
+            .navigationBarsPadding()
+            .padding(bottom = if (floating) 12.dp else 0.dp)
+            .then(if (floating) Modifier.clip(dockShape)
+                .background(scheme.surface.copy(alpha = 0.96f))
+                .border(1.dp, scheme.outlineVariant, dockShape) else Modifier),
     ) {
-        EkagraHairline(ink.hairline)
+        if (!floating) EkagraHairline(ink.hairline)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 12.dp, bottom = 14.dp),
+                .padding(start = if (floating) 8.dp else 0.dp, end = if (floating) 8.dp else 0.dp,
+                    top = if (floating) 8.dp else 12.dp, bottom = if (floating) 8.dp else 14.dp),
             horizontalArrangement = Arrangement.SpaceAround,
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -112,27 +120,27 @@ internal fun EkagraBottomNav(
                 val tabLabel = stringResource(tab.labelRes)
 
                 val iconColor by animateColorAsState(
-                    targetValue = if (isSelected) accentColor else ink.secondaryText,
+                    targetValue = if (isSelected) accentColor else scheme.onSurfaceVariant,
                     animationSpec = tween(durationMillis = 220),
                     label = "navIcon_${tab.name}",
                 )
                 val textColor by animateColorAsState(
-                    targetValue = if (isSelected) ink.primaryText else ink.secondaryText,
+                    targetValue = if (isSelected) scheme.primary else scheme.onSurfaceVariant,
                     animationSpec = tween(durationMillis = 220),
                     label = "navTextColor_${tab.name}",
                 )
 
+                com.composables.ui.components.Button(
+                    onClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); onSelect(tab) },
+                    style = com.composables.ui.components.ButtonStyle.Ghost,
+                    shape = RoundedCornerShape(16.dp),
+                    contentPadding = PaddingValues.Zero,
+                    modifier = Modifier.weight(1f)
+                        .background(if (floating && isSelected) scheme.primaryContainer else Color.Transparent, RoundedCornerShape(16.dp))
+                        .then(if (tab == EkagraNavTab.DURATION) Modifier.tutorialTarget("ekagra.settingsEntry") else Modifier),
+                ) {
                 Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .then(if (tab == EkagraNavTab.DURATION) Modifier.tutorialTarget("ekagra.settingsEntry") else Modifier)
-                        .clickable(
-                            interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
-                            indication = null,
-                        ) {
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            onSelect(tab)
-                        },
+                    Modifier.padding(vertical = if (floating) 8.dp else 0.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(5.dp),
                 ) {
@@ -143,7 +151,7 @@ internal fun EkagraBottomNav(
                         baseSizeDp = 20f,
                     )
 
-                    Box(
+                    if (!floating) Box(
                         modifier = Modifier
                             .size(EkagraChrome.size(4f))
                             .clip(CircleShape)
@@ -158,11 +166,13 @@ internal fun EkagraBottomNav(
                     )
                 }
             }
+            }
             EkagraNavTab.entries.take(3).forEach { navItem(it) }
             Row(Modifier.weight(2f).tutorialTarget("ekagra.personalizeEntry"), verticalAlignment = Alignment.CenterVertically) {
                 EkagraNavTab.entries.drop(3).forEach { navItem(it) }
             }
         }
+    }
     }
 }
 

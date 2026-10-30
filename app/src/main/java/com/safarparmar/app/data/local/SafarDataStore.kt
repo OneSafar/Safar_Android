@@ -285,7 +285,7 @@ class SafarDataStore @Inject constructor(
 
     val quietHoursEnd: Flow<String> = context.dataStore.data
         .catch { emit(emptyPreferences()) }
-        .map { it[Keys.QUIET_HOURS_END] ?: "07:00" }
+        .map { it[Keys.QUIET_HOURS_END] ?: "06:00" }
 
     val deviceTokenLastSyncAt: Flow<Long> = context.dataStore.data
         .catch { emit(emptyPreferences()) }
@@ -955,6 +955,9 @@ class SafarDataStore @Inject constructor(
             it.remove(Keys.PREMIUM_FEATURE_FOCUS_ANALYTICS)
             it.remove(Keys.PREMIUM_FEATURE_LIVE_SESSIONS)
         }
+        com.safarparmar.app.widget.SafarWidgetStore.clear(context)
+        com.safarparmar.app.widget.SafarTodayWidget.render(context, null)
+        com.safarparmar.app.widget.SafarBentoWidget.render(context, null)
     }
 
     private suspend fun migratePlainAuthTokensToEncryptedStorage() {

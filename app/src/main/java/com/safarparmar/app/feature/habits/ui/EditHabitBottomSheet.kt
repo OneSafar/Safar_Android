@@ -7,17 +7,19 @@ import com.safarparmar.app.feature.habits.data.HabitEntity
 fun EditHabitBottomSheet(
     habit: HabitEntity,
     onDismiss: () -> Unit,
-    onSave: suspend (HabitEntity) -> Unit,
+    onSave: suspend (HabitEntity, String) -> Unit,
     onArchive: suspend (Long) -> Unit,
-    onDelete: suspend (HabitEntity) -> Unit
+    onDelete: suspend (HabitEntity) -> Unit,
+    initialEmoji: String = "🌱"
 ) {
     HabitFormBottomSheet(
         habit = habit,
+        initialEmoji = initialEmoji,
         onDismiss = onDismiss,
-        onSubmit = { name, days, isEveryDay, reminderTime ->
+        onSubmit = { name, days, isEveryDay, reminderTime, emoji ->
             // Schedule history is versioned atomically by the repository. The UI only
             // submits the new visible state; it must not rewrite historical dates itself.
-            onSave(habit.copy(name = name, targetDays = days, isEveryDay = isEveryDay, reminderTime = reminderTime))
+            onSave(habit.copy(name = name, targetDays = days, isEveryDay = isEveryDay, reminderTime = reminderTime), emoji)
         },
         onArchive = { onArchive(habit.id) },
         onDelete = { onDelete(habit) }

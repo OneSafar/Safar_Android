@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="mehfil_post_options">Post ke options</string>
+    <string name="mehfil_unsave_post">Saved se hatayein</string>
+    <plurals name="mehfil_announcement_count">
+        <item quantity="one">%d announcement</item>
+        <item quantity="other">%d announcements</item>
+    </plurals>
+    <plurals name="mehfil_days_ago">
+        <item quantity="one">%d din pehle</item>
+        <item quantity="other">%d din pehle</item>
+    </plurals>
+    <string name="mehfil_post_heading">Title</string>
+    <string name="mehfil_post_heading_hint">Apni post ka title likhein</string>
+    <string name="mehfil_post_body">Post ka vivaran</string>
+    <string name="mehfil_community_description">Saathiyon se baatcheet, sawaal aur sahyog.</string>
+    <string name="mehfil_official_description">SAFAR ki official announcements.</string>
+    <string name="mehfil_view_details">Details dekhein</string>
+    <string name="mehfil_subtitle">Share karein, seekhein aur saath aage badhein.</string>
+</resources>

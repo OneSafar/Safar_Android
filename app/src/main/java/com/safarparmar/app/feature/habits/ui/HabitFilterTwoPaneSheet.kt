@@ -151,6 +151,7 @@ fun HabitFilterTwoPaneSheet(
                             draftFrequencies = emptySet()
                             draftStatuses = emptySet()
                         },
+                        modifier = Modifier.habitPress(scaleDown = HabitMotion.ScaleButton),
                         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
                     ) {
                         Text(
@@ -298,6 +299,7 @@ fun HabitFilterTwoPaneSheet(
                     modifier = Modifier
                         .weight(1f)
                         .height(48.dp)
+                        .habitPress(scaleDown = HabitMotion.ScaleButton)
                 ) {
                     Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_reset), fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                 }
@@ -321,6 +323,7 @@ fun HabitFilterTwoPaneSheet(
                     modifier = Modifier
                         .weight(1.8f)
                         .height(48.dp)
+                        .habitPress(scaleDown = HabitMotion.ScaleButton)
                 ) {
                     Text(
                         text = if (totalSelected > 0) "Apply ($totalSelected)" else "Apply (All Habits)",
@@ -348,7 +351,7 @@ private fun CategoryTab(
             .fillMaxWidth()
             .height(52.dp)
             .background(bgColor)
-            .clickable(onClick = onClick),
+            .habitClickable(scaleDown = HabitMotion.ScaleCard, onClick = onClick),
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Left indicator bar (3.5dp) on the very left edge
@@ -407,7 +410,7 @@ private fun FilterCheckboxRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onToggle)
+            .habitClickable(scaleDown = HabitMotion.ScaleCard, onClick = onToggle)
             .padding(horizontal = 16.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically

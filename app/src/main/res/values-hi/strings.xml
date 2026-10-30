@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="sidebar_section_wellbeing">स्वास्थ्य और मन</string>
+    <string name="sidebar_section_community_resources">समुदाय और संसाधन</string>
     <!-- App -->
     <string name="app_name">SAFAR</string>
     <string name="material3_outlined_button_label">मटीरियल 3 आउटलाइन बटन</string>

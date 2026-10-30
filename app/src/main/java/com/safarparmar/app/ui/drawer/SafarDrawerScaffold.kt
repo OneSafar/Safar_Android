@@ -1,6 +1,9 @@
 package com.safarparmar.app.ui.drawer
 
 import android.app.Activity
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -12,6 +15,11 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.runtime.saveable.rememberSaveable
+import com.safarparmar.app.performance.LocalMotionPolicy
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -32,6 +40,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.foundation.background
@@ -65,7 +75,11 @@ fun SafarDrawerScaffold(
     emphasizeTopBar: Boolean = false,
     containerColor: Color? = null,
     showTopBar: Boolean = true,
+    /** Inset rail over the caller canvas, initially collapsed (Ekagra tablet). */
+    floatingNavigationRail: Boolean = false,
     showTopBarTitle: Boolean = true,
+    showTutorialButton: Boolean = true,
+    topBarTitleContent: (@Composable () -> Unit)? = null,
     wrapTopBarTitle: Boolean = false,
     useGlassTopBar: Boolean = false,
     useDetachedMenuGlass: Boolean = false,
@@ -171,32 +185,99 @@ fun SafarDrawerScaffold(
     }
 
     val haptic = LocalHapticFeedback.current
+    val adaptiveState = com.safarparmar.app.ui.adaptive.rememberSafarAdaptiveState()
+    val isWide = adaptiveState.isWideScreen
+    var railExpanded by rememberSaveable(floatingNavigationRail) { mutableStateOf(false) }
+    val targetRailWidth = if (railExpanded) SafarExpandedRailWidth else SafarCompactRailWidth
+    val motionEnabled = LocalMotionPolicy.current.animationsEnabled
+    // Measure the screen at its target width once, then move its layer rather
+    // than resizing all dashboard cards on every frame. Match expansion's timing
+    // so collapse has enough frames to decelerate smoothly.
+    val animatedRailWidth = animateDpAsState(
+        targetValue = targetRailWidth,
+        animationSpec = tween(if (motionEnabled) 220 else 0, easing = FastOutSlowInEasing),
+        label = "railTransition",
+    )
+    val layoutDirection = LocalLayoutDirection.current
+    val density = LocalDensity.current
+    val topInset = WindowInsets.safeDrawing.getTop(density)
+    val bottomInset = WindowInsets.safeDrawing.getBottom(density)
 
     ModalNavigationDrawer(
         drawerState = drawerState,
-        // Once opened with the menu button, swiping the drawer closed still works.
-        gesturesEnabled = drawerGesturesEnabled || drawerState.isOpen,
+        // On wide screens, the collapsible rail handles sidebar navigation; modal drawer gesture disabled.
+        gesturesEnabled = !isWide && (drawerGesturesEnabled || drawerState.isOpen),
         drawerContent = {
-            SafarDrawer(
-                currentRoute      = currentRoute,
-                isDarkTheme       = liveDark,
-                isAdmin           = isAdmin,
-                isPremiumActive   = premiumStatus.hasAnyPaidAccess,
-                userName          = userName,
-                userEmail         = userEmail,
-                userAvatar        = userAvatar,
-                onNavigate        = onNavigate,
-                onToggleDarkTheme = {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    themeVm.toggleDarkTheme()
-                },
-                onCloseDrawer     = { scope.launch { drawerState.close() } },
-            )
+            if (!isWide) {
+                SafarDrawer(
+                    currentRoute      = currentRoute,
+                    isDarkTheme       = liveDark,
+                    isAdmin           = isAdmin,
+                    isPremiumActive   = premiumStatus.hasAnyPaidAccess,
+                    userName          = userName,
+                    userEmail         = userEmail,
+                    userAvatar        = userAvatar,
+                    onNavigate        = onNavigate,
+                    onToggleDarkTheme = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        themeVm.toggleDarkTheme()
+                    },
+                    onCloseDrawer     = { scope.launch { drawerState.close() } },
+                )
+            }
         },
     ) {
-        Scaffold(
-            containerColor = containerColor ?: MaterialTheme.colorScheme.background,
-            contentWindowInsets = WindowInsets.safeDrawing,
+        Row(modifier = Modifier.fillMaxSize()) {
+            if (isWide) {
+                SafarNavigationRail(
+                    currentRoute = currentRoute,
+                    isDarkTheme = liveDark,
+                    isExpanded = railExpanded,
+                    onExpandedChange = { railExpanded = it },
+                    expansionProgress = {
+                        ((animatedRailWidth.value - SafarCompactRailWidth) / (SafarExpandedRailWidth - SafarCompactRailWidth)).coerceIn(0f, 1f)
+                    },
+                    modifier = Modifier.drawBehind {
+                        // On collapse the rail is measured at its final width; paint the
+                        // departing surface up to the same edge as the moving content.
+                        val extra = (animatedRailWidth.value.toPx() - size.width).coerceAtLeast(0f)
+                        if (extra > 0f) {
+                            val overlap = 18.dp.toPx()
+                            val left = if (layoutDirection == LayoutDirection.Ltr) size.width - overlap else -extra
+                            drawRect(
+                                color = if (liveDark) Color(0xFF211921) else Color(0xFFFFF5F0),
+                                topLeft = Offset(left, 0f),
+                                size = Size(extra + overlap, size.height),
+                            )
+                        }
+                    },
+                    onNavigate = onNavigate,
+                    onToggleDarkTheme = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        themeVm.toggleDarkTheme()
+                    },
+                    userName = userName,
+                    userEmail = userEmail,
+                    userAvatar = userAvatar,
+                    isPremiumActive = premiumStatus.hasAnyPaidAccess,
+                    isAdmin = isAdmin,
+                )
+            }
+            Scaffold(
+                modifier = Modifier.weight(1f).fillMaxHeight().graphicsLayer {
+                    if (isWide) {
+                        val direction = if (layoutDirection == LayoutDirection.Ltr) 1f else -1f
+                        translationX = direction * (animatedRailWidth.value - targetRailWidth).toPx()
+                    }
+                },
+                containerColor = containerColor ?: MaterialTheme.colorScheme.background,
+                contentWindowInsets = if (isWide) {
+                    WindowInsets.safeDrawing.only(
+                        WindowInsetsSides.Vertical + WindowInsetsSides.End
+                    )
+                } else {
+                    WindowInsets.safeDrawing
+                },
             topBar = {
                 androidx.compose.animation.AnimatedVisibility(
                     visible = showTopBar,
@@ -220,18 +301,20 @@ fun SafarDrawerScaffold(
                             contentColor = actualContentColor,
                             windowInsets = WindowInsets(0, 0, 0, 0),
                             leading = {
-                                ComposablesIconButton(
-                                    onClick = onNavigationClick ?: openDrawer,
-                                    style = ButtonStyle.Ghost,
-                                    buttonSize = ButtonSize.Small,
-                                    contentColor = actualContentColor,
-                                ) {
-                                    ComposablesIcon(
-                                        navigationIcon ?: Icons.Default.Menu,
-                                        contentDescription = navigationContentDescription ?: stringResource(R.string.nav_open_menu),
-                                        modifier = Modifier.size(22.dp),
-                                        tint = actualContentColor,
-                                    )
+                                if (!isWide || navigationIcon != null) {
+                                    ComposablesIconButton(
+                                        onClick = onNavigationClick ?: openDrawer,
+                                        style = ButtonStyle.Ghost,
+                                        buttonSize = ButtonSize.Small,
+                                        contentColor = actualContentColor,
+                                    ) {
+                                        ComposablesIcon(
+                                            navigationIcon ?: Icons.Default.Menu,
+                                            contentDescription = navigationContentDescription ?: stringResource(R.string.nav_open_menu),
+                                            modifier = Modifier.size(22.dp),
+                                            tint = actualContentColor,
+                                        )
+                                    }
                                 }
                                 if (secondaryNavigationIcon != null && onSecondaryNavigationClick != null) {
                                     ComposablesIconButton(
@@ -254,12 +337,19 @@ fun SafarDrawerScaffold(
                                     verticalAlignment = Alignment.CenterVertically,
                                     modifier = Modifier.padding(end = 4.dp).onSizeChanged { tutorialActionsWidth = it.width },
                                 ) {
-                                    com.safarparmar.app.ui.tutorial.TitliGuideButton()
+                                    if (showTutorialButton) com.safarparmar.app.ui.tutorial.TitliGuideButton()
                                     topBarActions()
                                 }
                             },
                         )
-                        if (showTopBarTitle) {
+                        if (topBarTitleContent != null) {
+                            Box(
+                                Modifier.fillMaxWidth().padding(
+                                    start = if (isWide && navigationIcon == null) 20.dp else 56.dp,
+                                    end = maxOf(64.dp, tutorialActionsEnd),
+                                ),
+                            ) { topBarTitleContent() }
+                        } else if (showTopBarTitle) {
                             Column(
                                 modifier = Modifier.align(Alignment.Center).then(
                                     if (wrapTopBarTitle) Modifier.fillMaxWidth().padding(
@@ -300,5 +390,6 @@ fun SafarDrawerScaffold(
             },
             content = content,
         )
+        }
     }
 }

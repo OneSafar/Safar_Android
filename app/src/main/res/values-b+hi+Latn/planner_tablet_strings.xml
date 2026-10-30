@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="planner_tablet_title">Study planner</string>
+    <string name="planner_tablet_subtitle">Progress, performance aur batch journey track karein.</string>
+    <string name="planner_tablet_new_plan_body">Nayi shuruaat karein ya template chunein</string>
+    <string name="planner_tablet_preview_empty">Taiyari organize karne ke liye ek plan banayein.</string>
+    <string name="planner_tablet_plan_number">Plan %1$d</string>
+    <string name="planner_tablet_plan_options">%1$s ke options</string>
+    <string name="planner_tablet_open_plan">Plan kholein</string>
+    <string name="planner_tablet_about_plan">Is plan ke baare mein</string>
+    <string name="planner_tablet_plan_number_label">Plan number</string>
+    <string name="planner_tablet_created_on">Banane ki date</string>
+    <string name="planner_tablet_exam_date">Exam ki date</string>
+    <string name="planner_calendar_target_exam">Target exam</string>
+    <string name="planner_calendar_day_left">din baaki</string>
+    <string name="planner_calendar_days_left">din baaki</string>
+    <string name="planner_calendar_select_date">Apne targets dekhne ke liye date chunein</string>
+    <string name="planner_calendar_targets_for">%1$s ke liye aapke targets</string>
+    <string name="planner_calendar_no_topics">Is din ke liye koi topics planned nahi hain.</string>
+</resources>

@@ -10,8 +10,8 @@ val LocalHabitDarkTheme = compositionLocalOf { false }
 /**
  * Hallmark Locked Design System Tokens for Safar Habit Tracker.
  * Architecture: Workbench / Ledger (Editorial Desk Journal).
- * Base: Warm Cream Paper (#FFFDF6). Accent: Royal Purple (#581C87) <= 3% viewport.
- * Completion: Royal Purple Stamp (#581C87). Trend accent: Deep Orange (#9A3412).
+ * Base: Warm Cream Paper (#FFFDF6). Accent: Forest Green (#581C87) <= 3% viewport.
+ * Completion: Forest Green Stamp (#581C87). Trend accent: Deep Orange (#9A3412).
  */
 object HabitColors {
     // Light palette (Editorial Cream Paper Ledger)
@@ -23,21 +23,21 @@ object HabitColors {
     val LightTextTertiary = Color(0xFF98988F)      // light graphite guide
     val LightOutline = Color(0xFFE3DED3)          // delicate hairline rule (0.75-1dp)
     val LightOutlineStrong = Color(0xFFD8D1C5)    // firm hairline rule
-    val LightFocusRing = Color(0xFF682392)        // high-contrast focus indicator
+    val LightFocusRing = Color(0xFF36574A)        // high-contrast focus indicator
 
     // Accent (Surgical application only: active tab indicator, primary action, focus)
-    val LightRoyalPurple = Color(0xFF682392)       // Deep Royal Purple anchor
-    val LightRoyalPurple2 = Color(0xFF7F36AA)
-    val LightRoyalPurpleBg = Color(0xFFF2E8F7)     // Soft Purple Tint
+    val LightRoyalPurple = Color(0xFF36574A)       // Deep Forest Green anchor
+    val LightRoyalPurple2 = Color(0xFF4F7561)
+    val LightRoyalPurpleBg = Color(0xFFE8EEE0)     // Soft Purple Tint
     val LightOnRoyalPurple = Color(0xFFFFFFFF)
 
     // Secondary analytic accent: reserved for streaks, trend lines, and callouts.
     val LightDeepOrange = Color(0xFF9A3412)
     val LightDeepOrangeBg = Color(0xFFFFE7D6)
 
-    // Habit Completion: Tactile Royal Purple Stamp
-    val LightCheckDone = Color(0xFF581C87)         // Royal purple completion stamp
-    val LightCheckDoneBg = Color(0xFFF2E8F7)       // Soft purple wash
+    // Habit Completion: Tactile Forest Green Stamp
+    val LightCheckDone = Color(0xFF36574A)         // Royal purple completion stamp
+    val LightCheckDoneBg = Color(0xFFE8EEE0)       // Soft purple wash
     val LightCheckDoneOn = Color(0xFFFFFFFF)
 
     // Destructive
@@ -45,7 +45,7 @@ object HabitColors {
     val LightErrorBg = Color(0xFFFAEEEE)
 
     // Dark palette (Editorial Dark Slate Ledger)
-    val DarkBackground = Color(0xFF141416)        // deep slate paper
+    val DarkBackground = Color(0xFF131316)        // deep slate paper
     val DarkParchment = Color(0xFF1C1D22)         // dark parchment inset
     val DarkSurface = Color(0xFF22232A)           // elevated slate card
     val DarkTextPrimary = Color(0xFFF3F4F6)        // crisp light ink
@@ -53,18 +53,18 @@ object HabitColors {
     val DarkTextTertiary = Color(0xFF6B7280)
     val DarkOutline = Color(0xFF2E2F38)           // dark hairline rule
     val DarkOutlineStrong = Color(0xFF3E404D)
-    val DarkFocusRing = Color(0xFFC084FC)
+    val DarkFocusRing = Color(0xFF9BC7A7)
 
-    val DarkRoyalPurple = Color(0xFFC084FC)        // lighter purple for dark mode contrast
-    val DarkRoyalPurple2 = Color(0xFFA855F7)
-    val DarkRoyalPurpleBg = Color(0xFF2E1065)
+    val DarkRoyalPurple = Color(0xFF9BC7A7)        // lighter purple for dark mode contrast
+    val DarkRoyalPurple2 = Color(0xFF7FA78C)
+    val DarkRoyalPurpleBg = Color(0xFF253C31)
     val DarkOnRoyalPurple = Color(0xFF141416)
 
     val DarkDeepOrange = Color(0xFFEA580C)
     val DarkDeepOrangeBg = Color(0xFF431407)
 
-    val DarkCheckDone = Color(0xFFC084FC)
-    val DarkCheckDoneBg = Color(0xFF2E1065)
+    val DarkCheckDone = Color(0xFF9BC7A7)
+    val DarkCheckDoneBg = Color(0xFF253C31)
     val DarkCheckDoneOn = Color(0xFF141416)
 
     val DarkError = Color(0xFFEF4444)
@@ -136,15 +136,15 @@ object HabitColors {
         @Composable get() = TextPrimary
 
     // Editorial Ink Density (Shade Washes per Hallmark Approach 2)
-    val InkDensity100 = Color(0xFF581C87)
-    val InkDensity75 = Color(0xFF7E22CE)
-    val InkDensity50 = Color(0xFFC4B5FD)
-    val InkDensity25 = Color(0xFFEDE9FE)
+    val InkDensity100 = Color(0xFF36574A)
+    val InkDensity75 = Color(0xFF5D896D)
+    val InkDensity50 = Color(0xFFA9C4AD)
+    val InkDensity25 = Color(0xFFE8EEE0)
 
-    val DarkInkDensity100 = Color(0xFFC084FC)
-    val DarkInkDensity75 = Color(0xFFA855F7)
-    val DarkInkDensity50 = Color(0xFF7E22CE)
-    val DarkInkDensity25 = Color(0xFF3B0764)
+    val DarkInkDensity100 = Color(0xFF9BC7A7)
+    val DarkInkDensity75 = Color(0xFF7FA78C)
+    val DarkInkDensity50 = Color(0xFF5D896D)
+    val DarkInkDensity25 = Color(0xFF284333)
 
     @Composable
     fun getInkDensityColor(ratio: Float): Color {

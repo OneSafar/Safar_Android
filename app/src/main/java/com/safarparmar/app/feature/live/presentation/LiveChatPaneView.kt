@@ -273,7 +273,7 @@ class LiveChatPaneView(context: Context) : LinearLayout(context) {
     private companion object {
         // The player Activity is always a dark, full-bleed surface, so these are
         // fixed rather than theme-derived.
-        const val SURFACE = 0xFF121212.toInt()
+        const val SURFACE = 0xFF131316.toInt()
         const val TEXT_PRIMARY = 0xFFECECEC.toInt()
         const val TEXT_SECONDARY = 0xFF9E9E9E.toInt()
         const val DIVIDER = 0x33FFFFFF

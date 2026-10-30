@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="sidebar_section_wellbeing">Well-being</string>
+    <string name="sidebar_section_community_resources">Community &amp; Resources</string>
     <!-- Conversational Hinglish. Untranslated screens intentionally fall back to English. -->
     <string name="onboarding_headline">Apni pace par aage badhein.</string>
     <string name="onboarding_body">Padhai aur well-being ke safar ko simple banayein.</string>

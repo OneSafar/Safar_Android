@@ -153,25 +153,9 @@ class MainActivity : AppCompatActivity(), PaymentResultWithDataListener {
 
             CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides customDensity) {
                 SafarTheme(darkTheme = isDarkTheme) {
-                    BoxWithConstraints(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(androidx.compose.material3.MaterialTheme.colorScheme.background),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        val isTablet = configuration.smallestScreenWidthDp >= TABLET_SMALLEST_WIDTH_DP
-                        val isTabletLandscape = isTablet && maxWidth > maxHeight
-                        val appContentModifier =
-                            if (isTabletLandscape) {
-                                Modifier
-                                    .width(maxHeight * 9f / 16f)
-                                    .fillMaxHeight()
-                            } else {
-                                Modifier.fillMaxSize()
-                            }
-
+                    com.safarparmar.app.ui.adaptive.ProvideSafarAdaptive {
                         Surface(
-                            modifier = appContentModifier.imePadding(),
+                            modifier = Modifier.fillMaxSize().imePadding(),
                         ) {
                             com.safarparmar.app.ui.components.popups.SafarPopupViewport {
                                 androidx.compose.animation.AnimatedContent(
@@ -238,7 +222,10 @@ class MainActivity : AppCompatActivity(), PaymentResultWithDataListener {
         }
 
         val configuration = resources.configuration
-        val isTablet = configuration.smallestScreenWidthDp >= TABLET_SMALLEST_WIDTH_DP
+        val metrics = resources.displayMetrics
+        val physicalSmallestWidthDp = minOf(metrics.widthPixels, metrics.heightPixels) / metrics.density
+        val isTablet = configuration.smallestScreenWidthDp >= TABLET_SMALLEST_WIDTH_DP ||
+            physicalSmallestWidthDp >= TABLET_SMALLEST_WIDTH_DP
         if (!isTablet) {
             requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
             return
