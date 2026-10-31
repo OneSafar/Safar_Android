@@ -106,7 +106,6 @@ fun SplashScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
-    val backgroundRes = if (isDark) R.drawable.auth_bg_dark else R.drawable.auth_bg
 
     LaunchedEffect(uiState.destination) {
         when (uiState.destination) {
@@ -122,13 +121,15 @@ fun SplashScreen(
         isTaglineVisible = true
     }
     
-    Box(Modifier.fillMaxSize()) {
-        Image(
-            painter = painterResource(id = backgroundRes),
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize(),
-        )
+    Box(Modifier.fillMaxSize().background(com.safarparmar.app.ui.theme.BgDark)) {
+        if (!isDark) {
+            Image(
+                painter = painterResource(id = R.drawable.auth_bg),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()

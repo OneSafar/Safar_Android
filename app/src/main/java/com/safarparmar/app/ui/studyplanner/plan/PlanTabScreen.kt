@@ -380,7 +380,7 @@ fun PlanTabScreen(
             onDismissRequest = { pendingDistributeAction = null },
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
             dragHandle = { BottomSheetDefaults.DragHandle() },
-            containerColor = PlannerFlatColors.BgCream,
+            containerColor = PlannerFlatColors.ComponentBackground,
         ) {
             Column(
                 modifier = Modifier
@@ -923,7 +923,7 @@ private fun CreatePlanPromptSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         dragHandle = { BottomSheetDefaults.DragHandle() },
-        containerColor = PlannerFlatColors.BgCream,
+        containerColor = PlannerFlatColors.ComponentBackground,
     ) {
         Column(
             modifier = Modifier

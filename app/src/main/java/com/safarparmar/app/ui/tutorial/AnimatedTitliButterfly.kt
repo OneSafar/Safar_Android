@@ -99,6 +99,9 @@ private class ButterflyPathCache {
  * @param animate Whether to animate; toolbar icons stay still and portraits flap gently.
  * @param wingColor Primary silhouette & body color (defaults to InkBlack `#141819`).
  * @param accentColor Inner wing & spot color (defaults to AccentPink `#F86594`).
+ * @param outlineColor Wing edge; the default preserves the original light illustration.
+ * @param detailColor Body and antenna ink, independently readable on dark surfaces.
+ * @param outlineWidth Vector-space stroke width, scaled with the original illustration.
  */
 @Composable
 internal fun AnimatedTitliButterfly(
@@ -109,7 +112,10 @@ internal fun AnimatedTitliButterfly(
     enableHoverBob: Boolean = true,
     animate: Boolean = true,
     wingColor: Color = ButterflyColors.InkBlack,
-    accentColor: Color = ButterflyColors.AccentPink
+    accentColor: Color = ButterflyColors.AccentPink,
+    outlineColor: Color = accentColor.copy(alpha = 0.22f),
+    detailColor: Color = wingColor,
+    outlineWidth: Float = 5f,
 ) {
     val pathCache = remember { ButterflyPathCache() }
     val motionEnabled = animate && com.safarparmar.app.performance.LocalMotionPolicy.current.animationsEnabled
@@ -171,7 +177,7 @@ internal fun AnimatedTitliButterfly(
             }) {
                 drawPath(
                     path = pathCache.antennaLeft,
-                    color = wingColor,
+                    color = detailColor,
                     style = Stroke(width = 6.8f, cap = StrokeCap.Round)
                 )
             }
@@ -181,7 +187,7 @@ internal fun AnimatedTitliButterfly(
             }) {
                 drawPath(
                     path = pathCache.antennaRight,
-                    color = wingColor,
+                    color = detailColor,
                     style = Stroke(width = 6.8f, cap = StrokeCap.Round)
                 )
             }
@@ -192,7 +198,7 @@ internal fun AnimatedTitliButterfly(
                 skewY = -wingSkewTanY
             ) {
                 // Outer black wing
-                drawPath(path = pathCache.wingLeftOuter, color = accentColor.copy(alpha = 0.22f), style = Stroke(5f))
+                drawPath(path = pathCache.wingLeftOuter, color = outlineColor, style = Stroke(outlineWidth))
                 drawPath(path = pathCache.wingLeftOuter, color = wingColor)
                 // Inner pink patch
                 drawPath(path = pathCache.wingLeftInner, color = accentColor)
@@ -220,7 +226,7 @@ internal fun AnimatedTitliButterfly(
                 skewY = wingSkewTanY
             ) {
                 // Outer black wing
-                drawPath(path = pathCache.wingRightOuter, color = accentColor.copy(alpha = 0.22f), style = Stroke(5f))
+                drawPath(path = pathCache.wingRightOuter, color = outlineColor, style = Stroke(outlineWidth))
                 drawPath(path = pathCache.wingRightOuter, color = wingColor)
                 // Inner pink patch
                 drawPath(path = pathCache.wingRightInner, color = accentColor)
@@ -245,7 +251,7 @@ internal fun AnimatedTitliButterfly(
             // --- D. BUTTERFLY BODY ---
             drawPath(
                 path = pathCache.body,
-                color = wingColor
+                color = detailColor
             )
         }
     }

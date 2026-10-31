@@ -318,7 +318,7 @@ fun PlanSettingsSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         dragHandle = { BottomSheetDefaults.DragHandle() },
-        containerColor = PlannerFlatColors.BgCream,
+        containerColor = PlannerFlatColors.ComponentBackground,
     ) {
         LazyColumn(
             state = listState,
@@ -1053,7 +1053,7 @@ fun ManualSubjectOrderSheet(
         onDismissRequest = onSkip,
         sheetState = sheetState,
         dragHandle = { BottomSheetDefaults.DragHandle() },
-        containerColor = PlannerFlatColors.BgCream,
+        containerColor = PlannerFlatColors.ComponentBackground,
     ) {
         Column(
             modifier = Modifier
@@ -1229,7 +1229,7 @@ fun DailyTodoSetupSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         dragHandle = { BottomSheetDefaults.DragHandle(color = PlannerFlatColors.BorderSoft) },
-        containerColor = PlannerFlatColors.BgCream,
+        containerColor = PlannerFlatColors.ComponentBackground,
     ) {
         SafarEnableSheetBackdropBlur()
         val isDark = isPlannerDark

@@ -10,7 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.safarparmar.app.domain.model.Goal
-import com.safarparmar.app.ui.studyplanner.plan.PlanHairline
+import com.safarparmar.app.ui.nishtha.goals.GoalDivider as PlanHairline
 import com.safarparmar.app.util.IstDateUtils
 import com.safarparmar.app.util.isVisibleInGoals
 import com.safarparmar.app.util.isGoalCompleted
@@ -27,8 +27,8 @@ internal fun StatusGrid(goals: List<Goal>, ekagraAnalytics: com.safarparmar.app.
     val missed = standardGoals.filter { it.isMissedGoal(todayKey) }
     val doneToday = standardGoals.count { it.isGoalCompleted() && it.anchorDateKey() == todayKey }
 
-    Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(0.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             StatInfoCard(
                 "Done Today",
                 doneToday.toString(),
@@ -44,7 +44,7 @@ internal fun StatusGrid(goals: List<Goal>, ekagraAnalytics: com.safarparmar.app.
                 GoalsFlatColors.Repeat,
             )
         }
-        Spacer(Modifier.height(0.dp))
+        Spacer(Modifier.height(12.dp))
         PlanHairline(alpha = 0.4f)
         StatInfoCard(
             "Missed",

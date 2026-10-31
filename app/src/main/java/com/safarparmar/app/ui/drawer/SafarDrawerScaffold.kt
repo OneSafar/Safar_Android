@@ -1,5 +1,6 @@
 package com.safarparmar.app.ui.drawer
 
+import com.safarparmar.app.ui.theme.BgDark
 import android.app.Activity
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -80,6 +81,8 @@ fun SafarDrawerScaffold(
     showTopBarTitle: Boolean = true,
     showTutorialButton: Boolean = true,
     topBarTitleContent: (@Composable () -> Unit)? = null,
+    /** Center a custom title in the content viewport with equal space for edge actions. */
+    centerTopBarTitleContent: Boolean = false,
     wrapTopBarTitle: Boolean = false,
     useGlassTopBar: Boolean = false,
     useDetachedMenuGlass: Boolean = false,
@@ -245,7 +248,7 @@ fun SafarDrawerScaffold(
                             val overlap = 18.dp.toPx()
                             val left = if (layoutDirection == LayoutDirection.Ltr) size.width - overlap else -extra
                             drawRect(
-                                color = if (liveDark) Color(0xFF211921) else Color(0xFFFFF5F0),
+                                color = if (liveDark) BgDark else Color(0xFFFFF5F0),
                                 topLeft = Offset(left, 0f),
                                 size = Size(extra + overlap, size.height),
                             )
@@ -343,11 +346,19 @@ fun SafarDrawerScaffold(
                             },
                         )
                         if (topBarTitleContent != null) {
+                            val titleGutter = maxOf(
+                                if (secondaryNavigationIcon != null) 104.dp else 56.dp,
+                                64.dp, tutorialActionsEnd,
+                            )
                             Box(
-                                Modifier.fillMaxWidth().padding(
-                                    start = if (isWide && navigationIcon == null) 20.dp else 56.dp,
-                                    end = maxOf(64.dp, tutorialActionsEnd),
+                                Modifier.fillMaxWidth().then(
+                                    if (centerTopBarTitleContent) Modifier.padding(horizontal = titleGutter)
+                                    else Modifier.padding(
+                                        start = if (isWide && navigationIcon == null) 20.dp else 56.dp,
+                                        end = maxOf(64.dp, tutorialActionsEnd),
+                                    )
                                 ),
+                                contentAlignment = if (centerTopBarTitleContent) Alignment.Center else Alignment.TopStart,
                             ) { topBarTitleContent() }
                         } else if (showTopBarTitle) {
                             Column(

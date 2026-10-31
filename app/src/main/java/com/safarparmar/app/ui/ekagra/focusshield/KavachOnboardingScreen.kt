@@ -1,4 +1,9 @@
 package com.safarparmar.app.ui.ekagra.focusshield
+import com.safarparmar.app.ui.ekagra.focusshield.KavachCommandButton as Button
+import com.safarparmar.app.ui.ekagra.focusshield.KavachCommandOutlineButton as OutlinedButton
+import com.safarparmar.app.ui.ekagra.focusshield.KavachCommandTextButton as TextButton
+import com.safarparmar.app.ui.ekagra.focusshield.KavachCommandField as OutlinedTextField
+
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateFloatAsState
@@ -38,10 +43,9 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import com.safarparmar.app.ui.components.popups.SafarModalBottomSheet as ModalBottomSheet
+import com.safarparmar.app.ui.ekagra.focusshield.KavachCommandSheet as ModalBottomSheet
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import com.composables.ui.components.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -119,6 +123,8 @@ fun KavachOnboardingScreen(
     onBack: () -> Unit,
     viewModel: FocusShieldViewModel = hiltViewModel(),
 ) {
+    com.safarparmar.app.ui.ekagra.focusshield.KavachCommandTheme {
+
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val colors = kavachPermissionColors()
@@ -442,6 +448,8 @@ fun KavachOnboardingScreen(
             )
         }
         } // CompositionLocalProvider LocalPlannerIsDarkTheme
+    }
+
     }
 }
 

@@ -1,6 +1,7 @@
 /* Hallmark · pre-emit critique: P5 H5 E4 S5 R5 V4 · approved Compact Profile */
 package com.safarparmar.app.ui.profile
 
+import com.safarparmar.app.ui.theme.BgDark
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -37,7 +38,7 @@ internal data class CompactProfileColors(val canvas: Color, val paper: Color, va
     val peach: Color, val mint: Color, val onMint: Color, val plum: Color, val onPlum: Color,
     val lilac: Color, val sage: Color, val danger: Color, val dangerSurface: Color)
 internal fun compactProfileColors(dark: Boolean) = CompactProfileColors(
-    canvas = if (dark) Color(0xFF131316) else Color(0xFFFFF5F0),
+    canvas = if (dark) BgDark else Color(0xFFFFF5F0),
     paper = if (dark) Color(0xFF1E1E24) else Color(0xFFFFFDFC),
     ink = if (dark) Color(0xFFFFF0F6) else Color(0xFF39132E),
     muted = if (dark) Color(0xFFCFBECB) else Color(0xFF75616F),
@@ -118,41 +119,69 @@ internal fun CompactProfileSurface(content: @Composable ColumnScope.() -> Unit) 
 @Composable
 internal fun CompactProfileMembership(premium: Boolean, onPremium: () -> Unit) {
     val c = LocalCompactProfileColors.current
-    Surface(color = c.plum, shape = RoundedCornerShape(24.dp), modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Box(Modifier.size(44.dp).clip(RoundedCornerShape(14.dp)).background(c.peach), contentAlignment = Alignment.Center) {
-                Icon(Icons.Default.WorkspacePremium, contentDescription = null, tint = c.plum, modifier = Modifier.size(26.dp))
-            }
-            Text(stringResource(if (premium) R.string.profile_safar_premium else R.string.profile_safar_plus),
-                color = c.onPlum, fontFamily = PoppinsFontFamily, fontSize = 20.sp, lineHeight = 28.sp, fontWeight = FontWeight.Bold)
-            Text(stringResource(if (premium) R.string.profile_premium_active else R.string.profile_free_plan),
-                color = c.onPlum, fontSize = 13.sp, lineHeight = 21.sp)
-            // Artwork is measured below the text, so no translated/large text can overlap it.
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.weight(1f)) {
-                    Button(onClick = onPremium, style = ButtonStyle.Ghost,
-                        modifier = Modifier.fillMaxWidth().background(c.onPlum.copy(alpha = .13f), RoundedCornerShape(16.dp))) {
-                        Text(stringResource(if (premium) R.string.profile_manage_plan else R.string.profile_explore_premium),
-                            color = c.onPlum, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+    Surface(color = c.plum, shape = RoundedCornerShape(24.dp), modifier = Modifier.fillMaxWidth(),
+        border = androidx.compose.foundation.BorderStroke(1.dp, c.lilac.copy(alpha = .28f))) {
+        Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp),
+                verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Box(Modifier.size(36.dp).clip(RoundedCornerShape(12.dp)).background(c.peach), contentAlignment = Alignment.Center) {
+                            Icon(Icons.Default.WorkspacePremium, contentDescription = null,
+                                tint = c.plum, modifier = Modifier.size(22.dp))
+                        }
+                        Text(stringResource(if (premium) R.string.profile_safar_premium else R.string.profile_safar_plus),
+                            modifier = Modifier.weight(1f), color = c.onPlum,
+                            fontFamily = MembershipFont, fontSize = 18.sp, lineHeight = 25.sp,
+                            fontWeight = FontWeight.SemiBold)
+                    }
+                    Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        if (premium) Icon(Icons.Default.CheckCircle, contentDescription = null,
+                            tint = c.mint, modifier = Modifier.padding(top = 2.dp).size(16.dp))
+                        Text(stringResource(if (premium) R.string.profile_premium_active else R.string.profile_free_plan),
+                            color = if (premium) c.mint else c.onPlum.copy(alpha = .8f),
+                            fontSize = 12.sp, lineHeight = 18.sp)
                     }
                 }
-                Canvas(Modifier.size(70.dp, 80.dp).clip(RoundedCornerShape(bottomEnd = 16.dp))) {
-                    val w = size.width; val h = size.height
-                    drawCircle(c.lilac, w * .48f, Offset(w * .91f, h * .45f))
-                    drawPath(Path().apply {
-                        moveTo(0f, h); lineTo(0f, h * .48f)
-                        cubicTo(0f, h * .04f, w * .72f, h * .04f, w * .72f, h * .48f)
-                        lineTo(w * .72f, h); close()
-                    }, c.peach)
-                    drawPath(Path().apply {
-                        moveTo(w * .7f, h); cubicTo(w * .25f, h * .8f, w * .35f, h * .58f, w * .34f, h * .53f)
-                        cubicTo(w * .77f, h * .62f, w * .77f, h * .85f, w * .7f, h)
-                        cubicTo(w * .55f, h * .70f, w * .85f, h * .56f, w, h * .52f)
-                        cubicTo(w, h * .84f, w * .86f, h * .97f, w * .7f, h)
-                    }, c.sage)
+                // Dedicated art column: it cannot cover translated or enlarged text.
+                if (androidx.compose.ui.platform.LocalDensity.current.fontScale <= 1.3f) {
+                    MembershipArtwork(Modifier.size(64.dp, 76.dp), c)
                 }
             }
+            Button(onClick = onPremium, style = ButtonStyle.Ghost, shape = RoundedCornerShape(16.dp),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)
+                    .background(c.peach, RoundedCornerShape(16.dp))) {
+                Text(stringResource(if (premium) R.string.profile_manage_plan else R.string.profile_explore_premium),
+                    color = c.plum, modifier = Modifier.weight(1f), fontFamily = MembershipFont,
+                    fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null,
+                    tint = c.plum, modifier = Modifier.size(22.dp))
+            }
         }
+    }
+}
+
+private val MembershipFont = androidx.compose.ui.text.font.FontFamily(
+    androidx.compose.ui.text.font.Font(R.font.poppins_regular, FontWeight.Normal),
+    androidx.compose.ui.text.font.Font(R.font.poppins_semibold, FontWeight.SemiBold),
+)
+
+@Composable
+private fun MembershipArtwork(modifier: Modifier, c: CompactProfileColors) {
+    Canvas(modifier.clip(RoundedCornerShape(16.dp))) {
+        val w = size.width; val h = size.height
+        drawCircle(c.lilac, w * .48f, Offset(w * .91f, h * .45f))
+        drawPath(Path().apply {
+            moveTo(0f, h); lineTo(0f, h * .48f)
+            cubicTo(0f, h * .04f, w * .72f, h * .04f, w * .72f, h * .48f)
+            lineTo(w * .72f, h); close()
+        }, c.peach)
+        drawPath(Path().apply {
+            moveTo(w * .7f, h); cubicTo(w * .25f, h * .8f, w * .35f, h * .58f, w * .34f, h * .53f)
+            cubicTo(w * .77f, h * .62f, w * .77f, h * .85f, w * .7f, h)
+            cubicTo(w * .55f, h * .70f, w * .85f, h * .56f, w, h * .52f)
+            cubicTo(w, h * .84f, w * .86f, h * .97f, w * .7f, h)
+        }, c.sage)
     }
 }
 

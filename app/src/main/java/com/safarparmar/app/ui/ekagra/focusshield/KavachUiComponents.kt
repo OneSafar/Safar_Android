@@ -1,4 +1,9 @@
 package com.safarparmar.app.ui.ekagra.focusshield
+import com.safarparmar.app.ui.ekagra.focusshield.KavachCommandButton as Button
+import com.safarparmar.app.ui.ekagra.focusshield.KavachCommandOutlineButton as OutlinedButton
+import com.safarparmar.app.ui.ekagra.focusshield.KavachCommandTextButton as TextButton
+import com.safarparmar.app.ui.ekagra.focusshield.KavachCommandField as OutlinedTextField
+
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
@@ -39,7 +44,6 @@ import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -47,11 +51,11 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import com.safarparmar.app.ui.components.popups.SafarModalBottomSheet as ModalBottomSheet
+import com.safarparmar.app.ui.ekagra.focusshield.KavachCommandSheet as ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
-import androidx.compose.material3.Text
+import com.composables.ui.components.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue

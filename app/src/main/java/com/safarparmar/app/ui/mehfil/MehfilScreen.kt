@@ -107,7 +107,9 @@ fun MehfilScreen(
         }
     }
 
-    CompositionLocalProvider(LocalPlannerIsDarkTheme provides isDarkTheme) {
+    CompositionLocalProvider(LocalPlannerIsDarkTheme provides isDarkTheme,
+        com.safarparmar.app.ui.theme.LocalSafarComposablesAccent provides MehfilFlatColors.Primary) {
+    com.safarparmar.app.ui.theme.SafarComposablesTheme {
     if (showSandeshSheet && uiState.sandeshes.isNotEmpty()) {
         SandeshBottomSheet(
             sandesh = uiState.latestSandesh ?: uiState.sandeshes.first(),
@@ -209,6 +211,7 @@ fun MehfilScreen(
             commentPost = post
             viewModel.loadComments(post.id)
         },
+        onOpenSandesh = { sandeshTargetId = null; showSandeshSheet = true },
         onSandeshCommentClick = { id ->
             sandeshTargetId = id
             showSandeshSheet = true
@@ -238,5 +241,6 @@ fun MehfilScreen(
         askOnFirstVisit = false,
         onTourStateReady = { tourState = it },
     )
+    }
     }
 }

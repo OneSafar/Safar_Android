@@ -25,6 +25,7 @@ import kotlin.math.sin
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.safarparmar.app.ui.theme.isLightBackground
+import com.safarparmar.app.ui.navigation.Routes
 import com.safarparmar.app.R
 import com.safarparmar.app.data.local.SafarDataStore
 import com.safarparmar.app.performance.LocalMotionPolicy
@@ -35,8 +36,12 @@ import kotlinx.coroutines.withTimeoutOrNull
 /** User-supplied vector, shared by toolbar icons, portraits and the spotlight companion. */
 @Composable
 internal fun TitliIcon(modifier: Modifier = Modifier, animate: Boolean = false) {
+    val palette = titliPalette(!MaterialTheme.colorScheme.background.isLightBackground())
     AnimatedTitliButterfly(modifier = modifier, size = 48.dp, baseAngleDegrees = 12f,
-        enableHoverBob = false, animate = animate)
+        enableHoverBob = false, animate = animate,
+        wingColor = palette.wing, accentColor = palette.accent,
+        outlineColor = palette.outline, detailColor = palette.detail,
+        outlineWidth = palette.outlineWidth)
 }
 
 /** Decorative guide follows the measured spotlight, without intercepting practice controls. */
@@ -127,6 +132,22 @@ internal fun titliCompanionPosition(target: Rect, stage: Size, companion: Size, 
 internal enum class TitliFeature { EKAGRA, GOALS, YOUTUBE, HABITS, TOPPERS_BATCH, MEHFIL, DHYAN, STUDY_CIRCLE, CHECK_IN, JOURNAL, STREAKS, ANALYTICS, EXAM_PLANNER }
 internal data class TitliRegistration(val feature: TitliFeature?, val start: () -> Unit, val lessons: () -> Unit, val ready: () -> Boolean = { true })
 
+/** Exact tutorial owners only: unrelated child/detail screens never inherit a guide. */
+internal fun titliFeaturesForRoute(route: String): Set<TitliFeature> = when (route.substringBefore("?")) {
+    Routes.EKAGRA -> setOf(TitliFeature.EKAGRA)
+    Routes.NISHTHA -> setOf(TitliFeature.CHECK_IN, TitliFeature.JOURNAL, TitliFeature.GOALS, TitliFeature.STREAKS)
+    Routes.ANALYTICS -> setOf(TitliFeature.ANALYTICS)
+    Routes.YOUTUBE_STUDY_MODE_V2 -> setOf(TitliFeature.YOUTUBE)
+    Routes.HABIT_TRACKER -> setOf(TitliFeature.HABITS)
+    Routes.TOPPERS_BATCH -> setOf(TitliFeature.TOPPERS_BATCH)
+    Routes.MEHFIL -> setOf(TitliFeature.MEHFIL)
+    Routes.DHYAN -> setOf(TitliFeature.DHYAN)
+    Routes.STUDY_CIRCLES -> setOf(TitliFeature.STUDY_CIRCLE)
+    Routes.STUDY_PLANNER -> setOf(TitliFeature.EXAM_PLANNER)
+    else -> emptySet()
+}
+internal val LocalTitliRoute = staticCompositionLocalOf { Routes.HOME }
+
 @Stable
 internal class TitliController {
     internal val guides = mutableStateMapOf<Any, TitliRegistration>()
@@ -152,13 +173,25 @@ internal fun RegisterTitliGuide(start: () -> Unit, lessons: () -> Unit, feature:
 }
 
 @Composable
-internal fun TitliGuideButton(onClick: (() -> Unit)? = null, modifier: Modifier = Modifier) {
+internal fun TitliGuideButton(onClick: (() -> Unit)? = null, modifier: Modifier = Modifier, artworkSize: androidx.compose.ui.unit.Dp = 36.dp) {
     if (!com.safarparmar.app.BuildConfig.TITLI_TUTORIALS_ENABLED) return
     val controller = LocalTitliController.current
-    val action = onClick ?: controller?.let { it::tap } ?: return
+    val route = LocalTitliRoute.current
+    val isHome = route.substringBefore("?") == Routes.HOME
+    val allowed = titliFeaturesForRoute(route)
+    // Screen registrations are disposed with their tab. Prefer the latest composed
+    // matching owner during transitions; never use an unrelated outgoing screen.
+    val guide = controller?.guides?.values?.lastOrNull { it.feature in allowed }
+    if (!isHome && (allowed.isEmpty() || guide == null)) return
+    val action: () -> Unit = if (isHome) {
+        onClick ?: controller?.let { it::tap } ?: return
+    } else {
+        // Start the feature walkthrough, not its lesson picker or the Home directory.
+        guide?.start ?: return
+    }
     val description = stringResource(R.string.titli_description)
-    IconButton(onClick = action, modifier = modifier.size(48.dp).testTag("titli.button").semantics { contentDescription = description }) {
-        TitliIcon(Modifier.size(36.dp))
+    IconButton(onClick = action, colors = IconButtonDefaults.iconButtonColors(containerColor = androidx.compose.ui.graphics.Color.Transparent), modifier = modifier.size(48.dp).testTag("titli.button").semantics { contentDescription = description }) {
+        TitliIcon(Modifier.size(artworkSize))
     }
 }
 
@@ -195,7 +228,7 @@ internal fun TitliHost(dataStore: SafarDataStore, onOpenEkagra: () -> Unit, onOp
     onOpenYoutube: () -> Unit = {}, onOpenHabits: () -> Unit = {},
     onOpenBatch: () -> Unit = {}, onOpenMehfil: () -> Unit = {}, onOpenDhyan: () -> Unit = {}, onOpenQueries: () -> Unit = {},
     onOpenCircle: () -> Unit = {}, onOpenCheckIn: () -> Unit = {}, onOpenJournal: () -> Unit = {}, onOpenStreaks: () -> Unit = {}, onOpenAnalytics: () -> Unit = {}, onOpenPlanner: () -> Unit = {},
-    introductionKey: String = "titli_introduction_v1", content: @Composable () -> Unit) {
+    introductionKey: String = "titli_introduction_v1", currentRoute: String = Routes.HOME, content: @Composable () -> Unit) {
     if (!com.safarparmar.app.BuildConfig.TITLI_TUTORIALS_ENABLED) {
         content()
         return
@@ -214,20 +247,24 @@ internal fun TitliHost(dataStore: SafarDataStore, onOpenEkagra: () -> Unit, onOp
         (guide ?: controller.guides.values.firstOrNull { it.feature == feature })?.start?.invoke()
     }
     var showAvailable by remember { mutableStateOf(false) }
-    fun showFeature(start: Boolean) {
-        val guide = controller.guides.values.lastOrNull()
-        if (guide != null) { if (start) guide.start() else guide.lessons() }
-        else showAvailable = true
+    val home = currentRoute.substringBefore("?") == Routes.HOME
+    fun showFeature() {
+        if (home) showAvailable = true
+        else controller.guides.values.lastOrNull { it.feature in titliFeaturesForRoute(currentRoute) }?.start?.invoke()
+    }
+    LaunchedEffect(currentRoute) {
+        // Dismiss the Home directory/introduction when navigating away.
+        if (!home) { showAvailable = false; controller.dismiss() }
     }
     LaunchedEffect(controller.requested, seen) {
-        if (controller.requested && seen == true) { controller.dismiss(); showFeature(false) }
+        if (controller.requested && (!home || seen == true)) { controller.dismiss(); showFeature() }
     }
-    CompositionLocalProvider(LocalTitliController provides controller) { content() }
-    if (controller.requested && seen == false) TitliIntroduction(
-        onContinue = { controller.dismiss(); scope.launch { dataStore.setTitliIntroductionSeen(introductionKey) }; showFeature(true) },
+    CompositionLocalProvider(LocalTitliController provides controller, LocalTitliRoute provides currentRoute) { content() }
+    if (home && controller.requested && seen == false) TitliIntroduction(
+        onContinue = { controller.dismiss(); scope.launch { dataStore.setTitliIntroductionSeen(introductionKey) }; showFeature() },
         onDismiss = { controller.dismiss(); scope.launch { dataStore.setTitliIntroductionSeen(introductionKey) } },
     )
-    if (showAvailable) TitliHelpMenu(name,
+    if (home && showAvailable) TitliHelpMenu(name,
         onFeature = { feature ->
             showAvailable = false
             pendingFeature = feature

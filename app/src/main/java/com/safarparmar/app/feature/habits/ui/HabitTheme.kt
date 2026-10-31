@@ -7,68 +7,64 @@ import androidx.compose.ui.graphics.Color
 
 val LocalHabitDarkTheme = compositionLocalOf { false }
 
-/**
- * Hallmark Locked Design System Tokens for Safar Habit Tracker.
- * Architecture: Workbench / Ledger (Editorial Desk Journal).
- * Base: Warm Cream Paper (#FFFDF6). Accent: Forest Green (#581C87) <= 3% viewport.
- * Completion: Forest Green Stamp (#581C87). Trend accent: Deep Orange (#9A3412).
- */
+/** Scoped blush/plum palette shared with Profile, Mehfil and SAFAR tutorials.
+ * Token names are retained for existing components; only color roles change. */
 object HabitColors {
-    // Light palette (Editorial Cream Paper Ledger)
-    val LightBackground = Color(0xFFFAF8F2)       // warm off-white cream paper
-    val LightParchment = Color(0xFFF4F0E7)        // subtle paper tint for tab bars & insets
-    val LightSurface = Color(0xFFFFFEFA)          // crisp card surface
-    val LightTextPrimary = Color(0xFF20221F)       // deep charcoal ink
-    val LightTextSecondary = Color(0xFF70736D)     // graphite pencil muted
-    val LightTextTertiary = Color(0xFF98988F)      // light graphite guide
-    val LightOutline = Color(0xFFE3DED3)          // delicate hairline rule (0.75-1dp)
-    val LightOutlineStrong = Color(0xFFD8D1C5)    // firm hairline rule
-    val LightFocusRing = Color(0xFF36574A)        // high-contrast focus indicator
+    // Light palette — blush paper and plum ink
+    val LightBackground = Color(0xFFFFF5F0)
+    val LightParchment = Color(0xFFFFF0F6)
+    val LightSurface = Color(0xFFFFFDFC)
+    val LightTextPrimary = Color(0xFF39132E)
+    val LightTextSecondary = Color(0xFF75616F)
+    val LightTextTertiary = Color(0xFF8C7885)
+    val LightOutline = Color(0xFFE8DEE5)
+    val LightOutlineStrong = Color(0xFFCEB9C9)
+    val LightFocusRing = Color(0xFF542347)
 
-    // Accent (Surgical application only: active tab indicator, primary action, focus)
-    val LightRoyalPurple = Color(0xFF36574A)       // Deep Forest Green anchor
-    val LightRoyalPurple2 = Color(0xFF4F7561)
-    val LightRoyalPurpleBg = Color(0xFFE8EEE0)     // Soft Purple Tint
+    // Primary plum action and lilac selection roles
+    val LightRoyalPurple = Color(0xFF542347)
+    val LightRoyalPurple2 = Color(0xFF793D67)
+    val LightRoyalPurpleBg = Color(0xFFEDE0F4)
     val LightOnRoyalPurple = Color(0xFFFFFFFF)
 
     // Secondary analytic accent: reserved for streaks, trend lines, and callouts.
-    val LightDeepOrange = Color(0xFF9A3412)
-    val LightDeepOrangeBg = Color(0xFFFFE7D6)
+    val LightDeepOrange = Color(0xFF9A4E25)
+    val LightDeepOrangeBg = Color(0xFFFFCBBE)
 
-    // Habit Completion: Tactile Forest Green Stamp
-    val LightCheckDone = Color(0xFF36574A)         // Royal purple completion stamp
-    val LightCheckDoneBg = Color(0xFFE8EEE0)       // Soft purple wash
+    // Completion uses the shared action color and mint wash
+    val LightCheckDone = Color(0xFF542347)
+    val LightCheckDoneBg = Color(0xFFC9EFE0)
     val LightCheckDoneOn = Color(0xFFFFFFFF)
 
     // Destructive
-    val LightError = Color(0xFFA44343)             // Muted Crimson
-    val LightErrorBg = Color(0xFFFAEEEE)
+    val LightError = Color(0xFFB3261E)
+    val LightErrorBg = Color(0xFFFFF0EF)
 
-    // Dark palette (Editorial Dark Slate Ledger)
-    val DarkBackground = Color(0xFF131316)        // deep slate paper
-    val DarkParchment = Color(0xFF1C1D22)         // dark parchment inset
-    val DarkSurface = Color(0xFF22232A)           // elevated slate card
-    val DarkTextPrimary = Color(0xFFF3F4F6)        // crisp light ink
-    val DarkTextSecondary = Color(0xFF9CA3AF)      // muted silver
-    val DarkTextTertiary = Color(0xFF6B7280)
-    val DarkOutline = Color(0xFF2E2F38)           // dark hairline rule
-    val DarkOutlineStrong = Color(0xFF3E404D)
-    val DarkFocusRing = Color(0xFF9BC7A7)
+    // Dark palette — warm plum surfaces
+    val DarkBackground = Color(0xFF131316)
+    val DarkParchment = Color(0xFF211921)
+    val DarkSurface = Color(0xFF342735)
+    val DarkTextPrimary = Color(0xFFFFF0F6)
+    val DarkTextSecondary = Color(0xFFCFBECB)
+    val DarkTextTertiary = Color(0xFFAF98A8)
+    val DarkOutline = Color(0xFF654D66)
+    val DarkOutlineStrong = Color(0xFF876B82)
+    val DarkFocusRing = Color(0xFFF0BEDC)
 
-    val DarkRoyalPurple = Color(0xFF9BC7A7)        // lighter purple for dark mode contrast
-    val DarkRoyalPurple2 = Color(0xFF7FA78C)
-    val DarkRoyalPurpleBg = Color(0xFF253C31)
-    val DarkOnRoyalPurple = Color(0xFF141416)
+    val DarkRoyalPurple = Color(0xFFF0BEDC)
+    val DarkRoyalPurple2 = Color(0xFFCDBBE9)
+    val DarkRoyalPurpleBg = Color(0xFF513551)
+    val DarkOnRoyalPurple = Color(0xFF39132E)
 
-    val DarkDeepOrange = Color(0xFFEA580C)
-    val DarkDeepOrangeBg = Color(0xFF431407)
+    val DarkDeepOrange = Color(0xFFFFB08A)
+    val DarkDeepOrangeBg = Color(0xFF684047)
 
-    val DarkCheckDone = Color(0xFF9BC7A7)
-    val DarkCheckDoneBg = Color(0xFF253C31)
-    val DarkCheckDoneOn = Color(0xFF141416)
+    val DarkCheckDone = Color(0xFFF0BEDC)
+    val DarkCheckDoneBg = Color(0xFF28574D)
+    val DarkCheckDoneOn = Color(0xFF39132E)
 
-    val DarkError = Color(0xFFEF4444)
-    val DarkErrorBg = Color(0xFF450A0A)
+    val DarkError = Color(0xFFFFB4AB)
+    val DarkErrorBg = Color(0xFF43282E)
 
     // Dynamic Getters
     val Background: Color
@@ -135,16 +131,16 @@ object HabitColors {
     val NavyBlue: Color
         @Composable get() = TextPrimary
 
-    // Editorial Ink Density (Shade Washes per Hallmark Approach 2)
-    val InkDensity100 = Color(0xFF36574A)
-    val InkDensity75 = Color(0xFF5D896D)
-    val InkDensity50 = Color(0xFFA9C4AD)
-    val InkDensity25 = Color(0xFFE8EEE0)
+    // Plum/lilac density ramp for progress and heatmaps
+    val InkDensity100 = Color(0xFF542347)
+    val InkDensity75 = Color(0xFFA97998)
+    val InkDensity50 = Color(0xFFCDBBE9)
+    val InkDensity25 = Color(0xFFEDE0F4)
 
-    val DarkInkDensity100 = Color(0xFF9BC7A7)
-    val DarkInkDensity75 = Color(0xFF7FA78C)
-    val DarkInkDensity50 = Color(0xFF5D896D)
-    val DarkInkDensity25 = Color(0xFF284333)
+    val DarkInkDensity100 = Color(0xFFF0BEDC)
+    val DarkInkDensity75 = Color(0xFFAF7D9C)
+    val DarkInkDensity50 = Color(0xFF79546E)
+    val DarkInkDensity25 = Color(0xFF483149)
 
     @Composable
     fun getInkDensityColor(ratio: Float): Color {
@@ -162,8 +158,35 @@ object HabitColors {
     fun getInkDensityText(ratio: Float): Color {
         val isDark = LocalHabitDarkTheme.current
         return when {
-            ratio >= 0.99f -> if (isDark) DarkCheckDoneOn else LightCheckDoneOn // White text on 100%
-            else -> if (isDark) DarkTextPrimary else LightTextPrimary // Dark charcoal date on washes
+            ratio >= 0.99f -> if (isDark) DarkCheckDoneOn else LightCheckDoneOn // Contrast foreground on the strongest fill
+            else -> if (isDark) DarkTextPrimary else LightTextPrimary // Shared text color on lighter washes
+        }
+    }
+}
+
+/** Color-only scope: typography, shapes and all component sizing remain inherited. */
+@Composable
+internal fun HabitAccentTheme(isDarkTheme: Boolean, content: @Composable () -> Unit) {
+    androidx.compose.runtime.CompositionLocalProvider(LocalHabitDarkTheme provides isDarkTheme) {
+        val scheme = androidx.compose.material3.MaterialTheme.colorScheme.copy(
+            background = HabitColors.Background, onBackground = HabitColors.TextPrimary,
+            surface = HabitColors.Surface, onSurface = HabitColors.TextPrimary,
+            surfaceVariant = HabitColors.Parchment, onSurfaceVariant = HabitColors.TextSecondary,
+            primary = HabitColors.RoyalPurple, onPrimary = HabitColors.OnRoyalPurple,
+            primaryContainer = HabitColors.RoyalPurpleBg, onPrimaryContainer = HabitColors.TextPrimary,
+            secondary = HabitColors.RoyalPurple2, onSecondary = HabitColors.OnRoyalPurple,
+            secondaryContainer = HabitColors.CheckDoneBg, onSecondaryContainer = HabitColors.TextPrimary,
+            error = HabitColors.Error, errorContainer = HabitColors.ErrorBg,
+            onError = if (isDarkTheme) HabitColors.DarkBackground else Color.White,
+            onErrorContainer = HabitColors.Error,
+            outline = HabitColors.OutlineStrong, outlineVariant = HabitColors.Outline,
+        )
+        androidx.compose.runtime.CompositionLocalProvider(
+            com.safarparmar.app.ui.theme.LocalSafarComposablesAccent provides HabitColors.RoyalPurple,
+        ) {
+            androidx.compose.material3.MaterialTheme(colorScheme = scheme) {
+                com.safarparmar.app.ui.theme.SafarComposablesTheme { content() }
+            }
         }
     }
 }

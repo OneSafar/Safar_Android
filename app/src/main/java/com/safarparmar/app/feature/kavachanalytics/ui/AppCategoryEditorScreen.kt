@@ -72,6 +72,8 @@ fun AppCategoryEditorScreen(
     viewModel: KavachAnalyticsViewModel = hiltViewModel(),
     appsViewModel: com.safarparmar.app.ui.ekagra.focusshield.FocusShieldViewModel = hiltViewModel(),
 ) {
+    com.safarparmar.app.ui.ekagra.focusshield.KavachCommandTheme {
+
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val pickerState by appsViewModel.pickerState.collectAsStateWithLifecycle()
     val isLight = MaterialTheme.colorScheme.background.isLightBackground()
@@ -100,7 +102,7 @@ fun AppCategoryEditorScreen(
                         .padding(start = 8.dp, end = 12.dp)
                         .size(38.dp)
                         .clip(androidx.compose.foundation.shape.CircleShape)
-                        .background(if (!isLight) Color(0xFF3B0764) else Color(0xFF581C87))
+                        .background(if (!isLight) Color(0xFF684047) else Color(0xFF542347))
                         .clickable(onClick = onBack),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -126,7 +128,7 @@ fun AppCategoryEditorScreen(
                 }
             }
 
-            OutlinedTextField(
+            com.safarparmar.app.ui.ekagra.focusshield.KavachCommandField(
                 value = query,
                 onValueChange = { query = it },
                 singleLine = true,
@@ -213,6 +215,8 @@ fun AppCategoryEditorScreen(
                 }
             }
         }
+    }
+
     }
 }
 

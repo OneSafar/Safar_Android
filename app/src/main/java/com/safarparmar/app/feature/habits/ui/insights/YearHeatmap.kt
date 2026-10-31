@@ -478,11 +478,11 @@ private fun getHeatmapCellColor(level: Int, isCurrentYear: Boolean, isFuture: Bo
     val isDark = LocalHabitDarkTheme.current
 
     return when (level) {
-        0 -> if (isDark) Color(0xFF1E1F24) else Color(0xFFF3EFE6)
-        1 -> if (isDark) Color(0xFF2E1065) else Color(0xFFEDE9FE)
-        2 -> if (isDark) Color(0xFF4C1D95) else Color(0xFFC4B5FD)
-        3 -> if (isDark) Color(0xFF7E22CE) else Color(0xFF8B5CF6)
-        4 -> if (isDark) Color(0xFFC084FC) else Color(0xFF581C87)
+        0 -> HabitColors.Parchment
+        1 -> if (isDark) HabitColors.DarkInkDensity25 else HabitColors.InkDensity25
+        2 -> if (isDark) HabitColors.DarkInkDensity50 else HabitColors.InkDensity50
+        3 -> if (isDark) HabitColors.DarkInkDensity75 else HabitColors.InkDensity75
+        4 -> if (isDark) HabitColors.DarkInkDensity100 else HabitColors.InkDensity100
         else -> Color.Transparent
     }
 }

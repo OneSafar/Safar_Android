@@ -1,5 +1,6 @@
 package com.safarparmar.app.ui.dashboard
 
+import com.safarparmar.app.ui.theme.BgDark
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
@@ -16,21 +17,26 @@ object DashboardFlatColors {
     private val isDark: Boolean
         @Composable get() = !isLight
 
-    val Bg @Composable get() = if (isDark) Color(0xFF131316) else Color(0xFFFFF9F0)
-    val Text @Composable get() = if (isDark) Color(0xFFF8FAFC) else Color(0xFF1E1B4B)
+    val Bg @Composable get() = if (isDark) BgDark else Color(0xFFFFF5F0)
+    // Keep dialogs and sheets at their existing elevation color.
+    val ComponentBackground @Composable get() = if (isDark) Color(0xFF211921) else Color(0xFFFFF5F0)
+    val Text @Composable get() = if (isDark) Color(0xFFFFF0F6) else Color(0xFF39132E)
     /** Stronger muted ink for captions on cream / charcoal. */
-    val Muted @Composable get() = if (isDark) Color(0xFFCBD5E1) else Color(0xFF475569)
-    val Hairline @Composable get() = if (isDark) Color(0xFF3F3F46) else Color(0xFFE2DDF0)
+    val Muted @Composable get() = if (isDark) Color(0xFFCFBECB) else Color(0xFF75616F)
+    val Hairline @Composable get() = if (isDark) Color(0xFF654D66) else Color(0xFFEADFE6)
 
-    val Accent @Composable get() = if (isDark) Color(0xFF64B5FF) else Color(0xFF0A84FF)
+    val Accent @Composable get() = if (isDark) Color(0xFFF0BEDC) else Color(0xFF491438)
+
+    val Paper @Composable get() = if (isDark) Color(0xFF342735) else Color(0xFFFFFDFC)
+    val Soft @Composable get() = if (isDark) Color(0xFF513551) else Color(0xFFEDE0F4)
 
     fun glassBody(isDark: Boolean): Color =
-        if (isDark) Color(0xFF2C2C2E) else Color(0xFFF9F9FB)
+        if (isDark) Color(0xFF342735) else Color(0xFFFFFDFC)
 
     fun onGlassText(isDark: Boolean): Color =
-        if (isDark) Color(0xFFF5F5F7) else Color(0xFF1C1C1E)
+        if (isDark) Color(0xFFFFF0F6) else Color(0xFF39132E)
 
     /** High-contrast muted for text on opaque glass tiles. */
     fun onGlassMuted(isDark: Boolean): Color =
-        if (isDark) Color(0xFFD1D1D6) else Color(0xFF3A3A3C)
+        if (isDark) Color(0xFFCFBECB) else Color(0xFF75616F)
 }

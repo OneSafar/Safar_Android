@@ -57,9 +57,9 @@ import java.time.format.DateTimeFormatter
 import java.time.temporal.TemporalAdjusters
 import java.time.DayOfWeek
 
-internal val TimetableGreen = Color(0xFF36574A)
-internal val SessionPastels = listOf(Color(0xFFEDF1DB), Color(0xFFFBE6DF), Color(0xFFE7EFF6), Color(0xFFFFEED2), Color(0xFFF0E8F4))
-internal val SessionAccents = listOf(Color(0xFF5D965F), Color(0xFFC9817B), Color(0xFF669AC1), Color(0xFFD79D3F), Color(0xFFA588B8))
+internal val TimetableGreen = Color(0xFF542347)
+internal val SessionPastels = listOf(Color(0xFFC9EFE0), Color(0xFFFFCBBE), Color(0xFFEDE0F4), Color(0xFFFFF0F6), Color(0xFFEDE0F4))
+internal val SessionAccents = listOf(Color(0xFF174E40), Color(0xFF9A4E25), Color(0xFF542347), Color(0xFF793D67), Color(0xFF75616F))
 
 @Composable
 internal fun HabitTimetableContent(
@@ -171,7 +171,7 @@ internal fun HabitTimetableContent(
                 } }
                 if (section == 0) {
                     item {
-                        Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(if (LocalHabitDarkTheme.current) HabitColors.Parchment else Color(0xFFEDEDDf)).padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(if (LocalHabitDarkTheme.current) HabitColors.Parchment else Color(0xFFEDE0F4)).padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                             SproutArtwork(Modifier.size(72.dp), withSoil = true)
                             Column(Modifier.weight(1f).padding(start = 12.dp)) {
                                 Text("Stay on Track", fontWeight = FontWeight.Bold, fontSize = 21.sp, color = HabitColors.TextPrimary)
@@ -421,8 +421,8 @@ private fun ProgressSummary(state: HabitUiState, sessions: List<TimetableSession
             val study = sessions.filter { it.kind == SessionKind.STUDY }
             val other = sessions.filter { it.kind != SessionKind.STUDY }
             listOf(Triple("Study", "${study.count { it.isDone(day) }}/${study.size}", green),
-                Triple("Habits", "${state.todayHabits.count { it.completed }}/${state.todayHabits.size}", Color(0xFFE5A13C)),
-                Triple("Others", "${other.count { it.isDone(day) }}/${other.size}", Color(0xFF589BCE))).forEach { (label, count, color) ->
+                Triple("Habits", "${state.todayHabits.count { it.completed }}/${state.todayHabits.size}", Color(0xFF793D67)),
+                Triple("Others", "${other.count { it.isDone(day) }}/${other.size}", Color(0xFF542347))).forEach { (label, count, color) ->
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(Modifier.size(8.dp).background(color, CircleShape)); Spacer(Modifier.width(8.dp))
                     Text(label, Modifier.weight(1f), fontSize = 13.sp, color = HabitColors.TextPrimary)

@@ -1,169 +1,60 @@
 package com.safarparmar.app.ui.ekagra.focusshield
 
-import com.safarparmar.app.performance.decorativeFloat
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Shield
-import com.composables.ui.components.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedButton
-import com.composables.ui.components.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextMotion
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.composables.ui.components.*
 import com.safarparmar.app.R
 
 @Composable
-fun KavachActiveSessionScreen(
-    secondsLeft: Int,
-    blockedCount: Int,
-    onBack: () -> Unit,
-    onEndSession: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val minutes = secondsLeft / 60
-    val seconds = secondsLeft % 60
-    val pulseTransition = rememberInfiniteTransition(label = "kavach_pulse")
-    val pulseAlpha by pulseTransition.decorativeFloat(
-        initialValue = 0.45f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(900, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "pulse_alpha",
-    )
-
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(KavachDesign.Primary),
-    ) {
-        KavachCircularBackButton(
-            onClick = onBack,
-            modifier = Modifier
-                .statusBarsPadding()
-                .padding(start = 16.dp, top = 12.dp)
-                .align(Alignment.TopStart),
-        )
-
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 24.dp, vertical = 48.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(96.dp)
-                    .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.1f))
-                    .border(1.dp, Color.White.copy(alpha = 0.2f), CircleShape),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    Icons.Default.Shield,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(56.dp),
-                )
+fun KavachActiveSessionScreen(secondsLeft: Int, blockedCount: Int, onBack: () -> Unit,
+    onEndSession: () -> Unit, modifier: Modifier = Modifier) {
+    KavachCommandTheme {
+        Column(modifier.fillMaxSize().background(KavachDesign.Background).safeDrawingPadding()) {
+            Column(Modifier.weight(1f).fillMaxWidth().background(KavachDesign.PrimaryDark,
+                RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp)).padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = onBack, style = ButtonStyle.Ghost, contentColor = Color.White) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.nav_previous), tint = Color.White)
+                    }
+                    Text(stringResource(R.string.nav_focus_shield), color = Color.White, fontWeight = FontWeight.SemiBold)
+                }
+                Spacer(Modifier.weight(1f))
+                Box(Modifier.size(100.dp).background(Color(0xFFFFCBBE), CircleShape), contentAlignment = Alignment.Center) {
+                    Icon(Icons.Default.Shield, contentDescription = null, tint = KavachDesign.PrimaryDark, modifier = Modifier.size(58.dp))
+                }
+                Spacer(Modifier.height(20.dp))
+                Text(stringResource(R.string.kavach_command_protected), color = Color.White,
+                    fontSize = 24.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+                Text("%02d:%02d".format(secondsLeft.coerceAtLeast(0) / 60, secondsLeft.coerceAtLeast(0) % 60),
+                    color = Color.White, fontFamily = FontFamily.Monospace, fontSize = 48.sp)
+                Spacer(Modifier.weight(1f))
             }
-
-            Spacer(Modifier.height(32.dp))
-
-            Text(
-                text = "%02d:%02d".format(minutes, seconds),
-                fontSize = 72.sp,
-                fontWeight = FontWeight.Bold,
-                fontFamily = FontFamily.Monospace,
-                color = Color.White,
-                letterSpacing = (-1).sp,
-                style = androidx.compose.ui.text.TextStyle(
-                    fontFeatureSettings = "tnum",
-                    textMotion = TextMotion.Animated,
-                ),
-            )
-
-            Spacer(Modifier.height(16.dp))
-
-            Row(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(999.dp))
-                    .background(Color.White.copy(alpha = 0.1f))
-                    .border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(999.dp))
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(8.dp)
-                        .alpha(pulseAlpha)
-                        .clip(CircleShape)
-                        .background(KavachDesign.SuccessText),
-                )
-                Text(
-                    text = stringResource(R.string.kavach_active_status, blockedCount),
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = KavachDesign.ActiveSessionStatus,
-                    textAlign = TextAlign.Center,
-                )
+            Column(Modifier.fillMaxWidth().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(20.dp)) {
+                Text(stringResource(R.string.kavach_active_status, blockedCount), color = KavachDesign.SuccessText,
+                    modifier = Modifier.background(KavachDesign.SuccessBg, CircleShape).padding(horizontal = 16.dp, vertical = 8.dp),
+                    textAlign = TextAlign.Center)
+                Text(stringResource(R.string.kavach_command_session_body), color = KavachDesign.TextMuted, textAlign = TextAlign.Center)
+                Button(onClick = onEndSession, style = ButtonStyle.Outlined, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
+                    Text(stringResource(R.string.kavach_end_session), fontWeight = FontWeight.SemiBold)
+                }
             }
-        }
-
-        com.safarparmar.app.ui.components.SafarOutlinedButton(
-            onClick = onEndSession,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 24.dp)
-                // heightIn: grows with Large font, never shrinks below comfortable tap target
-                .heightIn(min = 56.dp),
-            shape = RoundedCornerShape(999.dp),
-            border = androidx.compose.foundation.BorderStroke(2.dp, Color.White.copy(alpha = 0.3f)),
-        ) {
-            Text(
-                text = stringResource(R.string.kavach_end_session),
-                // M3 labelLarge scales with system font — no hard-coded sp
-                style = androidx.compose.material3.MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold,
-                color = Color.White,
-            )
         }
     }
 }

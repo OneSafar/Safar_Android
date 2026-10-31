@@ -40,6 +40,8 @@ import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.core.os.LocaleListCompat
 import androidx.compose.material3.*
+import com.composables.ui.components.Text
+import com.composables.ui.components.Icon
 import com.safarparmar.app.ui.components.popups.SafarMaterialAlertDialog as AlertDialog
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -91,14 +93,14 @@ private fun SettingsSheetSection(
         Text(
             text = title,
             modifier = Modifier.padding(start = 14.dp, bottom = 6.dp),
-            fontSize = 13.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = if (isDark) Color(0xFFA0A0A0) else Color(0xFF6B7280)
+            fontSize = 21.sp,
+            fontWeight = FontWeight.Bold,
+            color = SettingsWarmColors.Ink
         )
         Surface(
             modifier = Modifier.fillMaxWidth(),
-            color = if (isDark) Color(0xFF1E1E1E) else Color.White,
-            shape = RoundedCornerShape(16.dp),
+            color = SettingsWarmColors.Paper,
+            shape = RoundedCornerShape(22.dp),
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
@@ -157,7 +159,9 @@ fun SettingsScreen(
 
     LaunchedEffect(Unit) { refreshPermissions() }
 
-    CompositionLocalProvider(LocalPlannerIsDarkTheme provides isDarkTheme) {
+    CompositionLocalProvider(LocalPlannerIsDarkTheme provides isDarkTheme,
+        com.safarparmar.app.ui.theme.LocalSafarComposablesAccent provides SettingsWarmColors.Accent) {
+        com.safarparmar.app.ui.theme.SafarComposablesTheme {
         SafarDrawerScaffold(
             title = stringResource(R.string.settings_title),
             subtitle = null,
@@ -165,7 +169,8 @@ fun SettingsScreen(
             isDarkTheme = isDarkTheme,
             onNavigate = onNavigate,
             onToggleDarkTheme = onToggleDarkTheme,
-            containerColor = if (LocalPlannerIsDarkTheme.current == true) Color(0xFF131316) else Color(0xFFF7F8FA),
+            containerColor = SettingsWarmColors.Canvas,
+            topBarContentColor = SettingsWarmColors.Ink,
         ) { paddingValues ->
             var settingsVisible by remember { mutableStateOf(false) }
             LaunchedEffect(Unit) {
@@ -182,23 +187,11 @@ fun SettingsScreen(
                         .padding(horizontal = 20.dp, vertical = 14.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(
-                            text = stringResource(R.string.settings_subtitle),
-                            fontSize = 13.sp,
-                            color = PlannerFlatColors.TextMuted,
-                        )
-                    }
-
-                    StaggeredSettingsEntranceBox(index = 0, isVisible = settingsVisible) {
-                        SettingsSheetSection(title = stringResource(R.string.settings_account_subscription)) {
-                            PremiumStatusSection(
-                                isPremiumActive = premiumStatus.hasAnyPaidAccess,
-                                onExplorePremium = onPremium,
-                                onRestoreStatus = { premiumViewModel.refreshPremiumStatus() },
-                            )
-                        }
-                    }
+                    PremiumStatusSection(
+                        isPremiumActive = premiumStatus.hasAnyPaidAccess,
+                        onExplorePremium = onPremium,
+                        onRestoreStatus = { premiumViewModel.refreshPremiumStatus() },
+                    )
 
                     if (canAccessAdminComposer) {
                         
@@ -218,7 +211,7 @@ fun SettingsScreen(
 
                     StaggeredSettingsEntranceBox(index = 2, isVisible = settingsVisible) {
                         val haptic = LocalHapticFeedback.current
-                        SettingsSheetSection(title = stringResource(R.string.settings_preferences_appearance)) {
+                        SettingsSheetSection(title = stringResource(R.string.settings_warm_appearance)) {
                             SettingsNavigationRow(
                                 title = stringResource(R.string.profile_language_title),
                                 subtitle = stringResource(R.string.sidebar_settings_hint),
@@ -330,6 +323,7 @@ fun SettingsScreen(
         }
     }
 }
+}
 
 @Composable
 private fun PremiumStatusSection(
@@ -337,49 +331,24 @@ private fun PremiumStatusSection(
     onExplorePremium: () -> Unit,
     onRestoreStatus: () -> Unit,
 ) {
-    val isDark = LocalPlannerIsDarkTheme.current == true
-    val statusTitle = stringResource(if (isPremiumActive) R.string.settings_premium_active else R.string.settings_plus_plan)
-    val statusSubtitle = stringResource(if (isPremiumActive) R.string.settings_premium_unlocked else R.string.settings_free_active)
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .clickable(onClick = onExplorePremium)
-            .padding(vertical = 10.dp, horizontal = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
+    com.composables.ui.components.Button(
+        onClick = onExplorePremium, style = com.composables.ui.components.ButtonStyle.Ghost,
+        shape = RoundedCornerShape(22.dp),
+        modifier = Modifier.fillMaxWidth().background(Color(0xFF421735), RoundedCornerShape(22.dp)),
+        contentPadding = PaddingValues(20.dp), contentColor = Color(0xFFFFF0F6),
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-            modifier = Modifier.weight(1f)
-        ) {
-            SettingsSquircleIcon(
-                icon = androidx.compose.material.icons.Icons.Rounded.WorkspacePremium,
-                iconTint = SafarSemanticColors.brandPurple(),
-                backgroundColor = if (isDark) SafarSemanticColors.brandPurple().copy(alpha = 0.15f) else Color(0xFFF3E8FF)
-            )
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(
-                    text = statusTitle,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = PlannerFlatColors.TextDark
-                )
-                Text(
-                    text = statusSubtitle,
-                    fontSize = 12.sp,
-                    color = PlannerFlatColors.TextMuted
-                )
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            Box(Modifier.size(48.dp).background(Color(0xFF795343), RoundedCornerShape(14.dp)), contentAlignment = Alignment.Center) {
+                Icon(Icons.Default.WorkspacePremium, contentDescription = null, tint = Color(0xFFFFD37A), modifier = Modifier.size(28.dp))
             }
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(stringResource(R.string.nav_premium), fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                Text(stringResource(if (isPremiumActive) R.string.settings_premium_unlocked else R.string.settings_free_active),
+                    fontSize = 12.sp, color = Color(0xFFEDD8E5))
+            }
+            Text(stringResource(R.string.settings_warm_manage), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+            Icon(Icons.Default.ChevronRight, contentDescription = null, modifier = Modifier.size(22.dp))
         }
-        Icon(
-            imageVector = androidx.compose.material.icons.Icons.Default.ChevronRight,
-            contentDescription = null,
-            tint = PlannerFlatColors.TextMuted,
-            modifier = Modifier.size(20.dp)
-        )
     }
 }
 
@@ -389,7 +358,7 @@ private fun NotificationsSection(
     onEvent: (SettingsEvent) -> Unit,
     onShowTimePicker: () -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
         SettingsSwitchRow(
             title = stringResource(R.string.settings_allow_notifications),
             subtitle = stringResource(R.string.settings_allow_notifications_subtitle),
@@ -435,21 +404,21 @@ private fun NotificationsSection(
                         Icon(
                             imageVector = Icons.Default.Schedule,
                             contentDescription = null,
-                            tint = SafarSemanticColors.brandPurple(),
+                            tint = SettingsWarmColors.Accent,
                             modifier = Modifier.size(18.dp)
                         )
                         Text(
                             text = stringResource(R.string.settings_reminder_time),
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Medium,
-                            color = PlannerFlatColors.TextDark
+                            color = SettingsWarmColors.Ink
                         )
                     }
                     Text(
                         text = formatTime12h(h, m),
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
-                        color = SafarSemanticColors.brandPurple()
+                        color = SettingsWarmColors.Accent
                     )
                 }
             }
@@ -587,21 +556,21 @@ private fun PermissionRow(
         ) {
             SettingsSquircleIcon(
                 icon = icon,
-                iconTint = if (isDark) Color(0xFFE5E7EB) else Color(0xFF4B5563),
-                backgroundColor = if (isDark) Color(0xFF2D2D2D) else Color(0xFFF3F4F6)
+                iconTint = SettingsWarmColors.Ink,
+                backgroundColor = SettingsWarmColors.Peach
             )
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
                     text = title,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
-                    color = PlannerFlatColors.TextDark
+                    color = SettingsWarmColors.Ink
                 )
                 if (subtitle.isNotBlank() && !subtitle.trim().equals(title.trim(), ignoreCase = true)) {
                     Text(
                         text = subtitle,
                         fontSize = 12.sp,
-                        color = PlannerFlatColors.TextMuted
+                        color = SettingsWarmColors.Muted
                     )
                 }
             }
@@ -633,7 +602,7 @@ private fun PermissionRow(
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))
-                    .background(SafarSemanticColors.brandPurple())
+                    .background(SettingsWarmColors.Accent)
                     .padding(vertical = 6.dp, horizontal = 12.dp),
                 contentAlignment = Alignment.Center
             ) {
@@ -674,8 +643,8 @@ private fun SettingsSwitchRow(
             if (icon != null) {
                 SettingsSquircleIcon(
                     icon = icon,
-                    iconTint = if (isDark) Color(0xFFE5E7EB) else Color(0xFF4B5563),
-                    backgroundColor = if (isDark) Color(0xFF2D2D2D) else Color(0xFFF3F4F6)
+                    iconTint = SettingsWarmColors.Ink,
+                    backgroundColor = SettingsWarmColors.Peach
                 )
             }
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -683,23 +652,19 @@ private fun SettingsSwitchRow(
                     text = title,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
-                    color = PlannerFlatColors.TextDark
+                    color = SettingsWarmColors.Ink
                 )
-                if (subtitle.isNotBlank() && !subtitle.trim().equals(title.trim(), ignoreCase = true)) {
-                    Text(
-                        text = subtitle,
-                        fontSize = 12.sp,
-                        color = PlannerFlatColors.TextMuted
-                    )
-                }
+
             }
         }
 
-        ComposablesSwitch(
-            checked = checked,
-            onCheckedChange = onCheckedChange,
-            accessibilityLabel = title,
-        )
+        if (icon == Icons.Default.Nightlight || icon == Icons.Default.WbSunny) {
+            com.safarparmar.app.ui.drawer.JetCoSwitchButton(checked, onCheckedChange,
+                selectedTrackColor = SettingsWarmColors.Accent, unselectedTrackColor = SettingsWarmColors.Lavender,
+                knobColor = SettingsWarmColors.Paper, iconColor = SettingsWarmColors.Ink)
+        } else {
+            ComposablesSwitch(checked = checked, onCheckedChange = onCheckedChange, accessibilityLabel = title)
+        }
     }
 }
 
@@ -713,8 +678,8 @@ private fun SettingsNavigationRow(
     iconBg: Color? = null
 ) {
     val isDark = LocalPlannerIsDarkTheme.current == true
-    val defaultIconTint = if (isDark) Color(0xFFE5E7EB) else Color(0xFF4B5563)
-    val defaultIconBg = if (isDark) Color(0xFF2D2D2D) else Color(0xFFF3F4F6)
+    val defaultIconTint = SettingsWarmColors.Ink
+    val defaultIconBg = SettingsWarmColors.Peach
     
     val finalIconTint = iconTint ?: defaultIconTint
     val finalIconBg = iconBg ?: defaultIconBg
@@ -722,7 +687,7 @@ private fun SettingsNavigationRow(
     val isDelete = title.contains("Delete", ignoreCase = true)
     val activeTint = if (isDelete) Color(0xFFEF4444) else finalIconTint
     val activeBg = if (isDelete) Color(0xFFFEE2E2) else finalIconBg
-    val activeTitleColor = if (isDelete) Color(0xFFEF4444) else PlannerFlatColors.TextDark
+    val activeTitleColor = if (isDelete) Color(0xFFEF4444) else SettingsWarmColors.Ink
 
     Row(
         modifier = Modifier
@@ -750,19 +715,24 @@ private fun SettingsNavigationRow(
                     fontWeight = FontWeight.Bold,
                     color = activeTitleColor
                 )
-                if (subtitle.isNotBlank() && !subtitle.trim().equals(title.trim(), ignoreCase = true)) {
+                if (icon != Icons.Default.Language && subtitle.isNotBlank() && !subtitle.trim().equals(title.trim(), ignoreCase = true)) {
                     Text(
                         text = subtitle,
                         fontSize = 12.sp,
-                        color = PlannerFlatColors.TextMuted
+                        color = SettingsWarmColors.Muted
                     )
                 }
             }
         }
+        if (icon == Icons.Default.Language) {
+            val locale = androidx.appcompat.app.AppCompatDelegate.getApplicationLocales().get(0) ?: java.util.Locale.getDefault()
+            Text(locale.getDisplayLanguage(locale), color = SettingsWarmColors.Muted, fontSize = 13.sp,
+                modifier = Modifier.padding(horizontal = 8.dp))
+        }
         Icon(
             imageVector = androidx.compose.material.icons.Icons.Default.ChevronRight,
             contentDescription = null,
-            tint = PlannerFlatColors.TextMuted,
+            tint = SettingsWarmColors.Muted,
             modifier = Modifier.size(20.dp)
         )
     }
@@ -784,14 +754,14 @@ private fun TimePickerDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = if (LocalPlannerIsDarkTheme.current == true) Color(0xFF131316) else Color(0xFFF7F8FA),
+        containerColor = SettingsWarmColors.ComponentBackground,
         title = {
             Text(
                 text = stringResource(R.string.settings_select_reminder_time),
                 fontFamily = LoraFontFamily,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Normal,
-                color = PlannerFlatColors.TextDark
+                color = SettingsWarmColors.Ink
             )
         },
         text = {
@@ -805,16 +775,16 @@ private fun TimePickerDialog(
                         clockDialColor = MaterialTheme.colorScheme.surfaceVariant,
                         clockDialSelectedContentColor = Color.White,
                         clockDialUnselectedContentColor = MaterialTheme.colorScheme.onSurface,
-                        selectorColor = SafarSemanticColors.brandPurple(),
+                        selectorColor = SettingsWarmColors.Accent,
                         containerColor = Color.Transparent,
-                        periodSelectorBorderColor = SafarSemanticColors.brandPurple(),
-                        periodSelectorSelectedContainerColor = SafarSemanticColors.brandPurple(),
+                        periodSelectorBorderColor = SettingsWarmColors.Accent,
+                        periodSelectorSelectedContainerColor = SettingsWarmColors.Accent,
                         periodSelectorUnselectedContainerColor = Color.Transparent,
                         periodSelectorSelectedContentColor = Color.White,
                         periodSelectorUnselectedContentColor = MaterialTheme.colorScheme.onSurface,
-                        timeSelectorSelectedContainerColor = SafarSemanticColors.brandPurple().copy(alpha = 0.15f),
+                        timeSelectorSelectedContainerColor = SettingsWarmColors.Accent.copy(alpha = 0.15f),
                         timeSelectorUnselectedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        timeSelectorSelectedContentColor = SafarSemanticColors.brandPurple(),
+                        timeSelectorSelectedContentColor = SettingsWarmColors.Accent,
                         timeSelectorUnselectedContentColor = MaterialTheme.colorScheme.onSurface,
                     ),
                 )
@@ -825,7 +795,7 @@ private fun TimePickerDialog(
                 onClick = { onConfirm(timePickerState.hour, timePickerState.minute) },
                 shape = RoundedCornerShape(10.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = SafarSemanticColors.brandPurple(),
+                    containerColor = SettingsWarmColors.Accent,
                     contentColor = SafarSemanticColors.brandOnPurple(),
                 ),
             ) {
@@ -834,7 +804,7 @@ private fun TimePickerDialog(
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.settings_cancel), fontWeight = FontWeight.Bold, color = PlannerFlatColors.TextMuted)
+                Text(stringResource(R.string.settings_cancel), fontWeight = FontWeight.Bold, color = SettingsWarmColors.Muted)
             }
         },
         shape = RoundedCornerShape(20.dp),
@@ -845,15 +815,15 @@ private fun TimePickerDialog(
 private fun PermissionExplanationDialog(onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = if (LocalPlannerIsDarkTheme.current == true) Color(0xFF131316) else Color(0xFFF7F8FA),
-        icon = { Icon(Icons.Default.Security, null, tint = SafarSemanticColors.brandPurple()) },
+        containerColor = SettingsWarmColors.ComponentBackground,
+        icon = { Icon(Icons.Default.Security, null, tint = SettingsWarmColors.Accent) },
         title = {
             Text(
                 text = stringResource(R.string.settings_kavach_privacy_title),
                 fontFamily = LoraFontFamily,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Normal,
-                color = PlannerFlatColors.TextDark
+                color = SettingsWarmColors.Ink
             )
         },
         text = {
@@ -861,28 +831,28 @@ private fun PermissionExplanationDialog(onDismiss: () -> Unit) {
                 Text(
                     text = stringResource(R.string.settings_kavach_privacy_intro),
                     fontSize = 13.sp,
-                    color = PlannerFlatColors.TextMuted
+                    color = SettingsWarmColors.Muted
                 )
                 Text(
                     text = stringResource(R.string.settings_kavach_usage_explanation),
                     fontSize = 12.5.sp,
-                    color = PlannerFlatColors.TextDark
+                    color = SettingsWarmColors.Ink
                 )
                 Text(
                     text = stringResource(R.string.settings_kavach_overlay_explanation),
                     fontSize = 12.5.sp,
-                    color = PlannerFlatColors.TextDark
+                    color = SettingsWarmColors.Ink
                 )
                 Text(
                     text = stringResource(R.string.settings_kavach_notification_explanation),
                     fontSize = 12.5.sp,
-                    color = PlannerFlatColors.TextDark
+                    color = SettingsWarmColors.Ink
                 )
                 Text(
                     text = stringResource(R.string.settings_kavach_privacy_promise),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
-                    color = SafarSemanticColors.brandPurple()
+                    color = SettingsWarmColors.Accent
                 )
             }
         },
@@ -891,7 +861,7 @@ private fun PermissionExplanationDialog(onDismiss: () -> Unit) {
                 onClick = onDismiss,
                 shape = RoundedCornerShape(10.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = SafarSemanticColors.brandPurple(),
+                    containerColor = SettingsWarmColors.Accent,
                     contentColor = SafarSemanticColors.brandOnPurple(),
                 ),
             ) {
@@ -913,7 +883,7 @@ private fun FooterSection() {
         Text(
             text = stringResource(R.string.settings_footer_version),
             fontSize = 12.sp,
-            color = PlannerFlatColors.TextMuted,
+            color = SettingsWarmColors.Muted,
             textAlign = TextAlign.Center,
         )
     }

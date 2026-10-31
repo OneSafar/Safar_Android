@@ -1,6 +1,7 @@
 /* Hallmark · pre-emit critique: P5 H5 E4 S5 R5 V4 · approved Plum Membership */
 package com.safarparmar.app.ui.premium
 
+import com.safarparmar.app.ui.theme.BgDark
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.foundation.Canvas
@@ -45,7 +46,7 @@ internal data class PremiumMembershipColors(
     val badge: Color, val onBadge: Color,
 )
 internal fun premiumMembershipColors(dark: Boolean) = PremiumMembershipColors(
-    canvas = if (dark) Color(0xFF211921) else Color(0xFFFFF5F0),
+    canvas = if (dark) BgDark else Color(0xFFFFF5F0),
     paper = if (dark) Color(0xFF342735) else Color(0xFFFFFDFC),
     ink = if (dark) Color(0xFFFFF0F6) else Color(0xFF39132E),
     muted = if (dark) Color(0xFFCFBECB) else Color(0xFF75616F),

@@ -42,7 +42,7 @@ fun PremiumGateSheet(
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = MehfilFlatColors.Bg,
+        containerColor = MehfilFlatColors.ComponentBackground,
         shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         dragHandle = { BottomSheetDefaults.DragHandle(color = MehfilFlatColors.Hairline) },

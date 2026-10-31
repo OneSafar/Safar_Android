@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -47,6 +48,8 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import com.safarparmar.app.ui.components.popups.SafarModalBottomSheet as ModalBottomSheet
 import androidx.compose.material3.Surface
@@ -67,7 +70,12 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -81,6 +89,39 @@ import com.safarparmar.app.domain.model.NotificationFeedSource
 import com.safarparmar.app.ui.mehfil.formatPostDate
 import com.safarparmar.app.ui.theme.SafarTheme
 import com.safarparmar.app.util.YoutubeUrls
+
+private val NotificationFont = FontFamily(
+    Font(R.font.poppins_regular, FontWeight.Normal),
+    Font(R.font.poppins_semibold, FontWeight.SemiBold),
+    Font(R.font.poppins_bold, FontWeight.Bold),
+)
+private val NotificationPlum = Color(0xFF421735)
+private val NotificationPeach = Color(0xFFFFCBBE)
+private val NotificationMint = Color(0xFFC9EFE0)
+
+/** Scoped palette: never changes the Home content under the sheet. */
+@Composable
+private fun NotificationSheetTheme(content: @Composable () -> Unit) {
+    val base = MaterialTheme.colorScheme
+    val dark = (base.surface.red * .299f + base.surface.green * .587f + base.surface.blue * .114f) < .5f
+    val colors = base.copy(
+        surface = if (dark) Color(0xFF171217) else Color(0xFFFFF5F0),
+        background = if (dark) Color.Black else Color(0xFFFFF5F0),
+        onSurface = if (dark) Color(0xFFFFF0F6) else Color(0xFF39132E),
+        onSurfaceVariant = if (dark) Color(0xFFCFBECB) else Color(0xFF75616F),
+        primary = if (dark) Color(0xFFCDBBE9) else Color(0xFF542347),
+        outlineVariant = if (dark) Color(0xFF51414F) else Color(0xFFE8DEE5),
+    )
+    val t = MaterialTheme.typography
+    MaterialTheme(colorScheme = colors, typography = t.copy(
+        bodyLarge = t.bodyLarge.copy(fontFamily = NotificationFont),
+        bodyMedium = t.bodyMedium.copy(fontFamily = NotificationFont),
+        bodySmall = t.bodySmall.copy(fontFamily = NotificationFont),
+        labelLarge = t.labelLarge.copy(fontFamily = NotificationFont),
+        labelMedium = t.labelMedium.copy(fontFamily = NotificationFont),
+        labelSmall = t.labelSmall.copy(fontFamily = NotificationFont),
+    ), content = content)
+}
 
 private val URL_IN_TEXT = Regex("""https?://[^\s<>"']+""")
 
@@ -170,6 +211,7 @@ fun AnnouncementsBottomSheet(
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
 
+    NotificationSheetTheme {
     ClampedUpdatesContent {
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
@@ -186,6 +228,7 @@ fun AnnouncementsBottomSheet(
             onMarkAsRead = onMarkAsRead,
             onDismissAnnouncement = onDismissAnnouncement,
             onAnnouncementAction = onAnnouncementAction,
+            onClose = onDismissRequest,
             modifier = Modifier
                 .fillMaxWidth()
                 .wrapContentWidth(Alignment.CenterHorizontally)
@@ -194,6 +237,7 @@ fun AnnouncementsBottomSheet(
                 .fillMaxHeight(0.90f),
         )
         }
+    }
     }
     }
 }
@@ -208,10 +252,11 @@ private fun AnnouncementsSheetContent(
     onAnnouncementAction: (NotificationFeedItem) -> Unit,
     modifier: Modifier = Modifier,
     initialFilter: UpdatesFilter = UpdatesFilter.ALL,
+    onClose: () -> Unit = {},
 ) {
     val ink = rememberUpdatesInk()
     val isDarkTheme = MaterialTheme.colorScheme.surface.let { (it.red * 0.299f + it.green * 0.587f + it.blue * 0.114f) < 0.5f }
-    val accent = if (isDarkTheme) Color(0xFFC084FC) else Color(0xFF581C87)
+    val accent = MaterialTheme.colorScheme.primary
     var selectedFilter by remember { mutableStateOf(initialFilter) }
 
     val playingAudioItemId = remember { mutableStateOf<String?>(null) }
@@ -271,89 +316,46 @@ private fun AnnouncementsSheetContent(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .background(if (isDarkTheme) Color(0xFF131316) else Color(0xFFF8FAFC)),
+            .background(MaterialTheme.colorScheme.surface),
     ) {
-        // Modern Flat Top Header Bar
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
+        Surface(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
+            color = NotificationPlum, shape = RoundedCornerShape(24.dp),
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                modifier = Modifier.weight(1f, fill = false),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .background(accent.copy(alpha = 0.12f)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Notifications,
-                        contentDescription = null,
-                        tint = accent,
-                        modifier = Modifier.size(20.dp),
-                    )
+            Column(Modifier.fillMaxWidth().padding(start = 20.dp, end = 12.dp, top = 8.dp, bottom = 16.dp)) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text(stringResource(R.string.announcements_title), Modifier.weight(1f),
+                        fontFamily = NotificationFont, fontSize = 26.sp, lineHeight = 34.sp,
+                        fontWeight = FontWeight.Bold, color = Color.White)
+                    IconButton(onClick = onClose, modifier = Modifier.size(48.dp)) {
+                        Icon(Icons.Outlined.Close, stringResource(R.string.common_close), tint = Color.White)
+                    }
                 }
-                Text(
-                    text = stringResource(R.string.announcements_title),
-                    fontSize = 17.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = ink.primaryText,
-                )
-                if (unreadCount > 0) {
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(accent)
-                            .padding(horizontal = 7.dp, vertical = 2.dp),
-                    ) {
-                        Text(
-                            text = stringResource(R.string.announcements_new_count, unreadCount),
-                            fontSize = 10.5.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = Color.White,
-                        )
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween) {
+                    if (unreadCount > 0) {
+                        Surface(color = NotificationMint, shape = CircleShape) {
+                            Text(stringResource(R.string.announcements_new_count, unreadCount),
+                                Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                                color = NotificationPlum, fontFamily = NotificationFont,
+                                fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                        }
+                    } else {
+                        Icon(Icons.Outlined.Notifications, null, tint = NotificationPeach, modifier = Modifier.size(32.dp))
+                    }
+                    Button(onClick = onMarkAllAsRead, enabled = unreadCount > 0,
+                        colors = ButtonDefaults.buttonColors(containerColor = NotificationPeach, contentColor = NotificationPlum,
+                            disabledContainerColor = NotificationPeach.copy(alpha = .3f), disabledContentColor = Color.White.copy(alpha = .6f)),
+                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
+                        shape = CircleShape, modifier = Modifier.heightIn(min = 48.dp)) {
+                        Icon(Icons.Outlined.DoneAll, null, modifier = Modifier.size(20.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text(stringResource(R.string.announcements_read_all), fontFamily = NotificationFont,
+                            fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
                     }
                 }
             }
-
-            if (unreadCount > 0) {
-                Row(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(accent.copy(alpha = 0.1f))
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                            onClick = onMarkAllAsRead,
-                        )
-                        .padding(horizontal = 10.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.DoneAll,
-                        contentDescription = null,
-                        tint = accent,
-                        modifier = Modifier.size(16.dp),
-                    )
-                    Text(
-                        text = stringResource(R.string.announcements_read_all),
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = accent,
-                    )
-                }
-            }
         }
-
-        UpdatesHairline(ink.hairline)
 
         // Modern Flat Filter Chips with live item counts (horizontally scrollable & unclipped)
         UpdatesFilterChips(
@@ -385,16 +387,17 @@ private fun AnnouncementsSheetContent(
                 modifier = Modifier.weight(1f),
             )
             else -> LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.fillMaxWidth().weight(1f).padding(horizontal = 12.dp, vertical = 8.dp)
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(if (isDarkTheme) Color(0xFF241D24) else Color(0xFFFFFDFC)),
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(0.dp),
             ) {
                 itemsIndexed(
                     items = filteredItems,
                     key = { _, item -> item.id },
-                ) { _, item ->
+                ) { index, item ->
+                    if (index > 0) UpdatesHairline(ink.hairline, Modifier.padding(horizontal = 4.dp))
                     AnnouncementRow(
                         item = item,
                         ink = ink,
@@ -461,7 +464,7 @@ private fun UpdatesFilterChips(
 
     LazyRow(
         modifier = modifier.fillMaxWidth(),
-        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
+        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -472,34 +475,18 @@ private fun UpdatesFilterChips(
                 UpdatesFilter.ANNOUNCEMENTS -> stringResource(R.string.announcements_filter_announcements, announcementCount)
                 UpdatesFilter.UPDATES -> stringResource(R.string.announcements_filter_updates, updateCount)
             }
-            val chipBg = if (isSelected) {
-                if (isDarkTheme) Color(0xFF3B0764) else Color(0xFF581C87)
-            } else {
-                if (isDarkTheme) Color(0xFF27272A) else Color(0xFFF1F5F9)
-            }
-            val textColor = if (isSelected) Color.White else (if (isDarkTheme) Color(0xFFA1A1AA) else Color(0xFF475569))
-            val borderColor = if (isSelected) Color.Transparent else (if (isDarkTheme) Color(0xFF3F3F46) else Color(0xFFE2E8F0))
-
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(50))
-                    .background(chipBg)
-                    .border(BorderStroke(1.dp, borderColor), RoundedCornerShape(50))
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                    ) { onSelect(option) }
-                    .padding(horizontal = 14.dp, vertical = 7.dp),
-                contentAlignment = Alignment.Center,
+            Column(
+                modifier = Modifier.width(androidx.compose.foundation.layout.IntrinsicSize.Max).clickable(role = Role.Tab) { onSelect(option) }
+                    .semantics { this.selected = isSelected }.padding(horizontal = 8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                    color = textColor,
-                    maxLines = 1,
-                    softWrap = false,
-                )
+                Box(Modifier.heightIn(min = 44.dp), contentAlignment = Alignment.Center) {
+                    Text(label, color = if (isSelected) accent else ink.secondaryText,
+                        fontFamily = NotificationFont, fontSize = 12.sp,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                        maxLines = 1, softWrap = false)
+                }
+                Box(Modifier.fillMaxWidth().height(3.dp).background(if (isSelected) accent else Color.Transparent, CircleShape))
             }
         }
     }
@@ -525,12 +512,7 @@ private fun AnnouncementRow(
         parseAnnouncementLinks(item.body, item.deepLink)
     }
 
-    val cardBg = if (isDarkTheme) Color(0xFF1F1F23) else Color(0xFFFFFFFF)
-    val cardBorder = if (item.isUnread) {
-        accent.copy(alpha = 0.45f)
-    } else {
-        if (isDarkTheme) Color(0xFF2D2F36) else Color(0xFFE2E8F0)
-    }
+    val cardBg = Color.Transparent
 
     fun openUrl(url: String) {
         runCatching {
@@ -556,13 +538,22 @@ private fun AnnouncementRow(
             ),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = cardBg),
-        border = BorderStroke(1.dp, cardBorder),
+        border = null,
     ) {
+        Row(Modifier.fillMaxWidth().padding(vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Box(Modifier.padding(top = 4.dp).size(42.dp).clip(CircleShape)
+                .background(if (isDarkTheme) Color(0xFF684047) else NotificationPeach.copy(alpha = .55f)),
+                contentAlignment = Alignment.Center) {
+                Icon(when (item.type) {
+                    AnnouncementType.MAINTENANCE -> Icons.Outlined.WarningAmber
+                    AnnouncementType.APP_UPDATE -> Icons.Outlined.NewReleases
+                    else -> Icons.Outlined.Campaign
+                }, null, tint = if (isDarkTheme) NotificationPeach else NotificationPlum, modifier = Modifier.size(24.dp))
+            }
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+                .weight(1f),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             // Category Badge & Actions Row
             Row(
@@ -572,7 +563,8 @@ private fun AnnouncementRow(
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.weight(1f),
                 ) {
                     AnnouncementTypePill(
                         type = item.type,
@@ -590,7 +582,7 @@ private fun AnnouncementRow(
 
                 IconButton(
                     onClick = onDismiss,
-                    modifier = Modifier.size(28.dp),
+                    modifier = Modifier.size(48.dp),
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.Close,
@@ -685,6 +677,7 @@ private fun AnnouncementRow(
                 )
             }
         }
+        }
     }
 }
 
@@ -707,7 +700,7 @@ private fun AnnouncementTypePill(
         AnnouncementType.GENERAL -> Triple(
             stringResource(R.string.announcements_type_announcement),
             Icons.Outlined.Campaign,
-            if (isDarkTheme) Color(0xFFC084FC) else Color(0xFF581C87),
+            if (isDarkTheme) Color(0xFFC084FC) else Color(0xFF542347),
         )
     }
 

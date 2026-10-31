@@ -35,10 +35,12 @@ fun FocusShieldStandaloneScreen(
     viewModel: FocusShieldViewModel = hiltViewModel(),
     youtubeViewModel: YoutubeStudyV2ViewModel = hiltViewModel(),
 ) {
+    com.safarparmar.app.ui.ekagra.focusshield.KavachCommandTheme {
+
     // Preserve direct YouTube setup links from Ekagra and older tab routes.
     if (initialTab == 1) {
         YoutubeStudyV2Screen(onBack = onBack, isDarkTheme = isDarkTheme, viewModel = youtubeViewModel)
-        return
+        return@KavachCommandTheme
     }
     val shieldState by viewModel.shieldState.collectAsStateWithLifecycle()
     val youtubeState by youtubeViewModel.state.collectAsStateWithLifecycle()
@@ -108,5 +110,7 @@ fun FocusShieldStandaloneScreen(
             onSave = onBack,
             modifier = Modifier.fillMaxSize().padding(top = padding.calculateTopPadding()),
         )
+    }
+
     }
 }

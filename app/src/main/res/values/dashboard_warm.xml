@@ -1,0 +1,15 @@
+<resources>
+    <string name="dashboard_warm_welcome">Welcome back, %1$s</string>
+    <string name="dashboard_warm_glance">Your day, at a glance.</string>
+    <string name="dashboard_warm_study_plan">Study plan</string>
+    <string name="dashboard_warm_forward">Keep moving forward.</string>
+    <string name="dashboard_warm_habits">Build better habits, one topic at a time.</string>
+    <string name="dashboard_warm_view_plan">View plan</string>
+    <string name="dashboard_warm_topics">%1$d of %2$d topics complete</string>
+    <string name="dashboard_warm_mood">Mood</string>
+    <string name="dashboard_warm_goals">Goals</string>
+    <string name="dashboard_warm_view_all">View all</string>
+    <string name="dashboard_warm_view_report">View report</string>
+    <string name="dashboard_warm_incomplete">Not complete</string>
+    <string name="dashboard_warm_small_progress">A little progress, every day.</string>
+</resources>

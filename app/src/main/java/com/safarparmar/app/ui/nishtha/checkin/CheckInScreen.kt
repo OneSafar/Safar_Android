@@ -40,6 +40,11 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import com.composables.ui.components.Text
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.BoxWithConstraints
+import com.safarparmar.app.ui.nishtha.NishthaWarmTheme
+import com.safarparmar.app.ui.nishtha.nishthaWarmColors
+import com.safarparmar.app.ui.nishtha.journal.JournalMockupFont
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -91,6 +96,9 @@ import com.safarparmar.app.ui.theme.Slate500
 import com.safarparmar.app.ui.theme.Teal500
 import com.safarparmar.app.ui.theme.Violet500
 import com.safarparmar.app.ui.theme.isLightBackground
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.selected
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 
 data class MoodOption(val emoji: String, val labelRes: Int, val color: Color)
@@ -257,8 +265,6 @@ internal fun CheckInScreenContent(
     val scrollState = rememberScrollState()
     val scope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
-    val accent = PlannerFlatColors.PrimaryAccent
-
     LaunchedEffect(uiState.checkInSuccess) {
         if (uiState.checkInSuccess) {
             Toast.makeText(context, localizedResources.getString(com.safarparmar.app.R.string.nishtha_checkin_saved), Toast.LENGTH_SHORT).show()
@@ -277,308 +283,188 @@ internal fun CheckInScreenContent(
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(PlannerFlatColors.BgCream)
-            .verticalScroll(scrollState)
-            .imePadding()
-            .padding(horizontal = 20.dp)
-            .padding(top = 16.dp, bottom = 28.dp)
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = { focusManager.clearFocus() },
-            ),
-        verticalArrangement = Arrangement.spacedBy(0.dp),
-    ) {
-        // ── Flat hairline header ────────────────────────────────────────────
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            PlanEyebrow("Nishtha", modifier = Modifier.weight(1f))
-            Box(
-                modifier = Modifier
-                    .clip(CircleShape)
-                    .border(1.dp, PlannerFlatColors.BorderSoft, CircleShape)
-                    .clickable { showHistory = !showHistory }
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = if (showHistory) Icons.Default.EditNote else Icons.Default.History,
-                        contentDescription = null,
-                        tint = PlannerFlatColors.TextMuted,
-                        modifier = Modifier.size(16.dp),
-                    )
-                    Spacer(Modifier.width(6.dp))
-                    Text(
-                        text = if (showHistory) {
-                            stringResource(R.string.checkin_do_checkin)
-                        } else {
-                            stringResource(R.string.checkin_history)
-                        },
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = PlannerFlatColors.TextMuted,
-                    )
+    val c = nishthaWarmColors(isLight)
+    NishthaWarmTheme(isLight) {
+        Box(Modifier.fillMaxSize().background(c.canvas), contentAlignment = Alignment.TopCenter) {
+            Column(Modifier.widthIn(max = 820.dp).fillMaxWidth().verticalScroll(scrollState).imePadding()
+                .padding(horizontal = 20.dp, vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                // The long localized title and History action stack when space is tight.
+                BoxWithConstraints(Modifier.fillMaxWidth()) {
+                    val historyButton: @Composable () -> Unit = {
+                        com.composables.ui.components.Button(onClick = { focusManager.clearFocus(); showHistory = !showHistory },
+                            style = com.composables.ui.components.ButtonStyle.Outlined, shape = RoundedCornerShape(50),
+                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)) {
+                            com.composables.ui.components.Icon(if (showHistory) Icons.Default.EditNote else Icons.Default.History,
+                                contentDescription = null, tint = c.ink, modifier = Modifier.size(20.dp))
+                            Text(stringResource(if (showHistory) R.string.checkin_do_checkin else R.string.checkin_history),
+                                color = c.ink, fontFamily = JournalMockupFont, fontSize = 12.sp)
+                        }
+                    }
+                    val heading: @Composable () -> Unit = {
+                        Text(stringResource(R.string.checkin_title_today), color = c.ink, fontFamily = JournalMockupFont,
+                            fontWeight = FontWeight.Bold, fontSize = 28.sp, lineHeight = 37.sp)
+                    }
+                    if (maxWidth >= 560.dp) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                            Box(Modifier.weight(1f)) { heading() }
+                            historyButton()
+                        }
+                    } else Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        heading()
+                        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) { historyButton() }
+                    }
                 }
-            }
-        }
-
-        Spacer(Modifier.height(14.dp))
-        Text(
-            text = stringResource(R.string.checkin_how_feeling),
-            fontFamily = LoraFontFamily,
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Normal,
-            color = PlannerFlatColors.TextDark,
-        )
-        Spacer(Modifier.height(4.dp))
-        Text(
-            text = stringResource(R.string.checkin_today),
-            fontSize = 13.sp,
-            color = PlannerFlatColors.TextMuted,
-        )
-        Spacer(Modifier.height(16.dp))
-        PlanHairline()
-
-        AnimatedVisibility(visible = !showHistory) {
-            Column {
-                Spacer(Modifier.height(22.dp))
-                CheckInSectionLabel(stringResource(R.string.checkin_select_mood))
-                Spacer(Modifier.height(14.dp))
-
-                // ── Mood grid — macOS Control Center tiles only ─────────────
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 2.dp, bottom = 4.dp),
-                ) {
-                    moodOptions.chunked(3).forEachIndexed { rowIndex, rowMoods ->
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                            modifier = Modifier.fillMaxWidth().then(if (rowIndex == 0) Modifier.tutorialTarget("checkin.mood") else Modifier),
+                if (!showHistory) {
+                    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(c.paper).padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        LilacCheckInLabel(stringResource(R.string.checkin_select_mood), c.ink)
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 2.dp, bottom = 4.dp),
                         ) {
-                            rowMoods.forEach { mood ->
-                                Box(modifier = Modifier.weight(1f)) {
-                                    MoodChip(
-                                        mood = mood,
-                                        selected = selectedMood == mood,
-                                        isLight = isLight,
-                                        onClick = {
-                                            selectedMood = mood
-                                            scope.launch { scrollState.animateScrollTo(scrollState.maxValue) }
-                                        },
+                            moodOptions.chunked(3).forEachIndexed { rowIndex, rowMoods ->
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                    modifier = Modifier.fillMaxWidth().then(if (rowIndex == 0) Modifier.tutorialTarget("checkin.mood") else Modifier),
+                                ) {
+                                    rowMoods.forEach { mood ->
+                                        Box(modifier = Modifier.weight(1f)) {
+                                            MoodChip(
+                                                mood = mood,
+                                                selected = selectedMood == mood,
+                                                isLight = isLight,
+                                                onClick = {
+                                                    selectedMood = mood
+                                                    scope.launch { scrollState.animateScrollTo(scrollState.maxValue) }
+                                                },
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                    }
+                    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(c.lilac)
+                        .border(1.dp, c.paper, RoundedCornerShape(24.dp)).padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        AnimatedVisibility(visible = selectedMood != null) {
+                            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    LilacCheckInLabel(stringResource(R.string.checkin_intensity), c.ink)
+                                    Text("${(intensity * 5).toInt().coerceIn(1, 5)}/5", color = c.muted, fontFamily = JournalMockupFont, fontSize = 14.sp)
+                                }
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(stringResource(R.string.checkin_low), color = c.muted, fontSize = 12.sp)
+                                    val lowColor = if (isLight) Color(0xFF94A3B8) else Color(0xFF64748B)
+                                    val highColor = selectedMood?.color ?: c.action
+                                    SlimSlider(value = intensity, onValueChange = { intensity = it },
+                                        modifier = Modifier.weight(1f).tutorialTarget("checkin.details").padding(horizontal = 12.dp),
+                                        activeColor = lerp(lowColor, highColor, intensity),
+                                        activeBrush = Brush.horizontalGradient(listOf(lowColor, highColor)),
+                                        inactiveColor = c.line, stretchBrushToFullTrack = true)
+                                    Text(stringResource(R.string.checkin_high), color = c.muted, fontSize = 12.sp)
+                                }
+                            }
+                        }
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            LilacCheckInLabel(stringResource(R.string.checkin_note_hint), c.ink)
+                            LilacCheckInNotes(note, { note = it }, !uiState.isCheckingIn, isLight)
+                        }
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            LilacCheckInLabel(stringResource(R.string.checkin_due_to), c.ink)
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                moodTags.forEach { (tag, labelRes) ->
+                                    val selected = tag in selectedTags
+                                    com.composables.ui.components.Button(
+                                        onClick = { selectedTags = if (selected) selectedTags - tag else selectedTags + tag },
+                                        style = if (selected) com.composables.ui.components.ButtonStyle.Primary else com.composables.ui.components.ButtonStyle.Outlined,
+                                        shape = RoundedCornerShape(14.dp), enabled = !uiState.isCheckingIn,
+                                        modifier = Modifier.background(if (selected) Color.Transparent else c.paper, RoundedCornerShape(14.dp))
+                                            .semantics { this.selected = selected },
+                                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)) {
+                                        Text(stringResource(labelRes), color = if (selected) c.onAction else c.ink,
+                                            fontFamily = JournalMockupFont, fontSize = 12.sp, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal)
+                                    }
+                                }
+                            }
+                        }
+                        uiState.checkInError?.let { Text(it, color = MaterialTheme.colorScheme.error, fontSize = 13.sp) }
+                        com.composables.ui.components.Button(
+                            onClick = {
+                                focusManager.clearFocus()
+                                selectedMoodLabel?.let { label ->
+                                    val fullNote = buildString {
+                                        if (note.isNotBlank()) append(note)
+                                        if (causedBy.isNotBlank()) {
+                                            if (isNotEmpty()) append("\n\n")
+                                            append("Caused by: $causedBy")
+                                        }
+                                        if (selectedTags.isNotEmpty()) {
+                                            if (isNotEmpty()) append("\n")
+                                            append("Tags: ${selectedTags.joinToString(", ")}")
+                                        }
+                                    }
+                                    onCreateMood(
+                                        label,
+                                        (intensity * 5).toInt().coerceIn(1, 5),
+                                        fullNote.ifBlank { null },
                                     )
                                 }
-                            }
-                        }
-                    }
-                }
-
-                AnimatedVisibility(visible = selectedMood != null) {
-                    Column {
-                        Spacer(Modifier.height(22.dp))
-                        PlanHairline(alpha = 0.6f)
-                        Spacer(Modifier.height(18.dp))
-                        CheckInSectionLabel(stringResource(R.string.checkin_intensity))
-                        Spacer(Modifier.height(12.dp))
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                stringResource(R.string.checkin_low),
-                                fontSize = 12.sp,
-                                color = PlannerFlatColors.TextMuted,
-                            )
-                            val highColor = selectedMood?.color ?: accent
-                            // Low = muted slate → High = full mood color (clear low→high shift)
-                            val lowColor = if (isLight) Color(0xFF94A3B8) else Color(0xFF64748B)
-                            val currentColor = lerp(lowColor, highColor, intensity)
-                            val sliderGradient = remember(lowColor, highColor) {
-                                Brush.horizontalGradient(listOf(lowColor, highColor))
-                            }
-                            SlimSlider(
-                                value = intensity,
-                                onValueChange = { intensity = it },
-                                modifier = Modifier
-                                    .weight(1f).tutorialTarget("checkin.details")
-                                    .padding(horizontal = 12.dp),
-                                activeColor = currentColor,
-                                activeBrush = sliderGradient,
-                                inactiveColor = PlannerFlatColors.BorderSoft,
-                                stretchBrushToFullTrack = true,
-                            )
-                            Text(
-                                stringResource(R.string.checkin_high),
-                                fontSize = 12.sp,
-                                color = PlannerFlatColors.TextMuted,
-                            )
-                        }
-                        val intensityInt = (intensity * 5).toInt().coerceIn(1, 5)
-                        val intensityColor = lerp(
-                            if (isLight) Color(0xFF94A3B8) else Color(0xFF64748B),
-                            selectedMood?.color ?: accent,
-                            intensity,
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        Text(
-                            "$intensityInt/5",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = intensityColor,
-                            modifier = Modifier.align(Alignment.CenterHorizontally),
-                        )
-                    }
-                }
-
-                Spacer(Modifier.height(22.dp))
-                PlanHairline(alpha = 0.6f)
-                Spacer(Modifier.height(18.dp))
-                CheckInSectionLabel(stringResource(R.string.checkin_note_hint))
-                Spacer(Modifier.height(10.dp))
-                com.safarparmar.app.ui.components.SafarRichTextField(
-                    value = note,
-                    onValueChange = { note = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    minLines = 2,
-                    shape = RoundedCornerShape(12.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = accent,
-                        unfocusedBorderColor = PlannerFlatColors.BorderSoft,
-                        focusedTextColor = PlannerFlatColors.TextDark,
-                        unfocusedTextColor = PlannerFlatColors.TextDark,
-                        cursorColor = accent,
-                        focusedContainerColor = Color.Transparent,
-                        unfocusedContainerColor = Color.Transparent,
-                    ),
-                )
-
-                Spacer(Modifier.height(22.dp))
-                PlanHairline(alpha = 0.6f)
-                Spacer(Modifier.height(18.dp))
-                CheckInSectionLabel(stringResource(R.string.checkin_due_to))
-                Spacer(Modifier.height(12.dp))
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    moodTags.forEach { (tag, labelRes) ->
-                        FlatTagPill(
-                            label = stringResource(labelRes),
-                            selected = tag in selectedTags,
-                            accent = accent,
-                            onClick = {
-                                selectedTags = if (tag in selectedTags) selectedTags - tag else selectedTags + tag
                             },
-                        )
-                    }
-                }
-
-                if (uiState.checkInError != null) {
-                    Spacer(Modifier.height(12.dp))
-                    Text(
-                        uiState.checkInError!!,
-                        color = MaterialTheme.colorScheme.error,
-                        fontSize = 13.sp,
-                    )
-                }
-
-                Spacer(Modifier.height(24.dp))
-                PlanHairline()
-                Spacer(Modifier.height(18.dp))
-
-                // Flat primary save — not macOS glass
-                val saveEnabled = selectedMood != null && !uiState.isCheckingIn
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth().tutorialTarget("checkin.save")
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(
-                            if (saveEnabled) accent else PlannerFlatColors.BorderSoft.copy(alpha = 0.55f),
-                        )
-                        .clickable(enabled = saveEnabled) {
-                            selectedMoodLabel?.let { label ->
-                                val fullNote = buildString {
-                                    if (note.isNotBlank()) append(note)
-                                    if (causedBy.isNotBlank()) {
-                                        if (isNotEmpty()) append("\n\n")
-                                        append("Caused by: $causedBy")
-                                    }
-                                    if (selectedTags.isNotEmpty()) {
-                                        if (isNotEmpty()) append("\n")
-                                        append("Tags: ${selectedTags.joinToString(", ")}")
-                                    }
-                                }
-                                onCreateMood(
-                                    label,
-                                    (intensity * 5).toInt().coerceIn(1, 5),
-                                    fullNote.ifBlank { null },
-                                )
-                            }
+                            enabled = selectedMood != null && !uiState.isCheckingIn,
+                            style = com.composables.ui.components.ButtonStyle.Primary, shape = RoundedCornerShape(50),
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp).tutorialTarget("checkin.save")) {
+                            if (uiState.isCheckingIn) com.safarparmar.app.ui.components.SafarCircularProgressIndicator(
+                                modifier = Modifier.size(16.dp), color = c.onAction, strokeWidth = 2.dp)
+                            Text(stringResource(if (uiState.isCheckingIn) R.string.checkin_saving else R.string.checkin_save),
+                                color = c.onAction, fontFamily = JournalMockupFont, fontWeight = FontWeight.SemiBold)
                         }
-                        .padding(vertical = 14.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center,
-                    ) {
-                        if (uiState.isCheckingIn) {
-                            com.safarparmar.app.ui.components.SafarCircularProgressIndicator(
-                                modifier = Modifier.size(16.dp),
-                                color = Color.White,
-                                strokeWidth = 2.dp,
-                            )
-                            Spacer(Modifier.width(8.dp))
-                        } else {
-                            Icon(
-                                Icons.Default.Check,
-                                contentDescription = null,
-                                tint = Color.White,
-                                modifier = Modifier.size(18.dp),
-                            )
-                            Spacer(Modifier.width(8.dp))
-                        }
-                        Text(
-                            stringResource(R.string.checkin_save),
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White,
-                        )
                     }
-                }
-            }
-        }
-
-        AnimatedVisibility(visible = showHistory) {
-            Column {
-                Spacer(Modifier.height(22.dp))
-                CheckInSectionLabel(stringResource(R.string.checkin_history_title))
-                Spacer(Modifier.height(12.dp))
-                PlanHairline()
-
-                if (uiState.moods.isEmpty()) {
-                    Spacer(Modifier.height(18.dp))
-                    Text(
-                        stringResource(R.string.checkin_no_history),
-                        color = PlannerFlatColors.TextMuted,
-                        fontSize = 13.sp,
-                    )
                 } else {
-                    uiState.moods.take(5).forEachIndexed { index, mood ->
-                        Box(Modifier.tutorialTarget("checkin.history")) { HistoryMoodRow(mood = mood) }
-                        if (index < uiState.moods.take(5).lastIndex) {
-                            PlanHairline(alpha = 0.5f)
+                    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(c.paper).padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        LilacCheckInLabel(stringResource(R.string.checkin_history_title), c.ink)
+                        if (uiState.isLoadingMoods) com.safarparmar.app.ui.components.SafarCircularProgressIndicator()
+                        else if (uiState.moods.isEmpty()) Text(stringResource(R.string.checkin_no_history), color = c.muted, fontSize = 13.sp)
+                        else uiState.moods.take(5).forEachIndexed { index, mood ->
+                            Box(Modifier.tutorialTarget("checkin.history")) { HistoryMoodRow(mood) }
+                            if (index < uiState.moods.take(5).lastIndex) androidx.compose.material3.HorizontalDivider(color = c.line)
                         }
                     }
                 }
             }
         }
     }
+}
+
+@Composable
+private fun LilacCheckInLabel(label: String, color: Color) {
+    Text(label, color = color, fontFamily = JournalMockupFont, fontSize = 17.sp,
+        lineHeight = 25.sp, fontWeight = FontWeight.Bold)
+}
+
+@Composable
+private fun LilacCheckInNotes(value: String, onValueChange: (String) -> Unit, enabled: Boolean, light: Boolean) {
+    val c = nishthaWarmColors(light)
+    val field = androidx.compose.foundation.text.input.rememberTextFieldState(value)
+    val callback by rememberUpdatedState(onValueChange)
+    LaunchedEffect(field) {
+        androidx.compose.runtime.snapshotFlow { field.text.toString() }.drop(1).collect { callback(it) }
+    }
+    LaunchedEffect(value) {
+        if (field.text.toString() != value) field.edit { replace(0, length, value) }
+    }
+    com.composables.ui.components.TextField(state = field, enabled = enabled,
+        modifier = Modifier.fillMaxWidth().heightIn(min = 100.dp),
+        accessibilityLabel = stringResource(R.string.checkin_note_hint),
+        placeholder = { Text(stringResource(R.string.checkin_add_note), color = c.muted, fontFamily = JournalMockupFont) },
+        lineLimits = androidx.compose.foundation.text.input.TextFieldLineLimits.MultiLine(minHeightInLines = 2),
+        shape = RoundedCornerShape(14.dp), backgroundColor = c.paper, contentColor = c.ink,
+        borderColor = c.line, fontFamily = JournalMockupFont, fontSize = 14.sp,
+        contentPadding = PaddingValues(14.dp))
 }
 
 @Composable

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="warm_journal_subtitle">A space to reflect, be kind to yourself, and notice your progress.</string>
+    <string name="warm_answer_prompt">Answer prompt</string>
+    <string name="warm_previous_prompt">Previous prompt</string>
+    <string name="warm_next_prompt">Next prompt</string>
+    <string name="warm_your_entries">Your entries</string>
+    <string name="warm_entry_count">%1$d entries</string>
+    <string name="warm_show_less">Show less</string>
+    <string name="warm_view_all">View all</string>
+    <string name="warm_untitled_entry">Untitled entry</string>
+    <string name="warm_open_entry">Open entry</string>
+    <string name="warm_checked_today">Checked in today</string>
+    <string name="warm_restore_hint">You missed %1$s. Restore once to continue at %2$d days.</string>
+    <string name="warm_restoring">Restoring…</string>
+    <string name="warm_restore_streak">Restore streak</string>
+    <string name="warm_activity_calendar">Activity calendar</string>
+    <string name="warm_previous_month">Previous month</string>
+    <string name="warm_next_month">Next month</string>
+    <string name="warm_new_entry">New entry</string>
+    <string name="warm_prompt_position">%1$d of %2$d</string>
+    <string name="warm_entry_options">Entry options</string>
+    <string name="warm_yesterday">Yesterday</string>
+    <string name="warm_streaks_subtitle">Consistency is key to building sustainable habits.</string>
+    <string name="warm_missed_checkin">You missed a check-in.</string>
+    <string name="warm_average_focus_score">Average focus score</string>
+    <string name="warm_consistency_trend">Consistency trend</string>
+    <string name="warm_checkin_streak">Check-in streak</string>
+</resources>

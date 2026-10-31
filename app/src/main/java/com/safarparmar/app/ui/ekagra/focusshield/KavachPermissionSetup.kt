@@ -1,4 +1,9 @@
 package com.safarparmar.app.ui.ekagra.focusshield
+import com.safarparmar.app.ui.ekagra.focusshield.KavachCommandButton as Button
+import com.safarparmar.app.ui.ekagra.focusshield.KavachCommandOutlineButton as OutlinedButton
+import com.safarparmar.app.ui.ekagra.focusshield.KavachCommandTextButton as TextButton
+import com.safarparmar.app.ui.ekagra.focusshield.KavachCommandField as OutlinedTextField
+
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -21,7 +26,7 @@ import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material3.*
-import com.safarparmar.app.ui.components.popups.SafarModalBottomSheet as ModalBottomSheet
+import com.safarparmar.app.ui.ekagra.focusshield.KavachCommandSheet as ModalBottomSheet
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -60,6 +65,8 @@ fun KavachPermissionSetupScreen(
     onContinue: () -> Unit,
     onBack: (() -> Unit)? = null,
 ) {
+    com.safarparmar.app.ui.ekagra.focusshield.KavachCommandTheme {
+
     val allRequiredGranted = KavachActivationReadiness.hasRequiredPermissions(usageStatsGranted, overlayGranted)
 
     Scaffold(
@@ -148,6 +155,8 @@ fun KavachPermissionSetupScreen(
                 )
             }
         }
+    }
+
     }
 }
 

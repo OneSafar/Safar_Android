@@ -47,6 +47,7 @@ internal fun HomeFeatureBanners(
     isDarkTheme: Boolean = androidx.compose.foundation.isSystemInDarkTheme(),
     bannerHeight: Dp? = null,
     leadingBanner: (@Composable () -> Unit)? = null,
+    phonePlumStyle: Boolean = false,
 ) {
     val hasLeadingBanner = leadingBanner != null
     val pager = rememberPagerState(pageCount = { if (hasLeadingBanner) 3 else 2 })
@@ -75,13 +76,14 @@ internal fun HomeFeatureBanners(
         HorizontalPager(
             state = pager,
             pageSpacing = 12.dp,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = if (phonePlumStyle) Modifier.fillMaxWidth().weight(1f) else Modifier.fillMaxWidth(),
         ) { page ->
             if (hasLeadingBanner && page == 0) {
                 Box(Modifier.fillMaxWidth()) { leadingBanner() }
             } else {
                 val featurePage = page - if (hasLeadingBanner) 1 else 0
-                ScaledTabletHomeBanner(
+                if (phonePlumStyle) PlumHomePromo(habitTracker = featurePage != 0, onNavigate = onNavigate, modifier = Modifier.fillMaxSize(), isDarkTheme = isDarkTheme)
+                else ScaledTabletHomeBanner(
                     habitTracker = featurePage != 0,
                     isDarkTheme = isDarkTheme,
                     onNavigate = onNavigate,
@@ -89,6 +91,7 @@ internal fun HomeFeatureBanners(
             }
         }
         Row(
+            modifier = if (phonePlumStyle) Modifier.height(36.dp) else Modifier,
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center,
         ) {

@@ -48,6 +48,8 @@ val isPlannerDark: Boolean
 object PlannerFlatColors {
     val ProgressTrack @Composable get() = if (LocalPlannerWarmClarity.current) plannerWarmColors(isPlannerDark).border else if (isPlannerDark) Color(0xFF33333D) else Color(0xFFE2DDF0)
     val BgCream @Composable get() = if (LocalPlannerWarmClarity.current) plannerWarmColors(isPlannerDark).canvas else if (isPlannerDark) Color(0xFF131316) else Color(0xFFFFF9F0)
+    // Sheets retain their existing fill when the page canvas changes.
+    val ComponentBackground @Composable get() = if (LocalPlannerWarmClarity.current && isPlannerDark) Color(0xFF211921) else BgCream
     val CardWhite @Composable get() = if (LocalPlannerWarmClarity.current) plannerWarmColors(isPlannerDark).card else if (isPlannerDark) Color(0xFF1E1E24) else Color(0xFFFFFFFF)
     val TextDark @Composable get() = if (LocalPlannerWarmClarity.current) plannerWarmColors(isPlannerDark).ink else if (isPlannerDark) Color(0xFFF8FAFC) else Color(0xFF1E1B4B)
     val TextMuted @Composable get() = if (LocalPlannerWarmClarity.current) plannerWarmColors(isPlannerDark).muted else if (isPlannerDark) Color(0xFF94A3B8) else Color(0xFF64748B)

@@ -1,5 +1,6 @@
 package com.safarparmar.app.ui.mehfil
 
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalResources
 
 import android.content.Intent
@@ -54,9 +55,10 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
+import com.composables.ui.components.Icon
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import com.composables.ui.components.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -155,6 +157,7 @@ internal fun CommunityTab(
     onCreatePostClick: () -> Unit,
     onViewStudyCircles: () -> Unit,
     onOpenStudyCircle: (String) -> Unit,
+    onOpenSandesh: () -> Unit = {},
 ) {
     val listState = rememberLazyListState()
     val filteredPosts = remember(uiState.posts, searchQuery) {
@@ -215,23 +218,15 @@ internal fun CommunityTab(
             )
         }
 
-        Column(Modifier.padding(horizontal = if (expanded) 0.dp else 16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(stringResource(R.string.mehfil_tab_community).uppercase(java.util.Locale.getDefault()), fontSize = 20.sp, fontWeight = FontWeight.Bold, color = MehfilFlatColors.Primary)
-            Text(stringResource(R.string.mehfil_community_description), fontSize = 16.sp, color = MehfilFlatColors.Muted)
-        }
-        Spacer(Modifier.height(16.dp))
-        RoomSelector(selectedSpace = uiState.selectedSpace, onJoinRoom = onJoinRoom)
-        Spacer(Modifier.height(if (expanded) 20.dp else 6.dp))
-
         if (!expanded && uiState.sandeshes.isNotEmpty()) {
-            CollapsibleSandeshCard(
+            SandeshPopupEntry(
                 sandeshes = uiState.sandeshes,
-                reactedSandeshIds = uiState.reactedSandeshIds,
-                onReact = onReactSandesh,
-                onCommentClick = onSandeshCommentClick,
+                onOpen = onOpenSandesh,
             )
-            Spacer(Modifier.height(6.dp))
+            Spacer(Modifier.height(12.dp))
         }
+        RoomSelector(selectedSpace = uiState.selectedSpace, onJoinRoom = onJoinRoom)
+        Spacer(Modifier.height(12.dp))
 
         when {
             uiState.isLoadingPosts && uiState.posts.isEmpty() -> LoadingPostList()
@@ -256,16 +251,6 @@ internal fun CommunityTab(
                     contentPadding = PaddingValues(horizontal = if (expanded) 0.dp else 16.dp, vertical = 4.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    if (!expanded) item(key = "__community_posts_header__") {
-                        Text(
-                            stringResource(R.string.mehfil_community_posts),
-                            fontSize = 11.5.sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 1.sp,
-                            color = MehfilFlatColors.Muted,
-                            modifier = Modifier.padding(top = 4.dp, bottom = 2.dp),
-                        )
-                    }
 
                     items(
                         items = filteredPosts,
@@ -460,7 +445,7 @@ private fun EmptySearchState(searchQuery: String, isSearchingMore: Boolean, onCl
                 Text(stringResource(R.string.mehfil_searching_posts), color = MehfilFlatColors.Muted, fontSize = 13.sp)
             } else {
                 Icon(
-                    painter = painterResource(id = R.drawable.ic_magnifying_glass),
+                    imageVector = ImageVector.vectorResource(id = R.drawable.ic_magnifying_glass),
                     contentDescription = null,
                     modifier = Modifier.size(40.dp),
                     tint = MehfilFlatColors.Muted,
@@ -480,86 +465,39 @@ private fun EmptySearchState(searchQuery: String, isSearchingMore: Boolean, onCl
     }
 }
 
+/** Quiet Sandesh disclosure: a compact header and one shared announcement list. */
 @Composable
-private fun CollapsibleSandeshCard(
+private fun SandeshPopupEntry(
     sandeshes: List<Sandesh>,
-    reactedSandeshIds: Set<String>,
-    onReact: (String) -> Unit,
-    onCommentClick: (String) -> Unit,
+    onOpen: () -> Unit,
 ) {
     if (sandeshes.isEmpty()) return
-    var expanded by remember { mutableStateOf(false) }
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp)
-            .clip(RoundedCornerShape(14.dp))
-            .background(MehfilFlatColors.SandeshPanel)
-            .border(1.dp, MehfilFlatColors.Hairline, RoundedCornerShape(14.dp)),
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { expanded = !expanded }
-                .padding(horizontal = 14.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+    val shape = RoundedCornerShape(16.dp)
+    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp).clip(shape)
+        .background(MehfilFlatColors.Bg)
+        .border(1.dp, MehfilFlatColors.SandeshPanel, shape)) {
+        com.composables.ui.components.Button(
+            onClick = onOpen, style = com.composables.ui.components.ButtonStyle.Ghost,
+            shape = shape, modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp),
+            contentPadding = PaddingValues(0.dp), contentColor = MehfilFlatColors.Text,
         ) {
-            Box(
-                Modifier
-                    .size(38.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .border(1.dp, MehfilFlatColors.Hairline, RoundedCornerShape(10.dp)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_megaphone),
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                    tint = MehfilFlatColors.Primary,
-                )
-            }
-            Column(Modifier.weight(1f)) {
-                Text(
-                    stringResource(R.string.mehfil_sandesh),
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.sp,
-                    color = MehfilFlatColors.SandeshAccent,
-                )
-                Text(
-                    if (sandeshes.size == 1) "1 announcement" else "${sandeshes.size} announcements",
-                    fontSize = 14.5.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MehfilFlatColors.Text,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-            Icon(
-                if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                contentDescription = if (expanded) stringResource(R.string.common_collapse) else stringResource(R.string.common_expand),
-                tint = MehfilFlatColors.Muted,
-            )
-        }
-        AnimatedVisibility(visible = expanded) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = 400.dp)
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 12.dp)
-                    .padding(bottom = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                sandeshes.forEach { sandesh ->
-                    SandeshAnnouncementCard(
-                        sandesh = sandesh,
-                        isReacted = sandesh.id in reactedSandeshIds,
-                        onReact = onReact,
-                        onCommentClick = onCommentClick,
-                    )
+            Row(Modifier.fillMaxWidth().heightIn(min = 64.dp), verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Box(Modifier.width(5.dp).height(64.dp).background(MehfilFlatColors.SandeshPanel))
+                Icon(ImageVector.vectorResource(R.drawable.ic_megaphone), contentDescription = null,
+                    modifier = Modifier.size(24.dp), tint = MehfilFlatColors.Primary)
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(stringResource(R.string.mehfil_sandesh), fontSize = 15.sp, fontWeight = FontWeight.SemiBold,
+                        color = MehfilFlatColors.SandeshAccent)
+                    Text(androidx.compose.ui.res.pluralStringResource(R.plurals.mehfil_announcement_total, sandeshes.size, sandeshes.size),
+                        fontSize = 12.sp, color = MehfilFlatColors.Text)
+                }
+                Box(Modifier.padding(end = 12.dp).size(32.dp).background(MehfilFlatColors.SandeshPanel.copy(alpha = .55f), CircleShape),
+                    contentAlignment = Alignment.Center) {
+                    Icon(Icons.Default.ExpandMore,
+                        contentDescription = stringResource(R.string.common_expand),
+                        modifier = Modifier.size(20.dp),
+                        tint = MehfilFlatColors.Primary)
                 }
             }
         }
@@ -577,7 +515,7 @@ internal fun SandeshAnnouncementCard(
 }
 
 @Composable
-private fun SandeshMedia(sandesh: Sandesh) {
+internal fun SandeshMedia(sandesh: Sandesh) {
     val context = LocalContext.current
     val localizedResources by rememberUpdatedState(LocalResources.current)
     val youtubeRegex = Regex("""(?:https?://)?(?:www\.)?(?:youtube\.com/(?:[^/\n\s]+/\S+/|(?:v|e(?:mbed)?)/|\S*?[?&]v=)|youtu\.be/)([a-zA-Z0-9_-]{11})""")
@@ -594,7 +532,7 @@ private fun SandeshMedia(sandesh: Sandesh) {
         val thumbUrl = "https://img.youtube.com/vi/$youtubeVideoId/hqdefault.jpg"
         val videoUrl = "https://www.youtube.com/watch?v=$youtubeVideoId"
         Box(
-            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).clickable {
+            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).clickable {
                 // No app on the device handles the link (no browser / stripped ROM) →
                 // ActivityNotFoundException. Tell the user instead of crashing.
                 try {
@@ -625,7 +563,7 @@ private fun SandeshMedia(sandesh: Sandesh) {
             contentDescription = stringResource(R.string.mehfil_corner_attachment),
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(14.dp))
+                .clip(RoundedCornerShape(20.dp))
                 .heightIn(max = 220.dp)
                 .clickable {
                     try {
@@ -634,9 +572,37 @@ private fun SandeshMedia(sandesh: Sandesh) {
                         android.widget.Toast.makeText(context, localizedResources.getString(R.string.mehfil_cannot_open_image), android.widget.Toast.LENGTH_SHORT).show()
                     }
                 },
-            contentScale = ContentScale.Crop,
+            contentScale = ContentScale.Fit,
         )
     }
+    // Render link metadata as well as URLs written directly into the announcement.
+    val urls = remember(sandesh.content, sandesh.linkMeta) {
+        (listOfNotNull(sandesh.linkMeta?.url?.takeIf { it.isNotBlank() }) +
+            Regex("https?://[^\\s<>]+") .findAll(sandesh.content).map { it.value.trimEnd('.', ',', ')') }.toList())
+            .distinct().filter { Uri.parse(it).scheme in setOf("https", "http") }
+    }
+    sandesh.linkMeta?.image?.takeIf { it.isNotBlank() && it != sandesh.imageUrl }?.let { thumbnail ->
+        AsyncImage(model = thumbnail, contentDescription = stringResource(R.string.mehfil_corner_attachment),
+            modifier = Modifier.fillMaxWidth().heightIn(max = 220.dp), contentScale = ContentScale.Fit)
+    }
+    urls.forEach { url ->
+        com.composables.ui.components.Button(onClick = {
+            try { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
+            catch (_: android.content.ActivityNotFoundException) {
+                android.widget.Toast.makeText(context, localizedResources.getString(R.string.mehfil_cannot_open_video), android.widget.Toast.LENGTH_SHORT).show()
+            }
+        }, style = com.composables.ui.components.ButtonStyle.Ghost,
+            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp), contentColor = MehfilFlatColors.Primary) {
+            Column(Modifier.fillMaxWidth()) {
+                sandesh.linkMeta?.takeIf { it.url == url }?.let { meta ->
+                    if (meta.title.isNotBlank()) Text(meta.title, fontWeight = FontWeight.SemiBold)
+                    if (meta.description.isNotBlank()) Text(meta.description, fontSize = 12.sp, color = MehfilFlatColors.Muted)
+                }
+                Text(url, fontSize = 13.sp, color = MehfilFlatColors.Primary)
+            }
+        }
+    }
+
 }
 
 @Composable
@@ -670,7 +636,7 @@ internal fun SavedTab(
         }
         uiState.savedPosts.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(painter = painterResource(id = R.drawable.ic_bookmarks_simple), contentDescription = null, modifier = Modifier.size(48.dp), tint = MehfilFlatColors.Muted)
+                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_bookmarks_simple), contentDescription = null, modifier = Modifier.size(48.dp), tint = MehfilFlatColors.Muted)
                 Text(stringResource(R.string.mehfil_no_saved_posts), fontSize = 15.sp, fontWeight = FontWeight.Medium, color = MehfilFlatColors.Muted)
             }
         }
@@ -775,9 +741,9 @@ internal fun AnalyticsTab(uiState: MehfilUiState) {
 private fun ActivityStatCard(label: String, value: String, icon: ImageVector, modifier: Modifier) {
     Column(
         modifier = modifier
-            .clip(RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(20.dp))
             .background(MehfilFlatColors.Surface)
-            .border(1.dp, MehfilFlatColors.Hairline, RoundedCornerShape(14.dp))
+            .border(1.dp, MehfilFlatColors.Hairline, RoundedCornerShape(20.dp))
             .padding(12.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -793,15 +759,15 @@ private fun ActivityRow(item: ActivityItem) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(20.dp))
             .background(MehfilFlatColors.Surface)
-            .border(1.dp, MehfilFlatColors.Hairline, RoundedCornerShape(14.dp))
+            .border(1.dp, MehfilFlatColors.Hairline, RoundedCornerShape(20.dp))
             .padding(12.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
-            painter = painterResource(
+            imageVector = ImageVector.vectorResource(
                 id = when (item.type) {
                     "post" -> R.drawable.ic_pencil_simple_line
                     "comment" -> R.drawable.ic_chat
@@ -855,9 +821,9 @@ internal fun ConnectionsTab(
             is DmState.Open -> Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(14.dp))
+                    .clip(RoundedCornerShape(20.dp))
                     .background(MehfilFlatColors.Surface)
-                    .border(1.dp, MehfilFlatColors.Hairline, RoundedCornerShape(14.dp))
+                    .border(1.dp, MehfilFlatColors.Hairline, RoundedCornerShape(20.dp))
                     .clickable { onNavigateToDmChat() }
                     .padding(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -881,9 +847,9 @@ private fun PendingRequestsCard(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(20.dp))
             .background(MehfilFlatColors.Surface)
-            .border(1.dp, MehfilFlatColors.Hairline, RoundedCornerShape(14.dp))
+            .border(1.dp, MehfilFlatColors.Hairline, RoundedCornerShape(20.dp))
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
@@ -923,9 +889,9 @@ private fun ConnectIdleCard() {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(20.dp))
             .background(MehfilFlatColors.Surface)
-            .border(1.dp, MehfilFlatColors.Hairline, RoundedCornerShape(14.dp))
+            .border(1.dp, MehfilFlatColors.Hairline, RoundedCornerShape(20.dp))
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
@@ -943,9 +909,9 @@ private fun IncomingRequestCard(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(20.dp))
             .background(MehfilFlatColors.Surface)
-            .border(1.dp, MehfilFlatColors.Hairline, RoundedCornerShape(14.dp))
+            .border(1.dp, MehfilFlatColors.Hairline, RoundedCornerShape(20.dp))
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {

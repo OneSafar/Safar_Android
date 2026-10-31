@@ -483,7 +483,7 @@ internal fun SelectedDayLogSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         dragHandle = { BottomSheetDefaults.DragHandle() },
-        containerColor = PlannerFlatColors.BgCream,
+        containerColor = PlannerFlatColors.ComponentBackground,
     ) {
         SafarEnableSheetBackdropBlur()
         SelectedDayTargets(

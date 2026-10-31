@@ -70,8 +70,10 @@ fun BreathingVisualizer(
 ) {
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
         when (sessionId) {
-            "1" -> WavyPathViz(breathPhase, isActive)
-            "2" -> GoldenOrbViz(breathPhase, isActive)
+            "1" -> Box(Modifier.scale(0.82f), contentAlignment = Alignment.Center) {
+                WavyPathViz(breathPhase, isActive, cycle)
+            }
+            "2" -> GoldenOrbViz(breathPhase, isActive, cycle)
             "3" -> BoxTraceViz(breathPhase, isActive, cycle)
             "4", "5" -> ArcRingViz(breathPhase, isActive, cycle)
             "nostril" -> NostrilViz()
@@ -106,13 +108,19 @@ private fun phaseDurationMs(phase: BreathPhase, cycle: BreathCycle) = when (phas
 // ─── 1. Diaphragmatic / Belly Breathing (WavyPathViz) ────────────────────────
 
 @Composable
-fun WavyPathViz(breathPhase: BreathPhase, isActive: Boolean) {
+fun WavyPathViz(
+    breathPhase: BreathPhase,
+    isActive: Boolean,
+    cycle: BreathCycle = BreathCycle(4, 0, 6, 0)
+) {
     val isInhale = breathPhase == BreathPhase.INHALE
     val isExhale = breathPhase == BreathPhase.EXHALE
     val isHoldFull = breathPhase == BreathPhase.HOLD
 
     val orbDuration = when {
-        isInhale -> 4000; isExhale -> 6000; else -> 500
+        isInhale -> (cycle.inhale * 1000).coerceAtLeast(100)
+        isExhale -> (cycle.exhale * 1000).coerceAtLeast(100)
+        else -> 500
     }
 
     val phaseColor = when (breathPhase) {
@@ -340,10 +348,18 @@ private fun BreathParticle(
 // ─── 2. Pursed Lip / Lion Breath: Golden Orb ─────────────────────────────────
 
 @Composable
-fun GoldenOrbViz(breathPhase: BreathPhase, isActive: Boolean) {
+fun GoldenOrbViz(
+    breathPhase: BreathPhase,
+    isActive: Boolean,
+    cycle: BreathCycle = BreathCycle(2, 0, 4, 0)
+) {
     val isInhale = breathPhase == BreathPhase.INHALE
     val isHoldFull = breathPhase == BreathPhase.HOLD
-    val durationMs = if (isInhale || breathPhase == BreathPhase.EXHALE) 4000 else 500
+    val durationMs = when (breathPhase) {
+        BreathPhase.INHALE -> (cycle.inhale * 1000).coerceAtLeast(100)
+        BreathPhase.EXHALE -> (cycle.exhale * 1000).coerceAtLeast(100)
+        else -> 500
+    }
     val targetScale = if (isInhale || isHoldFull) 1.4f else 0.6f
 
     val scale by animateFloatAsState(

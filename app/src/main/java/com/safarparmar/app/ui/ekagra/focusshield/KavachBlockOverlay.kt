@@ -540,10 +540,10 @@ class KavachBlockOverlay(
     }
 
     companion object {
-        /** Rich Deep Royal Purple (Purple 900) - Hex Code: #581C87 */
-        private val ROYAL_PURPLE = Color.parseColor("#581C87")
-        /** Slightly lighter purple for Quick Unlock buttons (Purple 700: #7E22CE) */
-        private val QUICK_UNLOCK_PURPLE = Color.parseColor("#7E22CE")
+        /** Rich Deep Royal Purple (Purple 900) - Hex Code: #542347 */
+        private val ROYAL_PURPLE = Color.parseColor("#542347")
+        /** Slightly lighter purple for Quick Unlock buttons (Purple 700: #793D67) */
+        private val QUICK_UNLOCK_PURPLE = Color.parseColor("#793D67")
     }
 
     private data class OverlayContent(

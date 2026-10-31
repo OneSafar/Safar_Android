@@ -8,11 +8,14 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -28,13 +31,25 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.outlined.LocalFireDepartment
+import androidx.compose.ui.graphics.vector.ImageVector
+import com.safarparmar.app.ui.nishtha.journal.JournalMockupFont as StreakMockupFont
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.ChevronLeft
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.material3.Icon
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -63,6 +78,7 @@ import com.safarparmar.app.ui.studyplanner.components.LocalPlannerIsDarkTheme
 import com.safarparmar.app.ui.studyplanner.components.PlannerFlatColors
 import com.safarparmar.app.ui.studyplanner.plan.PlanEyebrow
 import com.safarparmar.app.ui.studyplanner.plan.PlanHairline
+import com.safarparmar.app.ui.theme.PoppinsFontFamily
 import com.safarparmar.app.ui.theme.LoraFontFamily
 import com.safarparmar.app.ui.theme.isLightBackground
 import com.safarparmar.app.util.assignedDateKey
@@ -117,249 +133,7 @@ fun StreaksScreen(viewModel: NishthaViewModel = hiltViewModel()) {
 internal fun StreaksScreenContent(
     uiState: NishthaUiState, isLight: Boolean, onRestore: () -> Unit = {},
 ) {
-    val streaks = uiState.streaks
-    val loginDates = remember(uiState.loginHistory) {
-        uiState.loginHistory.mapNotNull { entry ->
-            runCatching { java.time.ZonedDateTime.parse(entry.timestamp).toLocalDate() }.getOrNull()
-        }.toSet()
-    }
-    val today = LocalDate.now(com.safarparmar.app.util.IstDateUtils.zone)
-    val last7Days = remember { (6 downTo 0).map { today.minusDays(it.toLong()) } }
-    val weeklyCompletions = remember(uiState.goals) {
-        last7Days.map { date ->
-            uiState.goals.count { goal ->
-                goal.source != "ekagra" && goal.isGoalCompleted() && goal.assignedDateKey() == date.toString()
-            }.toFloat()
-        }
-    }
-    val weekDayLabels = remember {
-        last7Days.map { it.format(DateTimeFormatter.ofPattern("EEE", Locale.getDefault())) }
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(PlannerFlatColors.BgCream)
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp)
-            .padding(top = 16.dp, bottom = 28.dp),
-        verticalArrangement = Arrangement.spacedBy(0.dp),
-    ) {
-        // ── Flat hairline header ────────────────────────────────────────────
-        PlanEyebrow("Nishtha")
-        Spacer(Modifier.height(14.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                painter = painterResource(id = R.drawable.ic_flame),
-                contentDescription = null,
-                modifier = Modifier.size(22.dp),
-                tint = StreaksPalette.Primary,
-            )
-            Spacer(Modifier.width(8.dp))
-            Text(
-                stringResource(R.string.streaks_header_title),
-                fontFamily = LoraFontFamily,
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Normal,
-                color = PlannerFlatColors.TextDark,
-            )
-        }
-        Spacer(Modifier.height(4.dp))
-        Text(
-            stringResource(R.string.streaks_header_subtitle),
-            fontSize = 13.sp,
-            color = PlannerFlatColors.TextMuted,
-        )
-        Spacer(Modifier.height(16.dp))
-        PlanHairline()
-        Spacer(Modifier.height(20.dp))
-
-        if (uiState.isLoadingStreaks) {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                StatCardSkeleton()
-                StatCardSkeleton()
-                StatCardSkeleton()
-            }
-        } else {
-            Text(
-                "ACTIVE STREAKS",
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 2.sp,
-                color = PlannerFlatColors.TextMuted,
-            )
-            Spacer(Modifier.height(12.dp))
-
-            // ── macOS glass streak tiles ────────────────────────────────────
-            StreakGlassCard(
-                modifier = Modifier.tutorialTarget("streaks.counts"),
-                label = stringResource(R.string.streaks_checkin_label),
-                value = streaks.checkInStreak,
-                accent = StreaksPalette.CheckIn,
-                isLight = isLight,
-                iconRes = R.drawable.ic_zap,
-                bgIconRes = R.drawable.ic_heart_straight,
-                bgIconRotation = 12f,
-                bgIconOffsetX = 20.dp,
-                bgIconOffsetY = (-20).dp,
-                bottomContent = {
-                    if (streaks.checkInRestore.available) {
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text(
-                                "You missed ${streaks.checkInRestore.missedDate}. Restore once to continue at ${streaks.checkInRestore.projectedStreak} days.",
-                                color = PlannerFlatColors.TextMuted,
-                                fontSize = 12.sp,
-                                lineHeight = 17.sp,
-                            )
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.clickable(
-                                    enabled = !uiState.isRestoringStreak,
-                                    interactionSource = remember { MutableInteractionSource() },
-                                    indication = null,
-                                    onClick = onRestore,
-                                ),
-                            ) {
-                                if (uiState.isRestoringStreak) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(14.dp),
-                                        strokeWidth = 2.dp,
-                                        color = StreaksPalette.CheckIn,
-                                    )
-                                } else {
-                                    Icon(
-                                        Icons.Default.Refresh,
-                                        contentDescription = null,
-                                        tint = StreaksPalette.CheckIn,
-                                        modifier = Modifier.size(14.dp),
-                                    )
-                                }
-                                Spacer(Modifier.width(6.dp))
-                                Text(
-                                    if (uiState.isRestoringStreak) "Restoring…" else "Restore streak",
-                                    color = StreaksPalette.CheckIn,
-                                    fontWeight = FontWeight.SemiBold,
-                                    fontSize = 13.sp,
-                                )
-                            }
-                        }
-                    } else {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                stringResource(R.string.streaks_start_today),
-                                color = StreaksPalette.CheckIn,
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 13.sp,
-                            )
-                            Spacer(Modifier.width(6.dp))
-                            Icon(
-                                Icons.AutoMirrored.Filled.ArrowForward,
-                                contentDescription = null,
-                                tint = StreaksPalette.CheckIn,
-                                modifier = Modifier.size(14.dp),
-                            )
-                        }
-                    }
-                },
-            )
-
-            uiState.streakMessage?.let { message ->
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    message,
-                    color = StreaksPalette.CheckIn,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
-                )
-            }
-
-
-
-            Spacer(Modifier.height(22.dp))
-            PlanHairline()
-            Spacer(Modifier.height(18.dp))
-
-            // ── Flat monthly health ─────────────────────────────────────────
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    Icons.AutoMirrored.Filled.TrendingUp,
-                    contentDescription = null,
-                    modifier = Modifier.size(14.dp),
-                    tint = StreaksPalette.Health,
-                )
-                Spacer(Modifier.width(6.dp))
-                Text(
-                    stringResource(R.string.streaks_monthly_health).uppercase(),
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 2.sp,
-                    color = PlannerFlatColors.TextMuted,
-                )
-            }
-            Spacer(Modifier.height(10.dp))
-            Text(
-                "${streaks.goalCompletionStreak * 10}%",
-                fontFamily = LoraFontFamily,
-                fontSize = 36.sp,
-                color = StreaksPalette.Health,
-            )
-            Spacer(Modifier.height(2.dp))
-            Text(
-                stringResource(R.string.streaks_avg_focus_score).uppercase(),
-                fontSize = 11.sp,
-                letterSpacing = 1.sp,
-                color = PlannerFlatColors.TextMuted,
-            )
-        }
-
-        Spacer(Modifier.height(22.dp))
-        PlanHairline()
-        Spacer(Modifier.height(18.dp))
-
-        // ── Flat calendar heatmap ───────────────────────────────────────────
-        CalendarSection(loginDates = loginDates, accent = StreaksPalette.CheckIn)
-
-        Spacer(Modifier.height(22.dp))
-        PlanHairline()
-        Spacer(Modifier.height(18.dp))
-
-        // ── Flat consistency trend ──────────────────────────────────────────
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                Icons.AutoMirrored.Filled.TrendingUp,
-                contentDescription = null,
-                modifier = Modifier.size(14.dp),
-                tint = StreaksPalette.Trend,
-            )
-            Spacer(Modifier.width(6.dp))
-            Text(
-                stringResource(R.string.streaks_consistency_trend),
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
-                color = PlannerFlatColors.TextDark,
-            )
-        }
-        Spacer(Modifier.height(4.dp))
-        Text(
-            stringResource(R.string.streaks_trend_subtitle),
-            fontSize = 12.sp,
-            color = PlannerFlatColors.TextMuted,
-        )
-        Spacer(Modifier.height(14.dp))
-        StreakLineChart(
-            values = weeklyCompletions,
-            lineColor = StreaksPalette.Trend,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(100.dp).tutorialTarget("streaks.trend"),
-        )
-        Spacer(Modifier.height(8.dp))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-            weekDayLabels.forEach { d ->
-                Text(d, fontSize = 10.sp, color = PlannerFlatColors.TextMuted)
-            }
-        }
-    }
+    NishthaWarmTheme(isLight) { WarmStreaksBody(uiState, isLight, onRestore) }
 }
 
 /**
@@ -603,5 +377,160 @@ private fun StreakLineChart(
             }
         }
         pts.forEach { drawCircle(color = lineColor, radius = 5f, center = it) }
+    }
+}
+
+@Composable
+private fun WarmStreaksBody(state: NishthaUiState, light: Boolean, onRestore: () -> Unit) {
+    val c = nishthaWarmColors(light)
+    val zone = com.safarparmar.app.util.IstDateUtils.zone
+    val today = LocalDate.now(zone)
+    val dates = remember(state.loginHistory) { state.loginHistory.mapNotNull {
+        runCatching { java.time.ZonedDateTime.parse(it.timestamp).withZoneSameInstant(zone).toLocalDate() }.getOrNull()
+    }.toSet() }
+    val checkedIn = state.moods.any {
+        runCatching { java.time.ZonedDateTime.parse(it.timestamp).withZoneSameInstant(zone).toLocalDate() == today }.getOrDefault(false)
+    }
+    val days = (6 downTo 0).map { today.minusDays(it.toLong()) }
+    val values = days.map { date -> state.goals.count { it.source != "ekagra" && it.isGoalCompleted() && it.assignedDateKey() == date.toString() }.toFloat() }
+    Box(Modifier.fillMaxSize().background(c.canvas), contentAlignment = Alignment.TopCenter) {
+        Column(Modifier.widthIn(max = 1080.dp).fillMaxWidth().verticalScroll(rememberScrollState()).padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Text(stringResource(R.string.nishtha_tab_streaks), color = c.ink, fontFamily = StreakMockupFont, fontSize = 28.sp, fontWeight = FontWeight.Bold)
+            if (state.isLoadingStreaks) { StatCardSkeleton(); StatCardSkeleton() }
+            else BoxWithConstraints(Modifier.fillMaxWidth()) {
+                if (maxWidth >= 720.dp) Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(16.dp)) { WarmStreakSummary(state, checkedIn, c, onRestore) }
+                    Column(Modifier.weight(1.4f), verticalArrangement = Arrangement.spacedBy(16.dp)) { WarmStreakHistory(dates, today, days, values, c) }
+                } else Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    WarmStreakSummary(state, checkedIn, c, onRestore)
+                    WarmStreakHistory(dates, today, days, values, c)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun WarmStreakSummary(state: NishthaUiState, checkedIn: Boolean, c: NishthaWarmColors, onRestore: () -> Unit) {
+    WarmNishthaCard(c, Modifier.tutorialTarget("streaks.counts")) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            StreakIconTile(Icons.Outlined.LocalFireDepartment, c.mint, c.ink)
+            Column(Modifier.weight(1f)) {
+                Text(stringResource(R.string.warm_checkin_streak), color = c.ink, fontFamily = StreakMockupFont, fontWeight = FontWeight.SemiBold)
+                Text("${state.streaks.checkInStreak} ${stringResource(R.string.streaks_days_unit)}", color = c.ink,
+                    fontFamily = StreakMockupFont, fontWeight = FontWeight.Bold, fontSize = 28.sp)
+            }
+        }
+        if (checkedIn) Text(stringResource(R.string.warm_checked_today), color = c.ink, fontSize = 12.sp,
+            modifier = Modifier.background(c.mint, RoundedCornerShape(12.dp)).padding(10.dp))
+        if (state.streaks.checkInRestore.available) {
+            Row(Modifier.fillMaxWidth().background(c.peach, RoundedCornerShape(16.dp)).padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                com.composables.ui.components.Icon(Icons.Default.Error, contentDescription = null,
+                    tint = if (MaterialTheme.colorScheme.background.isLightBackground()) Color(0xFFA34C43) else c.ink,
+                    modifier = Modifier.size(22.dp))
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(stringResource(R.string.warm_missed_checkin), color = c.ink, fontFamily = StreakMockupFont,
+                        fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.warm_restore_hint, state.streaks.checkInRestore.missedDate.orEmpty(), state.streaks.checkInRestore.projectedStreak ?: 0),
+                        color = c.muted, fontFamily = StreakMockupFont, fontSize = 11.sp, lineHeight = 16.sp)
+                }
+                com.composables.ui.components.Button(onClick = onRestore, enabled = !state.isRestoringStreak,
+                    style = com.composables.ui.components.ButtonStyle.Outlined, shape = RoundedCornerShape(50),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 6.dp)) {
+                    com.composables.ui.components.Text(stringResource(if (state.isRestoringStreak) R.string.warm_restoring else R.string.warm_restore_streak),
+                        fontFamily = StreakMockupFont, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = c.ink)
+                }
+            }
+        }
+        state.streakMessage?.let { Text(it, color = c.muted, fontSize = 12.sp) }
+    }
+    WarmNishthaCard(c) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            StreakIconTile(Icons.Default.BarChart, c.lilac, c.action)
+            Column(Modifier.weight(1f)) {
+                Text(stringResource(R.string.streaks_monthly_health), color = c.ink, fontFamily = StreakMockupFont, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.warm_average_focus_score), color = c.muted, fontFamily = StreakMockupFont, fontSize = 12.sp)
+            }
+            Text("${state.streaks.goalCompletionStreak * 10}%", color = c.ink, fontFamily = StreakMockupFont, fontSize = 23.sp,
+                fontWeight = FontWeight.Bold, modifier = Modifier.background(c.mint, RoundedCornerShape(14.dp)).padding(10.dp))
+        }
+    }
+}
+
+@Composable
+private fun WarmStreakHistory(dates: Set<LocalDate>, today: LocalDate, days: List<LocalDate>, values: List<Float>, c: NishthaWarmColors) {
+    var month by remember { mutableStateOf(java.time.YearMonth.from(today)) }
+    val locale = LocalLocale.current.platformLocale
+    WarmNishthaCard(c, spacing = 6.dp) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            StreakIconTile(Icons.Default.DateRange, c.peach, c.ink)
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(stringResource(R.string.warm_activity_calendar), color = c.ink, fontFamily = StreakMockupFont, fontWeight = FontWeight.SemiBold)
+                Text(month.format(DateTimeFormatter.ofPattern("MMMM yyyy", locale)), color = c.muted, fontFamily = StreakMockupFont, fontSize = 13.sp)
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                com.composables.ui.components.IconButton(onClick = { month = month.minusMonths(1) },
+                    modifier = Modifier.border(1.dp, c.line, RoundedCornerShape(12.dp)), shape = RoundedCornerShape(12.dp), style = com.composables.ui.components.ButtonStyle.Ghost) {
+                    com.composables.ui.components.Icon(Icons.Default.ChevronLeft, contentDescription = stringResource(R.string.warm_previous_month), tint = c.ink)
+                }
+                com.composables.ui.components.IconButton(onClick = { month = month.plusMonths(1) }, enabled = month < java.time.YearMonth.from(today),
+                    modifier = Modifier.border(1.dp, c.line, RoundedCornerShape(12.dp)), shape = RoundedCornerShape(12.dp), style = com.composables.ui.components.ButtonStyle.Ghost) {
+                    com.composables.ui.components.Icon(Icons.Default.ChevronRight, contentDescription = stringResource(R.string.warm_next_month), tint = c.ink)
+                }
+            }
+        }
+        Row(Modifier.fillMaxWidth()) {
+            java.time.DayOfWeek.entries.forEach { d -> Text(d.getDisplayName(java.time.format.TextStyle.NARROW, locale), Modifier.weight(1f), color = c.muted, textAlign = TextAlign.Center, fontSize = 12.sp) }
+        }
+        val offset = month.atDay(1).dayOfWeek.value - 1
+        repeat((offset + month.lengthOfMonth() + 6) / 7) { week ->
+            Row(Modifier.fillMaxWidth().then(if (week == 0) Modifier.tutorialTarget("streaks.calendar") else Modifier), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                repeat(7) { col ->
+                    val day = week * 7 + col - offset + 1
+                    val date = if (day in 1..month.lengthOfMonth()) month.atDay(day) else null
+                    Box(Modifier.weight(1f).heightIn(min = 34.dp).clip(RoundedCornerShape(10.dp))
+                        .background(if (date in dates) c.mint else c.calendarCell)
+                        .then(if (date == today) Modifier.border(1.dp, c.action, RoundedCornerShape(10.dp)) else Modifier)
+                        .semantics { if (date != null) contentDescription = "$date, ${if (date in dates) "active" else "no activity"}" }
+                        .padding(vertical = 7.dp), contentAlignment = Alignment.Center) {
+                        Text(date?.dayOfMonth?.toString().orEmpty(), color = c.ink, fontSize = 12.sp)
+                    }
+                }
+            }
+        }
+        Text(stringResource(R.string.nishtha_logged_in), color = c.muted, fontSize = 11.sp)
+    }
+    WarmNishthaCard(c, Modifier.tutorialTarget("streaks.trend")) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            StreakIconTile(Icons.Default.BarChart, c.lilac, c.action)
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(stringResource(R.string.warm_consistency_trend), color = c.ink, fontFamily = StreakMockupFont, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.streaks_trend_subtitle), color = c.muted, fontFamily = StreakMockupFont, fontSize = 12.sp)
+            }
+        }
+        Row(Modifier.fillMaxWidth().height(112.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            val max = values.maxOrNull()?.coerceAtLeast(1f) ?: 1f
+            days.forEachIndexed { i, date ->
+                Column(Modifier.weight(1f).fillMaxHeight(), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.BottomCenter) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(values[i].toInt().toString(), color = c.muted, fontSize = 11.sp)
+                            Box(Modifier.fillMaxWidth().height((values[i] / max * 68).dp.coerceAtLeast(3.dp)).clip(RoundedCornerShape(8.dp)).background(c.lilac))
+                        }
+                    }
+                    Text(date.format(DateTimeFormatter.ofPattern("EEE", locale)), color = c.muted, fontSize = 10.sp)
+                }
+            }
+        }
+    }
+}
+
+/** Explicit vector icons avoid transparent legacy drawable paths in the status tiles. */
+@Composable
+private fun StreakIconTile(icon: ImageVector, background: Color, tint: Color) {
+    Box(Modifier.size(44.dp).clip(RoundedCornerShape(14.dp)).background(background), contentAlignment = Alignment.Center) {
+        com.composables.ui.components.Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(26.dp))
     }
 }

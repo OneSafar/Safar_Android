@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="checkin_title_today">Aaj aap kaisa mehsoos kar rahe hain?</string>
+    <string name="checkin_add_note">Ek note likhein…</string>
+    <string name="checkin_saving">Save ho raha hai…</string>
+</resources>

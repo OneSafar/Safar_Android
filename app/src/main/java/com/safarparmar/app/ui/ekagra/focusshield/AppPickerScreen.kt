@@ -1,4 +1,9 @@
 package com.safarparmar.app.ui.ekagra.focusshield
+import com.safarparmar.app.ui.ekagra.focusshield.KavachCommandButton as Button
+import com.safarparmar.app.ui.ekagra.focusshield.KavachCommandOutlineButton as OutlinedButton
+import com.safarparmar.app.ui.ekagra.focusshield.KavachCommandTextButton as TextButton
+import com.safarparmar.app.ui.ekagra.focusshield.KavachCommandField as OutlinedTextField
+
 
 import androidx.compose.runtime.rememberUpdatedState
 
@@ -36,7 +41,7 @@ import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
+import com.composables.ui.components.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
@@ -122,6 +127,8 @@ internal fun AppPickerContent(
     youtubeSelectionBusy: Boolean = false,
     youtubeSelectionError: String? = null,
 ) {
+    com.safarparmar.app.ui.ekagra.focusshield.KavachCommandTheme {
+
     var showYoutubeConflict by remember { mutableStateOf(false) }
     var selectedAllExceptYoutube by remember { mutableStateOf(false) }
     fun showYoutubeOptions(fromSelectAll: Boolean = false) {
@@ -175,7 +182,7 @@ internal fun AppPickerContent(
                 .padding(padding)
                 .imePadding(),
         ) {
-            TextField(
+            OutlinedTextField(
                 value = searchQuery,
                 onValueChange = onSearchChange,
                 placeholder = {
@@ -223,20 +230,31 @@ internal fun AppPickerContent(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 item {
-                    androidx.compose.material3.Button(
+                    val isDark = KavachDesign.isDark
+                    val distractingBg = KavachDesign.Primary
+                    val distractingTextColor = if (isDark) Color(0xFF39132E) else Color.White
+                    Button(
                         onClick = onSelectDistracting,
                         colors = androidx.compose.material3.ButtonDefaults.buttonColors(
-                            containerColor = KavachDesign.Primary,
-                            contentColor = Color.White
+                            containerColor = distractingBg,
+                            contentColor = distractingTextColor
                         ),
                         shape = RoundedCornerShape(12.dp),
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                         modifier = Modifier.height(36.dp)
                     ) {
-                        Text(stringResource(R.string.kavach_select_distracting), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text(
+                            text = stringResource(R.string.kavach_select_distracting),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = distractingTextColor
+                        )
                     }
                 }
                 item {
+                    val isDark = KavachDesign.isDark
+                    val chipTextColor = KavachDesign.TextMain
+                    val chipBorderColor = if (isDark) Color(0xFF8D708B) else KavachDesign.Border
                     androidx.compose.material3.OutlinedButton(
                         onClick = {
                             onSelectAll()
@@ -245,28 +263,41 @@ internal fun AppPickerContent(
                             }
                         },
                         colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
-                            contentColor = KavachDesign.TextMain
+                            contentColor = chipTextColor
                         ),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, KavachDesign.Border),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, chipBorderColor),
                         shape = RoundedCornerShape(12.dp),
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                         modifier = Modifier.height(36.dp)
                     ) {
-                        Text(stringResource(R.string.common_select_all), fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                        Text(
+                            text = stringResource(R.string.common_select_all),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = chipTextColor
+                        )
                     }
                 }
                 item {
+                    val isDark = KavachDesign.isDark
+                    val chipTextColor = KavachDesign.TextMain
+                    val chipBorderColor = if (isDark) Color(0xFF8D708B) else KavachDesign.Border
                     androidx.compose.material3.OutlinedButton(
                         onClick = onClearAll,
                         colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
-                            contentColor = KavachDesign.TextMain
+                            contentColor = chipTextColor
                         ),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, KavachDesign.Border),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, chipBorderColor),
                         shape = RoundedCornerShape(12.dp),
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                         modifier = Modifier.height(36.dp)
                     ) {
-                        Text(stringResource(R.string.common_clear_all), fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                        Text(
+                            text = stringResource(R.string.common_clear_all),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = chipTextColor
+                        )
                     }
                 }
             }
@@ -346,6 +377,8 @@ internal fun AppPickerContent(
             }
         },
     )
+
+    }
 }
 
 @Composable
@@ -437,7 +470,7 @@ private fun ShieldConfigAppRow(
             }
         }
 
-        KavachStitchPillToggle(
+        com.composables.ui.components.Checkbox(
             checked = app.isBlocked && !managedByYoutubeFocus,
             onCheckedChange = { onToggle() },
             modifier = Modifier.semantics {

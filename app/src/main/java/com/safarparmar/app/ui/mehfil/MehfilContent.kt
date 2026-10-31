@@ -123,6 +123,7 @@ internal fun MehfilContent(
     onDeclineDm: (String) -> Unit,
     onOpenDmChat: () -> Unit,
     dataStore: com.safarparmar.app.data.local.SafarDataStore? = null,
+    onOpenSandesh: () -> Unit = {},
 ) {
     val searchFocusRequester = remember { FocusRequester() }
     val tablet = com.safarparmar.app.ui.adaptive.rememberSafarAdaptiveState().isTablet
@@ -130,7 +131,9 @@ internal fun MehfilContent(
     // A feature-local native-density override makes the entire sidebar and feed oversized.
     androidx.compose.runtime.CompositionLocalProvider(
         LocalMehfilTabletStyle provides tablet,
+        com.safarparmar.app.ui.theme.LocalSafarComposablesAccent provides MehfilFlatColors.Primary,
     ) {
+    com.safarparmar.app.ui.theme.SafarComposablesTheme {
     androidx.compose.material3.ProvideTextStyle(
         MaterialTheme.typography.bodyLarge.copy(
             fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif, letterSpacing = 0.sp,
@@ -144,12 +147,8 @@ internal fun MehfilContent(
         onNavigate = onNavigate,
         onToggleDarkTheme = onToggleDarkTheme,
         containerColor = MehfilFlatColors.Bg,
-        topBarTitleContent = if (tablet) ({
-            Column {
-                Text(stringResource(R.string.mehfil_title), fontSize = 34.sp, fontWeight = FontWeight.Bold, color = MehfilFlatColors.Text)
-                Text(stringResource(R.string.mehfil_subtitle), fontSize = 16.sp, color = MehfilFlatColors.Text)
-            }
-        }) else null,
+        topBarContentColor = MehfilFlatColors.Text,
+        showTopBarTitle = false,
         showTutorialButton = !tablet,
         topBarActions = {
                 if (tablet) {
@@ -250,6 +249,7 @@ internal fun MehfilContent(
                                     searchQuery = searchQuery,
                                     onClearSearch = onClearSearch,
                                     onSandeshCommentClick = onSandeshCommentClick,
+                                    onOpenSandesh = onOpenSandesh,
                                     onCommentClick = onCommentClick,
                                     onConnect = onConnect,
                                     onLoadPosts = onLoadPosts,
@@ -285,6 +285,7 @@ internal fun MehfilContent(
                 }
             }
         }
+}
 }
 }
 }
@@ -361,24 +362,24 @@ internal fun MehfilBottomBar(
         Box(Modifier.widthIn(max = 600.dp).fillMaxWidth()) {
             val dockShape = RoundedCornerShape(30.dp)
             Surface(
-                modifier = Modifier.fillMaxWidth()
-                    .shadow(18.dp, dockShape, clip = false,
-                        ambientColor = Color(0x1F29203F), spotColor = Color(0x3329203F)),
+                modifier = Modifier.fillMaxWidth(),
                 shape = dockShape,
                 color = MehfilFlatColors.Surface,
                 border = androidx.compose.foundation.BorderStroke(1.dp, MehfilFlatColors.Primary.copy(alpha = 0.12f)),
             ) {
             Row(
-                Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 6.dp),
+                Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 MehfilTab.entries.forEachIndexed { index, tab ->
-                    if (index == 2) Spacer(Modifier.width(62.dp))
+                    if (index == 2) Spacer(Modifier.width(56.dp))
                     com.composables.ui.components.NavigationBarItem(
                         selected = selectedTab == tab,
                         onClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); onTabSelected(tab) },
-                        modifier = Modifier.weight(1f).tutorialTarget("mehfil.${tab.name.lowercase(java.util.Locale.ROOT)}"),
+                        modifier = Modifier.weight(1f)
+                            .background(if (selectedTab == tab) MehfilFlatColors.Lavender else Color.Transparent, RoundedCornerShape(18.dp))
+                            .tutorialTarget("mehfil.${tab.name.lowercase(java.util.Locale.ROOT)}"),
                         shape = RoundedCornerShape(18.dp),
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(3.dp)) {

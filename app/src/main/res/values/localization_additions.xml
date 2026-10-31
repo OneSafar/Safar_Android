@@ -352,8 +352,8 @@ Watch our YouTube video.</string>
     <string name="study_circle_focus_one_session">0m · Not focused today %1$s %2$d</string>
     <string name="study_circle_focus_sessions">0m · Not focused today %1$s %2$d</string>
     <string name="study_circle_not_focused_today">0m · Not focused today</string>
-    <string name="study_circle_connect">Connect (Premium)</string>
-    <string name="study_circle_connect_premium">Connect (Premium)</string>
+    <string name="study_circle_connect">Connect</string>
+    <string name="study_circle_connect_premium">Connect</string>
     <string name="study_circle_remove_person">Remove person %1$s</string>
     <string name="common_continue">Continue</string>
     <string name="common_open">Open</string>
@@ -511,7 +511,7 @@ Every small step forward counts — today is a new opportunity to grow, reflect,
     <string name="leaderboard_podium_pending">Podium winners will appear once the weekly cycle completes.</string>
     <string name="leaderboard_your_position">Your Position</string>
     <string name="leaderboard_not_ranked">Not Ranked Yet</string>
-    <string name="leaderboard_focused_this_week">Complete an Ekagra session to enter rankings %1$s</string>
+    <string name="leaderboard_focused_this_week">%1$s focused this week</string>
     <string name="leaderboard_enter_rankings_help">Complete an Ekagra session to enter rankings</string>
     <string name="leaderboard_live_rankings">Live Rankings</string>
     <string name="leaderboard_ekagra_focus_time">Ekagra Focus Time</string>
@@ -561,6 +561,10 @@ Every small step forward counts — today is a new opportunity to grow, reflect,
     <string name="dhyan_phase_exhale">EXHALE</string>
     <string name="dhyan_phase_rest">Phase rest</string>
     <string name="dhyan_technique_pattern">%1$s · %2$s</string>
+    <string name="dhyan_technique_selected">Selected</string>
+    <string name="dhyan_use_technique">Use Technique</string>
+    <string name="dhyan_view_animation">View Animation</string>
+    <string name="dhyan_view_animation_badge">%1$s · View Animation ↗</string>
     <string name="dhyan_session_length">SESSION LENGTH</string>
     <string name="dhyan_minutes_short">SESSION LENGTH %1$d</string>
     <string name="dhyan_breathing_techniques">Breathing Techniques</string>
@@ -699,7 +703,7 @@ Every small step forward counts — today is a new opportunity to grow, reflect,
     <string name="goals_activates_on">Activates on %1$s</string>
     <string name="common_all">ALL</string>
     <string name="common_search">Search</string>
-    <string name="achievements_title">Achievements &amp; Titles</string>
+    <string name="achievements_title">Achievements and Titles</string>
     <string name="achievements_earned_count">%1$d Earned</string>
     <string name="achievements_locked_count">%1$d Locked</string>
     <string name="achievements_total_count">%1$d Total</string>

@@ -1,0 +1,9 @@
+# Plum Feature phone Home implementation
+
+The approved second mockup is implemented in the phone branch of HomeScreen.kt through PlumPhoneHome.kt. It uses blush/plum scoped colors, native geometric hero artwork, a plum promotional card with live text and buttons, eight native icon tiles in the approved order, and the plum Dashboard action. Larger font scales use two tool columns to keep labels usable. The page scrolls as one layout instead of overlaying separate hero and bottom panels.
+
+Existing random/rotating module hero state, hero routes, promotional pager lifecycle/timing, YouTube Focus and Habit Tracker destinations, Explore/Dashboard navigation, welcome dialog, drawer controller, Titli, video playlist, and notification bell/unread state are retained. The supplied image depicts a Dhyan carousel state; the existing randomized start behavior is retained. Tablet Home renderer and its existing default promotional banner path are unchanged. No backend or dependency changes.
+
+New strings have matching keys in English, Hindi, and Roman Hindi. Source checks verified route references, locale keys/XML, asset existence and unchanged tablet renderer checksum. No Kotlin compilation, debug build, tests or device inspection was performed, following the user's instructions. Final rendering and narrow-screen/large-text behavior require manual verification.
+
+Banner illustration: built-in image generation, transparent PNG at app/src/main/res/drawable-nodpi/home_plum_youtube_art.png. Prompt: Generate an isolated transparent flat vector-style right-side banner illustration matching the approved mockup: plum tablet with peach play tile, mint shield and check, cream open book with lilac page lines, stacked peach books, sage leaves, lilac circle and peach arch. No text, UI screen, buttons or banner background; plum/peach/lilac/mint/sage palette. The complete mockup was used only as a reference; the app uses native text and controls.

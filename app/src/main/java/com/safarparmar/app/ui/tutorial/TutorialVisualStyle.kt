@@ -1,5 +1,6 @@
 package com.safarparmar.app.ui.tutorial
 
+import com.safarparmar.app.ui.theme.BgDark
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -23,7 +24,7 @@ internal data class TutorialVisualColors(val canvas: Color, val card: Color, val
     val muted: Color, val action: Color, val onAction: Color, val peach: Color, val mint: Color)
 
 internal fun tutorialVisualColors(dark: Boolean) = if (dark) TutorialVisualColors(
-    Color(0xFF211921), Color(0xFF342735), Color(0xFFFFF0F6), Color(0xFFCFBECB),
+    BgDark, Color(0xFF342735), Color(0xFFFFF0F6), Color(0xFFCFBECB),
     Color(0xFFF0BEDC), Color(0xFF3B1230), Color(0xFF684047), Color(0xFF28574D))
 else TutorialVisualColors(Color(0xFFFFF5F0), Color(0xFFFFFDFC), Color(0xFF39132E), Color(0xFF75616F),
     Color(0xFF542347), Color.White, Color(0xFFFFCBBE), Color(0xFFC9EFE0))
@@ -33,11 +34,12 @@ else TutorialVisualColors(Color(0xFFFFF5F0), Color(0xFFFFFDFC), Color(0xFF39132E
 internal fun TutorialVisualStyle(content: @Composable () -> Unit) {
     val dark = !MaterialTheme.colorScheme.background.isLightBackground()
     val c = tutorialVisualColors(dark)
+    val componentSurface = if (dark) Color(0xFF211921) else c.canvas
     val scheme = MaterialTheme.colorScheme.copy(primary = c.action, onPrimary = c.onAction,
         primaryContainer = c.peach, onPrimaryContainer = c.ink, secondary = c.action,
         onSecondary = c.onAction, secondaryContainer = c.mint, onSecondaryContainer = c.ink,
         background = c.canvas, onBackground = c.ink, surface = c.card, onSurface = c.ink,
-        surfaceVariant = c.canvas, onSurfaceVariant = c.muted, surfaceContainerLow = c.canvas,
+        surfaceVariant = componentSurface, onSurfaceVariant = c.muted, surfaceContainerLow = componentSurface,
         outline = c.muted, outlineVariant = c.peach)
     MaterialTheme(colorScheme = scheme, content = content)
 }

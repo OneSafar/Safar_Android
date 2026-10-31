@@ -1,0 +1,55 @@
+{
+  "source": "/Users/shashankkumar/.codex/generated_images/01a19091-38e6-7402-9aa3-450a5cabffb8/exec-deefe739-33a0-4d1c-9a24-927fb0fe26cc.png",
+  "method": "Pixel crops from approved mockup; lossless WebP conversion, no tint or recoloring.",
+  "regions": {
+    "home_mockup_ekagra": [
+      58,
+      1129,
+      211,
+      1282
+    ],
+    "home_mockup_nishtha": [
+      253,
+      1129,
+      406,
+      1282
+    ],
+    "home_mockup_mehfil": [
+      449,
+      1129,
+      602,
+      1282
+    ],
+    "home_mockup_planner": [
+      645,
+      1129,
+      798,
+      1282
+    ],
+    "home_mockup_dhyan": [
+      58,
+      1362,
+      211,
+      1515
+    ],
+    "home_mockup_circle": [
+      253,
+      1362,
+      406,
+      1515
+    ],
+    "home_mockup_kavach": [
+      449,
+      1362,
+      602,
+      1515
+    ],
+    "home_mockup_leaderboard": [
+      645,
+      1362,
+      798,
+      1515
+    ]
+  },
+  "scope": "Your tools only; banner and hero unchanged."
+}

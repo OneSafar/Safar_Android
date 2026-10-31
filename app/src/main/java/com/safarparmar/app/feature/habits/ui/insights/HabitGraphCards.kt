@@ -44,7 +44,7 @@ fun HabitBarHistogramCard(
     dailyStats: List<DailyHabitStats>,
     today: LocalDate = LocalDate.now(),
     icon: ImageVector = Icons.AutoMirrored.Rounded.MenuBook,
-    cardColor: Color = Color(0xFF2E9D4E), // Vibrant green matching reference
+    cardColor: Color = Color(0xFF542347), // Shared plum accent
     onEditClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
@@ -201,7 +201,7 @@ fun HabitLineSparklineCard(
     dailyStats: List<DailyHabitStats>,
     today: LocalDate = LocalDate.now(),
     icon: ImageVector = Icons.Rounded.WaterDrop,
-    cardColor: Color = Color(0xFF0091EA),
+    cardColor: Color = Color(0xFF793D67),
     onEditClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
@@ -235,7 +235,7 @@ fun HabitWeeklyRhythmCard(
     dailyStats: List<DailyHabitStats>,
     today: LocalDate = LocalDate.now(),
     title: String = "Weekly Rhythm",
-    cardColor: Color = Color(0xFF2E9D4E),
+    cardColor: Color = Color(0xFF542347),
     onEditClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {

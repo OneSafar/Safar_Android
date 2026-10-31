@@ -1,0 +1,9 @@
+# Habit banner alignment
+
+Recreated with built-in image generation, using the unchanged YouTube banner as the typography and CTA layout reference and the original habit banner as the calendar/pencil/plants/books artwork reference. Exact copy is retained. The selected generated PNG is habit-banner-aligned.png; the original asset is backed up as habit-banner-original.webp.
+
+Production asset home_plum_habit_banner.webp is converted to 805 × 355 WebP, matching the YouTube asset dimensions and the existing shared banner aspect ratio. The ImageGen result visually approximates the reference typography and CTA proportions; it is not a pixel-exact geometric reproduction. No layout or navigation code changed. YouTube asset and PlumPhoneHome.kt checksum verification passed. No builds, compilation or device inspection were performed.
+
+Final generation prompt:
+
+Edit IMAGE ONE (YouTube banner) as the GEOMETRY MASTER. Keep its EXACT 805x355 output dimensions and left text positions and font sizes and mint button rectangle unchanged. Replace ONLY wording: line1 'YouTube.' becomes 'Small habits.' in SAME first-line white font size, line2 'Just for study.' becomes 'Big progress.' in SAME second-line peach font size. Supporting copy becomes 'Build your routine. Keep your streak alive.' in SAME small white type and baseline. Button becomes 'Try Habit Tracker' and keep arrow and EXACT mint button shape/position/size as image1 (x36,y240,width342,height72 at805x355). To the RIGHT replace YouTube tablet/book/shield illustration with the habit calendar, pencil, plants and books artwork from IMAGE TWO, keeping its recognizable composition and design. The plum gradient background and graphic style match both. Image2 provides HABIT ART ONLY; DO NOT COPY ITS TEXT OR BUTTON POSITION. Typography and CTA geometry must remain from image1. Do not enlarge Small habits to fill width. Exactly match font sizes to original YouTube. Final banner805x355.

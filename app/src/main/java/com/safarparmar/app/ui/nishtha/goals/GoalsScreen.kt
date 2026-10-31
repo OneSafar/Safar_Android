@@ -38,7 +38,6 @@ import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -48,16 +47,13 @@ import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Restore
 import com.safarparmar.app.ui.nishtha.goals.GoalDialog as AlertDialog
-import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
-import com.safarparmar.app.ui.components.popups.SafarDatePickerDialog as DatePickerDialog
+import com.safarparmar.app.ui.nishtha.goals.GoalDatePickerDialog as DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
+import com.composables.ui.components.Icon
 import androidx.compose.material3.MaterialTheme
-import com.safarparmar.app.ui.components.popups.SafarModalBottomSheet as ModalBottomSheet
 import com.safarparmar.app.ui.nishtha.goals.GoalInput as OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -74,7 +70,6 @@ import com.composables.ui.components.Switch
 import com.composables.ui.components.Text
 import com.safarparmar.app.ui.nishtha.goals.GoalTextButton as TextButton
 import androidx.compose.material3.rememberDatePickerState
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -105,9 +100,9 @@ import com.safarparmar.app.ui.navigation.Routes
 import com.safarparmar.app.ui.nishtha.NishthaEvent
 import com.safarparmar.app.ui.nishtha.NishthaViewModel
 import com.safarparmar.app.ui.studyplanner.components.LocalPlannerIsDarkTheme
-import com.safarparmar.app.ui.studyplanner.plan.PlanEyebrow
-import com.safarparmar.app.ui.studyplanner.plan.PlanHairline
-import com.safarparmar.app.ui.theme.LoraFontFamily
+import com.safarparmar.app.ui.nishtha.goals.GoalEyebrow as PlanEyebrow
+import com.safarparmar.app.ui.nishtha.goals.GoalDivider as PlanHairline
+import com.safarparmar.app.ui.theme.PoppinsFontFamily as LoraFontFamily
 import com.safarparmar.app.ui.theme.isLightBackground
 import com.safarparmar.app.util.IstDateUtils
 import com.safarparmar.app.util.assignedDateKey
@@ -127,7 +122,7 @@ fun GoalsScreen(
 ) {
     val isLight = MaterialTheme.colorScheme.background.isLightBackground()
     CompositionLocalProvider(LocalPlannerIsDarkTheme provides !isLight) {
-        GoalsScreenContent(onNavigate = onNavigate, viewModel = viewModel)
+        GoalsWarmTheme { GoalsScreenContent(onNavigate = onNavigate, viewModel = viewModel) }
     }
 }
 
@@ -202,18 +197,7 @@ private fun GoalsScreenContent(
         }
     }
 
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val fieldColors = OutlinedTextFieldDefaults.colors(
-        focusedBorderColor = GoalsFlatColors.Primary,
-        unfocusedBorderColor = GoalsFlatColors.Hairline,
-        focusedTextColor = GoalsFlatColors.Text,
-        unfocusedTextColor = GoalsFlatColors.Text,
-        focusedLabelColor = GoalsFlatColors.Muted,
-        unfocusedLabelColor = GoalsFlatColors.Muted,
-        cursorColor = GoalsFlatColors.Primary,
-        focusedContainerColor = Color.Transparent,
-        unfocusedContainerColor = Color.Transparent,
-    )
+
 
     if (showDatePicker) {
         // The picker leaves composition after each use, so its initial value is
@@ -298,12 +282,12 @@ private fun GoalsScreenContent(
     completeGoal?.let { goal ->
         AlertDialog(
             onDismissRequest = { completeGoal = null; studyHours = 0; studyMinutes = 0 },
-            containerColor = GoalsFlatColors.Bg,
+            containerColor = GoalsFlatColors.ComponentBackground,
             title = {
                 Text(
                     stringResource(R.string.goals_study_time_question),
                     fontFamily = LoraFontFamily,
-                    fontWeight = FontWeight.Normal,
+                    fontWeight = FontWeight.Medium,
                     fontSize = 22.sp,
                     color = GoalsFlatColors.Text,
                 )
@@ -336,12 +320,12 @@ private fun GoalsScreenContent(
                     studyMinutes = 0
                 }
             },
-            containerColor = GoalsFlatColors.Bg,
+            containerColor = GoalsFlatColors.ComponentBackground,
             title = {
                 Text(
                     stringResource(R.string.goals_earlier_day_title),
                     fontFamily = LoraFontFamily,
-                    fontWeight = FontWeight.Normal,
+                    fontWeight = FontWeight.Medium,
                     fontSize = 20.sp,
                     color = GoalsFlatColors.Text,
                 )
@@ -474,7 +458,7 @@ private fun GoalsScreenContent(
     if (showStatusSheet) {
         AlertDialog(
             onDismissRequest = { showStatusSheet = false },
-            containerColor = GoalsFlatColors.Bg,
+            containerColor = GoalsFlatColors.ComponentBackground,
             confirmButton = {
                 TextButton(onClick = { showStatusSheet = false }) {
                     Text(stringResource(R.string.common_close), color = GoalsFlatColors.Primary, fontWeight = FontWeight.SemiBold)
@@ -484,7 +468,7 @@ private fun GoalsScreenContent(
                 Text(
                     stringResource(R.string.goals_status),
                     fontFamily = LoraFontFamily,
-                    fontWeight = FontWeight.Normal,
+                    fontWeight = FontWeight.Medium,
                     fontSize = 22.sp,
                     color = GoalsFlatColors.Text,
                 )
@@ -659,65 +643,5 @@ internal fun TimeDigitField(
     onValueChange: (Int) -> Unit,
     maxValue: Int,
 ) {
-    var textValue by remember { mutableStateOf(if (value == 0) "" else value.toString()) }
-
-    // Sync from outside if value changed independently of typing (e.g. from quick-add chips)
-    LaunchedEffect(value) {
-        if (textValue.toIntOrNull() != value) {
-            textValue = if (value == 0) "" else value.toString()
-        }
-    }
-
-    Box(
-        modifier = Modifier
-            .size(width = 90.dp, height = 72.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .background(GoalsFlatColors.PrimarySoft)
-            .border(1.5.dp, GoalsFlatColors.Primary, RoundedCornerShape(16.dp)),
-        contentAlignment = Alignment.Center,
-    ) {
-        BasicTextField(
-            value = textValue,
-            onValueChange = { raw ->
-                val digits = raw.filter(Char::isDigit).take(2)
-                textValue = digits
-                val parsed = digits.toIntOrNull() ?: 0
-                if (parsed > maxValue) {
-                    textValue = maxValue.toString()
-                    onValueChange(maxValue)
-                } else {
-                    onValueChange(parsed)
-                }
-            },
-            modifier = Modifier.fillMaxWidth(),
-            textStyle = TextStyle(
-                fontSize = 32.sp,
-                fontWeight = FontWeight.Bold,
-                color = GoalsFlatColors.Primary,
-                textAlign = TextAlign.Center,
-            ),
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            cursorBrush = SolidColor(GoalsFlatColors.Primary),
-            decorationBox = { innerTextField ->
-                Box(
-                    modifier = Modifier.fillMaxWidth(),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    if (textValue.isEmpty()) {
-                        Text(
-                            text = "00",
-                            style = TextStyle(
-                                fontSize = 32.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = GoalsFlatColors.Primary.copy(alpha = 0.35f),
-                                textAlign = TextAlign.Center,
-                            ),
-                        )
-                    }
-                    innerTextField()
-                }
-            },
-        )
-    }
+    GoalNumberInput(value = value, onValueChange = onValueChange, maxValue = maxValue)
 }

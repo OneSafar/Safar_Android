@@ -41,7 +41,7 @@ fun HabitInsightsScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
-    CompositionLocalProvider(LocalHabitDarkTheme provides isDarkTheme) {
+    com.safarparmar.app.feature.habits.ui.HabitAccentTheme(isDarkTheme) {
         Scaffold(
             topBar = {
                 TopAppBar(

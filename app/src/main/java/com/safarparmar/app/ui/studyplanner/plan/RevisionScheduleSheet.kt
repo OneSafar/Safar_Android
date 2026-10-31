@@ -125,7 +125,7 @@ fun RevisionScheduleSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         dragHandle = { BottomSheetDefaults.DragHandle() },
-        containerColor = PlannerFlatColors.BgCream,
+        containerColor = PlannerFlatColors.ComponentBackground,
     ) {
         if (showDatePicker) {
             Column(

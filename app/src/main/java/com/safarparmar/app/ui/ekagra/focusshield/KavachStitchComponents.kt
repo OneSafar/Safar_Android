@@ -81,7 +81,7 @@ fun KavachCircularBackButton(
     contentDescription: String = stringResource(R.string.nav_previous),
 ) {
     val isDark = isSystemInDarkTheme()
-    val bgColor = if (isDark) Color(0xFF3B0764) else Color(0xFF581C87)
+    val bgColor = Color(0xFF542347)
 
     Box(
         modifier = modifier
@@ -153,60 +153,23 @@ fun KavachStitchPrimaryButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
-    val isDark = KavachDesign.isDark
-    GlassButton(
-        onClick = onClick,
-        accentColor = KavachDesign.Primary,
-        modifier = modifier
-            .fillMaxWidth()
-            .heightIn(min = 56.dp),
-        shape = RoundedCornerShape(16.dp),
-        enabled = enabled,
-        isDarkTheme = isDark,
-        contentPadding = PaddingValues(horizontal = 18.dp, vertical = 16.dp),
-        horizontalArrangement = Arrangement.Center,
-    ) {
-        Text(
-            text = text,
-            modifier = Modifier.fillMaxWidth(),
-            textAlign = TextAlign.Center,
-            fontWeight = FontWeight.SemiBold,
-            color = Color.White.copy(alpha = if (enabled) 1f else 0.65f),
-            style = MaterialTheme.typography.labelLarge,
-        )
+    KavachCommandTheme {
+        com.composables.ui.components.Button(onClick = onClick, enabled = enabled,
+            style = com.composables.ui.components.ButtonStyle.Primary,
+            modifier = modifier.fillMaxWidth().heightIn(min = 56.dp), shape = RoundedCornerShape(16.dp)) {
+            com.composables.ui.components.Text(text, fontWeight = FontWeight.SemiBold)
+        }
     }
 }
 
-/** Secondary / dismiss CTA — neutral macOS glass panel. */
 @Composable
-fun KavachStitchSecondaryButton(
-    text: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-) {
-    val isDark = KavachDesign.isDark
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .heightIn(min = 48.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .glassSurface(shape = RoundedCornerShape(16.dp), isDarkTheme = isDark)
-            .clickable(
-                enabled = enabled,
-                role = Role.Button,
-                onClick = onClick,
-            )
-            .padding(horizontal = 18.dp, vertical = 14.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = text,
-            textAlign = TextAlign.Center,
-            fontSize = 15.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = KavachDesign.HubTextMuted.copy(alpha = if (enabled) 1f else 0.5f),
-        )
+fun KavachStitchSecondaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true) {
+    KavachCommandTheme {
+        com.composables.ui.components.Button(onClick = onClick, enabled = enabled,
+            style = com.composables.ui.components.ButtonStyle.Outlined,
+            modifier = modifier.fillMaxWidth().heightIn(min = 48.dp), shape = RoundedCornerShape(16.dp)) {
+            com.composables.ui.components.Text(text)
+        }
     }
 }
 
@@ -217,22 +180,13 @@ fun KavachStitchAllowButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val isDark = KavachDesign.isDark
-    GlassButton(
-        onClick = onClick,
-        accentColor = KavachDesign.Primary,
-        modifier = modifier.heightIn(min = 32.dp),
-        shape = RoundedCornerShape(999.dp),
-        isDarkTheme = isDark,
-        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
-        horizontalArrangement = Arrangement.Center,
-    ) {
-        Text(
-            text = text,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color.White,
-        )
+    KavachCommandTheme {
+        com.composables.ui.components.Button(onClick = onClick,
+            style = com.composables.ui.components.ButtonStyle.Primary,
+            modifier = modifier.heightIn(min = 48.dp), shape = CircleShape,
+            contentPadding = PaddingValues(horizontal = 14.dp)) {
+            com.composables.ui.components.Text(text, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+        }
     }
 }
 

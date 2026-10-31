@@ -398,7 +398,7 @@ private fun StudyModeSetup(
     onStart: () -> Unit,
 ) {
     val navBarBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
-    val contentBottomPadding = 100.dp + navBarBottom
+    val contentBottomPadding = 140.dp + navBarBottom
 
     LazyColumn(
         modifier = Modifier
@@ -577,14 +577,20 @@ private fun PermissionStep(
             verticalArrangement = Arrangement.spacedBy(12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
+            val buttonTextColor = if (isLight) Color.White else Color(0xFF39132E)
             androidx.compose.material3.Button(onClick = onAgree,
                 modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
                 shape = RoundedCornerShape(26.dp),
                 colors = androidx.compose.material3.ButtonDefaults.buttonColors(
                     containerColor = if (isLight) Color(0xFF542347) else Color(0xFFF0BEDC),
-                    contentColor = if (isLight) Color.White else Color(0xFF39132E))) {
-                Text(if (permissionConnected) "Select Productive Channels →" else "Turn On Permission & Continue",
-                    fontSize = 14.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)
+                    contentColor = buttonTextColor)) {
+                Text(
+                    text = if (permissionConnected) "Select Productive Channels →" else "Turn On Permission & Continue",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    textAlign = TextAlign.Center,
+                    color = buttonTextColor
+                )
             }
             com.composables.ui.components.Button(style = com.composables.ui.components.ButtonStyle.Ghost, onClick = onNotNow) {
                 Text(stringResource(R.string.common_not_now), fontSize = 13.sp, color = secondaryText(isLight))
@@ -720,7 +726,7 @@ private fun StudyModeDashboard(
 ) {
     var reliabilityExpanded by rememberSaveable { mutableStateOf(false) }
     val navBarBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
-    val contentBottomPadding = 100.dp + navBarBottom
+    val contentBottomPadding = 140.dp + navBarBottom
 
     LazyColumn(
         modifier = Modifier
@@ -1928,7 +1934,14 @@ private fun CtaButton(
         ),
         contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp),
     ) {
-        Text(text, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center, maxLines = 1)
+        Text(
+            text = text,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.SemiBold,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+            color = Color.White
+        )
     }
 }
 

@@ -53,7 +53,6 @@ import com.safarparmar.app.ui.premium.PremiumViewModel
 import com.safarparmar.app.ui.leaderboard.LeaderboardScreen
 import com.safarparmar.app.ui.studycircle.StudyCircleDetailScreen
 import com.safarparmar.app.ui.studycircle.StudyCircleScreen
-import com.safarparmar.app.ui.support.SupportScreen
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -124,7 +123,6 @@ fun SafarNavGraph(
         Routes.SETTINGS,
         Routes.ADMIN_NOTIFICATIONS,
         Routes.HABIT_TRACKER,
-        Routes.SUPPORT,
     )
 
     fun navigate(route: String) {
@@ -216,7 +214,7 @@ fun SafarNavGraph(
         activity.resetNotificationRoute()
     }
 
-    com.safarparmar.app.ui.tutorial.TitliHost(dataStore,
+    com.safarparmar.app.ui.tutorial.TitliHost(dataStore, currentRoute = currentRoute,
         onOpenEkagra = { navigate(Routes.EKAGRA) }, onOpenGoals = { navigate(Routes.nishthaTab(2)) },
         onOpenYoutube = { navigate(Routes.YOUTUBE_STUDY_MODE_V2) }, onOpenHabits = { navigate(Routes.HABIT_TRACKER) },
         onOpenBatch = { navigate(Routes.TOPPERS_BATCH) }, onOpenMehfil = { navigate(Routes.MEHFIL) },
@@ -297,9 +295,13 @@ fun SafarNavGraph(
 
         listOf(Routes.STUDY_HUB, Routes.WELLBEING_HUB, Routes.COMMUNITY_HUB, Routes.PROGRESS_HUB).forEach { hubRoute ->
             composable(hubRoute) {
-                com.safarparmar.app.ui.drawer.NavigationHubScreen(
-                    hubRoute, isDarkTheme, ::navigate, onToggleDarkTheme,
-                )
+                if (hubRoute == Routes.PROGRESS_HUB) {
+                    LaunchedEffect(Unit) { navigate(Routes.ANALYTICS) }
+                } else {
+                    com.safarparmar.app.ui.drawer.NavigationHubScreen(
+                        hubRoute, isDarkTheme, ::navigate, onToggleDarkTheme,
+                    )
+                }
             }
         }
 
@@ -849,9 +851,6 @@ fun SafarNavGraph(
             } else {
                 LaunchedEffect(Unit) { navigate(Routes.HOME) }
             }
-        }
-        composable(Routes.SUPPORT) {
-            SupportScreen(onBack = ::safeBack)
         }
 
         composable(Routes.PREMIUM) {

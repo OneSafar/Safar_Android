@@ -1,0 +1,6 @@
+<resources>
+    <plurals name="mehfil_announcement_total">
+        <item quantity="one">%d घोषणा</item>
+        <item quantity="other">%d घोषणाएँ</item>
+    </plurals>
+</resources>

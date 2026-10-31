@@ -318,7 +318,7 @@ fun HabitFilterTwoPaneSheet(
                     shape = RoundedCornerShape(14.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = HabitColors.RoyalPurple,
-                        contentColor = Color.White
+                        contentColor = HabitColors.OnRoyalPurple
                     ),
                     modifier = Modifier
                         .weight(1.8f)
@@ -393,7 +393,7 @@ private fun CategoryTab(
                         text = count.toString(),
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White
+                        color = HabitColors.OnRoyalPurple
                     )
                 }
             }
@@ -444,7 +444,7 @@ private fun FilterCheckboxRow(
                 Icon(
                     imageVector = Icons.Rounded.Check,
                     contentDescription = null,
-                    tint = Color.White,
+                    tint = HabitColors.OnRoyalPurple,
                     modifier = Modifier.size(15.dp)
                 )
             }

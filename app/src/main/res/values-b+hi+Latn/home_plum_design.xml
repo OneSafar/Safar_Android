@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="plum_home_tools">Aapke tools</string>
+    <string name="plum_home_explore">Dekhein</string>
+    <string name="plum_home_dashboard">DASHBOARD KHOLEIN</string>
+    <string name="plum_home_youtube_title">YouTube.\nSirf padhai ke liye.</string>
+    <string name="plum_home_youtube_body">Padhai ke channels rakhein. Distractions rokein.</string>
+    <string name="plum_home_youtube_action">YouTube Focus aazmayein</string>
+    <string name="plum_home_habit_title">Chhote kadam.\nMazboot aadatein.</string>
+    <string name="plum_home_habit_body">Har din consistency banayein.</string>
+    <string name="plum_home_habit_action">Habit Tracker kholein</string>
+</resources>

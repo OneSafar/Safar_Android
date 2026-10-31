@@ -73,7 +73,7 @@ import java.util.Locale
 
 // ── Formatting helpers ───────────────────────────────────────────────────────
 
-private fun formatMinutes(minutes: Int): String {
+internal fun plumFormatMinutes(minutes: Int): String {
     val safe = minutes.coerceAtLeast(0)
     if (safe < 60) return "${safe}m"
     val hours = safe / 60
@@ -82,7 +82,7 @@ private fun formatMinutes(minutes: Int): String {
 }
 
 @Composable
-private fun formatWeekRange(period: WeeklyLeaderboardPeriodDto?): String {
+internal fun plumFormatWeekRange(period: WeeklyLeaderboardPeriodDto?): String {
     val locale = LocalLocale.current.platformLocale
     if (period?.start.isNullOrBlank() || period?.end.isNullOrBlank()) return stringResource(R.string.leaderboard_this_week)
     return runCatching {
@@ -107,6 +107,11 @@ fun LeaderboardScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val currentUserId by viewModel.currentUserId.collectAsStateWithLifecycle()
 
+    val colors = leaderboardColors(isDarkTheme)
+    androidx.compose.runtime.CompositionLocalProvider(
+        com.safarparmar.app.ui.theme.LocalSafarComposablesAccent provides colors.accent,
+    ) {
+    com.safarparmar.app.ui.theme.SafarComposablesTheme {
     SafarDrawerScaffold(
         title = stringResource(R.string.nav_leaderboard),
         subtitle = null,
@@ -115,20 +120,21 @@ fun LeaderboardScreen(
         onNavigate = onNavigate,
         onToggleDarkTheme = onToggleDarkTheme,
         useGlassTopBar = false,
-        containerColor = PlannerFlatColors.BgCream,
+        containerColor = colors.canvas,
+        topBarContentColor = colors.ink,
         topBarActions = {
-            IconButton(onClick = viewModel::refresh) {
+            com.composables.ui.components.IconButton(onClick = viewModel::refresh) {
                 if ((uiState as? LeaderboardUiState.Success)?.isRefreshing == true) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(19.dp),
                         strokeWidth = 2.dp,
-                        color = PlannerAccent.Coral,
+                        color = colors.accent,
                     )
                 } else {
                     Icon(
                         Icons.Default.Refresh,
                         contentDescription = stringResource(R.string.leaderboard_refresh_rankings),
-                        tint = PlannerFlatColors.TextDark,
+                        tint = colors.ink,
                     )
                 }
             }
@@ -138,34 +144,25 @@ fun LeaderboardScreen(
             Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .background(PlannerFlatColors.BgCream)
+                .background(colors.canvas)
         ) {
             when (val state = uiState) {
-                LeaderboardUiState.Loading -> LeaderboardLoadingSkeleton()
+                LeaderboardUiState.Loading -> LeaderboardLoadingSkeleton(colors)
                 is LeaderboardUiState.Error -> LeaderboardErrorState(
-                    message = state.message,
+                    message = state.message, colors = colors,
                     onRetry = { viewModel.loadPage(1, showLoading = true) },
                 )
                 is LeaderboardUiState.Success -> {
                     val data = state.data
-                    val userEntry = data.currentUserEntry
-                        ?: data.entries.firstOrNull { it.userId == currentUserId }
-                    LeaderboardContent(
-                        period = data.period,
-                        podiumPeriod = data.podiumPeriod,
-                        rank = data.currentUserRank,
-                        userEntry = userEntry,
-                        podium = data.podium,
-                        entries = data.entries,
-                        currentUserId = currentUserId,
-                        page = state.page,
-                        totalPages = data.totalPages.coerceIn(1, 5),
-                        onPageSelect = { viewModel.loadPage(it, showLoading = false) },
-                    )
+                    PlumLeaderboard(data, state.page, currentUserId, isDarkTheme, state.isRefreshing,
+                        onPage = { viewModel.loadPage(it, showLoading = false) })
                 }
             }
         }
     }
+}
+
+}
 }
 
 // ── Content Layout ───────────────────────────────────────────────────────────
@@ -269,7 +266,7 @@ private fun PodiumSection(
                     color = textColor,
                 )
                 Text(
-                    text = formatWeekRange(podiumPeriod),
+                    text = plumFormatWeekRange(podiumPeriod),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
                     color = textMuted,
@@ -454,7 +451,7 @@ private fun PodiumColumn(
 
         // Focus Time
         Text(
-            text = formatMinutes(entry.totalFocusMinutes),
+            text = plumFormatMinutes(entry.totalFocusMinutes),
             fontSize = 11.5.sp,
             fontWeight = FontWeight.Medium,
             color = if (place == 1) medalColor else textMuted,
@@ -557,7 +554,7 @@ private fun UserSummaryCard(
                 )
                 Text(
                     text = if (isRanked) {
-                        stringResource(R.string.leaderboard_focused_this_week, formatMinutes(entry!!.totalFocusMinutes))
+                        stringResource(R.string.leaderboard_focused_this_week, plumFormatMinutes(entry!!.totalFocusMinutes))
                     } else {
                         stringResource(R.string.leaderboard_enter_rankings_help)
                     },
@@ -756,7 +753,7 @@ private fun LeaderboardRow(
 
             // Focus Time
             Text(
-                text = formatMinutes(entry.totalFocusMinutes),
+                text = plumFormatMinutes(entry.totalFocusMinutes),
                 fontSize = 11.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = if (isCurrentUser) accentCoral else textColor,
@@ -848,9 +845,9 @@ private fun EmptyRankingsNotice() {
 }
 
 @Composable
-private fun LeaderboardLoadingSkeleton() {
-    val cardBg = PlannerFlatColors.CardWhite
-    val shimmerColor = PlannerFlatColors.BorderSoft
+private fun LeaderboardLoadingSkeleton(colors: LeaderboardColors) {
+    val cardBg = colors.paper
+    val shimmerColor = colors.lavender
 
     val transition = rememberInfiniteTransition(label = "leaderboardSkeleton")
     val alpha by transition.decorativeFloat(
@@ -908,11 +905,12 @@ private fun LeaderboardLoadingSkeleton() {
 @Composable
 private fun LeaderboardErrorState(
     message: String,
+    colors: LeaderboardColors,
     onRetry: () -> Unit,
 ) {
-    val textColor = PlannerFlatColors.TextDark
-    val textMuted = PlannerFlatColors.TextMuted
-    val accentCoral = PlannerAccent.Coral
+    val textColor = colors.ink
+    val textMuted = colors.muted
+    val accentCoral = colors.accent
 
     Column(
         modifier = Modifier
@@ -935,12 +933,8 @@ private fun LeaderboardErrorState(
             textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(20.dp))
-        Surface(
-            shape = RoundedCornerShape(12.dp),
-            color = accentCoral.copy(alpha = 0.12f),
-            border = BorderStroke(1.dp, accentCoral.copy(alpha = 0.4f)),
-            modifier = Modifier.clickable(onClick = onRetry),
-        ) {
+        com.composables.ui.components.Button(onClick = onRetry,
+            style = com.composables.ui.components.ButtonStyle.Outlined, contentColor = accentCoral) {
             Row(
                 modifier = Modifier.padding(horizontal = 18.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,

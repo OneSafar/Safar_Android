@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="warm_journal_subtitle">सोचने, खुद के प्रति दयालु रहने और अपनी प्रगति को देखने की जगह।</string>
+    <string name="warm_answer_prompt">इस पर लिखें</string>
+    <string name="warm_previous_prompt">पिछला प्रश्न</string>
+    <string name="warm_next_prompt">अगला प्रश्न</string>
+    <string name="warm_your_entries">आपकी प्रविष्टियाँ</string>
+    <string name="warm_entry_count">%1$d प्रविष्टियाँ</string>
+    <string name="warm_show_less">कम दिखाएँ</string>
+    <string name="warm_view_all">सभी देखें</string>
+    <string name="warm_untitled_entry">बिना शीर्षक की प्रविष्टि</string>
+    <string name="warm_open_entry">प्रविष्टि खोलें</string>
+    <string name="warm_checked_today">आज चेक-इन किया</string>
+    <string name="warm_restore_hint">%1$s को चेक-इन छूट गया। एक बार बहाल करके %2$d दिनों से जारी रखें।</string>
+    <string name="warm_restoring">बहाल हो रहा है…</string>
+    <string name="warm_restore_streak">स्ट्रीक बहाल करें</string>
+    <string name="warm_activity_calendar">गतिविधि कैलेंडर</string>
+    <string name="warm_previous_month">पिछला महीना</string>
+    <string name="warm_next_month">अगला महीना</string>
+    <string name="warm_new_entry">नई प्रविष्टि</string>
+    <string name="warm_prompt_position">%2$d में से %1$d</string>
+    <string name="warm_entry_options">प्रविष्टि के विकल्प</string>
+    <string name="warm_yesterday">कल</string>
+    <string name="warm_streaks_subtitle">निरंतरता टिकाऊ आदतें बनाने की कुंजी है।</string>
+    <string name="warm_missed_checkin">एक चेक-इन छूट गया।</string>
+    <string name="warm_average_focus_score">औसत फ़ोकस स्कोर</string>
+    <string name="warm_consistency_trend">निरंतरता का रुझान</string>
+    <string name="warm_checkin_streak">चेक-इन स्ट्रीक</string>
+</resources>

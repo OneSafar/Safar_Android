@@ -1,4 +1,9 @@
 package com.safarparmar.app.ui.ekagra.focusshield
+import com.safarparmar.app.ui.ekagra.focusshield.KavachCommandButton as Button
+import com.safarparmar.app.ui.ekagra.focusshield.KavachCommandOutlineButton as OutlinedButton
+import com.safarparmar.app.ui.ekagra.focusshield.KavachCommandTextButton as TextButton
+import com.safarparmar.app.ui.ekagra.focusshield.KavachCommandField as OutlinedTextField
+
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -19,7 +24,7 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
+import com.composables.ui.components.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -44,6 +49,8 @@ import com.safarparmar.app.R
 fun KavachAboutScreen(
     onBack: () -> Unit,
 ) {
+    com.safarparmar.app.ui.ekagra.focusshield.KavachCommandTheme {
+
     androidx.activity.compose.BackHandler {
         onBack()
     }
@@ -169,6 +176,8 @@ fun KavachAboutScreen(
 
             Spacer(Modifier.height(32.dp))
         }
+    }
+
     }
 }
 

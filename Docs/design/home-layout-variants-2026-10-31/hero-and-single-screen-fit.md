@@ -1,0 +1,11 @@
+# Hero image and single-screen phone Home
+
+USB inspection: CPH2263, serial 667cd680, 1080×2400 pixels at 480 dpi (360×800 dp). The captured installed Home shows Dashboard partially below the visible content area. Captures are under Outputs/qa/home-fit-2026-10-31/. The initial screen was Nishtha; two Back actions returned to Home. No app data was edited.
+
+PlumPhoneHome now uses home_mockup_hero_background.webp instead of hand-drawn geometry. Source: cropped approved hero at 856×386; built-in image editing removed only the pill, headline and pagination, preserving the reference geometry as closely as possible. The generated background was resized to 856×386 and converted to lossless WebP. Native live labels and pagination remain over it, retaining localization, carousel callbacks and feature navigation. This background is derived from the reference, rather than an exact unmodified crop containing baked-in text.
+
+Image editing prompt: Remove only DHYAN pill, headline and pagination dots; seamlessly restore the existing blush/peach background. Preserve side arches, sage leaves, colors, gradients and crop boundaries. Output text-free decorative artwork at the same 856×386 aspect ratio; no added artwork or padding.
+
+The phone layout is no longer vertically scrollable. The header reserves 56 dp and Dashboard reserves 48 dp plus 16 dp vertical padding. Remaining usable height is divided between hero (24%), promotional carousel (30%) and tools (46%). Native banner controls and tool images fit within measured slots instead of imposing independent minimum section heights. System navigation padding is applied at the root rather than inside scrolling content. Promotional page controls occupy 36 dp within their slot. Shared banner behavior changes only when phonePlumStyle is enabled; the tablet default path remains unchanged.
+
+Source checks verified no verticalScroll or hand-drawn hero remains in the phone layout, the WebP decodes identically to its PNG master at 856×386, and the footer is independent of the flexible content. Height-budget calculations were checked for 800/760/720 dp windows. These are not Compose runtime tests. No compilation, build, installation or post-change rendering verification was performed; the USB screenshot is of the currently installed earlier build.

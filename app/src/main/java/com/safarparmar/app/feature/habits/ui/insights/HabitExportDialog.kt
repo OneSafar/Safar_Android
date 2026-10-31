@@ -243,7 +243,7 @@ fun HabitExportDialog(
                         colors = ButtonDefaults.buttonColors(containerColor = purple),
                         shape = RoundedCornerShape(12.dp)
                     ) {
-                        Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_export), color = androidx.compose.ui.graphics.Color.White)
+                        Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_export), color = com.safarparmar.app.feature.habits.ui.HabitColors.OnRoyalPurple)
                     }
                 }
             }

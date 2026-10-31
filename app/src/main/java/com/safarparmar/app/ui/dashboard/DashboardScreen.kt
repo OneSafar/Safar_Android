@@ -62,7 +62,7 @@ import com.safarparmar.app.ui.studyplanner.components.SafarGlassDialogHost
 import com.safarparmar.app.ui.studyplanner.plan.PlanEyebrow
 import com.safarparmar.app.ui.studyplanner.plan.PlanHairline
 import com.safarparmar.app.ui.studyplanner.screens.InsightsOverallProgressRedesign
-import com.safarparmar.app.ui.theme.LoraFontFamily
+import com.safarparmar.app.ui.theme.PoppinsFontFamily as LoraFontFamily
 
 // ── macOS Control Center Design Helpers ─────────────────────────────────────
 
@@ -73,44 +73,7 @@ private fun MacOSControlCard(
     contentPadding: PaddingValues = PaddingValues(16.dp),
     content: @Composable ColumnScope.() -> Unit
 ) {
-    val shape = RoundedCornerShape(20.dp)
-    val bodyColor = DashboardFlatColors.glassBody(isDarkTheme)
-    val borderBrush = if (isDarkTheme) {
-        Brush.verticalGradient(
-            colors = listOf(Color.White.copy(alpha = 0.25f), Color.White.copy(alpha = 0.02f))
-        )
-    } else {
-        Brush.verticalGradient(
-            colors = listOf(Color(0xFFE5E5EA), Color(0xFFD1D1D6))
-        )
-    }
-    val shadowElevation = if (isDarkTheme) 12.dp else 4.dp
-    val shadowColor = if (isDarkTheme) Color.Black.copy(alpha = 0.8f) else Color.Black.copy(alpha = 0.12f)
-
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .shadow(
-                elevation = shadowElevation,
-                shape = shape,
-                spotColor = shadowColor,
-                ambientColor = shadowColor
-            )
-            .clip(shape)
-            .background(bodyColor)
-            .border(
-                width = 0.5.dp,
-                brush = borderBrush,
-                shape = shape
-            )
-            .padding(contentPadding),
-        contentAlignment = Alignment.CenterStart,
-    ) {
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            content = content
-        )
-    }
+    DashboardPaper(modifier = modifier, content = content)
 }
 
 @Composable
@@ -255,7 +218,8 @@ private fun MacOSButton(
 
 private fun macTextColor(isDark: Boolean) = DashboardFlatColors.onGlassText(isDark)
 private fun macSubtitleColor(isDark: Boolean) = DashboardFlatColors.onGlassMuted(isDark)
-private fun macAccentBlue() = Color(0xFF0A84FF)
+@Composable
+private fun macAccentBlue() = DashboardFlatColors.Accent
 
 private enum class DashboardSheetType {
     NONE, MOOD, GOALS, STREAKS, BADGES
@@ -274,9 +238,13 @@ fun DashboardScreen(
     viewModel: DashboardViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val activity = androidx.compose.ui.platform.LocalContext.current as? androidx.activity.ComponentActivity
+    val premiumViewModel: com.safarparmar.app.ui.premium.PremiumViewModel = if (activity != null) hiltViewModel(activity) else hiltViewModel()
+    val premiumStatus by premiumViewModel.premiumStatus.collectAsStateWithLifecycle()
     var activeSheet by remember { mutableStateOf(DashboardSheetType.NONE) }
 
     CompositionLocalProvider(LocalPlannerIsDarkTheme provides isDarkTheme) {
+    DashboardWarmTheme {
     SafarDrawerScaffold(
         title = stringResource(R.string.dashboard_title),
         subtitle = stringResource(R.string.app_name),
@@ -311,112 +279,51 @@ fun DashboardScreen(
                     onRefresh = { viewModel.onEvent(DashboardEvent.Refresh) },
                     modifier = Modifier.fillMaxSize(),
                 ) {
-                    val adaptive = com.safarparmar.app.ui.adaptive.rememberSafarAdaptiveState()
-                    BoxWithConstraints(Modifier.fillMaxSize().padding(padding)) {
-                    if (adaptive.isTablet && maxWidth >= 500.dp) {
-                        TabletDashboardLayout(
-                            landscape = adaptive.isLandscape && maxWidth >= 900.dp,
-                            welcome = { cardModifier -> WelcomeBanner(uiState.userName, isDarkTheme, cardModifier) },
-                            title = { cardModifier ->
-                                Box(cardModifier) {
-                                    DashboardSectionContent(uiState, setOf(DashboardSection.TITLE, DashboardSection.ACHIEVEMENTS), { viewModel.onEvent(DashboardEvent.Refresh) }) {
-                                        ActiveTitleCard(uiState.activeTitle, uiState.activeTitleImageUrl, isDarkTheme,
-                                            uiState.earnedAchievements.isNotEmpty(), { onNavigate(Routes.ACHIEVEMENTS) }, Modifier.fillMaxSize())
-                                    }
-                                }
-                            },
-                            progress = { cardModifier ->
-                                Box(cardModifier) {
-                                    DashboardSectionContent(uiState, setOf(DashboardSection.PLAN), { viewModel.onEvent(DashboardEvent.Refresh) }) {
-                                        TabletDashboardProgress(uiState.studyPlan, isDarkTheme, onNavigate, Modifier.fillMaxSize())
-                                    }
-                                }
-                            },
-                            shortcuts = { singleRow ->
-                                DashboardSectionContent(uiState, setOf(DashboardSection.MOODS, DashboardSection.GOALS, DashboardSection.STREAKS, DashboardSection.ACHIEVEMENTS), { viewModel.onEvent(DashboardEvent.Refresh) }) {
-                                    MacOSQuickControlGrid(uiState, isDarkTheme, { activeSheet = it }, singleRow)
-                                }
-                            },
-                            report = if (uiState.monthlyReport == null && DashboardSection.REPORT in uiState.loadedSections && DashboardSection.REPORT !in uiState.sectionErrors) null else { cardModifier ->
-                                Box(cardModifier) {
-                                    DashboardSectionContent(uiState, setOf(DashboardSection.REPORT), { viewModel.onEvent(DashboardEvent.Refresh) }) {
-                                        MonthlyCard(uiState.monthlyReport, isDarkTheme, onNavigate, Modifier.fillMaxSize())
-                                    }
-                                }
-                            },
-                            mood = if (uiState.weeklyMoods.isEmpty()) null else { cardModifier ->
-                                WeeklyMoodChart(uiState.weeklyMoods, isDarkTheme, cardModifier)
-                            },
-                        )
-                    } else {
                     LazyColumn(
-                        modifier = Modifier.fillMaxSize().wrapContentWidth(Alignment.CenterHorizontally).widthIn(max = 900.dp),
+                        modifier = Modifier.fillMaxSize().padding(padding).wrapContentWidth(Alignment.CenterHorizontally).widthIn(max = 900.dp),
                         verticalArrangement = Arrangement.spacedBy(14.dp),
-                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 32.dp)
+                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 32.dp),
                     ) {
-                        // 1. Hero Welcome Header
-                        item {
-                            StaggeredDashboardEntranceBox(index = 0) {
-                                WelcomeBanner(uiState.userName, isDarkTheme)
+                        item("greeting") { DashboardGreeting(uiState.userName, uiState.userAvatar, premiumStatus.hasAnyPaidAccess) { onNavigate(Routes.PROFILE) } }
+                        item("plan") {
+                            DashboardSectionContent(uiState, setOf(DashboardSection.PLAN), { viewModel.onEvent(DashboardEvent.Refresh) }) {
+                                DashboardPlanHero(uiState.studyPlan, onNavigate)
                             }
                         }
-
-                        // 2. Active Title Card
-                        item {
-                            StaggeredDashboardEntranceBox(index = 1) {
-                                DashboardSectionContent(uiState, setOf(DashboardSection.TITLE, DashboardSection.ACHIEVEMENTS), { viewModel.onEvent(DashboardEvent.Refresh) }) {
-                                ActiveTitleCard(
-                                    title = uiState.activeTitle,
-                                    titleImageUrl = uiState.activeTitleImageUrl,
-                                    isDark = isDarkTheme,
-                                    hasEarnedAchievements = uiState.earnedAchievements.isNotEmpty(),
-                                    onNavigateToAchievements = { onNavigate(Routes.ACHIEVEMENTS) }
-                                )
+                        item("today") {
+                            DashboardSectionContent(uiState, setOf(DashboardSection.MOODS, DashboardSection.GOALS, DashboardSection.STREAKS, DashboardSection.ACHIEVEMENTS), { viewModel.onEvent(DashboardEvent.Refresh) }) {
+                                DashboardTodayTiles(uiState, { activeSheet = DashboardSheetType.MOOD },
+                                    { activeSheet = DashboardSheetType.GOALS }, { activeSheet = DashboardSheetType.STREAKS }, { activeSheet = DashboardSheetType.BADGES })
+                            }
+                        }
+                        item("goals") {
+                            DashboardSectionContent(uiState, setOf(DashboardSection.GOALS), { viewModel.onEvent(DashboardEvent.Refresh) }) {
+                                DashboardGoalPreview(uiState.todayGoals) { onNavigate(Routes.nishthaTab(2)) }
+                            }
+                        }
+                        item("achievement") {
+                            DashboardSectionContent(uiState, setOf(DashboardSection.TITLE, DashboardSection.ACHIEVEMENTS), { viewModel.onEvent(DashboardEvent.Refresh) }) {
+                                DashboardAchievementPreview(uiState.activeTitle, uiState.activeTitleImageUrl,
+                                    uiState.earnedAchievements.isNotEmpty()) { onNavigate(Routes.ACHIEVEMENTS) }
+                            }
+                        }
+                        item("monthly") {
+                            DashboardSectionContent(uiState, setOf(DashboardSection.REPORT), { viewModel.onEvent(DashboardEvent.Refresh) }) {
+                                DashboardMonthlyPreview(uiState.monthlyReport) { onNavigate(Routes.nishthaTab(4)) }
+                            }
+                        }
+                        item("mood") {
+                            DashboardSectionContent(uiState, setOf(DashboardSection.MOODS), { viewModel.onEvent(DashboardEvent.Refresh) }) {
+                                if (uiState.weeklyMoods.isNotEmpty()) WeeklyMoodChart(uiState.weeklyMoods, isDarkTheme)
+                                else DashboardPaper {
+                                    com.composables.ui.components.Text(stringResource(R.string.dashboard_weekly_mood), color = DashboardFlatColors.Text, fontWeight = FontWeight.Bold)
+                                    com.composables.ui.components.Text(stringResource(R.string.dashboard_no_mood_help), color = DashboardFlatColors.Muted)
+                                    ComposablesButton(onClick = { activeSheet = DashboardSheetType.MOOD }, style = ButtonStyle.Outlined, contentColor = DashboardFlatColors.Text) {
+                                        com.composables.ui.components.Text(stringResource(R.string.dashboard_check_in_now), color = DashboardFlatColors.Text)
+                                    }
                                 }
                             }
                         }
-
-                        // 3. Study Plan Progress
-                        item {
-                            StaggeredDashboardEntranceBox(index = 2) {
-                                DashboardSectionContent(uiState, setOf(DashboardSection.PLAN), { viewModel.onEvent(DashboardEvent.Refresh) }) {
-                                    StudyPlanProgressCard(uiState.studyPlan, isDarkTheme, onNavigate)
-                                }
-                            }
-                        }
-
-                        // 4. macOS Quick Control Grid (Interactive Hub)
-                        item {
-                            StaggeredDashboardEntranceBox(index = 3) {
-                                DashboardSectionContent(uiState, setOf(DashboardSection.MOODS, DashboardSection.GOALS, DashboardSection.STREAKS, DashboardSection.ACHIEVEMENTS), { viewModel.onEvent(DashboardEvent.Refresh) }) {
-                                MacOSQuickControlGrid(
-                                    uiState = uiState,
-                                    isDark = isDarkTheme,
-                                    onOpenSheet = { sheet -> activeSheet = sheet }
-                                )
-                                }
-                            }
-                        }
-
-                        // 5. Analytics & Monthly Snapshot
-                        item {
-                            StaggeredDashboardEntranceBox(index = 4) {
-                                DashboardSectionContent(uiState, setOf(DashboardSection.REPORT), { viewModel.onEvent(DashboardEvent.Refresh) }) {
-                                    MonthlyCard(uiState.monthlyReport, isDarkTheme, onNavigate)
-                                }
-                            }
-                        }
-
-                        // 6. Weekly Mood Graph
-                        if (uiState.weeklyMoods.isNotEmpty()) {
-                            item {
-                                StaggeredDashboardEntranceBox(index = 5) {
-                                    WeeklyMoodChart(uiState.weeklyMoods, isDarkTheme)
-                                }
-                            }
-                        }
-                    }
-                    }
                     }
                 }
             }
@@ -426,7 +333,7 @@ fun DashboardScreen(
                 com.safarparmar.app.ui.components.popups.SafarComposablesBottomSheet(
                     state = com.composables.ui.components.rememberBottomSheetState(initialDetent = com.composables.ui.components.BottomSheetDetent.FullyExpanded),
                     onDismissRequest = { activeSheet = DashboardSheetType.NONE },
-                    backgroundColor = DashboardFlatColors.Bg,
+                    backgroundColor = DashboardFlatColors.ComponentBackground,
                     contentColor = DashboardFlatColors.Text,
                     shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
                 ) {
@@ -467,6 +374,7 @@ fun DashboardScreen(
             }
         }
     }
+    } // DashboardWarmTheme
     } // CompositionLocalProvider
 }
 
@@ -1653,8 +1561,8 @@ private fun DashboardSectionContent(
         if (missing.isEmpty()) content()
         else if (missing.any { it !in state.sectionErrors }) StatCardSkeleton()
         if (errors.isNotEmpty()) {
-            ComposablesButton(onClick = onRetry, enabled = !state.isLoading, style = ButtonStyle.Ghost) {
-                com.composables.ui.components.Text("${errors.first()} Tap to retry.")
+            ComposablesButton(onClick = onRetry, enabled = !state.isLoading, style = ButtonStyle.Ghost, contentColor = DashboardFlatColors.Accent) {
+                com.composables.ui.components.Text("${errors.first()} Tap to retry.", color = DashboardFlatColors.Accent)
             }
         }
     }

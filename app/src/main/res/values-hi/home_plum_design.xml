@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="plum_home_tools">आपके टूल</string>
+    <string name="plum_home_explore">देखें</string>
+    <string name="plum_home_dashboard">डैशबोर्ड खोलें</string>
+    <string name="plum_home_youtube_title">YouTube.\nसिर्फ़ पढ़ाई के लिए।</string>
+    <string name="plum_home_youtube_body">पढ़ाई के चैनल रखें। ध्यान भटकने से बचें।</string>
+    <string name="plum_home_youtube_action">YouTube Focus आज़माएँ</string>
+    <string name="plum_home_habit_title">छोटे कदम।\nमज़बूत आदतें।</string>
+    <string name="plum_home_habit_body">हर दिन निरंतरता बनाएँ।</string>
+    <string name="plum_home_habit_action">हैबिट ट्रैकर खोलें</string>
+</resources>

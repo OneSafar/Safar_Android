@@ -37,7 +37,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import com.safarparmar.app.ui.components.popups.SafarModalBottomSheet as ModalBottomSheet
+import com.safarparmar.app.ui.ekagra.focusshield.KavachCommandSheet as ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -128,6 +128,8 @@ fun KavachAnalyticsSection(
     onNavigate: (String) -> Unit = {},
     viewModel: KavachAnalyticsViewModel = hiltViewModel(),
 ) {
+    com.safarparmar.app.ui.ekagra.focusshield.KavachCommandTheme {
+
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val isLight = MaterialTheme.colorScheme.background.isLightBackground()
     var activityDetail by remember { mutableStateOf<KavachActivityDetail?>(null) }
@@ -234,6 +236,8 @@ fun KavachAnalyticsSection(
             }
         }
     }
+
+    }
 }
 
 @Composable
@@ -242,6 +246,8 @@ fun YoutubeInsightsDetailSheet(
     isLight: Boolean,
     onSetProductive: (String, Boolean) -> Unit,
 ) {
+    com.safarparmar.app.ui.ekagra.focusshield.KavachCommandTheme {
+
     val totals = state.youtubeTotals
     val protected = state.scope == KavachScope.DURING_KAVACH
     Column(
@@ -449,6 +455,8 @@ fun YoutubeInsightsDetailSheet(
             }
         }
         Spacer(Modifier.height(32.dp))
+    }
+
     }
 }
 
@@ -1539,7 +1547,7 @@ private fun EmptyMessage(title: String, body: String, isLight: Boolean) {
 }
 
 internal fun primaryText(isLight: Boolean) =
-    if (isLight) SafarGlassPalette.LightTextPrimary else SafarGlassPalette.TextPrimary
+    if (isLight) Color(0xFF39132E) else Color(0xFFFFF0F6)
 
 internal fun secondaryText(isLight: Boolean) =
-    if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
+    if (isLight) Color(0xFF75616F) else Color(0xFFCFBECB)

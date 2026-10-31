@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="plum_home_tools">Your tools</string>
+    <string name="plum_home_explore">Explore</string>
+    <string name="plum_home_dashboard">OPEN DASHBOARD</string>
+    <string name="plum_home_youtube_title">YouTube.\nJust for study.</string>
+    <string name="plum_home_youtube_body">Keep your study channels. Block distractions.</string>
+    <string name="plum_home_youtube_action">Try YouTube Focus</string>
+    <string name="plum_home_habit_title">Small steps.\nStronger habits.</string>
+    <string name="plum_home_habit_body">Build consistency, one day at a time.</string>
+    <string name="plum_home_habit_action">Open Habit Tracker</string>
+</resources>

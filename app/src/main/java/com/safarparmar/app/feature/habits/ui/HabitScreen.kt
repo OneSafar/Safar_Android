@@ -84,7 +84,7 @@ fun HabitScreen(
         onDispose { context.unregisterReceiver(receiver) }
     }
 
-    CompositionLocalProvider(LocalHabitDarkTheme provides isDarkTheme) {
+    com.safarparmar.app.feature.habits.ui.HabitAccentTheme(isDarkTheme) {
         SafarDrawerScaffold(
             title = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_tracker),
             currentRoute = currentRoute,

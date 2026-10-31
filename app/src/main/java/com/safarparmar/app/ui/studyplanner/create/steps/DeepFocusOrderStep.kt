@@ -218,7 +218,7 @@ private fun DeepFocusTopicsSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         dragHandle = { BottomSheetDefaults.DragHandle(color = PlannerFlatColors.BorderSoft) },
-        containerColor = PlannerFlatColors.BgCream,
+        containerColor = PlannerFlatColors.ComponentBackground,
     ) {
         Column(
             Modifier

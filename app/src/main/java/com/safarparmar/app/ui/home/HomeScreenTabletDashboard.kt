@@ -1228,7 +1228,7 @@ private fun TabletModulesAndToolsSection(
     val row1Tools = remember {
         listOf(
             TabletToolItem("Ekagra", "Focus better.\nStudy deeper.", R.drawable.tool_ekagra, Routes.EKAGRA),
-            TabletToolItem("Nishtha", "Build discipline.\nStay consistent.", R.drawable.tool_nistha, Routes.nishthaRoot()),
+            TabletToolItem("Nishtha", "Build discipline.\nStay consistent.", R.drawable.home_nishtha_book, Routes.nishthaRoot()),
             TabletToolItem("Mehfil", "Learn together.\nGrow together.", R.drawable.tool_mehfil, Routes.MEHFIL),
             TabletToolItem("Exam Planner", "Plan smarter.\nAchieve more.", R.drawable.tool_study_planner, Routes.STUDY_PLANNER),
         )
@@ -1400,34 +1400,13 @@ private fun TabletToolCard(
     }
 }
 
-// One composition on every device; scale the tablet design into the phone's 3:1 slot.
+/** The same finished WebP banners are used on phone and tablet. */
 @Composable
 internal fun ScaledTabletHomeBanner(
     habitTracker: Boolean,
     isDarkTheme: Boolean,
     onNavigate: (String) -> Unit,
 ) {
-    androidx.compose.foundation.layout.BoxWithConstraints(
-        Modifier.fillMaxWidth().aspectRatio(3f).clip(RoundedCornerShape(16.dp))
-    ) {
-        val scale = maxWidth / 900.dp
-        Box(
-            Modifier.wrapContentSize(Alignment.TopStart, unbounded = true).requiredSize(900.dp, 300.dp)
-                .graphicsLayer {
-                    scaleX = scale
-                    scaleY = scale
-                    transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0f, 0f)
-                }
-                .wrapContentSize(Alignment.TopStart, unbounded = true)
-        ) {
-            if (habitTracker) TabletStudyStreakHeroBanner(
-                isDarkTheme = isDarkTheme,
-                onOpenHabitTracker = { onNavigate(Routes.HABIT_TRACKER) },
-                onViewProgress = { onNavigate(Routes.nishthaAnalytics()) },
-            ) else TabletYouTubeFocusHeroBanner(
-                isDarkTheme = isDarkTheme,
-                onTryYouTubeFocus = { onNavigate(Routes.YOUTUBE_STUDY_MODE_V2) },
-            )
-        }
-    }
+    PlumHomePromo(habitTracker = habitTracker, onNavigate = onNavigate,
+        modifier = Modifier.fillMaxWidth().aspectRatio(805f / 355f))
 }

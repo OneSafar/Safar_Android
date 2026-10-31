@@ -1,0 +1,9 @@
+# Journal editor motion
+
+Trigger: Journal FAB or Answer prompt. Rules: existing save validation and dismissal lock while saving remain; duplicate FAB opens are ignored. Feedback: FAB press scale, brief plus rotation/fade and platform haptic; editor fades/rises into its centered final position with a synchronized scrim. Loops/modes: one-shot feedback only, shorter transitions on constrained devices, immediate state changes when the app/system motion policy disables animation.
+
+The previous editor was composed only inside if(showWriteSheet), with its library visible parameter always true. Closing removed the modal immediately instead of letting its exit run. The host now stays composed and passes the actual visibility state. Save success retains the form contents through exit, and the next explicit entry trigger clears/replaces them. The keyboard is not forced open mid-transition.
+
+JournalEditorMotion.kt uses the installed Composables UI underlying UnstyledDialog / DialogPanel / Scrim primitives (following https://composables.com/ui/docs/alert-dialog) to customize only this editor. Form fields, actions, save payload and error handling are preserved. The dialog layout uses safe-drawing/IME insets and scrollable text; motion changes graphics transforms/opacity instead of morphing measured bounds between separate windows. Entrance is 240ms (180 constrained), exit 160ms (120 constrained), travel 20dp (12 constrained), subtle 0.97 entrance scale. No continuous animations, cross-window shared-element morph or global popup changes.
+
+Source checks: retained host and real visibility, HTML save event, saving/body guards, balanced source structure and reduced-motion branches. No builds, Kotlin compilation, tests or device inspection were performed, per the user's instructions. Smoothness and keyboard/Back behavior require the user's device verification.

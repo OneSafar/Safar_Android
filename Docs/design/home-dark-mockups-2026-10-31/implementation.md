@@ -1,0 +1,7 @@
+# Selected Plum Ribbon dark Home
+
+Applied only dark phone Home styling: black canvas, near-black tools surface with subtle border, dark hero WebP with rounded inset framing, outlined pill, white headline, lilac pagination, dark WebP tool tiles and lilac outlines on the existing promotional banners and Dashboard button. Existing layout dimensions, tools, routes, carousel controls/timing, press feedback and light-mode resources remain in use. Removed Explore/divider controls were not restored.
+
+Tool images were cropped from the approved third mockup and saved as lossless WebP. Crop provenance and PNG masters: Outputs/qa/home-dark-2026-10-31/. Hero is derived from that mockup using built-in image editing, removing only title/pill/pagination so the live carousel overlays remain functional. Saved at 816×367 as lossless WebP. Prompt: remove only the center text, DHYAN outlined pill, headline and pagination; restore the dark center seamlessly; preserve side ribbon waves, lilac highlights, sage leaves, plum arches and rounded corners; no new objects. The hero is a generated reference adaptation, not a pixel-identical unmodified crop.
+
+Source validation confirmed identical tool identities/order and light tool resource references against the task-start snapshot; no removed tools-container controls were added. All dark WebP resources are readable; tool WebP decoded RGB matches PNG master pixels. No compilation, build, installation or runtime/device verification performed.

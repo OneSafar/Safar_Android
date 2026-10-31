@@ -92,6 +92,7 @@ internal fun GoalsTutorialEntry(dataStore: SafarDataStore, eligible: Boolean, mo
 internal fun GoalsTutorialPractice(model: GoalsTutorialViewModel, completed: Set<String> = emptySet()) {
     val dark = !MaterialTheme.colorScheme.background.isLightBackground()
     CompositionLocalProvider(LocalPlannerIsDarkTheme provides dark) {
+        GoalsWarmTheme {
         FeatureTutorialPracticeWindow(
             onHelp = model::open,
             showHeader = model.state == null,
@@ -114,6 +115,7 @@ internal fun GoalsTutorialPractice(model: GoalsTutorialViewModel, completed: Set
             }
         }
     }
+}
 }
 
 @Composable

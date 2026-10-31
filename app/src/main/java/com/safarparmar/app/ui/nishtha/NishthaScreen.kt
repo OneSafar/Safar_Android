@@ -202,20 +202,28 @@ fun NishthaScreen(
         }
     }
 
+    val journalTitleContent: (@Composable () -> Unit)? = if (selectedTab == NishthaTab.JOURNAL || selectedTab == NishthaTab.STREAKS) {
+        { Text(stringResource(R.string.module_nishtha),
+            fontFamily = com.safarparmar.app.ui.nishtha.journal.JournalMockupFont,
+            fontWeight = FontWeight.Bold, fontSize = 20.sp,
+            color = nishthaWarmColors(!isDarkTheme).ink) }
+    } else null
     SafarDrawerScaffold(
+        topBarTitleContent = journalTitleContent,
+        centerTopBarTitleContent = true,
         title = stringResource(R.string.module_nishtha),
         subtitle = stringResource(R.string.app_name),
         currentRoute = currentRoute,
         isDarkTheme = isDarkTheme,
         onNavigate = onNavigate,
         onToggleDarkTheme = onToggleDarkTheme,
-        containerColor = SafarSemanticColors.plannerBackground(),
+        containerColor = if (selectedTab == NishthaTab.JOURNAL || selectedTab == NishthaTab.STREAKS) nishthaWarmColors(!isDarkTheme).canvas else SafarSemanticColors.plannerBackground(),
     ) { padding ->
         Box(Modifier.fillMaxSize()) {
             Scaffold(
                 // Keep every Nishtha tab on the same warm canvas as Exam
                 // Planner Home. Cards and sheets remain elevated surfaces.
-                containerColor = SafarSemanticColors.plannerBackground(),
+                containerColor = if (selectedTab == NishthaTab.JOURNAL || selectedTab == NishthaTab.STREAKS) nishthaWarmColors(!isDarkTheme).canvas else SafarSemanticColors.plannerBackground(),
                 contentWindowInsets = WindowInsets.safeDrawing,
                 bottomBar = {
                     NishthaBottomBar(
@@ -268,117 +276,13 @@ fun NishthaScreen(
     }
 }
 
-/**
- * YouTube-style Bottom Navigation Bar with hairline top border,
- * outlined-to-filled icon state transitions, signature tab accents,
- * bouncy spring micro-interactions, and authentic circular ripple effect.
- */
+/** All four Nishtha destinations share the attached plum navigation surface. */
 @Composable
 internal fun NishthaBottomBar(
     selected: NishthaTab,
     onSelect: (NishthaTab) -> Unit,
 ) {
-    val tabs = remember { NishthaTab.entries.filter { it != NishthaTab.ANALYTICS } }
-    val scheme = MaterialTheme.colorScheme
-    val isLight = scheme.background.isLightBackground()
-    val isDark = !isLight
-    val haptic = LocalHapticFeedback.current
-
-    val topBorderColor = if (isDark) Color(0xFF272727) else Color(0xFFE5E5E5)
-    val barBackgroundColor = if (isDark) Color(0xFF0F0F0F) else Color.White
-
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        color = barBackgroundColor,
-        shadowElevation = 0.dp,
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .navigationBarsPadding(),
-        ) {
-            HorizontalDivider(
-                thickness = 0.5.dp,
-                color = topBorderColor,
-            )
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(64.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                tabs.forEach { tab ->
-                    val isSelected = selected == tab
-                    val tabAccent = nishthaTabAccent(tab, isDark)
-                    val label = stringResource(tab.labelRes)
-
-                    val unselectedColor = if (isDark) Color(0xFFAAAAAA) else Color(0xFF606060)
-                    val contentColor by animateColorAsState(
-                        targetValue = if (isSelected) tabAccent else unselectedColor,
-                        animationSpec = tween(180),
-                        label = "ytContentColor_${tab.name}",
-                    )
-
-                    val iconScale by animateFloatAsState(
-                        targetValue = if (isSelected) 1.08f else 1.0f,
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessMedium,
-                        ),
-                        label = "ytIconScale_${tab.name}",
-                    )
-
-                    val rippleColor = if (isDark) Color.White.copy(alpha = 0.12f) else Color.Black.copy(alpha = 0.08f)
-
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = ripple(
-                                    bounded = false,
-                                    radius = 24.dp,
-                                    color = rippleColor,
-                                ),
-                            ) {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                onSelect(tab)
-                            },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center,
-                        ) {
-                            Icon(
-                                imageVector = if (isSelected) tab.selectedIcon else tab.unselectedIcon,
-                                contentDescription = label,
-                                tint = contentColor,
-                                modifier = Modifier
-                                    .size(22.dp)
-                                    .graphicsLayer {
-                                        scaleX = iconScale
-                                        scaleY = iconScale
-                                    },
-                            )
-                            Spacer(Modifier.height(2.dp))
-                            Text(
-                                text = label,
-                                style = MaterialTheme.typography.labelSmall,
-                                fontSize = 10.5.sp,
-                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                                color = contentColor,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
+    AttachedNishthaNavigation(selected, onSelect)
 }
 
 /** Per-tab accents — same role as PlannerTabAccent on Exam Planner. */

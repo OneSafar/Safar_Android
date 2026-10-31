@@ -16,8 +16,7 @@ import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.OutlinedTextFieldDefaults
+import com.composables.ui.components.Icon
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -38,9 +37,9 @@ import com.composables.ui.components.Text
 import com.composables.ui.components.Icon as ComposablesIcon
 import com.safarparmar.app.R
 import com.safarparmar.app.domain.model.Goal
-import com.safarparmar.app.ui.studyplanner.plan.PlanEyebrow
-import com.safarparmar.app.ui.studyplanner.plan.PlanHairline
-import com.safarparmar.app.ui.theme.LoraFontFamily
+import com.safarparmar.app.ui.nishtha.goals.GoalEyebrow as PlanEyebrow
+import com.safarparmar.app.ui.nishtha.goals.GoalDivider as PlanHairline
+import com.safarparmar.app.ui.theme.PoppinsFontFamily as LoraFontFamily
 import com.safarparmar.app.ui.tutorial.tutorialTarget
 import com.safarparmar.app.util.IstDateUtils
 import com.safarparmar.app.util.assignedDateKey
@@ -58,10 +57,7 @@ internal fun GoalCreationContent(
     onToggleSchedule: () -> Unit, onPickDate: () -> Unit, onRepeatChange: (Boolean) -> Unit,
     onCreate: () -> Unit, isSaving: Boolean = false, error: String? = null, editing: Boolean = false,
 ) {
-    val fieldColors = OutlinedTextFieldDefaults.colors(
-        focusedBorderColor = GoalsFlatColors.Primary, unfocusedBorderColor = GoalsFlatColors.Hairline,
-        focusedTextColor = GoalsFlatColors.Text, unfocusedTextColor = GoalsFlatColors.Text,
-    )
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -78,7 +74,7 @@ internal fun GoalCreationContent(
             stringResource(if (editing) R.string.goals_edit_goal else R.string.goals_new_goal),
             fontFamily = LoraFontFamily,
             fontSize = 24.sp,
-            fontWeight = FontWeight.Normal,
+            fontWeight = FontWeight.Medium,
             color = GoalsFlatColors.Text,
         )
         PlanHairline()
@@ -86,10 +82,11 @@ internal fun GoalCreationContent(
             value = title,
             onValueChange = onTitleChange,
             label = { Text(stringResource(R.string.goals_title_prompt)) },
+            accessibilityLabel = stringResource(R.string.goals_title_prompt),
             modifier = Modifier.fillMaxWidth().tutorialTarget("goals.title"),
             singleLine = true,
             shape = RoundedCornerShape(12.dp),
-            colors = fieldColors,
+            enabled = !isSaving,
         )
         PlanHairline(alpha = 0.6f)
         val isScheduled = scheduled
@@ -123,206 +120,87 @@ internal fun GoalCreationContent(
             value = description,
             onValueChange = onDescriptionChange,
             label = { Text(stringResource(R.string.goals_add_details_optional)) },
+            accessibilityLabel = stringResource(R.string.goals_add_details_optional),
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),
-            colors = fieldColors,
+            enabled = !isSaving,
         )
         if (error != null) {
             Text(error, color = GoalsFlatColors.Danger, fontSize = 13.sp)
         }
         val createEnabled = title.isNotBlank() && !isSaving
-        Button(onClick = onCreate, enabled = createEnabled, modifier = Modifier.fillMaxWidth().tutorialTarget("goals.create")) {
+        Button(onClick = onCreate, style = ButtonStyle.Primary, enabled = createEnabled, modifier = Modifier.fillMaxWidth().tutorialTarget("goals.create")) {
             if (isSaving && !editing) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(16.dp),
-                    color = Color.White,
+                    color = GoalsFlatColors.OnPrimary,
                     strokeWidth = 2.dp,
                 )
             } else {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (!editing) {
-                        Icon(Icons.Default.Add, null, modifier = Modifier.size(18.dp), tint = Color.White)
+                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp), tint = GoalsFlatColors.OnPrimary)
                         Spacer(Modifier.width(6.dp))
                     }
-                    Text(stringResource(if (editing) R.string.goals_save_changes else R.string.goals_create_goal), fontWeight = FontWeight.Bold, color = Color.White, fontSize = 14.sp)
+                    Text(stringResource(if (editing) R.string.goals_save_changes else R.string.goals_create_goal), fontWeight = FontWeight.Bold, color = GoalsFlatColors.OnPrimary, fontSize = 14.sp)
                 }
             }
         }
     }
 }
 
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 internal fun GoalsOverviewHeader(
     tabs: List<String>, selectedTab: Int, totalToday: Int, doneToday: Int,
     onSelectTab: (Int) -> Unit, onAdd: () -> Unit, onStatus: () -> Unit,
     onRepeat: () -> Unit, onInsights: () -> Unit, onDeleted: () -> Unit, onLearn: () -> Unit,
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 0.dp),
-    ) {
-        Text(
-            stringResource(R.string.goals_my_goals),
-            fontFamily = LoraFontFamily,
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Normal,
-            color = GoalsFlatColors.Text,
-        )
-        Spacer(Modifier.height(4.dp))
-        Text(
-            if (totalToday == 0) {
-                stringResource(R.string.goals_nothing_planned_today)
-            } else {
-                stringResource(R.string.goals_done_today_count, doneToday, totalToday)
-            },
-            fontSize = 13.sp,
-            color = GoalsFlatColors.Muted,
-        )
-        Spacer(Modifier.height(16.dp))
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Button(
-                onClick = onAdd,
-                style = ButtonStyle.Ghost,
-                buttonSize = ButtonSize.Small,
-                modifier = Modifier.tutorialTarget("goals.add").background(GoalsFlatColors.Primary, RoundedCornerShape(20.dp)),
-                contentColor = Color.White,
-            ) {
-                ComposablesIcon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                )
-                Spacer(Modifier.width(4.dp))
-                Text(
-                    stringResource(R.string.goals_add_goal),
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color.White,
-                )
-            }
-            if (com.safarparmar.app.BuildConfig.TITLI_TUTORIALS_ENABLED) TextButton(onClick = onLearn, modifier = Modifier.heightIn(min = 48.dp)) {
-                Icon(Icons.AutoMirrored.Filled.HelpOutline, contentDescription = null, modifier = Modifier.size(16.dp))
-                Spacer(Modifier.width(4.dp))
-                Text(stringResource(R.string.goals_tutorial_learn), fontSize = 13.sp, color = GoalsFlatColors.Primary)
-            }
-            Button(
-                onClick = onStatus,
-                style = ButtonStyle.Ghost,
-                buttonSize = ButtonSize.Small,
-                modifier = Modifier.tutorialTarget("goals.status").border(1.dp, GoalsFlatColors.Hairline, RoundedCornerShape(20.dp)),
-                contentColor = GoalsFlatColors.Text,
-            ) {
-                ComposablesIcon(
-                    imageVector = Icons.Default.BarChart,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                )
+    Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(stringResource(R.string.goals_my_goals), fontSize = 25.sp, fontWeight = FontWeight.Bold,
+                color = GoalsFlatColors.Text, modifier = Modifier.weight(1f))
+            Button(onClick = onAdd, style = ButtonStyle.Primary, modifier = Modifier.heightIn(min = 48.dp).tutorialTarget("goals.add")) {
+                ComposablesIcon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(6.dp))
-                Text(
-                    stringResource(R.string.goals_status),
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.SemiBold,
-                )
-            }
-            Button(
-                onClick = onRepeat,
-                style = ButtonStyle.Ghost,
-                buttonSize = ButtonSize.Small,
-                modifier = Modifier.tutorialTarget("goals.repeat").border(1.dp, GoalsFlatColors.Hairline, RoundedCornerShape(20.dp)),
-                contentColor = GoalsFlatColors.Text,
-            ) {
-                ComposablesIcon(
-                    imageVector = Icons.Default.Repeat,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                )
-                Spacer(Modifier.width(6.dp))
-                Text(
-                    stringResource(R.string.goals_repeat_goals),
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.SemiBold,
-                )
-            }
-            Button(
-                onClick = onInsights,
-                style = ButtonStyle.Ghost,
-                buttonSize = ButtonSize.Small,
-                modifier = Modifier.tutorialTarget("goals.insights").border(1.dp, GoalsFlatColors.Hairline, RoundedCornerShape(20.dp)),
-                contentColor = GoalsFlatColors.Text,
-            ) {
-                ComposablesIcon(
-                    imageVector = Icons.AutoMirrored.Filled.TrendingUp,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                )
-                Spacer(Modifier.width(6.dp))
-                Text(
-                    stringResource(R.string.goals_insights),
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.SemiBold,
-                )
-            }
-            Button(
-                onClick = onDeleted,
-                style = ButtonStyle.Ghost,
-                buttonSize = ButtonSize.Small,
-                modifier = Modifier.tutorialTarget("goals.deleted").border(1.dp, GoalsFlatColors.Hairline, RoundedCornerShape(20.dp)),
-                contentColor = GoalsFlatColors.Text,
-            ) {
-                ComposablesIcon(
-                    imageVector = Icons.Default.DeleteSweep,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                )
-                Spacer(Modifier.width(6.dp))
-                Text(
-                    stringResource(R.string.goals_recently_deleted),
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.SemiBold,
-                )
+                Text(stringResource(R.string.goals_add_goal), fontSize = 13.sp, maxLines = 1)
             }
         }
-
-        Spacer(Modifier.height(18.dp))
-        HorizontalSeparator(color = GoalsFlatColors.Hairline)
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            Text(
-                if (totalToday == 0) stringResource(R.string.goals_nothing_today) else stringResource(R.string.goals_count_of_total, doneToday, totalToday),
-                fontFamily = LoraFontFamily,
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Normal,
-                color = GoalsFlatColors.Done,
-            )
-            Text(
-                if (totalToday == 0) stringResource(R.string.goals_add_to_get_started) else stringResource(R.string.goals_done_today_label),
-                fontSize = 13.sp,
-                color = GoalsFlatColors.Muted,
-            )
+        Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(GoalsFlatColors.PrimarySoft).padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(if (totalToday == 0) stringResource(R.string.goals_nothing_planned_today)
+                else stringResource(R.string.goals_done_today_count, doneToday, totalToday),
+                fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = GoalsFlatColors.Primary)
+            Text(if (totalToday == 0) stringResource(R.string.goals_add_to_get_started) else stringResource(R.string.goals_done_today_label),
+                fontSize = 13.sp, color = GoalsFlatColors.Muted)
+            if (totalToday > 0) GoalProgress({ doneToday.toFloat() / totalToday }, Modifier.fillMaxWidth().padding(top = 6.dp),
+                GoalsFlatColors.Primary, GoalsFlatColors.Paper)
         }
-        HorizontalSeparator(color = GoalsFlatColors.Hairline)
-
-        Spacer(Modifier.height(14.dp))
-        Box(Modifier.tutorialTarget("goals.tabs")) {
-            GoalsUnderlineTabs(
-                tabs = tabs,
-                selectedTab = selectedTab,
-                onTabSelected = onSelectTab,
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            val actions = listOf(
+                Triple(R.string.goals_status, Icons.Default.BarChart, onStatus) to "goals.status",
+                Triple(R.string.goals_repeat_goals, Icons.Default.Repeat, onRepeat) to "goals.repeat",
+                Triple(R.string.goals_insights, Icons.AutoMirrored.Filled.TrendingUp, onInsights) to "goals.insights",
+                Triple(R.string.goals_recently_deleted, Icons.Default.DeleteSweep, onDeleted) to "goals.deleted",
             )
+            actions.forEach { (action, target) ->
+                Button(onClick = action.third, style = ButtonStyle.Outlined,
+                    modifier = Modifier.heightIn(min = 48.dp).tutorialTarget(target),
+                    shape = RoundedCornerShape(14.dp), contentColor = GoalsFlatColors.Text,
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)) {
+                    ComposablesIcon(action.second, contentDescription = null, modifier = Modifier.size(17.dp), tint = GoalsFlatColors.Primary)
+                    Spacer(Modifier.width(6.dp))
+                    Text(stringResource(action.first), fontSize = 12.sp)
+                }
+            }
+            if (com.safarparmar.app.BuildConfig.TITLI_TUTORIALS_ENABLED) TextButton(onClick = onLearn) {
+                ComposablesIcon(Icons.AutoMirrored.Filled.HelpOutline, contentDescription = null, modifier = Modifier.size(17.dp))
+                Spacer(Modifier.width(6.dp))
+                Text(stringResource(R.string.goals_tutorial_learn), fontSize = 12.sp)
+            }
         }
-        Spacer(Modifier.height(4.dp))
+        Box(Modifier.tutorialTarget("goals.tabs")) { GoalsUnderlineTabs(tabs, selectedTab, onSelectTab) }
     }
 }
 
@@ -377,23 +255,12 @@ internal fun GoalStudyTimeContent(hours: Int, minutes: Int, onHoursChange: (Int)
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             listOf("+15m" to 15, "+30m" to 30, "+1h" to 60, "+2h" to 120).forEach { (label, mins) ->
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(20.dp))
-                        .border(1.dp, GoalsFlatColors.Hairline, RoundedCornerShape(20.dp))
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                            onClick = {
-                                val (nextHours, nextMinutes) = addStudyTime(hours, minutes, mins)
-                                onHoursChange(nextHours)
-                                onMinutesChange(nextMinutes)
-                            },
-                        )
-                        .padding(horizontal = 4.dp, vertical = 8.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
+                Button(onClick = {
+                    val (nextHours, nextMinutes) = addStudyTime(hours, minutes, mins)
+                    onHoursChange(nextHours)
+                    onMinutesChange(nextMinutes)
+                }, style = ButtonStyle.Outlined, modifier = Modifier.weight(1f).heightIn(min = 48.dp),
+                    contentPadding = PaddingValues(horizontal = 4.dp), contentColor = GoalsFlatColors.Text) {
                     Text(label, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = GoalsFlatColors.Text)
                 }
             }
@@ -404,45 +271,15 @@ internal fun GoalStudyTimeContent(hours: Int, minutes: Int, onHoursChange: (Int)
 @Composable
 internal fun GoalCompletionActions(hours: Int, minutes: Int, isSaving: Boolean, onComplete: (Int) -> Unit, onCancel: () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(14.dp))
-                .background(GoalsFlatColors.Primary)
-                .clickable(enabled = !isSaving) {
-                    val totalMins = hours * 60 + minutes
-                    onComplete(totalMins)
-                }
-                .padding(vertical = 14.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(if (isSaving) stringResource(R.string.common_saving) else stringResource(R.string.common_done), fontWeight = FontWeight.Bold, color = Color.White, fontSize = 14.sp)
+        Button(onClick = { onComplete(hours * 60 + minutes) }, enabled = !isSaving,
+            style = ButtonStyle.Primary, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+            Text(stringResource(if (isSaving) R.string.common_saving else R.string.common_done), fontWeight = FontWeight.SemiBold)
         }
-        Text(
-            stringResource(R.string.goals_complete_without_time),
-            fontSize = 13.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = GoalsFlatColors.Primary,
-            textAlign = TextAlign.Center,
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(enabled = !isSaving) {
-                    onComplete(0)
-                }
-                .padding(vertical = 10.dp),
-        )
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(14.dp))
-                .border(1.dp, GoalsFlatColors.Hairline, RoundedCornerShape(14.dp))
-                .clickable {
-                    onCancel()
-                }
-                .padding(vertical = 12.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(stringResource(R.string.common_cancel), fontWeight = FontWeight.Bold, color = GoalsFlatColors.Muted, fontSize = 13.sp)
+        TextButton(onClick = { onComplete(0) }, enabled = !isSaving, modifier = Modifier.fillMaxWidth()) {
+            Text(stringResource(R.string.goals_complete_without_time), fontSize = 13.sp)
+        }
+        Button(onClick = onCancel, enabled = !isSaving, style = ButtonStyle.Outlined, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+            Text(stringResource(R.string.common_cancel))
         }
     }
 }
@@ -478,8 +315,9 @@ internal fun GoalRepeatContent(
             .fillMaxWidth()
             .wrapContentWidth(Alignment.CenterHorizontally)
             .widthIn(max = 600.dp)
-            .padding(horizontal = 20.dp)
-            .padding(bottom = 32.dp),
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 4.dp)
+            .padding(bottom = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         PlanEyebrow(stringResource(R.string.goals_eyebrow))
@@ -487,7 +325,7 @@ internal fun GoalRepeatContent(
             stringResource(R.string.goals_repeat_goals),
             fontFamily = LoraFontFamily,
             fontSize = 22.sp,
-            fontWeight = FontWeight.Normal,
+            fontWeight = FontWeight.Medium,
             color = GoalsFlatColors.Text,
         )
         Text(
@@ -533,22 +371,9 @@ internal fun GoalRepeatContent(
         ) {
             candidates.forEach { goal ->
                 val checked = goal.id in selectedIds
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable {
-                            if (checked) selectedIds.remove(goal.id) else selectedIds.add(goal.id)
-                        }
-                        .padding(vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    Icon(
-                        if (checked) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
-                        contentDescription = null,
-                        tint = if (checked) GoalsFlatColors.Primary else GoalsFlatColors.Muted,
-                        modifier = Modifier.size(20.dp),
-                    )
+                com.composables.ui.components.Checkbox(checked = checked, accessibilityLabel = goal.title, enabled = !isSaving,
+                    onCheckedChange = { if (it) selectedIds.add(goal.id) else selectedIds.remove(goal.id) },
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).padding(vertical = 4.dp)) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             goal.title,
@@ -604,8 +429,9 @@ internal fun GoalDeletedContent(goals: List<Goal>, isLoading: Boolean, isSaving:
             .fillMaxWidth()
             .wrapContentWidth(Alignment.CenterHorizontally)
             .widthIn(max = 600.dp)
-            .padding(horizontal = 20.dp)
-            .padding(bottom = 32.dp),
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 4.dp)
+            .padding(bottom = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         PlanEyebrow(stringResource(R.string.goals_eyebrow))
@@ -662,7 +488,7 @@ internal fun GoalDeletedContent(goals: List<Goal>, isLoading: Boolean, isSaving:
                             onClick = { onRestore(goal) },
                             modifier = Modifier.tutorialTarget("goals.restore"),
                         ) {
-                            Icon(Icons.Default.Restore, null, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.Restore, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.width(4.dp))
                             Text(stringResource(R.string.common_restore))
                         }
@@ -676,62 +502,15 @@ internal fun GoalDeletedContent(goals: List<Goal>, isLoading: Boolean, isSaving:
 
 @Composable
 internal fun GoalOverdueActions(originalDate: String, isSaving: Boolean, onMoveToToday: () -> Unit, onKeepDate: () -> Unit, onCancel: () -> Unit) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        // Primary: Move to today and complete
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(14.dp))
-                .background(GoalsFlatColors.Primary)
-                .clickable(enabled = !isSaving) { onMoveToToday() }
-                .padding(vertical = 14.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                if (isSaving) stringResource(R.string.common_saving) else stringResource(R.string.goals_move_today_complete),
-                fontWeight = FontWeight.Bold,
-                color = Color.White,
-                fontSize = 14.sp,
-            )
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Button(onClick = onMoveToToday, enabled = !isSaving, style = ButtonStyle.Primary,
+            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+            Text(stringResource(if (isSaving) R.string.common_saving else R.string.goals_move_today_complete), fontSize = 14.sp)
         }
-
-        // Secondary: Complete for original date
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(14.dp))
-                .border(1.dp, GoalsFlatColors.Hairline, RoundedCornerShape(14.dp))
-                .clickable(enabled = !isSaving) { onKeepDate() }
-                .padding(vertical = 12.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                stringResource(R.string.goals_complete_for_date, originalDate),
-                fontWeight = FontWeight.SemiBold,
-                color = GoalsFlatColors.Primary,
-                fontSize = 13.sp,
-            )
+        Button(onClick = onKeepDate, enabled = !isSaving, style = ButtonStyle.Outlined,
+            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+            Text(stringResource(R.string.goals_complete_for_date, originalDate), fontSize = 13.sp)
         }
-
-        // Cancel
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(14.dp))
-                .border(1.dp, GoalsFlatColors.Hairline, RoundedCornerShape(14.dp))
-                .clickable(enabled = !isSaving) { onCancel() }
-                .padding(vertical = 12.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                stringResource(R.string.common_cancel),
-                fontWeight = FontWeight.Bold,
-                color = GoalsFlatColors.Muted,
-                fontSize = 13.sp,
-            )
-        }
+        TextButton(onClick = onCancel, enabled = !isSaving, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.common_cancel)) }
     }
 }

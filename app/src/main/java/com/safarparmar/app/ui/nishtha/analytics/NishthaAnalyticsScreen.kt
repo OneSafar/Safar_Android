@@ -123,7 +123,7 @@ internal fun NishthaAnalyticsContent(uiState: NishthaUiState, onNavigate: (Strin
     val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
     val isLight = !isDark
 
-    ComposablesTheme {
+    AnalyticsWarmTheme {
         if (showMonthPicker) {
             MonthSelectionDialog(
                 months = months,
@@ -135,7 +135,7 @@ internal fun NishthaAnalyticsContent(uiState: NishthaUiState, onNavigate: (Strin
         }
 
         Box(modifier = Modifier.fillMaxSize()) {
-            LiquidGlassBackdrop(modifier = Modifier.fillMaxSize(), isLight = isLight)
+            Box(Modifier.fillMaxSize().background(analyticsCanvas(isLight)))
 
             Column(modifier = Modifier.fillMaxSize()) {
                 Row(
@@ -148,13 +148,13 @@ internal fun NishthaAnalyticsContent(uiState: NishthaUiState, onNavigate: (Strin
                     AnalyticsSectionChip(
                         stringResource(R.string.nishtha_analytics_overview),
                         selectedSection == "overview",
-                        Color(0xFF1E3A8A),
+                        analyticsPlum(isLight),
                         isLight
                     ) { selectedSection = "overview" }
-                    AnalyticsSectionChip("Goals", selectedSection == "goals", Color(0xFF065F46), isLight) { selectedSection = "goals" }
-                    AnalyticsSectionChip("Ekagra", selectedSection == "ekagra", Color(0xFF9A3412), isLight) { selectedSection = "ekagra" }
-                    AnalyticsSectionChip("Kavach", selectedSection == "kavach", Color(0xFF0F766E), isLight) { selectedSection = "kavach" }
-                    AnalyticsSectionChip("Monthly Review", selectedSection == "monthly", Color(0xFF5B21B6), isLight) { selectedSection = "monthly" }
+                    AnalyticsSectionChip("Goals", selectedSection == "goals", analyticsPlum(isLight), isLight) { selectedSection = "goals" }
+                    AnalyticsSectionChip("Ekagra", selectedSection == "ekagra", analyticsPeach(isLight), isLight) { selectedSection = "ekagra" }
+                    AnalyticsSectionChip("Kavach", selectedSection == "kavach", analyticsPlum(isLight), isLight) { selectedSection = "kavach" }
+                    AnalyticsSectionChip("Monthly Review", selectedSection == "monthly", analyticsPlum(isLight), isLight) { selectedSection = "monthly" }
                 }
 
                 Box(Modifier.fillMaxSize()) {
@@ -197,29 +197,18 @@ private fun AnalyticsSectionChip(
 ) {
     val shape = RoundedCornerShape(20.dp)
     val textColor = if (selected) {
-        if (isLight) Color.White else Color.Black
+        if (isLight) Color.White else analyticsInk(true)
     } else {
         secondaryText(isLight)
     }
-    val activeBg = if (isLight) SafarGlassPalette.LightTextPrimary else Color.White
+    val activeBg = analyticsPlum(isLight)
 
-    Box(
-        modifier = Modifier
-            .clip(shape)
-            .background(
-                if (selected) activeBg
-                else secondaryText(isLight).copy(alpha = 0.08f)
-            )
-            .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 8.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        UiText(
-            label,
-            color = textColor,
-            fontSize = 13.sp,
-            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium
-        )
+    com.composables.ui.components.Button(onClick = onClick,
+        style = com.composables.ui.components.ButtonStyle.Ghost, shape = shape,
+        contentColor = textColor, contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
+        modifier = Modifier.heightIn(min = 48.dp).background(if (selected) activeBg else analyticsSoft(isLight), shape)) {
+        UiText(label, color = textColor, fontSize = 13.sp,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium)
     }
 }
 
@@ -282,7 +271,7 @@ private fun MonthlyReviewSection(
                     UiIcon(
                         Icons.Default.CalendarMonth,
                         contentDescription = null,
-                        tint = if (isLight) Color(0xFF5B21B6) else Color(0xFFC084FC),
+                        tint = if (isLight) analyticsPlum(isLight) else analyticsLilac(isLight),
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(Modifier.width(8.dp))
@@ -326,7 +315,7 @@ private fun MonthlyReviewSection(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(16.dp))
-                        .background(secondaryText(isLight).copy(alpha = 0.06f))
+                        .background(analyticsPaper(isLight))
                 ) {
                     Column(
                         Modifier
@@ -347,7 +336,7 @@ private fun MonthlyReviewSection(
                             color = if (reportError != null) MaterialTheme.colorScheme.error else secondaryText(isLight),
                             textAlign = TextAlign.Center
                         )
-                        val btnAccent = SafarSemanticColors.brandPurple(isDarkTheme = !isLight)
+                        val btnAccent = analyticsPlum(isLight)
                         SafarGlassButton(
                             text = if (reportError != null) "Retry Loading" else stringResource(R.string.analytics_generate),
                             icon = Icons.Default.Refresh,
@@ -370,9 +359,9 @@ private fun ReportContent(
     isLight: Boolean,
     onNavigate: (String) -> Unit = {}
 ) {
-    val scoreAccent = if (isLight) Color(0xFF0284C7) else Color(0xFF38BDF8)
-    val completionAccent = if (isLight) Color(0xFF10B981) else Color(0xFF34D399)
-    val focusAccent = if (isLight) Color(0xFF6366F1) else Color(0xFF818CF8)
+    val scoreAccent = analyticsPlum(isLight)
+    val completionAccent = analyticsPeach(isLight)
+    val focusAccent = analyticsLilac(isLight)
 
     // Hero Row: Nirantarta Score & Poornata Dar side-by-side circular progress cards
     Row(
@@ -416,7 +405,7 @@ private fun ReportContent(
 
     // Goals Set vs Completed
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        GoalsCountCard("Goals Set", report.goalsCreated.toString(), R.drawable.ic_target, Color(0xFF0284C7), isLight, Modifier.weight(1f))
+        GoalsCountCard("Goals Set", report.goalsCreated.toString(), R.drawable.ic_target, analyticsPlum(isLight), isLight, Modifier.weight(1f))
         GoalsCountCard("Goals Completed", report.goalsCompleted.toString(), R.drawable.ic_circle_check, completionAccent, isLight, Modifier.weight(1f))
     }
 
@@ -429,12 +418,12 @@ private fun ReportContent(
     if (report.heatmap.isNotEmpty()) {
         val days = report.heatmap.takeLast(28).ifEmpty { report.heatmap.takeLast(30) }
         val dotColor = scoreAccent
-        val emptyColor = if (isLight) Color(0xFFE2E8F0) else Color(0xFF334155)
+        val emptyColor = analyticsSoft(isLight)
 
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = if (isLight) Color.White else Color(0xFF1E293B))
+            colors = CardDefaults.cardColors(containerColor = analyticsPaper(isLight))
         ) {
             Column(
                 modifier = Modifier.padding(16.dp),
@@ -526,7 +515,7 @@ private fun ReportContent(
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = if (isLight) Color.White else Color(0xFF1E293B))
+            colors = CardDefaults.cardColors(containerColor = analyticsPaper(isLight))
         ) {
             Column(
                 modifier = Modifier.padding(16.dp),
@@ -567,7 +556,7 @@ private fun CircularMetricCard(
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = if (isLight) Color.White else Color(0xFF1E293B))
+        colors = CardDefaults.cardColors(containerColor = analyticsPaper(isLight))
     ) {
         Column(
             modifier = Modifier
@@ -642,7 +631,7 @@ private fun FocusDepthChartCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = if (isLight) Color.White else Color(0xFF1E293B))
+        colors = CardDefaults.cardColors(containerColor = analyticsPaper(isLight))
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             UiText(
@@ -700,8 +689,8 @@ private fun LineAreaGradientChart(
     isLight: Boolean,
     modifier: Modifier = Modifier
 ) {
-    val primaryColor = Color(0xFF0284C7)
-    val gridColor = if (isLight) Color(0xFFE2E8F0) else Color(0xFF334155)
+    val primaryColor = analyticsPlum(isLight)
+    val gridColor = analyticsSoft(isLight)
 
     Canvas(modifier = modifier) {
         val cleanValues = values.map { if (it.isFinite() && it >= 0f) it else 0f }
@@ -769,7 +758,7 @@ private fun RadarChartCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = if (isLight) Color.White else Color(0xFF1E293B))
+        colors = CardDefaults.cardColors(containerColor = analyticsPaper(isLight))
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -835,8 +824,8 @@ private fun PolygonRadarChart(
     isLight: Boolean,
     modifier: Modifier = Modifier
 ) {
-    val radarColor = Color(0xFF10B981)
-    val gridColor = if (isLight) Color(0xFFE2E8F0) else Color(0xFF334155)
+    val radarColor = analyticsPlum(isLight)
+    val gridColor = analyticsSoft(isLight)
 
     Canvas(modifier = modifier) {
         if (items.size < 3) return@Canvas
@@ -891,7 +880,7 @@ private fun StreakReviewSection(report: MonthlyReport, isLight: Boolean) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = if (isLight) Color.White else Color(0xFF1E293B))
+        colors = CardDefaults.cardColors(containerColor = analyticsPaper(isLight))
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -911,7 +900,7 @@ private fun StreakReviewSection(report: MonthlyReport, isLight: Boolean) {
                     title = "Longest Streak",
                     days = "${report.longestStreakDays}d 🔥",
                     iconRes = R.drawable.ic_zap,
-                    accentColor = Color(0xFFF97316),
+                    accentColor = analyticsPeach(isLight),
                     isLight = isLight,
                     modifier = Modifier.weight(1f)
                 )
@@ -919,7 +908,7 @@ private fun StreakReviewSection(report: MonthlyReport, isLight: Boolean) {
                     title = "Streak Breaks",
                     days = "${report.streakBreaksCount}",
                     iconRes = R.drawable.ic_circle_check,
-                    accentColor = if (report.streakBreaksCount == 0) Color(0xFF10B981) else Color(0xFFEF4444),
+                    accentColor = if (report.streakBreaksCount == 0) analyticsPlum(isLight) else Color(0xFFEF4444),
                     isLight = isLight,
                     modifier = Modifier.weight(1f)
                 )
@@ -964,7 +953,7 @@ private fun StreakStatCard(
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(12.dp))
-            .background(secondaryText(isLight).copy(alpha = 0.06f))
+            .background(analyticsPaper(isLight))
             .padding(12.dp)
     ) {
         Row(
@@ -1014,7 +1003,7 @@ private fun GoalsCountCard(
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = if (isLight) Color.White else Color(0xFF1E293B))
+        colors = CardDefaults.cardColors(containerColor = analyticsPaper(isLight))
     ) {
         Row(
             modifier = Modifier.padding(14.dp),
@@ -1055,7 +1044,7 @@ private fun GoalsCountCard(
 
 @Composable
 private fun InsightRow(iconRes: Int, title: String, message: String, isLight: Boolean) {
-    val accent = if (isLight) SafarGlassPalette.LightViolet else SafarGlassPalette.Violet
+    val accent = analyticsLilac(isLight)
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         M3Icon(
             painter = painterResource(id = iconRes),
@@ -1095,7 +1084,7 @@ private fun AchievementsSection(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = if (isLight) Color.White else Color(0xFF1E293B))
+        colors = CardDefaults.cardColors(containerColor = analyticsPaper(isLight))
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -1106,7 +1095,7 @@ private fun AchievementsSection(
                     painter = painterResource(id = R.drawable.ic_trophy),
                     contentDescription = null,
                     modifier = Modifier.size(18.dp),
-                    tint = if (isLight) SafarGlassPalette.LightPink else SafarGlassPalette.Pink
+                    tint = analyticsPeach(isLight)
                 )
                 UiText(
                     "Achievements",
@@ -1119,7 +1108,7 @@ private fun AchievementsSection(
                     "See All",
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
-                    color = if (isLight) SafarGlassPalette.LightViolet else SafarGlassPalette.Violet,
+                    color = analyticsLilac(isLight),
                     modifier = Modifier.clickable { onNavigate(com.safarparmar.app.ui.navigation.Routes.ACHIEVEMENTS) }
                 )
             }
@@ -1164,7 +1153,7 @@ private fun AchievementsSection(
                                 .size(44.dp)
                                 .clip(RoundedCornerShape(12.dp))
                                 .background(
-                                    (if (isLight) SafarGlassPalette.LightViolet else SafarGlassPalette.Violet).copy(alpha = 0.15f)
+                                    (analyticsLilac(isLight)).copy(alpha = 0.15f)
                                 ),
                             contentAlignment = Alignment.Center
                         ) {
@@ -1181,7 +1170,7 @@ private fun AchievementsSection(
                                     painter = painterResource(id = if (ach.type == "title") R.drawable.ic_crown else R.drawable.ic_medal),
                                     contentDescription = null,
                                     modifier = Modifier.size(20.dp),
-                                    tint = if (isLight) SafarGlassPalette.LightViolet else SafarGlassPalette.Violet
+                                    tint = analyticsLilac(isLight)
                                 )
                             }
                         }
@@ -1195,12 +1184,12 @@ private fun AchievementsSection(
                                 )
                                 Surface(
                                     shape = RoundedCornerShape(20.dp),
-                                    color = (if (isLight) SafarGlassPalette.LightPink else SafarGlassPalette.Pink).copy(alpha = 0.15f)
+                                    color = (analyticsPeach(isLight)).copy(alpha = 0.15f)
                                 ) {
                                     UiText(
                                         "Earned",
                                         fontSize = 9.sp,
-                                        color = if (isLight) SafarGlassPalette.LightPink else SafarGlassPalette.Pink,
+                                        color = analyticsPeach(isLight),
                                         fontWeight = FontWeight.Bold,
                                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                     )
@@ -1223,10 +1212,10 @@ private fun AchievementsSection(
 }
 
 private fun primaryText(isLight: Boolean) =
-    if (isLight) SafarGlassPalette.LightTextPrimary else SafarGlassPalette.TextPrimary
+    analyticsInk(isLight)
 
 private fun secondaryText(isLight: Boolean) =
-    if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
+    analyticsMuted(isLight)
 
 @Composable
 private fun MonthSelectionDialog(
@@ -1264,7 +1253,7 @@ private fun MonthSelectionDialog(
                                 onDismiss()
                             },
                         color = if (isSelected) {
-                            (if (isLight) Color(0xFF5B21B6) else Color(0xFFC084FC)).copy(alpha = 0.12f)
+                            (if (isLight) analyticsPlum(isLight) else analyticsLilac(isLight)).copy(alpha = 0.12f)
                         } else Color.Transparent,
                         shape = RoundedCornerShape(12.dp),
                     ) {
@@ -1280,14 +1269,14 @@ private fun MonthSelectionDialog(
                                 fontSize = 14.5.sp,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                                 color = if (isSelected) {
-                                    if (isLight) Color(0xFF5B21B6) else Color(0xFFC084FC)
+                                    if (isLight) analyticsPlum(isLight) else analyticsLilac(isLight)
                                 } else primaryText(isLight),
                             )
                             if (isSelected) {
                                 UiIcon(
                                     imageVector = Icons.Default.Check,
                                     contentDescription = stringResource(R.string.common_selected),
-                                    tint = if (isLight) Color(0xFF5B21B6) else Color(0xFFC084FC),
+                                    tint = if (isLight) analyticsPlum(isLight) else analyticsLilac(isLight),
                                     modifier = Modifier.size(18.dp)
                                 )
                             }
@@ -1302,6 +1291,6 @@ private fun MonthSelectionDialog(
             }
         },
         shape = RoundedCornerShape(20.dp),
-        containerColor = if (isLight) Color.White else Color(0xFF1E1E2E),
+        containerColor = analyticsPaper(isLight),
     )
 }

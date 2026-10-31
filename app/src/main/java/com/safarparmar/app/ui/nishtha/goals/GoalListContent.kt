@@ -45,8 +45,8 @@ import com.composables.ui.components.HorizontalSeparator
 import com.composables.ui.components.IconButton as ComposablesIconButton
 import com.composables.ui.components.Icon as ComposablesIcon
 import com.composables.ui.components.Text as ComposablesText
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import com.composables.ui.components.Icon
+import com.composables.ui.components.IconButton
 import com.safarparmar.app.ui.nishtha.goals.GoalProgress as LinearProgressIndicator
 import com.composables.ui.components.Text
 import androidx.compose.runtime.Composable
@@ -70,8 +70,8 @@ import com.safarparmar.app.ui.components.GoalRowSkeleton
 import com.safarparmar.app.ui.components.SafarEmptyState
 import com.safarparmar.app.ui.components.SafarErrorState
 import com.safarparmar.app.ui.components.SafarPullRefreshBox
-import com.safarparmar.app.ui.studyplanner.plan.PlanHairline
-import com.safarparmar.app.ui.theme.LoraFontFamily
+import com.safarparmar.app.ui.nishtha.goals.GoalDivider as PlanHairline
+import com.safarparmar.app.ui.theme.PoppinsFontFamily as LoraFontFamily
 import com.safarparmar.app.util.IstDateUtils
 import com.safarparmar.app.util.assignedDateKey
 import com.safarparmar.app.util.isVisibleInGoals
@@ -176,9 +176,9 @@ internal fun GoalsTab(
                     .padding(horizontal = 20.dp)
                     .fillMaxWidth()
                     .height(goalContainerHeight)
-                    .clip(RoundedCornerShape(16.dp))
-                    .border(1.5.dp, GoalsFlatColors.Primary, RoundedCornerShape(16.dp))
-                    .background(GoalsFlatColors.Primary.copy(alpha = 0.03f))
+                    .clip(RoundedCornerShape(22.dp))
+                    .border(1.dp, GoalsFlatColors.Hairline, RoundedCornerShape(22.dp))
+                    .background(GoalsFlatColors.Paper)
                     .verticalScroll(goalListScroll)
                     .padding(horizontal = 16.dp, vertical = 8.dp),
             ) {
@@ -303,12 +303,13 @@ internal fun StatInfoCard(
     Column(
         modifier = modifier
             .heightIn(min = 100.dp)
-            .border(1.dp, GoalsFlatColors.Hairline, RoundedCornerShape(0.dp))
+            .clip(RoundedCornerShape(18.dp)).background(GoalsFlatColors.Paper)
+            .border(1.dp, GoalsFlatColors.Hairline, RoundedCornerShape(18.dp))
             .padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Text(title, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = GoalsFlatColors.Muted, letterSpacing = 0.8.sp)
-        Text(value, fontFamily = LoraFontFamily, fontSize = 26.sp, fontWeight = FontWeight.Normal, color = accent)
+        Text(value, fontFamily = LoraFontFamily, fontSize = 26.sp, fontWeight = FontWeight.Medium, color = accent)
         if (subtitle.isNotBlank()) {
             Text(subtitle, fontSize = 11.sp, color = GoalsFlatColors.Muted, lineHeight = 15.sp)
         }
@@ -327,7 +328,8 @@ internal fun LivePulseCard(
     totalManual: Int,
     totalEkagra: Int,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(GoalsFlatColors.Paper).padding(18.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(
             stringResource(R.string.goals_today_pulse),
             fontSize = 11.sp,
@@ -353,7 +355,7 @@ internal fun LivePulseCard(
             fontSize = 24.sp,
             color = GoalsFlatColors.Progress,
         )
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(0.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             StatInfoCard(stringResource(R.string.goals_manual), formatStudyTime(manualToday), "", Modifier.weight(1f), accent = GoalsFlatColors.Done)
             StatInfoCard(stringResource(R.string.module_ekagra), formatStudyTime(ekagraToday), "", Modifier.weight(1f), accent = GoalsFlatColors.Ekagra)
         }
@@ -380,7 +382,8 @@ internal fun LivePulseCard(
 
 @Composable
 internal fun ProTipCard() {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(GoalsFlatColors.Peach.copy(alpha = .45f)).padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = GoalsFlatColors.Scheduled, modifier = Modifier.size(16.dp))
             Text(
@@ -424,11 +427,12 @@ internal fun GoalItem(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 14.dp),
+            .padding(vertical = 6.dp).clip(RoundedCornerShape(18.dp)).background(GoalsFlatColors.Paper)
+            .padding(horizontal = 8.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        com.composables.ui.components.Checkbox(checked = goal.completed,
+        com.composables.ui.components.Checkbox(checked = goal.completed, accessibilityLabel = goal.title,
             enabled = !goal.completed || onReopen != null,
             onCheckedChange = { checked -> if (checked) onComplete() else onReopen?.invoke() },
             modifier = Modifier.size(48.dp).tutorialTarget("goals.complete"))
@@ -443,8 +447,9 @@ internal fun GoalItem(
             if (!goal.description.isNullOrBlank()) {
                 Text(goal.description, fontSize = 12.sp, color = GoalsFlatColors.Muted, maxLines = 2)
             }
-            Row(
+            androidx.compose.foundation.layout.FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
                 modifier = Modifier.padding(top = 6.dp),
             ) {
                 if (goal.completed) {
@@ -582,7 +587,7 @@ internal fun GoalItem(
                     onClick = { showMenu = showMenu.not() },
                     style = ButtonStyle.Ghost,
                     buttonSize = ButtonSize.Small,
-                    modifier = Modifier.size(28.dp).tutorialTarget("goals.menu"),
+                    modifier = Modifier.size(48.dp).tutorialTarget("goals.menu"),
                 ) {
                     ComposablesIcon(
                         imageVector = Icons.Default.MoreVert,
@@ -611,7 +616,7 @@ internal fun RolloverPromptItem(goal: Goal, onRetry: () -> Unit, onArchive: () -
             color = GoalsFlatColors.Muted,
         )
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            FlatFilledAction(stringResource(R.string.goals_retry_today), GoalsFlatColors.Primary, onRetry, Modifier.weight(1f))
+            FlatFilledAction(stringResource(R.string.goals_retry_today), onRetry, Modifier.weight(1f))
             FlatOutlineAction(stringResource(R.string.goals_archive), onArchive, Modifier.weight(1f))
         }
     }
@@ -621,8 +626,8 @@ internal fun RolloverPromptItem(goal: Goal, onRetry: () -> Unit, onArchive: () -
 internal fun FlatBadge(label: String, accent: Color) {
     Box(
         Modifier
-            .border(1.dp, accent.copy(alpha = 0.35f), RoundedCornerShape(6.dp))
-            .padding(horizontal = 7.dp, vertical = 3.dp),
+            .background(accent.copy(alpha = 0.10f), RoundedCornerShape(50))
+            .padding(horizontal = 9.dp, vertical = 5.dp),
     ) {
         Text(label, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = accent)
     }
@@ -630,8 +635,9 @@ internal fun FlatBadge(label: String, accent: Color) {
 
 @Composable
 internal fun SmallBadge(label: String, bg: Color, fg: Color) {
-    // Kept for call-site compatibility; prefers outlined flat badge when bg is unused.
-    FlatBadge(label, fg)
+    Box(Modifier.background(bg, RoundedCornerShape(50)).padding(horizontal = 9.dp, vertical = 5.dp)) {
+        Text(label, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = fg)
+    }
 }
 
 @Composable
@@ -647,11 +653,10 @@ internal fun PriorityBadge(priority: String) {
 @Composable
 internal fun FlatFilledAction(
     label: String,
-    accent: Color,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    com.composables.ui.components.Button(onClick = onClick, modifier = modifier) {
+    com.composables.ui.components.Button(onClick = onClick, modifier = modifier.heightIn(min = 48.dp), style = ButtonStyle.Primary, contentColor = GoalsFlatColors.OnPrimary) {
         ComposablesText(label)
     }
 }
@@ -662,7 +667,7 @@ internal fun FlatOutlineAction(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    com.composables.ui.components.Button(onClick = onClick, modifier = modifier, style = ButtonStyle.Outlined) {
+    com.composables.ui.components.Button(onClick = onClick, modifier = modifier.heightIn(min = 48.dp), style = ButtonStyle.Outlined) {
         ComposablesText(label)
     }
 }

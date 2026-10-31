@@ -11,7 +11,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import com.composables.ui.components.Icon
-import androidx.compose.material3.Text
+import com.composables.ui.components.Text
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -61,8 +61,7 @@ internal fun MehfilFeedLayout(
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val expanded = LocalMehfilTabletStyle.current && maxWidth >= 760.dp
         if (!expanded) {
-            Box(Modifier.fillMaxSize().padding(horizontal = 10.dp, vertical = 8.dp)
-                .background(MehfilFlatColors.CommunityPanel, RoundedCornerShape(20.dp)).padding(vertical = 14.dp)) { feed(false) }
+            Box(Modifier.fillMaxSize().padding(top = 12.dp)) { feed(false) }
         } else {
             CompositionLocalProvider(LocalMehfilDualPane provides true) {
             Row(
@@ -104,18 +103,18 @@ private fun MehfilSandeshRail(
 @Composable
 internal fun MehfilRoomSelector(selectedSpace: String, onJoinRoom: (String) -> Unit) {
     val rooms = listOf("ALL" to R.string.common_all, "ACADEMIC" to R.string.mehfil_academic, "REFLECTIVE" to R.string.mehfil_reflective)
-    Row(Modifier.fillMaxWidth().padding(horizontal = if (LocalMehfilDualPane.current) 0.dp else 16.dp).tutorialTarget("mehfil.space"), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+    Row(Modifier.fillMaxWidth().padding(horizontal = if (LocalMehfilDualPane.current) 0.dp else 16.dp).tutorialTarget("mehfil.space"), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         rooms.forEach { (key, label) ->
             val active = selectedSpace.equals(key, true)
             val shape = CircleShape
             Button(
                 onClick = { onJoinRoom(key) }, style = ButtonStyle.Ghost, shape = shape,
-                modifier = Modifier.weight(if (key == "ALL") 0.8f else 1f, fill = false)
-                    .height(40.dp)
+                modifier = Modifier.weight(if (key == "ALL") 0.72f else 1f)
+                    .heightIn(min = 48.dp)
                     .background(if (active) MehfilFlatColors.Primary else MehfilFlatColors.Surface, shape)
                     .border(1.dp, if (active) MehfilFlatColors.Primary else MehfilFlatColors.Hairline, shape)
                     .semantics { selected = active; role = Role.Tab },
-                contentPadding = PaddingValues(horizontal = 20.dp),
+                contentPadding = PaddingValues(horizontal = 8.dp),
                 contentColor = if (active) Color.White else MehfilFlatColors.Text,
             ) {
                 MenuText(stringResource(label).lowercase(Locale.getDefault()).replaceFirstChar { it.titlecase(Locale.getDefault()) }, fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif, fontWeight = FontWeight.Normal, fontSize = 14.sp, maxLines = 1)
@@ -140,19 +139,19 @@ internal fun MehfilReferencePostCard(
     val locked = canConnect && !mehfilDm && !isLoadingPremiumFeatures
     BoxWithConstraints {
         val roomy = maxWidth >= 480.dp
-        val showConnectLabel = maxWidth >= 360.dp
+        val showConnectLabel = maxWidth >= 300.dp
+        val inlineConnect = maxWidth >= 340.dp
         Column(
-            Modifier.fillMaxWidth().shadow(4.dp, RoundedCornerShape(16.dp), clip = false, ambientColor = Color(0x14642BA4), spotColor = Color(0x14642BA4))
-                .tutorialTarget("mehfil.react")
-                .clip(RoundedCornerShape(14.dp)).background(MehfilFlatColors.Surface)
-                .border(0.8.dp, MehfilFlatColors.Hairline, RoundedCornerShape(14.dp))
+            Modifier.fillMaxWidth().tutorialTarget("mehfil.react")
+                .clip(RoundedCornerShape(22.dp)).background(MehfilFlatColors.Surface)
+                .border(1.dp, MehfilFlatColors.Hairline, RoundedCornerShape(22.dp))
                 .padding(if (roomy) 22.dp else 16.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(if (roomy) 16.dp else 8.dp)) {
                 MehfilAvatar(post.authorName, post.authorAvatar, if (roomy) 58 else 44)
                 Column(Modifier.then(if (roomy) Modifier.widthIn(max = 170.dp) else Modifier.weight(1f)), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                    Text(post.authorName, fontSize = if (roomy) 17.sp else 14.sp, fontWeight = FontWeight.Bold, color = MehfilFlatColors.Text, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text(formatTabletPostDate(post.createdAt), fontSize = if (roomy) 14.sp else 11.sp, color = MehfilFlatColors.Muted, maxLines = 1)
+                    Text(post.authorName, fontSize = if (roomy) 17.sp else 15.sp, fontWeight = FontWeight.Bold, color = MehfilFlatColors.Text, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(formatTabletPostDate(post.createdAt), fontSize = if (roomy) 14.sp else 12.sp, color = MehfilFlatColors.Muted, maxLines = 1)
                 }
                 if (post.space.isNotBlank()) MehfilSpaceBadge(post.space, compact = !roomy)
                 if (roomy) Spacer(Modifier.weight(1f))
@@ -165,12 +164,19 @@ internal fun MehfilReferencePostCard(
                 MehfilCardAction(MehfilCardGlyph.Heart, post.reactionCount.toString(), stringResource(R.string.mehfil_like), onLike, filled = post.userLiked)
                 MehfilCardAction(MehfilCardGlyph.Comment, post.commentCount.toString(), stringResource(R.string.mehfil_comment), onComment)
                 Spacer(Modifier.weight(1f))
-                if (canConnect) MehfilCardAction(
+                if (canConnect && inlineConnect) MehfilCardAction(
                     if (locked) MehfilCardGlyph.Lock else MehfilCardGlyph.Connect,
                     if (showConnectLabel) stringResource(R.string.mehfil_connect) else null, stringResource(R.string.mehfil_connect), onConnect,
                     if (locked) MehfilFlatColors.Muted else MehfilFlatColors.Primary,
                 )
                 MehfilCardAction(MehfilCardGlyph.Bookmark, if (roomy) stringResource(R.string.common_save) else null, stringResource(R.string.common_save), onSave, color = MehfilFlatColors.Primary, filled = isSaved)
+            }
+            if (canConnect && !inlineConnect) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    MehfilCardAction(if (locked) MehfilCardGlyph.Lock else MehfilCardGlyph.Connect,
+                        stringResource(R.string.mehfil_connect), stringResource(R.string.mehfil_connect), onConnect,
+                        MehfilFlatColors.Primary)
+                }
             }
         }
     }
@@ -216,7 +222,7 @@ private fun MehfilPostText(content: String, roomy: Boolean, announcement: Boolea
         Text(title, fontSize = if (announcement) 20.sp else if (roomy) 24.sp else 20.sp, lineHeight = if (roomy) 30.sp else 26.sp, fontWeight = FontWeight.Bold, color = MehfilFlatColors.Text)
         Spacer(Modifier.height(12.dp))
     }
-    Text(body, fontSize = 16.sp, lineHeight = 24.sp, color = MehfilFlatColors.Muted, letterSpacing = 0.sp)
+    Text(body, fontSize = 16.sp, lineHeight = 24.sp, color = MehfilFlatColors.Text, letterSpacing = 0.sp)
 }
 
 @Composable
@@ -263,14 +269,26 @@ internal fun MehfilAnnouncementCard(sandesh: Sandesh, reacted: Boolean, onReact:
 
 @Composable
 private fun MehfilCardAction(icon: MehfilCardGlyph, label: String?, description: String, onClick: () -> Unit, color: Color = MehfilFlatColors.Muted, filled: Boolean = false) {
-    Button(onClick = onClick, style = ButtonStyle.Ghost, contentPadding = PaddingValues(horizontal = 2.dp, vertical = 8.dp), contentColor = color, modifier = Modifier.heightIn(min = 48.dp).then(
-        if (icon == MehfilCardGlyph.Connect || icon == MehfilCardGlyph.Lock)
-            Modifier.border(1.dp, MehfilFlatColors.Primary, RoundedCornerShape(12.dp)).padding(horizontal = 10.dp)
-        else Modifier)) {
-        MehfilCardArtwork(icon, Modifier.size(28.dp), color = color, filled = filled, description = description)
-        if (label != null) {
-            Spacer(Modifier.width(8.dp))
-            MenuText(label, fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif, color = if (icon == MehfilCardGlyph.Heart) MehfilFlatColors.Muted else color, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+    val connect = icon == MehfilCardGlyph.Connect || icon == MehfilCardGlyph.Lock
+    val vector = when (icon) {
+        MehfilCardGlyph.Heart -> if (filled) Icons.Default.Favorite else Icons.Default.FavoriteBorder
+        MehfilCardGlyph.Comment -> Icons.Default.ChatBubbleOutline
+        MehfilCardGlyph.Connect -> Icons.Default.PersonAdd
+        MehfilCardGlyph.Lock -> Icons.Default.Lock
+        MehfilCardGlyph.Bookmark -> if (filled) Icons.Default.Bookmark else Icons.Default.BookmarkBorder
+        else -> Icons.Default.MoreHoriz
+    }
+    Button(onClick = onClick, style = ButtonStyle.Ghost, shape = CircleShape,
+        contentPadding = PaddingValues(horizontal = 4.dp), contentColor = color,
+        modifier = Modifier.heightIn(min = 48.dp).widthIn(min = 48.dp)) {
+        Row(Modifier.then(if (connect) Modifier.clip(CircleShape)
+            .background(MehfilFlatColors.SandeshPanel.copy(alpha = .55f))
+            .padding(horizontal = 10.dp, vertical = 7.dp) else Modifier),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+            Icon(vector, contentDescription = description, modifier = Modifier.size(if (connect) 18.dp else 22.dp),
+                tint = if (icon == MehfilCardGlyph.Heart && filled) MehfilFlatColors.Like else color)
+            if (label != null) MenuText(label, color = color, fontSize = if (connect) 12.sp else 13.sp,
+                fontWeight = FontWeight.Medium, maxLines = 1)
         }
     }
 }
@@ -288,8 +306,8 @@ private fun MehfilCardMenu(onComment: () -> Unit, onSave: (() -> Unit)? = null, 
             }
         },
     ) {
-        IconButton(onClick = { expanded = !expanded }, style = ButtonStyle.Ghost, modifier = Modifier.size(40.dp)) {
-            MehfilCardArtwork(MehfilCardGlyph.More, Modifier.size(24.dp), description = stringResource(R.string.mehfil_post_options))
+        IconButton(onClick = { expanded = !expanded }, style = ButtonStyle.Ghost, modifier = Modifier.size(48.dp)) {
+            Icon(Icons.Default.MoreHoriz, contentDescription = stringResource(R.string.mehfil_post_options), modifier = Modifier.size(22.dp))
         }
     }
 }

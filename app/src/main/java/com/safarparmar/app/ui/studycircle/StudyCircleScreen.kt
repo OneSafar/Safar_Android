@@ -35,9 +35,11 @@ import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material3.*
-import com.safarparmar.app.ui.components.popups.SafarMaterialAlertDialog as AlertDialog
-import com.safarparmar.app.ui.components.popups.SafarModalBottomSheet as ModalBottomSheet
-import com.safarparmar.app.ui.components.popups.SafarDropdownMenu as DropdownMenu
+import com.safarparmar.app.ui.studycircle.CircleAlert as AlertDialog
+import com.safarparmar.app.ui.studycircle.CircleSheet as ModalBottomSheet
+import com.safarparmar.app.ui.studycircle.CircleMenu as DropdownMenu
+import com.safarparmar.app.ui.studycircle.CircleMenuItem as DropdownMenuItem
+import com.safarparmar.app.ui.studycircle.CircleField as OutlinedTextField
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -75,7 +77,12 @@ import com.safarparmar.app.data.remote.dto.StudyCircleMemberDto
 import com.safarparmar.app.data.remote.dto.StudyCircleSummaryDto
 import com.safarparmar.app.ui.drawer.SafarDrawerScaffold
 import com.safarparmar.app.ui.navigation.Routes
-import com.safarparmar.app.ui.studyplanner.components.PlannerFlatColors
+import com.safarparmar.app.ui.studycircle.CircleVectorIcon as Icon
+import com.safarparmar.app.ui.studycircle.CircleIconButton as IconButton
+import com.composables.ui.components.Text
+import com.safarparmar.app.ui.studycircle.CircleButton as Button
+import com.safarparmar.app.ui.studycircle.CircleOutlineButton as OutlinedButton
+import com.safarparmar.app.ui.studycircle.CircleTextButton as TextButton
 import com.safarparmar.app.ui.studyplanner.components.isPlannerDark
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -86,10 +93,10 @@ private const val MAX_CIRCLE_NAME_LENGTH = 40
 
 /** Primary color: Deep Royal Purple/Blue */
 private val CirclePrimary: Color
-    @Composable get() = if (isPlannerDark) Color(0xFFC084FC) else Color(0xFF581C87)
+    @Composable get() = if (isPlannerDark) Color(0xFFF0BEDC) else Color(0xFF542347)
 
 private val CirclePrimaryButton: Color
-    @Composable get() = if (isPlannerDark) Color(0xFF7C3AED) else Color(0xFF581C87)
+    @Composable get() = if (isPlannerDark) Color(0xFF542347) else Color(0xFF542347)
 
 /** Secondary color: Deep Green for Live & Active indicators */
 private val DeepGreen: Color
@@ -309,17 +316,17 @@ fun StudyCircleScreen(
                     Icon(
                         imageVector = if (pendingCount > 0) Icons.Default.NotificationsActive else Icons.Default.Notifications,
                         contentDescription = stringResource(R.string.study_circle_connection_requests),
-                        tint = if (pendingCount > 0) CirclePrimaryButton else PlannerFlatColors.TextDark,
+                        tint = if (pendingCount > 0) CirclePrimaryButton else CircleWorkspaceColors.TextDark,
                     )
                 }
             }
             IconButton(onClick = { viewModel.loadHub(refresh = true) }, enabled = !state.refreshing) {
                 if (state.refreshing) CircularProgressIndicator(Modifier.size(19.dp), strokeWidth = 2.dp, color = CirclePrimary)
-                else Icon(Icons.Default.Refresh, stringResource(R.string.study_circle_refresh_circles), tint = PlannerFlatColors.TextDark)
+                else Icon(Icons.Default.Refresh, stringResource(R.string.study_circle_refresh_circles), tint = CircleWorkspaceColors.TextDark)
             }
         },
         useGlassTopBar = false,
-        containerColor = PlannerFlatColors.BgCream,
+        containerColor = CircleWorkspaceColors.BgCream,
     ) { padding ->
         val atLimit = state.circles.size >= 5
         val creationAllowed = state.creationEligibility.allowed
@@ -349,7 +356,7 @@ fun StudyCircleScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .background(PlannerFlatColors.BgCream),
+                .background(CircleWorkspaceColors.BgCream),
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
@@ -391,21 +398,21 @@ fun StudyCircleScreen(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
                         modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text(stringResource(R.string.study_circle_search_placeholder), fontSize = 14.sp, color = PlannerFlatColors.TextMuted) },
-                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = stringResource(R.string.study_circle_search), tint = PlannerFlatColors.TextMuted) },
+                        placeholder = { Text(stringResource(R.string.study_circle_search_placeholder), fontSize = 14.sp, color = CircleWorkspaceColors.TextMuted) },
+                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = stringResource(R.string.study_circle_search), tint = CircleWorkspaceColors.TextMuted) },
                         trailingIcon = if (searchQuery.isNotBlank()) {
                             {
                                 IconButton(onClick = { searchQuery = "" }) {
-                                    Icon(Icons.Default.Close, contentDescription = stringResource(R.string.study_circle_clear_search), tint = PlannerFlatColors.TextMuted)
+                                    Icon(Icons.Default.Close, contentDescription = stringResource(R.string.study_circle_clear_search), tint = CircleWorkspaceColors.TextMuted)
                                 }
                             }
                         } else null,
                         singleLine = true,
                         shape = RoundedCornerShape(12.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = PlannerFlatColors.CardWhite,
-                            unfocusedContainerColor = PlannerFlatColors.CardWhite,
-                            unfocusedBorderColor = PlannerFlatColors.BorderSoft,
+                            focusedContainerColor = CircleWorkspaceColors.CardWhite,
+                            unfocusedContainerColor = CircleWorkspaceColors.CardWhite,
+                            unfocusedBorderColor = CircleWorkspaceColors.BorderSoft,
                             focusedBorderColor = CirclePrimary,
                             cursorColor = CirclePrimary,
                         ),
@@ -427,8 +434,8 @@ fun StudyCircleScreen(
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(16.dp),
-                                colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.CardWhite),
-                                border = BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
+                                colors = CardDefaults.cardColors(containerColor = CircleWorkspaceColors.CardWhite),
+                                border = BorderStroke(1.dp, CircleWorkspaceColors.BorderSoft),
                                 elevation = CardDefaults.cardElevation(0.dp),
                             ) {
                                 Column(modifier = Modifier.fillMaxWidth()) {
@@ -436,7 +443,7 @@ fun StudyCircleScreen(
                                     filteredCircles.forEach { circle ->
                                         if (!isFirst) {
                                             HorizontalDivider(
-                                                color = PlannerFlatColors.BorderSoft.copy(alpha = 0.6f),
+                                                color = CircleWorkspaceColors.BorderSoft.copy(alpha = 0.6f),
                                                 thickness = 1.dp,
                                             )
                                         }
@@ -446,7 +453,7 @@ fun StudyCircleScreen(
                                     displayedPublicCircles.forEachIndexed { index, circle ->
                                         if (!isFirst) {
                                             HorizontalDivider(
-                                                color = PlannerFlatColors.BorderSoft.copy(alpha = 0.6f),
+                                                color = CircleWorkspaceColors.BorderSoft.copy(alpha = 0.6f),
                                                 thickness = 1.dp,
                                             )
                                         }
@@ -462,7 +469,7 @@ fun StudyCircleScreen(
                                     }
                                     if (searchQuery.isBlank() && filteredPublicCircles.size > displayedPublicCircles.size) {
                                         HorizontalDivider(
-                                            color = PlannerFlatColors.BorderSoft.copy(alpha = 0.6f),
+                                            color = CircleWorkspaceColors.BorderSoft.copy(alpha = 0.6f),
                                             thickness = 1.dp,
                                         )
                                         Row(
@@ -500,15 +507,15 @@ fun StudyCircleScreen(
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(16.dp),
-                                colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.CardWhite),
-                                border = BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
+                                colors = CardDefaults.cardColors(containerColor = CircleWorkspaceColors.CardWhite),
+                                border = BorderStroke(1.dp, CircleWorkspaceColors.BorderSoft),
                                 elevation = CardDefaults.cardElevation(0.dp),
                             ) {
                                 Column(modifier = Modifier.fillMaxWidth()) {
                                     state.circles.forEachIndexed { index, circle ->
                                         if (index > 0) {
                                             HorizontalDivider(
-                                                color = PlannerFlatColors.BorderSoft.copy(alpha = 0.6f),
+                                                color = CircleWorkspaceColors.BorderSoft.copy(alpha = 0.6f),
                                                 thickness = 1.dp,
                                             )
                                         }
@@ -588,9 +595,9 @@ internal fun StudyCircleTopButtons(
                 disabledContentColor = Color.White.copy(alpha = 0.38f),
             ),
         ) {
-            Icon(Icons.Default.Add, null, Modifier.size(18.dp))
+            Icon(Icons.Default.Add, null, Modifier.size(18.dp), tint = Color.White)
             Spacer(Modifier.width(6.dp))
-            Text(stringResource(R.string.study_circle_create_circle), maxLines = 1, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+            Text(stringResource(R.string.study_circle_create_circle), maxLines = 1, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = Color.White)
         }
     }
 }
@@ -610,7 +617,7 @@ private fun CircleLimitInfoRow(
         Icon(
             Icons.Default.Info,
             contentDescription = null,
-            tint = PlannerFlatColors.TextMuted,
+            tint = CircleWorkspaceColors.TextMuted,
             modifier = Modifier.size(16.dp),
         )
         Spacer(Modifier.width(8.dp))
@@ -620,7 +627,7 @@ private fun CircleLimitInfoRow(
                 !creationAllowed -> stringResource(R.string.study_circle_streak_needed, requiredStreak)
                 else -> stringResource(R.string.study_circle_limit_info)
             },
-            color = PlannerFlatColors.TextMuted,
+            color = CircleWorkspaceColors.TextMuted,
             fontSize = 12.sp,
             maxLines = 1,
             softWrap = false,
@@ -637,69 +644,19 @@ private fun CircleTabsHeader(
     yoursCount: Int,
     onSelectTab: (CircleListTab) -> Unit,
 ) {
-    val primary = CirclePrimary
-    val textMuted = PlannerFlatColors.TextMuted
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(20.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        val isAll = selectedTab == CircleListTab.All
-        Box(
-            modifier = Modifier
-                .heightIn(min = 48.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .clickable { onSelectTab(CircleListTab.All) },
-            contentAlignment = Alignment.Center,
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text = stringResource(R.string.study_circle_tab_all, allCount),
-                    fontSize = 14.5.sp,
-                    fontWeight = if (isAll) FontWeight.Bold else FontWeight.Medium,
-                    color = if (isAll) primary else textMuted,
-                )
-                Spacer(Modifier.height(5.dp))
-                Box(
-                    Modifier
-                        .width(36.dp)
-                        .height(2.5.dp)
-                        .background(if (isAll) primary else Color.Transparent, RoundedCornerShape(2.dp)),
-                )
-            }
-        }
-
-        val isYours = selectedTab == CircleListTab.Yours
-        Box(
-            modifier = Modifier
-                .heightIn(min = 48.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .clickable { onSelectTab(CircleListTab.Yours) },
-            contentAlignment = Alignment.Center,
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text = stringResource(R.string.study_circle_tab_yours, yoursCount),
-                    fontSize = 14.5.sp,
-                    fontWeight = if (isYours) FontWeight.Bold else FontWeight.Medium,
-                    color = if (isYours) primary else textMuted,
-                )
-                Spacer(Modifier.height(5.dp))
-                Box(
-                    Modifier
-                        .width(36.dp)
-                        .height(2.5.dp)
-                        .background(if (isYours) primary else Color.Transparent, RoundedCornerShape(2.dp)),
-                )
+    Row(Modifier.fillMaxWidth().background(CircleWorkspaceColors.Peach, RoundedCornerShape(14.dp)).padding(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        listOf(CircleListTab.All, CircleListTab.Yours).forEach { tab ->
+            val selected = selectedTab == tab
+            TextButton(onClick = { onSelectTab(tab) },
+                modifier = Modifier.weight(1f).background(if (selected) CircleWorkspaceColors.CardWhite else Color.Transparent, RoundedCornerShape(10.dp)),
+                ) {
+                Text(stringResource(if (tab == CircleListTab.All) R.string.study_circle_tab_all else R.string.study_circle_tab_yours,
+                    if (tab == CircleListTab.All) allCount else yoursCount), fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal)
             }
         }
     }
 }
-
-// ── Official & Pinned Circles Components ─────────────────────────────────────
 
 @Composable
 fun OfficialBadge(modifier: Modifier = Modifier) {
@@ -861,11 +818,11 @@ private fun OfficialCircleRow(
             ) {
                 Text(
                     text = stringResource(R.string.study_circle_members_official, circle.memberCount),
-                    color = PlannerFlatColors.TextMuted,
+                    color = CircleWorkspaceColors.TextMuted,
                     fontSize = 12.sp,
                 )
                 if (circle.focusingCount > 0) {
-                    Text(" · ", color = PlannerFlatColors.TextMuted, fontSize = 12.sp)
+                    Text(" · ", color = CircleWorkspaceColors.TextMuted, fontSize = 12.sp)
                     LivePulseDot(size = 6)
                     Spacer(Modifier.width(4.dp))
                     Text(
@@ -886,7 +843,7 @@ private fun OfficialCircleRow(
                 shape = RoundedCornerShape(8.dp),
                 border = BorderStroke(1.dp, official.copy(alpha = 0.55f)),
                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                modifier = Modifier.height(32.dp),
+                modifier = Modifier.heightIn(min = 48.dp),
             ) {
                 Text(
                     stringResource(R.string.study_circle_open),
@@ -905,7 +862,7 @@ private fun OfficialCircleRow(
                     contentColor = Color.White,
                 ),
                 contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
-                modifier = Modifier.height(32.dp),
+                modifier = Modifier.heightIn(min = 48.dp),
             ) {
                 if (busy) {
                     CircularProgressIndicator(
@@ -974,7 +931,7 @@ internal fun MyCircleRow(circle: StudyCircleSummaryDto, onClick: () -> Unit) {
                     text = circle.name,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
-                    color = if (circle.isPinned) official else PlannerFlatColors.TextDark,
+                    color = if (circle.isPinned) official else CircleWorkspaceColors.TextDark,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f, fill = false),
@@ -997,7 +954,7 @@ internal fun MyCircleRow(circle: StudyCircleSummaryDto, onClick: () -> Unit) {
             ) {
                 Text(
                     text = memberText,
-                    color = PlannerFlatColors.TextMuted,
+                    color = CircleWorkspaceColors.TextMuted,
                     fontSize = 12.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -1008,7 +965,7 @@ internal fun MyCircleRow(circle: StudyCircleSummaryDto, onClick: () -> Unit) {
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.padding(start = 4.dp),
                     ) {
-                        Text(" · ", color = PlannerFlatColors.TextMuted, fontSize = 12.sp)
+                        Text(" · ", color = CircleWorkspaceColors.TextMuted, fontSize = 12.sp)
                         LivePulseDot(size = 6)
                         Spacer(Modifier.width(4.dp))
                         Text(
@@ -1034,7 +991,7 @@ internal fun MyCircleRow(circle: StudyCircleSummaryDto, onClick: () -> Unit) {
         Icon(
             Icons.Default.ChevronRight,
             contentDescription = stringResource(R.string.study_circle_open_circle),
-            tint = PlannerFlatColors.TextMuted.copy(alpha = 0.5f),
+            tint = CircleWorkspaceColors.TextMuted.copy(alpha = 0.5f),
             modifier = Modifier.size(18.dp),
         )
     }
@@ -1089,7 +1046,7 @@ internal fun PublicCircleRow(
                     text = circle.name,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
-                    color = if (circle.isPinned) official else PlannerFlatColors.TextDark,
+                    color = if (circle.isPinned) official else CircleWorkspaceColors.TextDark,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f, fill = false),
@@ -1134,7 +1091,7 @@ internal fun PublicCircleRow(
                 Text(
                     text = subText,
                     fontSize = 12.sp,
-                    color = PlannerFlatColors.TextMuted,
+                    color = CircleWorkspaceColors.TextMuted,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
@@ -1144,7 +1101,7 @@ internal fun PublicCircleRow(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.padding(start = 4.dp),
                     ) {
-                        Text(" · ", color = PlannerFlatColors.TextMuted, fontSize = 12.sp)
+                        Text(" · ", color = CircleWorkspaceColors.TextMuted, fontSize = 12.sp)
                         LivePulseDot(size = 6)
                         Spacer(Modifier.width(4.dp))
                         Text(
@@ -1171,12 +1128,12 @@ internal fun PublicCircleRow(
                     text = stringResource(R.string.study_circle_joined),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
-                    color = PlannerFlatColors.TextMuted,
+                    color = CircleWorkspaceColors.TextMuted,
                 )
                 Icon(
                     Icons.Default.ChevronRight,
                     contentDescription = stringResource(R.string.study_circle_open_circle),
-                    tint = PlannerFlatColors.TextMuted.copy(alpha = 0.5f),
+                    tint = CircleWorkspaceColors.TextMuted.copy(alpha = 0.5f),
                     modifier = Modifier.size(18.dp),
                 )
             }
@@ -1184,7 +1141,7 @@ internal fun PublicCircleRow(
             OutlinedButton(
                 onClick = onJoin,
                 enabled = enabled && !busy,
-                modifier = Modifier.height(32.dp),
+                modifier = Modifier.heightIn(min = 48.dp),
                 shape = RoundedCornerShape(8.dp),
                 contentPadding = PaddingValues(horizontal = 13.dp, vertical = 0.dp),
                 border = BorderStroke(1.dp, accent),
@@ -1228,8 +1185,8 @@ private fun OwnerTextBadge(modifier: Modifier = Modifier) {
 private fun FlatCircleCard(
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(16.dp),
-    containerColor: Color = PlannerFlatColors.CardWhite,
-    border: BorderStroke? = BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
+    containerColor: Color = CircleWorkspaceColors.CardWhite,
+    border: BorderStroke? = BorderStroke(1.dp, CircleWorkspaceColors.BorderSoft),
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Card(
@@ -1275,7 +1232,7 @@ private fun CircleErrorState(message: String, retry: () -> Unit) = FlatCircleCar
     ) {
         Icon(Icons.Default.CloudOff, null, tint = MaterialTheme.colorScheme.error)
         Spacer(Modifier.height(10.dp))
-        Text(message, textAlign = TextAlign.Center, color = PlannerFlatColors.TextMuted, fontSize = 13.sp)
+        Text(message, textAlign = TextAlign.Center, color = CircleWorkspaceColors.TextMuted, fontSize = 13.sp)
         Spacer(Modifier.height(12.dp))
         OutlinedButton(onClick = retry, shape = RoundedCornerShape(10.dp)) {
             Text(stringResource(R.string.common_try_again))
@@ -1286,15 +1243,15 @@ private fun CircleErrorState(message: String, retry: () -> Unit) = FlatCircleCar
 @Composable
 private fun DashedStyleEmptyCard(text: String) = Surface(
     modifier = Modifier.fillMaxWidth(),
-    color = PlannerFlatColors.CardWhite,
+    color = CircleWorkspaceColors.CardWhite,
     shape = RoundedCornerShape(16.dp),
-    border = BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
+    border = BorderStroke(1.dp, CircleWorkspaceColors.BorderSoft),
 ) {
     Text(
         text,
         Modifier.padding(28.dp),
         textAlign = TextAlign.Center,
-        color = PlannerFlatColors.TextMuted,
+        color = CircleWorkspaceColors.TextMuted,
         fontSize = 13.5.sp,
     )
 }
@@ -1307,8 +1264,12 @@ private fun StudyCircleInputDialog(
 ) {
     var value by remember(mode) { mutableStateOf("") }
     var visibility by remember(mode) { mutableStateOf("private") }
-    Dialog(onDismissRequest = { if (!busy) onDismiss() }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.6f)).padding(24.dp), contentAlignment = Alignment.Center) {
+    CircleTheme {
+        com.safarparmar.app.ui.components.popups.SafarComposablesAlertDialog(
+            visible = true, onDismissRequest = { if (!busy) onDismiss() },
+            backgroundColor = CircleWorkspaceColors.CardWhite,
+            contentColor = CircleWorkspaceColors.TextDark, contentPadding = PaddingValues(0.dp),
+        ) {
             StudyCircleInputContent(mode == CircleDialog.Create, value, visibility, busy,
                 onValueChange = { value = it }, onVisibilityChange = { visibility = it }, onDismiss = onDismiss, onSubmit = onSubmit)
         }
@@ -1329,8 +1290,8 @@ internal fun StudyCircleInputContent(
             .widthIn(max = 380.dp)
             .fillMaxWidth()
             .clip(RoundedCornerShape(18.dp))
-            .background(PlannerFlatColors.CardWhite)
-            .border(1.dp, PlannerFlatColors.BorderSoft, RoundedCornerShape(18.dp))
+            .background(CircleWorkspaceColors.CardWhite)
+            .border(1.dp, CircleWorkspaceColors.BorderSoft, RoundedCornerShape(18.dp))
             .padding(22.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
@@ -1339,7 +1300,7 @@ internal fun StudyCircleInputContent(
             text = stringResource(if (isCreate) R.string.study_circle_create_title else R.string.study_circle_join_code_title),
             fontSize = 19.sp,
             fontWeight = FontWeight.SemiBold,
-            color = PlannerFlatColors.TextDark,
+            color = CircleWorkspaceColors.TextDark,
         )
 
         // Subtitle
@@ -1347,7 +1308,7 @@ internal fun StudyCircleInputContent(
             text = stringResource(if (isCreate) R.string.study_circle_create_subtitle else R.string.study_circle_join_code_subtitle),
             fontSize = 13.sp,
             lineHeight = 18.sp,
-            color = PlannerFlatColors.TextMuted,
+            color = CircleWorkspaceColors.TextMuted,
         )
 
         // Input Field
@@ -1364,13 +1325,13 @@ internal fun StudyCircleInputContent(
                 Text(
                     stringResource(if (isCreate) R.string.study_circle_name_example else R.string.study_circle_code_example),
                     fontSize = 13.5.sp,
-                    color = PlannerFlatColors.TextMuted.copy(alpha = 0.7f),
+                    color = CircleWorkspaceColors.TextMuted.copy(alpha = 0.7f),
                 )
             },
             supportingText = if (isCreate) {
                 {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                        Text("${value.trim().length}/$MAX_CIRCLE_NAME_LENGTH", fontSize = 11.sp, color = PlannerFlatColors.TextMuted)
+                        Text("${value.trim().length}/$MAX_CIRCLE_NAME_LENGTH", fontSize = 11.sp, color = CircleWorkspaceColors.TextMuted)
                     }
                 }
             } else null,
@@ -1380,7 +1341,7 @@ internal fun StudyCircleInputContent(
             shape = RoundedCornerShape(10.dp),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = primary,
-                unfocusedBorderColor = PlannerFlatColors.BorderSoft,
+                unfocusedBorderColor = CircleWorkspaceColors.BorderSoft,
                 cursorColor = primary,
             ),
         )
@@ -1400,7 +1361,7 @@ internal fun StudyCircleInputContent(
                     else R.string.study_circle_private_explanation
                 ),
                 fontSize = 12.sp,
-                color = PlannerFlatColors.TextMuted,
+                color = CircleWorkspaceColors.TextMuted,
             )
         }
 
@@ -1418,7 +1379,7 @@ internal fun StudyCircleInputContent(
                 modifier = Modifier
                     .weight(1f)
                     .clip(RoundedCornerShape(10.dp))
-                    .border(1.dp, PlannerFlatColors.BorderSoft, RoundedCornerShape(10.dp))
+                    .border(1.dp, CircleWorkspaceColors.BorderSoft, RoundedCornerShape(10.dp))
                     .clickable(enabled = !busy) { onDismiss() }
                     .padding(vertical = 11.dp),
                 contentAlignment = Alignment.Center,
@@ -1427,7 +1388,7 @@ internal fun StudyCircleInputContent(
                     text = stringResource(R.string.common_cancel),
                     fontSize = 13.5.sp,
                     fontWeight = FontWeight.Medium,
-                    color = PlannerFlatColors.TextDark,
+                    color = CircleWorkspaceColors.TextDark,
                 )
             }
 
@@ -1474,8 +1435,8 @@ private fun VisibilityChoice(value: String, selected: String, modifier: Modifier
     Surface(
         onClick = { onSelect(value) },
         shape = RoundedCornerShape(10.dp),
-        color = if (isSelected) primary.copy(alpha = 0.12f) else PlannerFlatColors.CardWhite,
-        border = BorderStroke(1.dp, if (isSelected) primary else PlannerFlatColors.BorderSoft),
+        color = if (isSelected) primary.copy(alpha = 0.12f) else CircleWorkspaceColors.CardWhite,
+        border = BorderStroke(1.dp, if (isSelected) primary else CircleWorkspaceColors.BorderSoft),
         modifier = modifier.height(38.dp),
     ) {
         Row(
@@ -1486,7 +1447,7 @@ private fun VisibilityChoice(value: String, selected: String, modifier: Modifier
             Icon(
                 if (value == "public") Icons.Default.Public else Icons.Default.Lock,
                 contentDescription = null,
-                tint = if (isSelected) primary else PlannerFlatColors.TextMuted,
+                tint = if (isSelected) primary else CircleWorkspaceColors.TextMuted,
                 modifier = Modifier.size(15.dp),
             )
             Spacer(Modifier.width(6.dp))
@@ -1494,7 +1455,7 @@ private fun VisibilityChoice(value: String, selected: String, modifier: Modifier
                 text = value.replaceFirstChar { it.uppercase() },
                 fontSize = 13.sp,
                 fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                color = if (isSelected) primary else PlannerFlatColors.TextDark,
+                color = if (isSelected) primary else CircleWorkspaceColors.TextDark,
             )
         }
     }
@@ -1568,15 +1529,15 @@ fun StudyCircleDetailScreen(
     }
 
     Scaffold(
-        containerColor = PlannerFlatColors.BgCream,
+        containerColor = CircleWorkspaceColors.BgCream,
         contentWindowInsets = WindowInsets.safeDrawing,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.study_circle_title), fontWeight = FontWeight.Bold, fontSize = 18.sp, color = PlannerFlatColors.TextDark) },
+                title = { Text(stringResource(R.string.study_circle_title), fontWeight = FontWeight.Bold, fontSize = 18.sp, color = CircleWorkspaceColors.TextDark) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_back), tint = PlannerFlatColors.TextDark)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_back), tint = CircleWorkspaceColors.TextDark)
                     }
                 },
                 actions = {
@@ -1598,18 +1559,18 @@ fun StudyCircleDetailScreen(
                             Icon(
                                 imageVector = if (pendingCount > 0) Icons.Default.NotificationsActive else Icons.Default.Notifications,
                                 contentDescription = stringResource(R.string.study_circle_connection_requests),
-                                tint = if (pendingCount > 0) CirclePrimaryButton else PlannerFlatColors.TextDark,
+                                tint = if (pendingCount > 0) CirclePrimaryButton else CircleWorkspaceColors.TextDark,
                             )
                         }
                     }
                     IconButton(onClick = { viewModel.loadDetail(circleId, refresh = true) }, enabled = !state.refreshing) {
                         if (state.refreshing) CircularProgressIndicator(Modifier.size(19.dp), strokeWidth = 2.dp, color = CirclePrimary)
-                        else Icon(Icons.Default.Refresh, stringResource(R.string.common_refresh), tint = PlannerFlatColors.TextDark)
+                        else Icon(Icons.Default.Refresh, stringResource(R.string.common_refresh), tint = CircleWorkspaceColors.TextDark)
                     }
                     if (state.circle?.role == "owner" || isAdmin) {
                         Box {
                             IconButton(onClick = { overflowExpanded = true }) {
-                                Icon(Icons.Default.MoreVert, stringResource(R.string.common_more_options), tint = PlannerFlatColors.TextDark)
+                                Icon(Icons.Default.MoreVert, stringResource(R.string.common_more_options), tint = CircleWorkspaceColors.TextDark)
                             }
                             DropdownMenu(
                                 expanded = overflowExpanded,
@@ -1680,7 +1641,7 @@ fun StudyCircleDetailScreen(
                         }
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = PlannerFlatColors.BgCream),
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = CircleWorkspaceColors.BgCream),
             )
         },
     ) { padding ->
@@ -1690,11 +1651,11 @@ fun StudyCircleDetailScreen(
                 Modifier
                     .fillMaxSize()
                     .padding(padding)
-                    .background(PlannerFlatColors.BgCream),
+                    .background(CircleWorkspaceColors.BgCream),
                 contentAlignment = Alignment.Center,
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(state.error ?: stringResource(R.string.study_circle_not_found), textAlign = TextAlign.Center, color = PlannerFlatColors.TextMuted)
+                    Text(state.error ?: stringResource(R.string.study_circle_not_found), textAlign = TextAlign.Center, color = CircleWorkspaceColors.TextMuted)
                     Spacer(Modifier.height(12.dp))
                     OutlinedButton(onClick = { viewModel.loadDetail(circleId) }) { Text(stringResource(R.string.common_try_again)) }
                 }
@@ -1762,7 +1723,7 @@ fun StudyCircleDetailScreen(
                     Text(
                         stringResource(R.string.study_circle_edit_name_help, MAX_CIRCLE_NAME_LENGTH),
                         fontSize = 13.sp,
-                        color = PlannerFlatColors.TextMuted,
+                        color = CircleWorkspaceColors.TextMuted,
                     )
                     OutlinedTextField(
                         value = newName,
@@ -1779,7 +1740,7 @@ fun StudyCircleDetailScreen(
                         },
                         supportingText = {
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                                Text("${newName.trim().length}/$MAX_CIRCLE_NAME_LENGTH", fontSize = 11.sp, color = PlannerFlatColors.TextMuted)
+                                Text("${newName.trim().length}/$MAX_CIRCLE_NAME_LENGTH", fontSize = 11.sp, color = CircleWorkspaceColors.TextMuted)
                             }
                         },
                         shape = RoundedCornerShape(10.dp),
@@ -1847,7 +1808,7 @@ fun StudyCircleDetailScreen(
         AlertDialog(
             onDismissRequest = { if (!state.actionInProgress) confirm = null },
             title = { Text(title, fontWeight = FontWeight.Bold) },
-            text = { Text(description, color = PlannerFlatColors.TextMuted, fontSize = 13.5.sp) },
+            text = { Text(description, color = CircleWorkspaceColors.TextMuted, fontSize = 13.5.sp) },
             confirmButton = {
                 Button(
                     onClick = {
@@ -1937,7 +1898,7 @@ private fun DetailContent(
         Modifier
             .fillMaxSize()
             .padding(padding)
-            .background(PlannerFlatColors.BgCream),
+            .background(CircleWorkspaceColors.BgCream),
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
@@ -1965,7 +1926,7 @@ private fun DetailContent(
                             Text(
                                 stringResource(R.string.study_circle_preview_join_help),
                                 fontSize = 12.sp,
-                                color = PlannerFlatColors.TextMuted,
+                                color = CircleWorkspaceColors.TextMuted,
                             )
                         }
                         Spacer(Modifier.width(10.dp))
@@ -2024,7 +1985,7 @@ private fun DetailContent(
                             text = circle.name,
                             fontSize = 17.sp,
                             fontWeight = FontWeight.Bold,
-                            color = if (circle.isPinned) official else PlannerFlatColors.TextDark,
+                            color = if (circle.isPinned) official else CircleWorkspaceColors.TextDark,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -2041,7 +2002,7 @@ private fun DetailContent(
                             Text(
                                 text = stringResource(R.string.study_circle_created_by, ownerName),
                                 fontSize = 12.sp,
-                                color = PlannerFlatColors.TextMuted,
+                                color = CircleWorkspaceColors.TextMuted,
                             )
                         }
                     }
@@ -2065,7 +2026,7 @@ private fun DetailContent(
                                     if (circle.isPinned) R.string.study_circle_unpin_official
                                     else R.string.study_circle_pin_official
                                 ),
-                                tint = if (circle.isPinned) official else PlannerFlatColors.TextMuted,
+                                tint = if (circle.isPinned) official else CircleWorkspaceColors.TextMuted,
                                 modifier = Modifier.size(18.dp),
                             )
                         }
@@ -2073,7 +2034,7 @@ private fun DetailContent(
                 }
 
                 Spacer(Modifier.height(14.dp))
-                HorizontalDivider(color = PlannerFlatColors.BorderSoft)
+                HorizontalDivider(color = CircleWorkspaceColors.BorderSoft)
                 Spacer(Modifier.height(12.dp))
 
                 // Stats row
@@ -2085,21 +2046,21 @@ private fun DetailContent(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.weight(1f),
                     ) {
-                        Icon(Icons.Default.Group, null, Modifier.size(16.dp), tint = PlannerFlatColors.TextMuted)
+                        Icon(Icons.Default.Group, null, Modifier.size(16.dp), tint = CircleWorkspaceColors.TextMuted)
                         Spacer(Modifier.width(6.dp))
                         val memberCountDisplay = if (circle.isPinned || circle.visibility == "public") {
                             stringResource(R.string.study_circle_members_count, circle.memberCount)
                         } else {
                             stringResource(R.string.study_circle_members_limit, circle.memberCount, circle.maxMembers ?: 100)
                         }
-                        Text(memberCountDisplay, color = PlannerFlatColors.TextMuted, fontSize = 13.sp)
+                        Text(memberCountDisplay, color = CircleWorkspaceColors.TextMuted, fontSize = 13.sp)
                     }
 
                     Box(
                         Modifier
                             .height(16.dp)
                             .width(1.dp)
-                            .background(PlannerFlatColors.BorderSoft)
+                            .background(CircleWorkspaceColors.BorderSoft)
                     )
                     Spacer(Modifier.width(16.dp))
 
@@ -2126,7 +2087,7 @@ private fun DetailContent(
                                 if (circle.visibility == "public") Icons.Default.Public else Icons.Default.Lock,
                                 null,
                                 Modifier.size(14.dp),
-                                tint = PlannerFlatColors.TextMuted,
+                                tint = CircleWorkspaceColors.TextMuted,
                             )
                             Spacer(Modifier.width(6.dp))
                             Text(
@@ -2134,7 +2095,7 @@ private fun DetailContent(
                                     if (circle.visibility == "public") R.string.study_circle_public_circle
                                     else R.string.study_circle_private_circle
                                 ),
-                                color = PlannerFlatColors.TextMuted,
+                                color = CircleWorkspaceColors.TextMuted,
                                 fontSize = 13.sp,
                             )
                         }
@@ -2144,7 +2105,7 @@ private fun DetailContent(
                 // Live status row (if members are focusing)
                 if (circle.focusingCount > 0) {
                     Spacer(Modifier.height(12.dp))
-                    HorizontalDivider(color = PlannerFlatColors.BorderSoft)
+                    HorizontalDivider(color = CircleWorkspaceColors.BorderSoft)
                     Spacer(Modifier.height(12.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         LivePulseDot(size = 8)
@@ -2172,8 +2133,8 @@ private fun DetailContent(
                             .fillMaxWidth()
                             .height(44.dp),
                         shape = RoundedCornerShape(10.dp),
-                        border = BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = PlannerFlatColors.TextDark),
+                        border = BorderStroke(1.dp, CircleWorkspaceColors.BorderSoft),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = CircleWorkspaceColors.TextDark),
                     ) {
                         Icon(if (circle.visibility == "public") Icons.Default.Lock else Icons.Default.Public, null, Modifier.size(15.dp))
                         Spacer(Modifier.width(8.dp))
@@ -2203,7 +2164,7 @@ private fun DetailContent(
                                 stringResource(R.string.study_circle_invite_code),
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = PlannerFlatColors.TextDark,
+                                color = CircleWorkspaceColors.TextDark,
                             )
                             Spacer(Modifier.height(4.dp))
                             Text(
@@ -2218,7 +2179,7 @@ private fun DetailContent(
                                 stringResource(R.string.study_circle_share_code_help),
                                 fontSize = 11.5.sp,
                                 lineHeight = 16.sp,
-                                color = PlannerFlatColors.TextMuted,
+                                color = CircleWorkspaceColors.TextMuted,
                             )
                         }
 
@@ -2270,13 +2231,13 @@ private fun DetailContent(
                     stringResource(R.string.study_circle_rankings),
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
-                    color = PlannerFlatColors.TextDark,
+                    color = CircleWorkspaceColors.TextDark,
                 )
                 Text(
                     stringResource(R.string.study_circle_focus_time),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
-                    color = PlannerFlatColors.TextMuted,
+                    color = CircleWorkspaceColors.TextMuted,
                 )
             }
         }
@@ -2285,7 +2246,7 @@ private fun DetailContent(
         itemsIndexed(sortedMembers, key = { _, it -> it.userId }) { index, member ->
             if (index > 0) {
                 HorizontalDivider(
-                    color = PlannerFlatColors.BorderSoft.copy(alpha = 0.55f),
+                    color = CircleWorkspaceColors.BorderSoft.copy(alpha = 0.55f),
                     thickness = 1.dp,
                     modifier = Modifier.padding(horizontal = 4.dp),
                 )
@@ -2337,7 +2298,7 @@ fun LeaderboardRankBadge(
         1 -> if (isDark) Color(0xFF854D0E).copy(alpha = 0.35f) else Color(0xFFFEF9C3) // Golden
         2 -> if (isDark) Color(0xFF334155).copy(alpha = 0.50f) else Color(0xFFF1F5F9) // Silver
         3 -> if (isDark) Color(0xFF7C2D12).copy(alpha = 0.35f) else Color(0xFFFFEDD5) // Bronze
-        else -> PlannerFlatColors.BorderSoft
+        else -> CircleWorkspaceColors.BorderSoft
     }
     val rankBorder = when (rankVal) {
         1 -> BorderStroke(1.dp, if (isDark) Color(0xFFFACC15).copy(alpha = 0.8f) else Color(0xFFEAB308))
@@ -2349,21 +2310,25 @@ fun LeaderboardRankBadge(
         1 -> if (isDark) Color(0xFFFEF08A) else Color(0xFF854D0E)
         2 -> if (isDark) Color(0xFFF8FAFC) else Color(0xFF334155)
         3 -> if (isDark) Color(0xFFFDBA74) else Color(0xFF7C2D12)
-        else -> PlannerFlatColors.TextMuted
+        else -> CircleWorkspaceColors.TextMuted
     }
 
     Surface(
         shape = RoundedCornerShape(8.dp),
         color = rankBg,
         border = rankBorder,
-        modifier = modifier.size(28.dp),
+        modifier = modifier
+            .widthIn(min = 28.dp)
+            .height(28.dp),
     ) {
-        Box(contentAlignment = Alignment.Center) {
+        Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(horizontal = 4.dp)) {
             Text(
                 text = if (rankVal > 0) rankVal.toString() else "—",
-                fontSize = 12.sp,
+                fontSize = if (rankVal >= 100) 9.sp else 12.sp,
                 fontWeight = if (rankVal in 1..3) FontWeight.ExtraBold else FontWeight.SemiBold,
                 color = rankTextColor,
+                maxLines = 1,
+                softWrap = false,
             )
         }
     }
@@ -2395,9 +2360,9 @@ internal fun LeaderboardMemberRow(
     val liveGreen = DeepGreen
 
     val rowBg = when {
-        isSelf -> primary.copy(alpha = 0.08f)
-        isLive -> liveGreen.copy(alpha = 0.04f)
-        else -> Color.Transparent
+        isSelf -> Color(0xFF542347)
+        isLive -> CircleWorkspaceColors.CardWhite
+        else -> CircleWorkspaceColors.CardWhite
     }
 
     Row(
@@ -2434,14 +2399,14 @@ internal fun LeaderboardMemberRow(
                     Modifier
                         .size(36.dp)
                         .clip(CircleShape)
-                        .background(if (isLive) liveGreen.copy(alpha = 0.12f) else PlannerFlatColors.BorderSoft),
+                        .background(if (isLive) liveGreen.copy(alpha = 0.12f) else CircleWorkspaceColors.BorderSoft),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
                         text = member.name.take(2).uppercase(),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
-                        color = if (isLive) liveGreen else PlannerFlatColors.TextDark,
+                        color = if (isLive) liveGreen else if (isSelf) Color.White else CircleWorkspaceColors.TextDark,
                     )
                 }
             }
@@ -2451,7 +2416,7 @@ internal fun LeaderboardMemberRow(
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
                         .size(10.dp)
-                        .background(PlannerFlatColors.BgCream, CircleShape)
+                        .background(CircleWorkspaceColors.ComponentBackground, CircleShape)
                         .padding(1.5.dp)
                         .background(liveGreen, CircleShape),
                 )
@@ -2467,7 +2432,7 @@ internal fun LeaderboardMemberRow(
                     text = if (isSelf) stringResource(R.string.study_circle_you) else member.name,
                     fontWeight = if (isSelf) FontWeight.Bold else FontWeight.SemiBold,
                     fontSize = 14.5.sp,
-                    color = PlannerFlatColors.TextDark,
+                    color = if (isSelf) Color.White else CircleWorkspaceColors.TextDark,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f, fill = false),
@@ -2531,7 +2496,7 @@ internal fun LeaderboardMemberRow(
                 Text(
                     text = subtext,
                     fontSize = 12.sp,
-                    color = PlannerFlatColors.TextMuted,
+                    color = if (isSelf) Color(0xFFEBD8E4) else CircleWorkspaceColors.TextMuted,
                     maxLines = 1,
                 )
             }
@@ -2553,7 +2518,7 @@ internal fun LeaderboardMemberRow(
                         Icon(
                             Icons.Default.MoreHoriz,
                             contentDescription = stringResource(R.string.common_more_options),
-                            tint = PlannerFlatColors.TextMuted,
+                            tint = if (isSelf) Color(0xFFEBD8E4) else CircleWorkspaceColors.TextMuted,
                             modifier = Modifier.size(18.dp),
                         )
                     }
@@ -2585,8 +2550,8 @@ internal fun LeaderboardMemberRow(
                     Surface(
                         onClick = { onConnect(member) },
                         shape = RoundedCornerShape(8.dp),
-                        color = primaryBtn,
-                        modifier = Modifier.height(32.dp),
+                        color = CircleWorkspaceColors.Peach,
+                        modifier = Modifier.heightIn(min = 48.dp),
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -2597,24 +2562,24 @@ internal fun LeaderboardMemberRow(
                                 imageVector = Icons.Default.PersonAdd,
                                 contentDescription = stringResource(R.string.study_circle_connect),
                                 modifier = Modifier.size(13.dp),
-                                tint = Color.White,
+                                tint = if (isSelf) Color.White else CircleWorkspaceColors.TextDark,
                             )
                             Text(
                                 text = stringResource(R.string.study_circle_connect),
                                 fontSize = 11.5.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = Color.White,
+                                color = if (isSelf) Color.White else CircleWorkspaceColors.TextDark,
                             )
                         }
                     }
                 } else {
-                    // User does NOT have Safar Premium -> Grayed-out Locked Pill
+                    // User does NOT have Safar Premium -> Grayed-out Locked Pill with crown
                     Surface(
                         onClick = onRequirePremium,
                         shape = RoundedCornerShape(8.dp),
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
-                        border = BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
-                        modifier = Modifier.height(32.dp),
+                        border = BorderStroke(1.dp, CircleWorkspaceColors.BorderSoft),
+                        modifier = Modifier.heightIn(min = 48.dp),
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -2622,16 +2587,22 @@ internal fun LeaderboardMemberRow(
                             modifier = Modifier.padding(horizontal = 8.dp),
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Lock,
+                                imageVector = Icons.Default.PersonAdd,
                                 contentDescription = stringResource(R.string.study_circle_connect_premium),
                                 modifier = Modifier.size(12.dp),
-                                tint = PlannerFlatColors.TextMuted,
+                                tint = if (isSelf) Color(0xFFEBD8E4) else CircleWorkspaceColors.TextMuted,
                             )
                             Text(
                                 text = stringResource(R.string.study_circle_connect),
                                 fontSize = 11.5.sp,
                                 fontWeight = FontWeight.Medium,
-                                color = PlannerFlatColors.TextMuted,
+                                color = if (isSelf) Color(0xFFEBD8E4) else CircleWorkspaceColors.TextMuted,
+                            )
+                            Icon(
+                                painter = androidx.compose.ui.res.painterResource(R.drawable.ic_crown),
+                                contentDescription = null,
+                                modifier = Modifier.size(10.dp),
+                                tint = Color(0xFFF59E0B),
                             )
                         }
                     }
@@ -2685,8 +2656,8 @@ fun StudyCircleConnectRequestsSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        containerColor = PlannerFlatColors.CardWhite,
-        dragHandle = { BottomSheetDefaults.DragHandle(color = PlannerFlatColors.TextMuted.copy(alpha = 0.4f)) },
+        containerColor = CircleWorkspaceColors.CardWhite,
+        dragHandle = { BottomSheetDefaults.DragHandle(color = CircleWorkspaceColors.TextMuted.copy(alpha = 0.4f)) },
     ) {
         CompositionLocalProvider(LocalDensity provides clampedDensity) {
             Column(
@@ -2726,7 +2697,7 @@ fun StudyCircleConnectRequestsSheet(
                                 text = stringResource(R.string.study_circle_connection_requests),
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 16.sp,
-                                color = PlannerFlatColors.TextDark,
+                                color = CircleWorkspaceColors.TextDark,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
@@ -2739,7 +2710,7 @@ fun StudyCircleConnectRequestsSheet(
                                     )
                                 } else stringResource(R.string.study_circle_direct_messaging),
                                 fontSize = 12.sp,
-                                color = PlannerFlatColors.TextMuted,
+                                color = CircleWorkspaceColors.TextMuted,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
@@ -2767,8 +2738,8 @@ fun StudyCircleConnectRequestsSheet(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.BgCream),
-                    border = BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
+                    colors = CardDefaults.cardColors(containerColor = CircleWorkspaceColors.ComponentBackground),
+                    border = BorderStroke(1.dp, CircleWorkspaceColors.BorderSoft),
                 ) {
                     Column(
                         modifier = Modifier
@@ -2780,20 +2751,20 @@ fun StudyCircleConnectRequestsSheet(
                         Icon(
                             imageVector = Icons.Default.NotificationsNone,
                             contentDescription = null,
-                            tint = PlannerFlatColors.TextMuted,
+                            tint = CircleWorkspaceColors.TextMuted,
                             modifier = Modifier.size(36.dp),
                         )
                         Text(
                             text = stringResource(R.string.study_circle_no_pending_requests),
                             fontWeight = FontWeight.SemiBold,
                             fontSize = 14.sp,
-                            color = PlannerFlatColors.TextDark,
+                            color = CircleWorkspaceColors.TextDark,
                         )
                         Text(
                             text = stringResource(R.string.study_circle_requests_help),
                             fontSize = 12.5.sp,
                             textAlign = TextAlign.Center,
-                            color = PlannerFlatColors.TextMuted,
+                            color = CircleWorkspaceColors.TextMuted,
                             lineHeight = 17.sp,
                         )
                     }
@@ -2808,8 +2779,8 @@ fun StudyCircleConnectRequestsSheet(
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(14.dp),
-                            colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.BgCream),
-                            border = BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
+                            colors = CardDefaults.cardColors(containerColor = CircleWorkspaceColors.ComponentBackground),
+                            border = BorderStroke(1.dp, CircleWorkspaceColors.BorderSoft),
                         ) {
                             Row(
                                 modifier = Modifier
@@ -2846,14 +2817,14 @@ fun StudyCircleConnectRequestsSheet(
                                         text = request.userName,
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 14.sp,
-                                        color = PlannerFlatColors.TextDark,
+                                        color = CircleWorkspaceColors.TextDark,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis,
                                     )
                                     Text(
                                         text = stringResource(R.string.study_circle_wants_to_connect),
                                         fontSize = 12.sp,
-                                        color = PlannerFlatColors.TextMuted,
+                                        color = CircleWorkspaceColors.TextMuted,
                                     )
                                 }
                                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {

@@ -18,9 +18,9 @@ object KavachDesign {
 
     /** Safar purple for primary buttons — rich fill, macOS glass chrome unchanged elsewhere. */
     val Primary: Color
-        @Composable get() = com.safarparmar.app.ui.theme.SafarSemanticColors.brandPurple(isDark)
+        @Composable get() = if (isDark) Color(0xFFF0BEDC) else Color(0xFF542347)
 
-    val PrimaryDark: Color @Composable get() = Primary
+    val PrimaryDark: Color @Composable get() = Color(0xFF542347)
     val Background: Color @Composable get() = MaterialTheme.colorScheme.background
     val Surface: Color @Composable get() = MaterialTheme.colorScheme.surfaceVariant
     val SurfaceHighlight: Color @Composable get() = Primary.copy(alpha = 0.12f)

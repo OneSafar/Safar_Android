@@ -35,18 +35,24 @@ import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import com.safarparmar.app.ui.components.popups.SafarModalBottomSheet as ModalBottomSheet
-import com.safarparmar.app.ui.components.SafarRichTextField as OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
-import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
+import com.composables.ui.components.Icon
+import com.composables.ui.components.IconButton
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Spacer
+import com.composables.ui.components.Button
+import com.composables.ui.components.ButtonStyle
+import com.composables.ui.components.BottomSheetDetent
+import com.composables.ui.components.rememberBottomSheetState
+import com.safarparmar.app.ui.components.popups.SafarComposablesBottomSheet
+import androidx.compose.foundation.text.input.rememberTextFieldState
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.graphics.vector.ImageVector
+import com.composables.ui.components.Switch
+import com.composables.ui.components.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -69,8 +75,6 @@ import com.safarparmar.app.ui.tutorial.tutorialTarget
 import com.safarparmar.app.domain.model.Comment
 import com.safarparmar.app.domain.model.MehfilPost
 import com.safarparmar.app.domain.model.Sandesh
-import com.safarparmar.app.ui.studyplanner.plan.PlanEyebrow
-import com.safarparmar.app.ui.studyplanner.plan.PlanHairline
 import com.safarparmar.app.ui.theme.LoraFontFamily
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -89,12 +93,8 @@ internal fun CommentsBottomSheet(
     onLoadMore: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    ModalBottomSheet(
+    MehfilSheet(
         onDismissRequest = onDismiss,
-        containerColor = MehfilFlatColors.Bg,
-        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        dragHandle = { BottomSheetDefaults.DragHandle(color = MehfilFlatColors.Hairline) },
     ) {
         Column(
             Modifier
@@ -109,12 +109,12 @@ internal fun CommentsBottomSheet(
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                PlanEyebrow(stringResource(R.string.mehfil_title))
+                MehfilSheetEyebrow(stringResource(R.string.mehfil_title))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         stringResource(R.string.mehfil_comments),
-                        fontFamily = LoraFontFamily,
-                        fontWeight = FontWeight.Normal,
+                        fontFamily = com.safarparmar.app.ui.theme.PoppinsFontFamily,
+                        fontWeight = FontWeight.SemiBold,
                         fontSize = 22.sp,
                         color = MehfilFlatColors.Text,
                         modifier = Modifier.weight(1f),
@@ -124,12 +124,12 @@ internal fun CommentsBottomSheet(
                     Text("${comments.size}", fontSize = 13.sp, color = MehfilFlatColors.Muted)
                 }
             }
-            PlanHairline(modifier = Modifier.padding(horizontal = 16.dp))
+            MehfilSheetDivider(modifier = Modifier.padding(horizontal = 16.dp))
             when {
-                isLoading -> Box(Modifier.fillMaxWidth().height(120.dp), contentAlignment = Alignment.Center) {
+                isLoading -> Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MehfilFlatColors.Primary, strokeWidth = 2.dp)
                 }
-                comments.isEmpty() -> Box(Modifier.fillMaxWidth().height(100.dp), contentAlignment = Alignment.Center) {
+                comments.isEmpty() -> Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
                     Text(stringResource(R.string.mehfil_no_comments), color = MehfilFlatColors.Muted, fontSize = 13.sp)
                 }
                 else -> CommentList(
@@ -140,7 +140,7 @@ internal fun CommentsBottomSheet(
                     modifier = Modifier.weight(1f),
                 )
             }
-            PlanHairline(modifier = Modifier.padding(horizontal = 16.dp))
+            MehfilSheetDivider(modifier = Modifier.padding(horizontal = 16.dp))
             if (!errorMessage.isNullOrBlank()) {
                 Text(
                     errorMessage,
@@ -221,19 +221,6 @@ private fun CommentRow(comment: Comment) {
 }
 
 @Composable
-private fun mehfilFlatFieldColors() = OutlinedTextFieldDefaults.colors(
-    focusedBorderColor = MehfilFlatColors.Primary,
-    unfocusedBorderColor = MehfilFlatColors.Hairline,
-    focusedTextColor = MehfilFlatColors.Text,
-    unfocusedTextColor = MehfilFlatColors.Text,
-    cursorColor = MehfilFlatColors.Primary,
-    focusedContainerColor = Color.Transparent,
-    unfocusedContainerColor = Color.Transparent,
-    focusedPlaceholderColor = MehfilFlatColors.Muted,
-    unfocusedPlaceholderColor = MehfilFlatColors.Muted,
-)
-
-@Composable
 private fun CommentInputRow(
     value: String,
     isPosting: Boolean,
@@ -242,24 +229,23 @@ private fun CommentInputRow(
 ) {
     val canSend = value.isNotBlank() && !isPosting
     Row(
-        Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp).navigationBarsPadding(),
+        Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp).navigationBarsPadding().imePadding(),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        OutlinedTextField(
+        MehfilInput(
             value = value,
             onValueChange = onValueChange,
             placeholder = { Text(stringResource(R.string.mehfil_add_comment), fontSize = 13.sp, color = MehfilFlatColors.Muted) },
             modifier = Modifier.weight(1f),
             singleLine = true,
             shape = RoundedCornerShape(12.dp),
-            colors = mehfilFlatFieldColors(),
         )
         IconButton(
             onClick = { if (value.isNotBlank()) onPost() },
             enabled = canSend,
             modifier = Modifier
-                .size(44.dp)
+                .size(48.dp)
                 .clip(CircleShape)
                 .background(if (canSend) MehfilFlatColors.Primary else MehfilFlatColors.Hairline.copy(alpha = 0.55f)),
         ) {
@@ -268,7 +254,7 @@ private fun CommentInputRow(
             } else {
                 Icon(
                     Icons.AutoMirrored.Filled.Send,
-                    contentDescription = null,
+                    contentDescription = stringResource(R.string.mehfil_comment),
                     tint = if (canSend) Color.White else MehfilFlatColors.Muted,
                     modifier = Modifier.size(18.dp),
                 )
@@ -302,12 +288,8 @@ internal fun SandeshBottomSheet(
         commentTargetId?.let { onLoadComments(it) }
     }
 
-    ModalBottomSheet(
+    MehfilSheet(
         onDismissRequest = { if (showComments && initialCommentTargetId == null) commentTargetId = null else onDismiss() },
-        containerColor = MehfilFlatColors.Bg,
-        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        dragHandle = { BottomSheetDefaults.DragHandle(color = MehfilFlatColors.Hairline) },
     ) {
         Box(
             modifier = Modifier
@@ -375,7 +357,7 @@ private fun SandeshCommentsPane(
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            PlanEyebrow(stringResource(R.string.mehfil_sandesh))
+            MehfilSheetEyebrow(stringResource(R.string.mehfil_sandesh))
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -397,8 +379,8 @@ private fun SandeshCommentsPane(
                 }
                 Text(
                     stringResource(R.string.mehfil_comments),
-                    fontFamily = LoraFontFamily,
-                    fontWeight = FontWeight.Normal,
+                    fontFamily = com.safarparmar.app.ui.theme.PoppinsFontFamily,
+                    fontWeight = FontWeight.SemiBold,
                     fontSize = 22.sp,
                     color = MehfilFlatColors.Text,
                     modifier = Modifier.weight(1f),
@@ -406,7 +388,7 @@ private fun SandeshCommentsPane(
                 if (!isLoading) Text("${comments.size}", fontSize = 13.sp, color = MehfilFlatColors.Muted)
             }
         }
-        PlanHairline(modifier = Modifier.padding(horizontal = 16.dp))
+        MehfilSheetDivider(modifier = Modifier.padding(horizontal = 16.dp))
         if (isLoading) {
             Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(modifier = Modifier.size(28.dp), color = MehfilFlatColors.Primary, strokeWidth = 2.dp)
@@ -420,32 +402,31 @@ private fun SandeshCommentsPane(
                 modifier = Modifier.weight(1f),
             )
         }
-        PlanHairline(modifier = Modifier.padding(horizontal = 16.dp))
+        MehfilSheetDivider(modifier = Modifier.padding(horizontal = 16.dp))
         Row(
             Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp).navigationBarsPadding().imePadding(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            OutlinedTextField(
+            MehfilInput(
                 value = commentText,
                 onValueChange = onCommentTextChange,
                 placeholder = { Text(stringResource(R.string.mehfil_add_comment), fontSize = 13.sp, color = MehfilFlatColors.Muted) },
                 modifier = Modifier.weight(1f),
                 singleLine = true,
                 shape = RoundedCornerShape(12.dp),
-                colors = mehfilFlatFieldColors(),
-            )
+                )
             IconButton(
                 onClick = onPostComment,
                 enabled = canSend,
                 modifier = Modifier
-                    .size(44.dp)
+                    .size(48.dp)
                     .clip(CircleShape)
                     .background(if (canSend) MehfilFlatColors.Primary else MehfilFlatColors.Hairline.copy(alpha = 0.55f)),
             ) {
                 Icon(
                     Icons.AutoMirrored.Filled.Send,
-                    contentDescription = null,
+                    contentDescription = stringResource(R.string.mehfil_comment),
                     tint = if (canSend) Color.White else MehfilFlatColors.Muted,
                     modifier = Modifier.size(18.dp),
                 )
@@ -469,11 +450,11 @@ private fun SandeshListPane(
             .padding(horizontal = 16.dp)
             .padding(bottom = 40.dp),
     ) {
-        PlanEyebrow(stringResource(R.string.mehfil_title))
+        MehfilSheetEyebrow(stringResource(R.string.mehfil_title))
         Text(
             stringResource(R.string.mehfil_sandesh_title),
-            fontFamily = LoraFontFamily,
-            fontWeight = FontWeight.Normal,
+            fontFamily = com.safarparmar.app.ui.theme.PoppinsFontFamily,
+            fontWeight = FontWeight.SemiBold,
             fontSize = 22.sp,
             color = MehfilFlatColors.Text,
             modifier = Modifier.padding(top = 6.dp),
@@ -484,58 +465,27 @@ private fun SandeshListPane(
             color = MehfilFlatColors.Muted,
             modifier = Modifier.padding(top = 4.dp, bottom = 12.dp),
         )
-        PlanHairline()
+        MehfilSheetDivider()
         sandeshes.forEachIndexed { index, sandesh ->
-            val isReacted = sandesh.id in reactedSandeshIds
-            Column(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 14.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Text(sandesh.content, fontSize = 14.sp, lineHeight = 20.sp, color = MehfilFlatColors.Text)
-                Text(sandesh.createdAt.take(10), fontSize = 11.sp, color = MehfilFlatColors.Muted)
-                Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-                    Row(
-                        Modifier.clickable { onReact(sandesh.id) },
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(5.dp),
-                    ) {
-                        Icon(
-                            if (isReacted) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                            contentDescription = null,
-                            modifier = Modifier.size(15.dp),
-                            tint = if (isReacted) MehfilFlatColors.Like else MehfilFlatColors.Muted,
-                        )
-                        Text(
-                            "${sandesh.reactionCount}",
-                            fontSize = 12.sp,
-                            color = if (isReacted) MehfilFlatColors.Like else MehfilFlatColors.Muted,
-                        )
+            Column(Modifier.fillMaxWidth().padding(vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(sandesh.content, fontSize = 15.sp, lineHeight = 23.sp, color = MehfilFlatColors.Text)
+                Text(formatTabletPostDate(sandesh.createdAt), fontSize = 12.sp, color = MehfilFlatColors.Muted)
+                SandeshMedia(sandesh)
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Button(onClick = { onReact(sandesh.id) }, style = ButtonStyle.Ghost,
+                        modifier = Modifier.heightIn(min = 48.dp), contentColor = MehfilFlatColors.Primary) {
+                        Icon(if (sandesh.id in reactedSandeshIds) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                            contentDescription = stringResource(R.string.mehfil_like), modifier = Modifier.size(22.dp))
+                        Text(" ${sandesh.reactionCount}")
                     }
-                    Row(
-                        Modifier.clickable { onOpenComments(sandesh.id) },
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(5.dp),
-                    ) {
-                        Icon(
-                            Icons.Default.ChatBubbleOutline,
-                            contentDescription = null,
-                            modifier = Modifier.size(15.dp),
-                            tint = MehfilFlatColors.Primary,
-                        )
-                        Text(
-                            stringResource(R.string.mehfil_comment_count, sandesh.commentCount),
-                            fontSize = 12.sp,
-                            color = MehfilFlatColors.Primary,
-                            fontWeight = FontWeight.Medium,
-                        )
+                    Button(onClick = { onOpenComments(sandesh.id) }, style = ButtonStyle.Ghost,
+                        modifier = Modifier.heightIn(min = 48.dp), contentColor = MehfilFlatColors.Primary) {
+                        Icon(Icons.Default.ChatBubbleOutline, contentDescription = null, modifier = Modifier.size(22.dp))
+                        Text(stringResource(R.string.mehfil_comment_count, sandesh.commentCount))
                     }
                 }
             }
-            if (index < sandeshes.lastIndex) {
-                PlanHairline(alpha = 0.6f)
-            }
+            if (index < sandeshes.lastIndex) MehfilSheetDivider(alpha = .6f)
         }
     }
 }
@@ -568,16 +518,16 @@ internal fun CreatePostSheet(
                 .padding(bottom = 40.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            PlanEyebrow(stringResource(R.string.mehfil_title))
+            MehfilSheetEyebrow(stringResource(R.string.mehfil_title))
             Text(
                 stringResource(R.string.mehfil_new_post),
-                fontFamily = LoraFontFamily,
-                fontWeight = FontWeight.Normal,
+                fontFamily = com.safarparmar.app.ui.theme.PoppinsFontFamily,
+                fontWeight = FontWeight.SemiBold,
                 fontSize = 22.sp,
                 color = MehfilFlatColors.Text,
             )
-            PlanHairline()
-            OutlinedTextField(
+            MehfilSheetDivider()
+            MehfilInput(
                 value = title,
                 onValueChange = { title = it.replace('\n', ' ').replace('\r', ' ').take(180) },
                 label = { Text(stringResource(R.string.mehfil_post_heading)) },
@@ -587,9 +537,8 @@ internal fun CreatePostSheet(
                 modifier = Modifier.fillMaxWidth(),
                 textStyle = androidx.compose.ui.text.TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Bold),
                 shape = RoundedCornerShape(12.dp),
-                colors = mehfilFlatFieldColors(),
-            )
-            OutlinedTextField(
+                )
+            MehfilInput(
                 value = content,
                 label = { Text(stringResource(R.string.mehfil_post_body)) },
                 enabled = !isPosting,
@@ -598,26 +547,18 @@ internal fun CreatePostSheet(
                 modifier = Modifier.fillMaxWidth().heightIn(min = 120.dp).tutorialTarget("mehfil.write"),
                 minLines = 4,
                 shape = RoundedCornerShape(12.dp),
-                colors = mehfilFlatFieldColors(),
-            )
+                )
             Column(Modifier.tutorialTarget("mehfil.share"), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(stringResource(R.string.mehfil_space), fontSize = 13.sp, fontWeight = FontWeight.Medium, color = MehfilFlatColors.Muted)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf("REFLECTIVE", "ACADEMIC").forEach { item ->
                         val selected = space == item
-                        Box(
-                            modifier = Modifier
-                                .clip(CircleShape)
-                                .then(
-                                    if (selected) {
-                                        Modifier.background(MehfilFlatColors.Primary)
-                                    } else {
-                                        Modifier.border(1.dp, MehfilFlatColors.Hairline, CircleShape)
-                                    },
-                                )
-                                .clickable { space = item }
-                                .padding(horizontal = 14.dp, vertical = 8.dp),
-                            contentAlignment = Alignment.Center,
+                        Button(onClick = { space = item }, enabled = !isPosting,
+                            style = ButtonStyle.Ghost, shape = CircleShape,
+                            modifier = Modifier.heightIn(min = 48.dp).background(
+                                if (selected) MehfilFlatColors.Primary else MehfilFlatColors.Surface, CircleShape),
+                            contentPadding = PaddingValues(horizontal = 16.dp),
+                            contentColor = if (selected) Color.White else MehfilFlatColors.Text,
                         ) {
                             Text(
                                 if (item == "REFLECTIVE") stringResource(R.string.mehfil_reflective) else stringResource(R.string.mehfil_academic),
@@ -628,7 +569,7 @@ internal fun CreatePostSheet(
                         }
                     }
                 }
-                AnonymousPostToggle(isAnonymous = isAnonymous, onCheckedChange = { isAnonymous = it })
+                AnonymousPostToggle(isAnonymous = isAnonymous, enabled = !isPosting, onCheckedChange = { isAnonymous = it })
                 com.composables.ui.components.Button(
                     onClick = { onPost(composeMehfilContent(title, content), space, isAnonymous) },
                     enabled = canPost,
@@ -654,17 +595,14 @@ internal fun CreatePostSheet(
             }
         }
     }
-    if (inlinePreview) form() else ModalBottomSheet(
-        onDismissRequest = onDismiss, containerColor = MehfilFlatColors.Bg,
-        sheetMaxWidth = 480.dp,
-        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-        dragHandle = { BottomSheetDefaults.DragHandle(color = MehfilFlatColors.Hairline) },
+    if (inlinePreview) form() else MehfilSheet(
+        onDismissRequest = onDismiss,
     ) { form() }
 
 }
 
 @Composable
-private fun AnonymousPostToggle(isAnonymous: Boolean, onCheckedChange: (Boolean) -> Unit) {
+private fun AnonymousPostToggle(isAnonymous: Boolean, enabled: Boolean, onCheckedChange: (Boolean) -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -678,7 +616,7 @@ private fun AnonymousPostToggle(isAnonymous: Boolean, onCheckedChange: (Boolean)
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Icon(
-            painter = painterResource(id = R.drawable.ic_ghost),
+            imageVector = ImageVector.vectorResource(R.drawable.ic_ghost),
             contentDescription = null,
             modifier = Modifier.size(20.dp),
             tint = if (isAnonymous) MehfilFlatColors.Primary else MehfilFlatColors.Muted,
@@ -689,15 +627,9 @@ private fun AnonymousPostToggle(isAnonymous: Boolean, onCheckedChange: (Boolean)
         }
         Switch(
             checked = isAnonymous,
+            enabled = enabled,
             onCheckedChange = onCheckedChange,
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = Color.White,
-                checkedTrackColor = MehfilFlatColors.Primary,
-                checkedBorderColor = MehfilFlatColors.Primary,
-                uncheckedThumbColor = MehfilFlatColors.Muted,
-                uncheckedTrackColor = MehfilFlatColors.Hairline.copy(alpha = 0.45f),
-                uncheckedBorderColor = MehfilFlatColors.Hairline,
-            ),
+            accessibilityLabel = stringResource(R.string.mehfil_hide_name),
         )
     }
 }
@@ -705,11 +637,8 @@ private fun AnonymousPostToggle(isAnonymous: Boolean, onCheckedChange: (Boolean)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun GuidelinesSheet(onDismiss: () -> Unit) {
-    ModalBottomSheet(
+    MehfilSheet(
         onDismissRequest = onDismiss,
-        containerColor = MehfilFlatColors.Bg,
-        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-        dragHandle = { BottomSheetDefaults.DragHandle(color = MehfilFlatColors.Hairline) },
     ) {
         Column(
             Modifier
@@ -721,15 +650,15 @@ internal fun GuidelinesSheet(onDismiss: () -> Unit) {
                 .padding(bottom = 40.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            PlanEyebrow(stringResource(R.string.mehfil_title))
+            MehfilSheetEyebrow(stringResource(R.string.mehfil_title))
             Text(
                 stringResource(R.string.mehfil_simple_rules),
-                fontFamily = LoraFontFamily,
-                fontWeight = FontWeight.Normal,
+                fontFamily = com.safarparmar.app.ui.theme.PoppinsFontFamily,
+                fontWeight = FontWeight.SemiBold,
                 fontSize = 22.sp,
                 color = MehfilFlatColors.Text,
             )
-            PlanHairline()
+            MehfilSheetDivider()
             GuidelineItem(R.drawable.ic_graduation_cap, stringResource(R.string.mehfil_rule_study_title), stringResource(R.string.mehfil_rule_study_body))
             GuidelineItem(R.drawable.ic_chat, stringResource(R.string.mehfil_rule_talk_title), stringResource(R.string.mehfil_rule_talk_body))
             GuidelineItem(R.drawable.ic_shield_check, stringResource(R.string.mehfil_rule_kind_title), stringResource(R.string.mehfil_rule_kind_body))
@@ -752,7 +681,7 @@ private fun GuidelineItem(iconRes: Int, title: String, desc: String) {
             contentAlignment = Alignment.Center,
         ) {
             Icon(
-                painter = painterResource(id = iconRes),
+                imageVector = ImageVector.vectorResource(iconRes),
                 contentDescription = null,
                 modifier = Modifier.size(18.dp),
                 tint = MehfilFlatColors.Primary,
@@ -763,4 +692,48 @@ private fun GuidelineItem(iconRes: Int, title: String, desc: String) {
             Text(desc, fontSize = 12.sp, color = MehfilFlatColors.Muted, lineHeight = 17.sp)
         }
     }
+}
+
+/** Composables UI sheet, using the app's density-safe popup bridge. */
+@Composable
+private fun MehfilSheet(onDismissRequest: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
+    val state = rememberBottomSheetState(detents = listOf(BottomSheetDetent.Hidden, BottomSheetDetent.FullyExpanded))
+    LaunchedEffect(Unit) { state.targetDetent = BottomSheetDetent.FullyExpanded }
+    SafarComposablesBottomSheet(state = state, onDismissRequest = onDismissRequest,
+        backgroundColor = MehfilFlatColors.ComponentBackground, contentColor = MehfilFlatColors.Text,
+        contentPadding = PaddingValues(top = 16.dp), body = content)
+}
+
+/** Keeps the existing screen-owned input contract while using the library's state-based field. */
+@Composable
+private fun MehfilInput(value: String, onValueChange: (String) -> Unit, modifier: Modifier = Modifier,
+    enabled: Boolean = true, singleLine: Boolean = false, minLines: Int = 1,
+    label: (@Composable () -> Unit)? = null, placeholder: (@Composable () -> Unit)? = null,
+    shape: androidx.compose.ui.graphics.Shape = RoundedCornerShape(14.dp),
+    textStyle: androidx.compose.ui.text.TextStyle = androidx.compose.ui.text.TextStyle(fontSize = 15.sp),
+) {
+    val state = rememberTextFieldState(value)
+    val callback by rememberUpdatedState(onValueChange)
+    val latestValue by rememberUpdatedState(value)
+    LaunchedEffect(value) { if (state.text.toString() != value) state.edit { replace(0, length, value) } }
+    LaunchedEffect(state) { snapshotFlow { state.text.toString() }.collect { if (it != latestValue) callback(it) } }
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        label?.invoke()
+        com.composables.ui.components.TextField(state = state, enabled = enabled,
+            modifier = Modifier.fillMaxWidth(), shape = shape, placeholder = placeholder,
+            backgroundColor = MehfilFlatColors.Surface, contentColor = MehfilFlatColors.Text,
+            borderColor = MehfilFlatColors.Hairline, placeholderColor = MehfilFlatColors.Muted,
+            textStyle = textStyle, contentPadding = PaddingValues(12.dp),
+            lineLimits = if (singleLine) TextFieldLineLimits.SingleLine else TextFieldLineLimits.MultiLine(minHeightInLines = minLines))
+    }
+}
+
+@Composable
+private fun MehfilSheetEyebrow(text: String) {
+    Text(text, color = MehfilFlatColors.Primary, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+}
+
+@Composable
+private fun MehfilSheetDivider(modifier: Modifier = Modifier, alpha: Float = 1f) {
+    com.composables.ui.components.HorizontalSeparator(modifier = modifier, color = MehfilFlatColors.Hairline.copy(alpha = alpha))
 }

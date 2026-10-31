@@ -199,7 +199,7 @@ private fun ModernCalendarDay(
     val current = date == today
     val future = date.isAfter(today)
     val color = when {
-        complete -> Color.White
+        complete -> HabitColors.OnRoyalPurple
         current -> HabitColors.RoyalPurple
         future -> HabitColors.TextTertiary
         else -> HabitColors.TextPrimary

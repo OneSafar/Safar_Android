@@ -134,8 +134,6 @@ val drawerSections = listOf(
 )
 
 val drawerPinnedBottom = listOf(
-    DrawerItem(R.string.sidebar_resources, Icons.AutoMirrored.Filled.MenuBook, Routes.COURSES),
-    DrawerItem(R.string.sidebar_help_support, Icons.AutoMirrored.Filled.HelpOutline, Routes.SUPPORT),
     DrawerItem(R.string.nav_premium, Icons.Default.WorkspacePremium, Routes.PREMIUM),
     DrawerItem(R.string.nav_profile, Icons.Default.Person, Routes.PROFILE),
     DrawerItem(R.string.profile_section_settings, Icons.Default.Settings, Routes.SETTINGS),

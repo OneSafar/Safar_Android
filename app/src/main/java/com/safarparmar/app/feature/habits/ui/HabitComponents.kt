@@ -597,7 +597,7 @@ internal fun AggregateDayCell(
                 Icon(
                     Icons.Default.Check,
                     contentDescription = null,
-                    tint = Color.White,
+                    tint = HabitColors.OnRoyalPurple,
                     modifier = Modifier.size(15.dp)
                 )
             }

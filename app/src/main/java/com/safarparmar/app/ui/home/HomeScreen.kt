@@ -1,5 +1,6 @@
 package com.safarparmar.app.ui.home
 
+import com.safarparmar.app.ui.theme.BgDark
 import android.content.Intent
 import android.net.Uri
 import com.composables.ui.components.TooltipPanel
@@ -12,8 +13,10 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.*
@@ -150,7 +153,7 @@ private val slides = listOf(
 
 private val toolCards = listOf(
     ToolCard(R.string.module_ekagra, R.drawable.tool_ekagra, Routes.EKAGRA),
-    ToolCard(R.string.module_nishtha, R.drawable.tool_nistha, Routes.nishthaRoot()),
+    ToolCard(R.string.module_nishtha, R.drawable.home_nishtha_book, Routes.nishthaRoot()),
     ToolCard(R.string.module_mehfil, R.drawable.tool_mehfil, Routes.MEHFIL),
     ToolCard(R.string.module_study_planner, R.drawable.tool_study_planner, Routes.STUDY_PLANNER),
     ToolCard(R.string.module_dhyan, R.drawable.tool_dhyan, Routes.DHYAN),
@@ -265,160 +268,15 @@ fun HomeScreen(
         onDrawerControllerReady = { openDrawerAction = it },
     ) { padding ->
         val currentSlide = slides[currentPage]
-        val buttonColor = currentSlide.uiColor
-        val buttonTextColor = currentSlide.accentColor
-
-        val descriptionTextColor = if (isDarkTheme) Color.White else buttonColor
-        val baseBgColor = MaterialTheme.colorScheme.background
-        val currentAccent = currentSlide.accentColor
-        val dynamicGradient = remember(baseBgColor, currentAccent) {
-            Brush.verticalGradient(
-                colors = listOf(
-                    currentAccent.copy(alpha = if (isDarkTheme) 0.22f else 0.30f),
-                    baseBgColor.copy(alpha = if (isDarkTheme) 0.55f else 0.65f),
-                    baseBgColor.copy(alpha = if (isDarkTheme) 0.85f else 0.92f),
-                )
-            )
-        }
+        val baseBgColor = if (isDarkTheme) BgDark else Color(0xFFFFF5F0)
 
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
                 .background(baseBgColor)
         ) {
-            val slideRouteBase = slides[currentPage].route.substringBefore("?")
-            val bgImageRes = if (isDarkTheme) {
-                when (slideRouteBase) {
-                    Routes.EKAGRA -> R.drawable.ekagra_dark
-                    Routes.MEHFIL -> R.drawable.dark_mehfil
-                    Routes.DHYAN -> R.drawable.dark_dhyan
-                    Routes.STUDY_PLANNER -> R.drawable.study_planner_dark
-                    else -> R.drawable.bg_home_dark
-                }
-            } else {
-                when (slideRouteBase) {
-                    Routes.EKAGRA -> R.drawable.ekagra_light
-                    Routes.MEHFIL -> R.drawable.light_mehfil
-                    Routes.DHYAN -> R.drawable.dhyan_liight
-                    Routes.STUDY_PLANNER -> R.drawable.study_planner_light
-                    else -> R.drawable.bg_home_light
-                }
-            }
-
             val adaptiveState = rememberSafarAdaptiveState()
             val isWide = adaptiveState.isWideScreen
-
-            if (!isWide) {
-                // ── Background image carousel (phone only) ──────────────
-                Crossfade(
-                    targetState = bgImageRes,
-                    animationSpec = tween(durationMillis = 800),
-                    label = "bg_image_fade"
-                ) { targetRes ->
-                    Image(
-                        painter = painterResource(id = targetRes),
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                }
-                if (isDarkTheme) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color.Black.copy(alpha = 0.35f))
-                    )
-                }
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(dynamicGradient)
-                )
-
-                val topBarTint = if (isDarkTheme) Color.White else Color(0xFF1E293B)
-
-                // ── Seamless Top Bar Overlay on Carousel (phone only) ──
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .fillMaxWidth()
-                        .statusBarsPadding()
-                        .padding(horizontal = 16.dp, vertical = 4.dp),
-                ) {
-                    ComposablesIconButton(
-                        onClick = { openDrawerAction?.invoke() },
-                        style = ButtonStyle.Ghost,
-                        modifier = Modifier.align(Alignment.CenterStart).size(48.dp),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Menu,
-                            contentDescription = stringResource(R.string.nav_open_menu),
-                            tint = topBarTint,
-                            modifier = Modifier.size(26.4.dp),
-                        )
-                    }
-
-                    androidx.compose.material3.Text(
-                        text = stringResource(R.string.nav_home),
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .padding(start = 64.dp, end = 168.dp),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontSize = 17.6.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = topBarTint,
-                        textAlign = TextAlign.Center,
-                    )
-
-                    Row(
-                        modifier = Modifier.align(Alignment.CenterEnd),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        com.safarparmar.app.ui.tutorial.TitliGuideButton()
-                        VideoPlaylistEntryPoint(
-                            dataStore = dataStore,
-                            tint = topBarTint,
-                            isDarkTheme = isDarkTheme,
-                            showTooltip = true,
-                            modifier = Modifier.size(48.dp),
-                        )
-                        ComposablesIconButton(
-                            onClick = { showAnnouncementsSheet = true },
-                            style = ButtonStyle.Ghost,
-                            modifier = Modifier.size(48.dp),
-                        ) {
-                            Box(Modifier.size(32.dp), contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = Icons.Default.Notifications,
-                                    contentDescription = stringResource(R.string.home_notifications_updates),
-                                    tint = topBarTint,
-                                    modifier = Modifier.size(26.dp),
-                                )
-                                if (notificationBellState.unreadCount > 0) {
-                                    Badge(
-                                        containerColor = Color(0xFFEF4444),
-                                        contentColor = Color.White,
-                                        modifier = Modifier.align(Alignment.TopEnd),
-                                    ) {
-                                        androidx.compose.material3.Text(
-                                            text = if (notificationBellState.unreadCount > 9) "9+" else notificationBellState.unreadCount.toString(),
-                                            fontSize = 10.sp,
-                                            fontWeight = FontWeight.Bold,
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            val screenWidth = maxWidth
-            val screenHeight = maxHeight
-            val isCompactHeight = screenHeight < 760.dp
-            val isNarrow = screenWidth < 380.dp
-            val haptic = LocalHapticFeedback.current
 
             if (isWide) {
                 // ══════════════════════════════════════════════════════
@@ -438,215 +296,30 @@ fun HomeScreen(
                     modifier = Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding),
                 )
             } else {
-                // ══════════════════════════════════════════════════════
-                // ── COMPACT: Mobile Vertical Layout
-                // ══════════════════════════════════════════════════════
-                val topOffset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + (maxHeight * 0.08f).coerceAtLeast(58.dp)
-                val heroShape = RoundedCornerShape(24.dp)
-
-                Column(
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .padding(top = topOffset, start = 20.dp, end = 20.dp)
-                        .widthIn(max = 680.dp)
-                        .fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(if (isCompactHeight) 4.dp else 8.dp)
-                ) {
-                    // Interactive Hero Card (Pill + Headline + Body) with polished rounded touch bounds
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(heroShape)
-                            .bounceClick(scaleDown = 0.98f) {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                onNavigate(currentSlide.route)
-                            }
-                            .padding(horizontal = 14.dp, vertical = 10.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(if (isCompactHeight) 6.dp else 10.dp)
-                    ) {
-                        // Module category pill
-                        Crossfade(
-                            targetState = currentPage,
-                            animationSpec = tween(durationMillis = 600),
-                            label = "pill_fade"
-                        ) { page ->
-                            val slide = slides[page]
-                            val pillBg = if (isDarkTheme) {
-                                slide.accentColor.copy(alpha = 0.25f)
-                            } else {
-                                slide.uiColor.copy(alpha = 0.18f)
-                            }
-                            val pillTextColor = if (isDarkTheme) slide.accentColor else slide.uiColor
-                            Box(
-                                modifier = Modifier.fillMaxWidth(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Surface(
-                                    shape = RoundedCornerShape(50),
-                                    color = pillBg,
-                                    border = BorderStroke(
-                                        1.dp,
-                                        if (isDarkTheme) slide.accentColor.copy(alpha = 0.4f)
-                                        else slide.uiColor.copy(alpha = 0.3f)
-                                    )
-                                ) {
-                                    androidx.compose.material3.Text(
-                                        text = stringResource(slide.titleRes).uppercase(),
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 12.sp,
-                                        letterSpacing = 2.sp,
-                                        color = pillTextColor,
-                                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 5.dp)
-                                    )
+                PlumPhoneHome(
+                    isDarkTheme = isDarkTheme,
+                    slideTitle = stringResource(currentSlide.titleRes),
+                    slideHeadline = stringResource(currentSlide.headlineRes),
+                    slideCount = slides.size, currentPage = currentPage,
+                    onPage = { currentPage = it }, onHero = { onNavigate(currentSlide.route) },
+                    onNavigate = onNavigate, onMenu = { openDrawerAction?.invoke() },
+                    modifier = Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding),
+                    actions = {
+                        com.safarparmar.app.ui.tutorial.TitliGuideButton(artworkSize = 42.dp)
+                        VideoPlaylistEntryPoint(dataStore = dataStore, tint = if (isDarkTheme) Color(0xFFFFF0F6) else Color(0xFF39132E),
+                            isDarkTheme = isDarkTheme, showTooltip = true, modifier = Modifier.size(48.dp), iconSize = 30.dp)
+                        ComposablesIconButton(onClick = { showAnnouncementsSheet = true }, style = ButtonStyle.Ghost, modifier = Modifier.size(48.dp)) {
+                            Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
+                                Icon(Icons.Outlined.Notifications, stringResource(R.string.home_notifications_updates), modifier = Modifier.size(32.dp), tint = if (isDarkTheme) Color(0xFFFFF0F6) else Color(0xFF39132E))
+                                if (notificationBellState.unreadCount > 0) Badge(
+                                    modifier = Modifier.align(Alignment.TopEnd).offset(x = 1.dp, y = 1.dp),
+                                    containerColor = Color(0xFFB3261E), contentColor = Color.White) {
+                                    androidx.compose.material3.Text(if (notificationBellState.unreadCount > 9) "9+" else notificationBellState.unreadCount.toString(), fontSize = 9.sp, lineHeight = 11.sp)
                                 }
                             }
                         }
-
-                        // Headline
-                        Crossfade(
-                            targetState = currentPage,
-                            animationSpec = tween(durationMillis = 800),
-                            label = "headline_fade"
-                        ) { page ->
-                            val slide = slides[page]
-                            val glowColor = if (isDarkTheme) {
-                                slide.accentColor
-                            } else {
-                                slide.accentColor.copy(alpha = 0.8f)
-                            }
-                            androidx.compose.material3.Text(
-                                text = stringResource(slide.headlineRes),
-                                fontFamily = LoraFontFamily,
-                                fontSize = if (isCompactHeight) 22.sp else 26.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = descriptionTextColor,
-                                style = MaterialTheme.typography.headlineMedium.copy(
-                                    shadow = Shadow(
-                                        color = glowColor,
-                                        offset = Offset(0f, 0f),
-                                        blurRadius = 16f
-                                    )
-                                ),
-                                textAlign = TextAlign.Center,
-                                lineHeight = if (isCompactHeight) 26.sp else 30.sp,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                        }
-                    }
-
-                    // Animated page indicator dots
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(vertical = 4.dp)
-                    ) {
-                        slides.indices.forEach { index ->
-                            val isSelected = index == currentPage
-                            val dotWidth by animateDpAsState(
-                                targetValue = if (isSelected) 22.dp else 7.dp,
-                                animationSpec = spring(
-                                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                                    stiffness = Spring.StiffnessMediumLow
-                                ),
-                                label = "dot_w_$index"
-                            )
-                            val dotAlpha by animateFloatAsState(
-                                targetValue = if (isSelected) 1f else 0.4f,
-                                animationSpec = tween(400),
-                                label = "dot_alpha_$index"
-                            )
-                            val dotColor = if (isSelected) {
-                                if (isDarkTheme) currentSlide.accentColor else currentSlide.uiColor
-                            } else {
-                                descriptionTextColor
-                            }
-                            Box(
-                                modifier = Modifier
-                                    .height(7.dp)
-                                    .width(dotWidth)
-                                    .clip(RoundedCornerShape(50))
-                                    .background(dotColor.copy(alpha = dotAlpha))
-                                    .clickable { currentPage = index }
-                            )
-                        }
-                    }
-                }
-
-                // ── Bottom panel: Tools card + Dashboard CTA ──────────────
-                val bottomPanelOffset = (screenHeight * if (isCompactHeight) 0.025f else 0.04f).coerceIn(20.dp, 56.dp)
-                val toolHorizontalPadding = if (isNarrow) 12.dp else 16.dp
-
-                Column(
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .widthIn(max = 760.dp)
-                        .fillMaxWidth()
-                        .padding(
-                            bottom = padding.calculateBottomPadding() + bottomPanelOffset,
-                            top = 16.dp
-                        )
-                        .heightIn(max = (screenHeight - topOffset - 180.dp -
-                            padding.calculateBottomPadding() - bottomPanelOffset).coerceAtLeast(140.dp))
-                        .verticalScroll(rememberScrollState()),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(if (isCompactHeight) 10.dp else 14.dp),
-                ) {
-                    HomeFeatureBanners(
-                        isDarkTheme = isDarkTheme,                        onNavigate = onNavigate,
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = toolHorizontalPadding),
-                    )
-
-                    HomeFrostedToolsCard(
-                        isDarkTheme = isDarkTheme,
-                        isCompactHeight = isCompactHeight,
-                        isNarrow = isNarrow,
-                        buttonColor = buttonColor,
-                        currentSlideRoute = slides[currentPage].route,
-                        onNavigate = onNavigate,
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = toolHorizontalPadding),
-                    )
-
-                    // ── Dashboard CTA button ──────────────────────────
-                    androidx.compose.material3.Button(
-                        onClick = { onNavigate(Routes.DASHBOARD) },
-                        colors = androidx.compose.material3.ButtonDefaults.buttonColors(
-                            containerColor = if (isDarkTheme) Color(0xFFB9E4C9) else Color(0xFF123F28),
-                            contentColor = if (isDarkTheme) Color(0xFF102A1C) else Color.White,
-                        ),
-                        shape = RoundedCornerShape(50),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = if (isNarrow) 20.dp else 28.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            ComposablesIcon(
-                                imageVector = Icons.Default.AutoAwesome,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "OPEN DASHBOARD",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 12.5.sp,
-                                letterSpacing = 1.sp
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            ComposablesIcon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp)
-                            )
-                        }
-                    }
-                }
+                    },
+                )
             }
         }
     }
@@ -761,6 +434,7 @@ fun VideoPlaylistEntryPoint(
     modifier: Modifier = Modifier,
     isDarkTheme: Boolean = false,
     showTooltip: Boolean = false,
+    iconSize: androidx.compose.ui.unit.Dp = 24.dp,
 ) {
     val context = LocalContext.current
     fun openPlaylist() {
@@ -791,7 +465,7 @@ fun VideoPlaylistEntryPoint(
             com.composables.ui.components.Icon(
                 imageVector = Icons.Default.PlayCircle,
                 contentDescription = stringResource(R.string.home_watch_video_guide),
-                tint = tint, modifier = Modifier.size(24.dp),
+                tint = tint, modifier = Modifier.size(iconSize),
             )
         }
     }

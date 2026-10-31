@@ -97,40 +97,40 @@ import java.time.temporal.ChronoUnit
  */
 object LiveThemeColors {
     // Brand Royal Purple Accents
-    val RoyalPurpleLight = Color(0xFFBE185D)
-    val RoyalPurpleDark = Color(0xFFF472B6)
-    val RoyalPurpleContainerLight = Color(0xFFFCE7F3)
-    val RoyalPurpleContainerDark = Color(0xFF3A1828)
+    val RoyalPurpleLight = Color(0xFF491438)
+    val RoyalPurpleDark = Color(0xFF7B4268)
+    val RoyalPurpleContainerLight = Color(0xFFFFDFD5)
+    val RoyalPurpleContainerDark = Color(0xFF513551)
 
     // Background Canvas
-    val ScreenBgDark = Color(0xFF131316)
-    val ScreenBgLight = Color(0xFFFFF8FA)
+    val ScreenBgDark = Color(0xFF211921)
+    val ScreenBgLight = Color(0xFFFFF5F0)
 
     // Cards & Surfaces
-    val CardBgDark = Color(0xFF21171C) // Elevated card background in dark mode
+    val CardBgDark = Color(0xFF342735) // Elevated card background in dark mode
     val CardBgLight = Color(0xFFFFFFFF) // Crisp white card in light mode
-    val CardBorderDark = Color(0xFF3A2831) // Subtle dark border
-    val CardBorderLight = Color(0xFFF1D8E3) // Subtle light border
+    val CardBorderDark = Color(0xFF654D66) // Subtle dark border
+    val CardBorderLight = Color(0xFFEADFE6) // Subtle light border
 
     // Search Bar
-    val SearchBgDark = Color(0xFF14121F)
-    val SearchBgLight = Color(0xFFF3EEF9)
-    val SearchBorderDark = Color(0xFF2B2440)
-    val SearchBorderLight = Color(0xFFE2DCEB)
+    val SearchBgDark = Color(0xFF342735)
+    val SearchBgLight = Color(0xFFFFFDFC)
+    val SearchBorderDark = Color(0xFF654D66)
+    val SearchBorderLight = Color(0xFFEADFE6)
 
     // Text & Content Inks
-    val TextPrimaryDark = Color(0xFFF6F4FA)
-    val TextPrimaryLight = Color(0xFF1E1533)
-    val TextSecondaryDark = Color(0xFF9E95B8)
-    val TextSecondaryLight = Color(0xFF6B6282)
+    val TextPrimaryDark = Color(0xFFFFF0F6)
+    val TextPrimaryLight = Color(0xFF39132E)
+    val TextSecondaryDark = Color(0xFFCFBECB)
+    val TextSecondaryLight = Color(0xFF75616F)
     val TextTertiaryDark = Color(0xFF6A6185)
-    val TextTertiaryLight = Color(0xFF9E95B8)
+    val TextTertiaryLight = Color(0xFFCFBECB)
 
     // Teacher Avatar
-    val AvatarBgDark = Color(0xFF241842)
-    val AvatarBgLight = Color(0xFFECE4F7)
-    val AvatarTextDark = Color(0xFFC084FC)
-    val AvatarTextLight = Color(0xFF581C87)
+    val AvatarBgDark = Color(0xFF513551)
+    val AvatarBgLight = Color(0xFFFFDFD5)
+    val AvatarTextDark = Color(0xFFFFCBBE)
+    val AvatarTextLight = Color(0xFF491438)
 
     // Live Pulse Badge
     val LiveRed = Color(0xFFEF4444)

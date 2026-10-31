@@ -1,0 +1,7 @@
+# Plum Header notification sheet
+
+Applied the approved second mockup in AnnouncementsBottomSheet.kt using native Compose text, shapes, icons and controls. A scoped blush/plum palette and bundled Poppins typography wrap the live sheet only; dark mode has matching charcoal/plum surfaces. Header has a mint live unread-count badge, white Close action and peach Read all button (disabled when no unread items remain). Filters retain counts and horizontal scrolling for long localized labels, using selected underlines instead of chips. A rounded paper list groups notifications with hairline separators, left peach category icons and individual 48dp dismiss targets.
+
+Existing feed content and timestamps remain dynamic. Category selection logic, unread/read callbacks, item dismiss, stable item IDs, update action, link parsing, YouTube thumbnail action, web action and audio player lifecycle/behavior are retained. Close calls the sheet's existing dismissal handler. Loading/empty/filter-empty states remain in use. No mockup messages/counts were hardcoded. No image-generation bitmap is used as notification content.
+
+Source-only comparison confirmed unchanged filter logic, link parser, audio behavior and rich action sections against the task-start snapshot, plus live read/dismiss/close callback wiring and resource references. Whitespace checks passed. No compilation, build, installation, automated tests or device inspection performed, following the user's existing instructions. Runtime appearance, large text and localization remain unverified.

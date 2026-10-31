@@ -79,9 +79,9 @@ internal fun AnalyticsOverviewSection(
     val isLight = !isDark
 
     val overviewThemeColor = primaryText(isLight)
-    val goalsThemeColor = if (isLight) Color(0xFF047857) else Color(0xFF4ADE80)
-    val focusThemeColor = if (isLight) Color(0xFFC2410C) else Color(0xFFFF8A65)
-    val monthlyThemeColor = if (isLight) Color(0xFF581C87) else Color(0xFFC084FC)
+    val goalsThemeColor = if (isLight) analyticsPlum(isLight) else analyticsPlum(isLight)
+    val focusThemeColor = if (isLight) analyticsPeach(isLight) else analyticsPeach(isLight)
+    val monthlyThemeColor = if (isLight) analyticsPlum(isLight) else analyticsLilac(isLight)
 
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
@@ -108,7 +108,7 @@ internal fun AnalyticsOverviewSection(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(16.dp))
-                .background(secondaryText(isLight).copy(alpha = 0.06f))
+                .background(analyticsPaper(isLight))
                 .padding(16.dp)
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -126,6 +126,11 @@ internal fun AnalyticsOverviewSection(
 
 @Composable
 internal fun GoalInsightsSection(goals: List<Goal>) {
+    com.safarparmar.app.ui.nishtha.goals.GoalsWarmTheme { GoalInsightsWarmContent(goals) }
+}
+
+@Composable
+private fun GoalInsightsWarmContent(goals: List<Goal>) {
     val todayKey = IstDateUtils.todayKey()
     val standardGoals = goals.filter { it.source != "ekagra" }
     val completedGoals = standardGoals.filter { it.isCompletedForStats() }
@@ -158,10 +163,10 @@ internal fun GoalInsightsSection(goals: List<Goal>) {
     val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
     val isLight = !isDark
 
-    val goalsThemeColor = if (isLight) Color(0xFF047857) else Color(0xFF4ADE80)
+    val goalsThemeColor = com.safarparmar.app.ui.nishtha.goals.GoalsFlatColors.Primary
 
     Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+        modifier = Modifier.fillMaxSize().background(com.safarparmar.app.ui.nishtha.goals.GoalsFlatColors.Bg).verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         SectionHeading(
@@ -169,9 +174,9 @@ internal fun GoalInsightsSection(goals: List<Goal>) {
             subtitle = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.nishtha_goal_insights_subtitle),
             isLight = isLight,
         )
-        val greenColor = if (isLight) Color(0xFF045435) else Color(0xFF10B981)
-        val indigoColor = if (isLight) Color(0xFF4338CA) else Color(0xFF818CF8)
-        val amberColor = if (isLight) Color(0xFFD97706) else Color(0xFFF59E0B)
+        val greenColor = com.safarparmar.app.ui.nishtha.goals.GoalsFlatColors.Done
+        val indigoColor = com.safarparmar.app.ui.nishtha.goals.GoalsFlatColors.Primary
+        val amberColor = com.safarparmar.app.ui.nishtha.goals.GoalsFlatColors.Ekagra
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             GoalMetricCard("GOALS SET", standardGoals.size.toString(), "Total goals created", indigoColor, isLight, Modifier.weight(1f))
@@ -189,18 +194,18 @@ internal fun GoalInsightsSection(goals: List<Goal>) {
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(16.dp))
-                .background(secondaryText(isLight).copy(alpha = 0.06f))
+                .background(com.safarparmar.app.ui.nishtha.goals.GoalsFlatColors.Paper)
                 .padding(16.dp)
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Icon(Icons.AutoMirrored.Filled.TrendingUp, contentDescription = null, tint = greenColor, modifier = Modifier.size(18.dp))
                     Column {
-                        Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.nishtha_goal_consistency_trend), fontWeight = FontWeight.Bold, fontSize = 15.sp, color = primaryText(isLight))
-                        Text(
+                        com.composables.ui.components.Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.nishtha_goal_consistency_trend), fontWeight = FontWeight.Bold, fontSize = 15.sp, color = com.safarparmar.app.ui.nishtha.goals.GoalsFlatColors.Text)
+                        com.composables.ui.components.Text(
                             "Your goal completion over the last 7 days",
                             fontSize = 11.sp,
-                            color = secondaryText(isLight)
+                            color = com.safarparmar.app.ui.nishtha.goals.GoalsFlatColors.Muted
                         )
                     }
                 }
@@ -211,19 +216,19 @@ internal fun GoalInsightsSection(goals: List<Goal>) {
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(16.dp))
-                .background(secondaryText(isLight).copy(alpha = 0.06f))
+                .background(com.safarparmar.app.ui.nishtha.goals.GoalsFlatColors.Paper)
                 .padding(16.dp)
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Icon(Icons.Default.CalendarToday, contentDescription = null, tint = goalsThemeColor, modifier = Modifier.size(16.dp))
-                        Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.nishtha_weekly_growth_pulse), fontWeight = FontWeight.Bold, fontSize = 15.sp, color = primaryText(isLight))
+                        com.composables.ui.components.Icon(Icons.Default.CalendarToday, contentDescription = null, tint = goalsThemeColor, modifier = Modifier.size(16.dp))
+                        com.composables.ui.components.Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.nishtha_weekly_growth_pulse), fontWeight = FontWeight.Bold, fontSize = 15.sp, color = com.safarparmar.app.ui.nishtha.goals.GoalsFlatColors.Text)
                     }
-                    Text(
+                    com.composables.ui.components.Text(
                         "$averageDailyCompletion avg/day",
                         fontSize = 11.sp,
-                        color = secondaryText(isLight)
+                        color = com.safarparmar.app.ui.nishtha.goals.GoalsFlatColors.Muted
                     )
                 }
                 sevenDaySeries.forEach { entry -> WeeklyGrowthRow(entry, goalsThemeColor, isLight) }
@@ -237,7 +242,7 @@ internal fun FocusInsightsSection(analytics: EkagraAnalyticsStats) {
     val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
     val isLight = !isDark
 
-    val accent = if (isLight) Color(0xFFC2410C) else Color(0xFFFF8A65)
+    val accent = if (isLight) analyticsPeach(isLight) else analyticsPeach(isLight)
 
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
@@ -313,7 +318,7 @@ private fun HubMetricCard(
         modifier = modifier
             .heightIn(min = 126.dp)
             .clip(RoundedCornerShape(16.dp))
-            .background(secondaryText(isLight).copy(alpha = 0.06f))
+            .background(analyticsPaper(isLight))
             .padding(14.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -356,21 +361,21 @@ private fun GoalMetricCard(
         modifier = modifier
             .heightIn(min = 124.dp)
             .clip(RoundedCornerShape(16.dp))
-            .background(secondaryText(isLight).copy(alpha = 0.06f))
+            .background(com.safarparmar.app.ui.nishtha.goals.GoalsFlatColors.Paper)
             .padding(14.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(
+            com.composables.ui.components.Text(
                 label.uppercase(Locale.US),
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Bold,
-                color = secondaryText(isLight)
+                color = com.safarparmar.app.ui.nishtha.goals.GoalsFlatColors.Muted
             )
-            Text(value, fontSize = 26.sp, fontWeight = FontWeight.ExtraBold, color = color)
-            Text(
+            com.composables.ui.components.Text(value, fontSize = 26.sp, fontWeight = FontWeight.ExtraBold, color = color)
+            com.composables.ui.components.Text(
                 sub,
                 fontSize = 11.sp,
-                color = secondaryText(isLight),
+                color = com.safarparmar.app.ui.nishtha.goals.GoalsFlatColors.Muted,
                 lineHeight = 15.sp
             )
         }
@@ -390,7 +395,7 @@ private fun CleanMetricCard(
         modifier = modifier
             .heightIn(min = 114.dp)
             .clip(RoundedCornerShape(16.dp))
-            .background(secondaryText(isLight).copy(alpha = 0.06f))
+            .background(analyticsPaper(isLight))
             .padding(14.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -420,7 +425,7 @@ private fun TimerDurationUsageCard(rows: List<EkagraTimerDurationUsage>, accent:
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(secondaryText(isLight).copy(alpha = 0.06f))
+            .background(analyticsPaper(isLight))
             .padding(16.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -470,9 +475,9 @@ private fun GoalConsistencyChart(days: List<GoalAnalyticsDay>, defaultThemeColor
     val gridColor = secondaryText(isLight).copy(alpha = 0.12f)
     val axisLabelColor = secondaryText(isLight)
 
-    val greenColor = if (isLight) Color(0xFF045435) else Color(0xFF10B981)
-    val indigoColor = if (isLight) Color(0xFF4338CA) else Color(0xFF818CF8)
-    val amberColor = if (isLight) Color(0xFFD97706) else Color(0xFFF59E0B)
+    val greenColor = analyticsPlum(isLight)
+    val indigoColor = analyticsLilac(isLight)
+    val amberColor = analyticsPeach(isLight)
 
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         // Enlarged Selection Tooltip Banner
@@ -589,7 +594,7 @@ private fun GoalConsistencyChart(days: List<GoalAnalyticsDay>, defaultThemeColor
                         val pct = if (day.total > 0) day.completed * 100 / day.total else 0
                         // 3-color palette bar logic
                         val dayBarColor = when {
-                            day.completed == 0 -> if (isLight) Color(0xFFE2E8F0) else Color(0xFF334155)
+                            day.completed == 0 -> analyticsSoft(isLight)
                             pct >= 70 || day.completed >= 10 -> greenColor
                             pct >= 30 || day.completed >= 5 -> indigoColor
                             else -> amberColor
@@ -638,7 +643,7 @@ private fun GoalConsistencyChart(days: List<GoalAnalyticsDay>, defaultThemeColor
                                             if (day.completed > 0) {
                                                 if (isSelected) dayBarColor else dayBarColor.copy(alpha = 0.85f)
                                             } else {
-                                                if (isLight) Color(0xFFE2E8F0) else Color(0xFF334155)
+                                                analyticsSoft(isLight)
                                             },
                                         )
                                         .then(
@@ -679,42 +684,42 @@ private fun WeeklyGrowthRow(entry: GoalAnalyticsDay, barColor: Color, isLight: B
         Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(secondaryText(isLight).copy(alpha = 0.05f))
+            .background(com.safarparmar.app.ui.nishtha.goals.GoalsFlatColors.Paper)
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(7.dp)
     ) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(
+            com.composables.ui.components.Text(
                 entry.dayLabel,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = primaryText(isLight)
+                color = com.safarparmar.app.ui.nishtha.goals.GoalsFlatColors.Text
             )
-            Text(
+            com.composables.ui.components.Text(
                 "${entry.completed}/${entry.total} done",
                 fontSize = 12.sp,
-                color = secondaryText(isLight)
+                color = com.safarparmar.app.ui.nishtha.goals.GoalsFlatColors.Muted
             )
         }
-        LinearProgressIndicator(
+        com.safarparmar.app.ui.nishtha.goals.GoalProgress(
             progress = { pct / 100f },
             modifier = Modifier.fillMaxWidth().height(5.dp).clip(CircleShape),
             color = barColor,
-            trackColor = if (isLight) Color(0xFFE2E8F0) else Color(0xFF334155)
+            trackColor = com.safarparmar.app.ui.nishtha.goals.GoalsFlatColors.Hairline
         )
-        Text(
+        com.composables.ui.components.Text(
             "Average progress: ${entry.avgProgress}%",
             fontSize = 11.sp,
-            color = secondaryText(isLight)
+            color = com.safarparmar.app.ui.nishtha.goals.GoalsFlatColors.Muted
         )
     }
 }
 
 private fun primaryText(isLight: Boolean) =
-    if (isLight) SafarGlassPalette.LightTextPrimary else SafarGlassPalette.TextPrimary
+    analyticsInk(isLight)
 
 private fun secondaryText(isLight: Boolean) =
-    if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
+    analyticsMuted(isLight)
 
 private data class GoalAnalyticsDay(
     val dayLabel: String,

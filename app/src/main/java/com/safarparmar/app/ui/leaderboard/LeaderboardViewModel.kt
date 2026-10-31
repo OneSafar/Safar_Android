@@ -12,6 +12,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.CancellationException
 import javax.inject.Inject
 
 sealed interface LeaderboardUiState {
@@ -40,6 +42,7 @@ class LeaderboardViewModel @Inject constructor(
     )
 
     private var currentPage: Int = 1
+    private var pageJob: Job? = null
 
     init {
         loadPage(page = 1, showLoading = true)
@@ -47,9 +50,8 @@ class LeaderboardViewModel @Inject constructor(
 
     fun loadPage(page: Int, showLoading: Boolean = false) {
         val targetPage = page.coerceIn(1, 5)
-        currentPage = targetPage
-
-        viewModelScope.launch {
+        pageJob?.cancel()
+        pageJob = viewModelScope.launch {
             val currentState = _uiState.value
             if (showLoading || currentState !is LeaderboardUiState.Success) {
                 _uiState.value = LeaderboardUiState.Loading
@@ -60,6 +62,7 @@ class LeaderboardViewModel @Inject constructor(
             try {
                 val response = api.getWeeklyLeaderboard(page = targetPage)
                 if (response.isSuccessful && response.body() != null) {
+                    currentPage = targetPage
                     _uiState.value = LeaderboardUiState.Success(
                         data = response.body()!!,
                         page = targetPage,
@@ -73,6 +76,8 @@ class LeaderboardViewModel @Inject constructor(
                         _uiState.value = LeaderboardUiState.Error(errorMsg)
                     }
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 if (currentState is LeaderboardUiState.Success) {
                     _uiState.value = currentState.copy(isRefreshing = false)

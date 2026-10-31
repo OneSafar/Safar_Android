@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="warm_journal_subtitle">Sochne, khud ke prati dayalu rehne aur apni pragati ko dekhne ki jagah.</string>
+    <string name="warm_answer_prompt">Is par likhein</string>
+    <string name="warm_previous_prompt">Pichhla prashn</string>
+    <string name="warm_next_prompt">Agla prashn</string>
+    <string name="warm_your_entries">Aapki entries</string>
+    <string name="warm_entry_count">%1$d entries</string>
+    <string name="warm_show_less">Kam dikhayein</string>
+    <string name="warm_view_all">Sabhi dekhein</string>
+    <string name="warm_untitled_entry">Bina title ki entry</string>
+    <string name="warm_open_entry">Entry kholein</string>
+    <string name="warm_checked_today">Aaj check-in kiya</string>
+    <string name="warm_restore_hint">%1$s ko check-in chhoot gaya. Ek baar restore karke %2$d dinon se jaari rakhein.</string>
+    <string name="warm_restoring">Restore ho raha hai…</string>
+    <string name="warm_restore_streak">Streak restore karein</string>
+    <string name="warm_activity_calendar">Activity calendar</string>
+    <string name="warm_previous_month">Pichhla mahina</string>
+    <string name="warm_next_month">Agla mahina</string>
+    <string name="warm_new_entry">Nayi entry</string>
+    <string name="warm_prompt_position">%2$d mein se %1$d</string>
+    <string name="warm_entry_options">Entry ke options</string>
+    <string name="warm_yesterday">Kal</string>
+    <string name="warm_streaks_subtitle">Nirantarta tikaau aadatein banane ki kunji hai.</string>
+    <string name="warm_missed_checkin">Ek check-in chhoot gaya.</string>
+    <string name="warm_average_focus_score">Average focus score</string>
+    <string name="warm_consistency_trend">Nirantarta ka rujhan</string>
+    <string name="warm_checkin_streak">Check-in streak</string>
+</resources>

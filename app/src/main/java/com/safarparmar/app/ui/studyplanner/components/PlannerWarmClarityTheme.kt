@@ -1,5 +1,6 @@
 package com.safarparmar.app.ui.studyplanner.components
 
+import com.safarparmar.app.ui.theme.BgDark
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
@@ -39,7 +40,7 @@ data class PlannerWarmColors(
 )
 
 fun plannerWarmColors(dark: Boolean): PlannerWarmColors = if (dark) PlannerWarmColors(
-    canvas = Color(0xFF211921), card = Color(0xFF342735), ink = Color(0xFFFFF0F6),
+    canvas = BgDark, card = Color(0xFF342735), ink = Color(0xFFFFF0F6),
     muted = Color(0xFFCFBECB), action = Color(0xFFF0BEDC), onAction = Color(0xFF39132E),
     peach = Color(0xFF684047), mint = Color(0xFF28574D), border = Color(0xFF624B60),
     success = Color(0xFF85DFC0), attention = Color(0xFFFFCF87), error = Color(0xFFFFAAA6),
@@ -56,18 +57,19 @@ fun PlannerWarmClarityTheme(
     content: @Composable () -> Unit,
 ) {
     val c = plannerWarmColors(dark)
+    val componentSurface = if (dark) Color(0xFF211921) else c.canvas
     val colors = MaterialTheme.colorScheme.copy(
         primary = c.action, onPrimary = c.onAction,
         primaryContainer = c.peach, onPrimaryContainer = c.ink,
-        secondary = c.success, onSecondary = c.canvas,
+        secondary = c.success, onSecondary = componentSurface,
         secondaryContainer = c.mint, onSecondaryContainer = c.ink,
-        tertiary = c.attention, onTertiary = c.canvas,
+        tertiary = c.attention, onTertiary = componentSurface,
         background = c.canvas, onBackground = c.ink,
         surface = c.card, onSurface = c.ink, surfaceTint = Color.Transparent,
-        surfaceVariant = c.canvas, onSurfaceVariant = c.muted,
-        surfaceDim = c.canvas, surfaceBright = c.card,
+        surfaceVariant = componentSurface, onSurfaceVariant = c.muted,
+        surfaceDim = componentSurface, surfaceBright = c.card,
         inverseSurface = c.ink, inverseOnSurface = c.card,
-        surfaceContainerLowest = c.canvas, surfaceContainerLow = c.canvas,
+        surfaceContainerLowest = componentSurface, surfaceContainerLow = componentSurface,
         surfaceContainer = c.card, surfaceContainerHigh = c.card, surfaceContainerHighest = c.peach,
         outline = c.muted, outlineVariant = c.border, error = c.error,
     )

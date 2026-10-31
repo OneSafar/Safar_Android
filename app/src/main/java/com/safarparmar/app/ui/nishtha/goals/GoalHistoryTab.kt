@@ -26,11 +26,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material3.DatePicker
-import com.safarparmar.app.ui.components.popups.SafarDatePickerDialog as DatePickerDialog
+import com.safarparmar.app.ui.nishtha.goals.GoalDatePickerDialog as DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
+import com.composables.ui.components.Icon
 import com.composables.ui.components.Text
-import androidx.compose.material3.TextButton
+import com.safarparmar.app.ui.nishtha.goals.GoalTextButton as TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import com.safarparmar.app.ui.tutorial.tutorialTarget
@@ -55,8 +55,8 @@ import com.safarparmar.app.R
 import com.safarparmar.app.domain.model.Goal
 import com.safarparmar.app.domain.model.GoalLinkedSession
 import com.safarparmar.app.ui.ekagra.EkagraViewModel
-import com.safarparmar.app.ui.studyplanner.plan.PlanHairline
-import com.safarparmar.app.ui.theme.LoraFontFamily
+import com.safarparmar.app.ui.nishtha.goals.GoalDivider as PlanHairline
+import com.safarparmar.app.ui.theme.PoppinsFontFamily as LoraFontFamily
 import com.safarparmar.app.util.IstDateUtils
 import com.safarparmar.app.util.assignedDateKey
 import com.safarparmar.app.util.isVisibleInGoals
@@ -159,14 +159,10 @@ internal fun GoalHistoryContent(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(12.dp))
-                        .border(1.dp, GoalsFlatColors.Hairline, RoundedCornerShape(12.dp))
-                        .clickable { showHistoryDatePicker = true }
-                        .padding(horizontal = 14.dp, vertical = 12.dp),
-                ) {
+                com.composables.ui.components.Button(onClick = { showHistoryDatePicker = true },
+                    style = com.composables.ui.components.ButtonStyle.Outlined,
+                    modifier = Modifier.weight(1f).heightIn(min = 48.dp),
+                    contentPadding = PaddingValues(horizontal = 12.dp), contentColor = GoalsFlatColors.Text) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             Icons.Default.CalendarToday,
@@ -184,16 +180,9 @@ internal fun GoalHistoryContent(
                     }
                 }
                 if (selectedDate != today) {
-                    Text(
-                        stringResource(R.string.common_reset),
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = GoalsFlatColors.Scheduled,
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .clickable { selectedDate = today }
-                            .padding(horizontal = 8.dp, vertical = 4.dp),
-                    )
+                    TextButton(onClick = { selectedDate = today }) {
+                        Text(stringResource(R.string.common_reset), fontSize = 12.sp, color = GoalsFlatColors.Primary)
+                    }
                 }
             }
         }
@@ -206,8 +195,8 @@ internal fun GoalHistoryContent(
                     .fillMaxWidth()
                     .height(140.dp)
                     .clip(RoundedCornerShape(16.dp))
-                    .border(1.5.dp, GoalsFlatColors.Primary, RoundedCornerShape(16.dp))
-                    .background(GoalsFlatColors.Primary.copy(alpha = 0.03f)),
+                    .border(1.dp, GoalsFlatColors.Hairline, RoundedCornerShape(16.dp))
+                    .background(GoalsFlatColors.Paper),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(stringResource(R.string.goals_no_completed_for_date), color = GoalsFlatColors.Muted)
@@ -233,7 +222,7 @@ internal fun GoalHistoryContent(
                         .clip(RoundedCornerShape(16.dp))
                         .border(1.dp, GoalsFlatColors.Hairline, RoundedCornerShape(16.dp))
                         .tutorialTarget("goals.historyGoal")
-                        .background(GoalsFlatColors.Primary.copy(alpha = 0.03f))
+                        .background(GoalsFlatColors.Paper)
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                 ) {
                     GoalItem(

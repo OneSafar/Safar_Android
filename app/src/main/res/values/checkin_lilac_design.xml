@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="checkin_title_today">How are you feeling today?</string>
+    <string name="checkin_add_note">Add a note…</string>
+    <string name="checkin_saving">Saving…</string>
+</resources>

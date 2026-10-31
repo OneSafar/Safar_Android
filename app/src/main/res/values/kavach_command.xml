@@ -1,0 +1,4 @@
+<resources>
+<string name="kavach_command_protected">Your focus is protected</string>
+<string name="kavach_command_session_body">Selected apps are blocked during this session.</string>
+</resources>

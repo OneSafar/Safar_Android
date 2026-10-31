@@ -1,4 +1,9 @@
 package com.safarparmar.app.ui.ekagra.focusshield
+import com.safarparmar.app.ui.ekagra.focusshield.KavachCommandButton as Button
+import com.safarparmar.app.ui.ekagra.focusshield.KavachCommandOutlineButton as OutlinedButton
+import com.safarparmar.app.ui.ekagra.focusshield.KavachCommandTextButton as TextButton
+import com.safarparmar.app.ui.ekagra.focusshield.KavachCommandField as OutlinedTextField
+
 
 import androidx.compose.runtime.rememberUpdatedState
 
@@ -49,20 +54,18 @@ import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.SmartDisplay
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import com.safarparmar.app.ui.components.popups.SafarModalBottomSheet as ModalBottomSheet
+import com.safarparmar.app.ui.ekagra.focusshield.KavachCommandSheet as ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
-import androidx.compose.material3.Text
+import com.composables.ui.components.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -136,6 +139,8 @@ fun FocusShieldSettingsContent(
     onSave: () -> Unit = onMaybeLater,
     modifier: Modifier = Modifier,
 ) {
+    com.safarparmar.app.ui.ekagra.focusshield.KavachCommandTheme {
+
     val context = LocalContext.current
     val localizedResources by rememberUpdatedState(LocalResources.current)
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -727,6 +732,8 @@ fun FocusShieldSettingsContent(
             }
         }
     }
+
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -741,51 +748,29 @@ internal fun FocusProtectionSwitchCard(
     onToggle: (Boolean) -> Unit,
     onOpenSetup: (() -> Unit)? = null,
 ) {
-    val scheme = MaterialTheme.colorScheme
-    val ink = rememberEkagraInk(onCanvas = false)
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = scheme.surface),
-        border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.55f)),
-        elevation = CardDefaults.cardElevation(0.dp),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            Icon(icon, contentDescription = null, tint = KavachDesign.Primary, modifier = Modifier.size(24.dp))
-            Column(
-                modifier = Modifier.weight(1f).then(
-                    if (onOpenSetup != null) Modifier.clickable(onClick = onOpenSetup) else Modifier,
-                ),
-            ) {
-                Text(title, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = ink.primaryText)
-                Text(
-                    stringResource(if (checked) R.string.common_on else R.string.common_off),
-                    fontSize = 12.sp, color = ink.secondaryText,
-                )
-                if (onOpenSetup != null) {
-                    Text(stringResource(R.string.youtube_study_mode_configure), fontSize = 12.sp, color = KavachDesign.Primary)
-                }
+    val hero = icon == Icons.Default.Shield
+    val surface = if (hero) KavachDesign.PrimaryDark else MaterialTheme.colorScheme.surface
+    val ink = if (hero) Color.White else KavachDesign.TextMain
+    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(22.dp),
+        colors = CardDefaults.cardColors(containerColor = surface),
+        border = BorderStroke(1.dp, KavachDesign.Border)) {
+        Row(Modifier.fillMaxWidth().padding(18.dp), verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            Box(Modifier.size(46.dp).background(if (hero) Color(0xFFFFCBBE) else MaterialTheme.colorScheme.primaryContainer,
+                RoundedCornerShape(14.dp)), contentAlignment = Alignment.Center) {
+                Icon(icon, contentDescription = null, tint = KavachDesign.PrimaryDark, modifier = Modifier.size(26.dp))
             }
-            Switch(
-                checked = checked,
-                onCheckedChange = onToggle,
-                modifier = Modifier.clearAndSetSemantics {
-                    contentDescription = title
-                    role = Role.Switch
-                    toggleableState = ToggleableState(checked)
-                    onClick { onToggle(!checked); true }
-                },
-                colors = SwitchDefaults.colors(
-                    checkedThumbColor = Color.White,
-                    checkedTrackColor = KavachDesign.Primary,
-                    uncheckedThumbColor = Color.White,
-                    uncheckedTrackColor = scheme.surfaceVariant,
-                ),
-            )
+            Column(Modifier.weight(1f).then(if (onOpenSetup != null) Modifier.clickable(onClick = onOpenSetup) else Modifier)) {
+                Text(title, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = ink)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                    Box(Modifier.size(6.dp).background(if (checked) Color(0xFF8EAD7C) else ink.copy(alpha = .45f), CircleShape))
+                    Text(stringResource(if (checked) R.string.common_on else R.string.common_off),
+                        fontSize = 12.sp, color = ink.copy(alpha = .8f))
+                }
+                if (onOpenSetup != null) Text(stringResource(R.string.youtube_study_mode_configure),
+                    fontSize = 12.sp, color = KavachDesign.Primary)
+            }
+            com.composables.ui.components.Switch(checked = checked, onCheckedChange = onToggle, accessibilityLabel = title)
         }
     }
 }
@@ -820,8 +805,8 @@ private fun KavachSegmentedSelector(
         ) {
             options.forEach { option ->
                 val isSelected = option.key == selectedKey
-                val containerColor = if (isSelected) KavachDesign.Primary else Color.Transparent
-                val contentColor = if (isSelected) Color.White else ink.primaryText
+                val containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent
+                val contentColor = KavachDesign.TextMain
 
                 Surface(
                     onClick = { onSelect(option.key) },

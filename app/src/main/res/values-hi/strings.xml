@@ -712,8 +712,8 @@
     <string name="study_circle_focus_one_session">%1$s · %2$d session</string>
     <string name="study_circle_focus_sessions">%1$s · %2$d sessions</string>
     <string name="study_circle_not_focused_today">0m · आज focus नहीं किया</string>
-    <string name="study_circle_connect">Connect करें</string>
-    <string name="study_circle_connect_premium">Connect करें (Premium)</string>
+    <string name="study_circle_connect">Connect</string>
+    <string name="study_circle_connect_premium">Connect</string>
     <string name="study_circle_remove_person">%1$s को हटाएं</string>
     <string name="study_circle_one_student_connect">%1$d student connect करना चाहता है</string>
     <string name="study_circle_students_connect">%1$d students connect करना चाहते हैं</string>
@@ -945,7 +945,7 @@
     <string name="leaderboard_podium_pending">हफ़्ते का साइकल पूरा होते ही पोडियम विनर्स यहाँ दिखेंगे।</string>
     <string name="leaderboard_your_position">आपकी position</string>
     <string name="leaderboard_not_ranked">अभी rank नहीं मिला</string>
-    <string name="leaderboard_focused_this_week">इस हफ्ते %1$s focus किया</string>
+    <string name="leaderboard_focused_this_week">इस सप्ताह %1$s फ़ोकस किया</string>
     <string name="leaderboard_enter_rankings_help">Rankings में आने के लिए एक Ekagra session पूरा करें</string>
     <string name="leaderboard_live_rankings">Live rankings</string>
     <string name="leaderboard_ekagra_focus_time">Ekagra focus time</string>
@@ -1057,6 +1057,10 @@
     <string name="dhyan_phase_exhale">साँस छोड़ें</string>
     <string name="dhyan_phase_rest">आराम</string>
     <string name="dhyan_technique_pattern">%1$s · %2$s</string>
+    <string name="dhyan_technique_selected">चयनित</string>
+    <string name="dhyan_use_technique">यह तकनीक चुनें</string>
+    <string name="dhyan_view_animation">एनीमेशन देखें</string>
+    <string name="dhyan_view_animation_badge">%1$s · एनीमेशन देखें ↗</string>
     <string name="dhyan_session_length">Session length</string>
     <string name="dhyan_minutes_short">%1$d min</string>
     <string name="dhyan_breathing_techniques">Breathing techniques</string>

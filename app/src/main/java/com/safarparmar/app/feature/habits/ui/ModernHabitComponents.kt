@@ -117,7 +117,7 @@ internal fun ModernTabs(
                 label = "habitTabBackground",
             )
             val tabContent by animateColorAsState(
-                targetValue = if (active) Color.White else HabitColors.TextSecondary,
+                targetValue = if (active) HabitColors.OnRoyalPurple else HabitColors.TextSecondary,
                 animationSpec = tween(150),
                 label = "habitTabContent",
             )
@@ -456,7 +456,7 @@ internal fun ModernWeekDayCell(
     val bg by animateColorAsState(targetBg, tween(180), label = "weekDayBg")
     val borderColor by animateColorAsState(targetBorder, tween(180), label = "weekDayBorder")
     val textColor = when {
-        completed -> Color.White
+        completed -> HabitColors.OnRoyalPurple
         isToday -> HabitColors.RoyalPurple
         !scheduled || future -> HabitColors.TextTertiary
         else -> HabitColors.TextPrimary
@@ -562,7 +562,7 @@ internal fun ModernWeeklyProgressCard(
                     verticalArrangement = Arrangement.Center
                 ) {
                     val color = when {
-                        complete -> Color.White
+                        complete -> HabitColors.OnRoyalPurple
                         current -> HabitColors.RoyalPurple
                         future -> HabitColors.TextTertiary
                         else -> HabitColors.TextPrimary
@@ -978,8 +978,8 @@ internal fun ModernPrimaryFab(onClick: () -> Unit, modifier: Modifier = Modifier
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Text("＋", color = Color.White, fontSize = 20.sp)
-        Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_new), color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+        Text("＋", color = HabitColors.OnRoyalPurple, fontSize = 20.sp)
+        Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.habits_new), color = HabitColors.OnRoyalPurple, fontSize = 14.sp, fontWeight = FontWeight.Bold)
     }
 }
 

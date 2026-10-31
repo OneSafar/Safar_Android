@@ -1,0 +1,4 @@
+<resources>
+<string name="kavach_command_protected">आपका ध्यान सुरक्षित है</string>
+<string name="kavach_command_session_body">इस सत्र के दौरान चुने हुए ऐप ब्लॉक हैं।</string>
+</resources>

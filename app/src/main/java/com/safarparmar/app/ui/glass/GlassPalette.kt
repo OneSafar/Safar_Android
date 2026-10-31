@@ -191,6 +191,6 @@ fun SafarGlassBackdrop(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(if (isLight) Color(0xFFE9EBF0) else Color.Black),
+            .background(if (isLight) Color(0xFFE9EBF0) else com.safarparmar.app.ui.theme.BgDark),
     )
 }

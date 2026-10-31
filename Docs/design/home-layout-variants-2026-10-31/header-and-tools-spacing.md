@@ -1,0 +1,7 @@
+# Home header and tool spacing
+
+Home now requests 42dp Titli artwork in its 48dp touch target. The guide IconButton explicitly uses a transparent idle container. The playlist control no longer has the pale filled circle and requests a 30dp icon. The bell is 32dp within a 48dp anchor; its real unread badge is aligned to the upper-right corner with smaller 9sp copy rather than attached directly to the bell icon's own tight bounds. Existing tutorial, playlist and notification callbacks remain unchanged. Shared guide/playlist parameters have defaults preserving their prior artwork sizes elsewhere.
+
+Removed Explore and the tools divider. Tool rows now measure their natural square artwork and label heights, rather than expanding to fill weighted rows. Labels reserve only a 16dp minimum instead of a mandatory 30dp slot. The tools card wraps those two rows; inter-row spacing is 8dp and image-to-label spacing remains 4dp. This removes blank space formerly introduced by weighted row allocation. The main content permits a smaller measured height, letting Dashboard follow the shortened card and leaving the freed space beneath it. Hero/banner sizes are capped against remaining available height; the Home remains non-scrolling. All eight tool image references and destination callbacks are retained.
+
+Source checks only: no Explore/divider in the phone renderer, natural tool sizing, larger header artwork and unread badge placement. No compilation, build, installation or device verification was performed.

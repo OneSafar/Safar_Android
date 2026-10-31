@@ -1,52 +1,31 @@
 package com.safarparmar.app.ui.nishtha.goals
 
+import com.safarparmar.app.ui.theme.BgDark
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
-import com.safarparmar.app.ui.studyplanner.components.PlannerFlatColors
-import com.safarparmar.app.ui.theme.isLightBackground
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.graphics.Color
+import com.safarparmar.app.ui.theme.isLightBackground
 
-/**
- * Goals flat-hairline palette — emerald primary (matches Nishtha Goals tab),
- * with clear semantic accents for kind / status / study sources.
- * Surfaces and ink reuse [PlannerFlatColors] so Goals sits on the same magazine sheet.
- */
+/** Shared plum/peach language; status colors remain semantic in both themes. */
 object GoalsFlatColors {
-    val Bg @Composable get() = PlannerFlatColors.BgCream
-    val Text @Composable get() = PlannerFlatColors.TextDark
-    val Muted @Composable get() = PlannerFlatColors.TextMuted
-    val Hairline @Composable get() = PlannerFlatColors.BorderSoft
-
-    private val isDark: Boolean
-        @Composable get() = !MaterialTheme.colorScheme.background.isLightBackground()
-
-    /** Primary Goals accent — dark forest green */
-    val Primary @Composable get() = if (isDark) Color(0xFF10B981) else Color(0xFF045435)
-
-    /** Done / completed — dark forest green */
-    val Done @Composable get() = if (isDark) Color(0xFF34D399) else Color(0xFF045435)
-
-    /** Today goal kind */
+    private val dark @Composable get() = !MaterialTheme.colorScheme.background.isLightBackground()
+    val Bg @Composable get() = if (dark) BgDark else Color(0xFFFFF5F0)
+    // Keep dialogs and sheets at their existing elevation color.
+    val ComponentBackground @Composable get() = if (dark) Color(0xFF211921) else Color(0xFFFFF5F0)
+    val Paper @Composable get() = if (dark) Color(0xFF342735) else Color(0xFFFFFDFC)
+    val Text @Composable get() = if (dark) Color(0xFFFFF0F6) else Color(0xFF39132E)
+    val Muted @Composable get() = if (dark) Color(0xFFCFBECB) else Color(0xFF75616F)
+    val Hairline @Composable get() = if (dark) Color(0xFF654D66) else Color(0xFFE8DEE5)
+    val Primary @Composable get() = if (dark) Color(0xFFF0BEDC) else Color(0xFF542347)
+    val OnPrimary @Composable get() = if (dark) Color(0xFF39132E) else Color.White
+    val PrimarySoft @Composable get() = if (dark) Color(0xFF513551) else Color(0xFFEDE0F4)
+    val Peach @Composable get() = if (dark) Color(0xFF684047) else Color(0xFFFFCBBE)
+    val Done @Composable get() = if (dark) Color(0xFF9FD9C2) else Color(0xFF27634F)
     val Today @Composable get() = Primary
-
-    /** Repeat goal kind — sky */
-    val Repeat @Composable get() = if (isDark) Color(0xFF38BDF8) else Color(0xFF0284C7)
-
-    /** Scheduled goal kind — violet */
-    val Scheduled @Composable get() = if (isDark) Color(0xFFC084FC) else Color(0xFF581C87)
-
-    /** Insights / progress pulse — indigo */
-    val Progress @Composable get() = if (isDark) Color(0xFF93C5FD) else Color(0xFF1E3A8A)
-
-    /** Ekagra-linked study — terracotta */
-    val Ekagra @Composable get() = if (isDark) Color(0xFFFF9E80) else Color(0xFFC2410C)
-
-    /** In progress / partial — amber */
-    val Amber @Composable get() = if (isDark) Color(0xFFFBBF24) else Color(0xFFB45309)
-
-    /** Missed / destructive */
-    val Danger @Composable get() = if (isDark) Color(0xFFF87171) else Color(0xFFDC2626)
-
-    /** Soft fill behind selected option rows */
-    val PrimarySoft @Composable get() = Primary.copy(alpha = if (isDark) 0.16f else 0.10f)
+    val Repeat @Composable get() = Primary
+    val Scheduled @Composable get() = if (dark) Color(0xFFD2BCE8) else Color(0xFF765185)
+    val Progress @Composable get() = Primary
+    val Ekagra @Composable get() = if (dark) Color(0xFFFFB89E) else Color(0xFF98523D)
+    val Amber @Composable get() = if (dark) Color(0xFFF4CF98) else Color(0xFF94632A)
+    val Danger @Composable get() = if (dark) Color(0xFFFFB4AB) else Color(0xFFB3261E)
 }
