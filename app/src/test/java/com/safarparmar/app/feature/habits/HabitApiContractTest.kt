@@ -41,6 +41,7 @@ class HabitApiContractTest {
             assertEquals("alice", request.header("X-Habit-Owner"))
             val payload = if (request.method == "POST") {
                 assertEquals("/api/habits/sync/mutations", request.url.encodedPath)
+                assertEquals("1", request.header("X-Habit-Changes"))
                 val buffer = Buffer()
                 request.body!!.writeTo(buffer)
                 val body = buffer.readUtf8()

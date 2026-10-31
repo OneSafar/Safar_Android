@@ -1,9 +1,11 @@
 package com.safarparmar.app.ui.ekagra
 
+import com.composables.ui.components.Button
+import com.composables.ui.components.IconButton
+import com.composables.ui.components.Text
+
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -57,14 +59,14 @@ internal fun EkagraBackgroundAccessPrompt(sessionId: String?, runningStudy: Bool
                 }
             },
             confirmButton = {
-                TextButton(onClick = {
+                Button(style = com.composables.ui.components.ButtonStyle.Ghost, onClick = {
                     state = state.openSettings()
                     settingsUnavailable = !FocusShieldPermissionHelper.tryOpenBatterySaverSettings(context)
                     if (settingsUnavailable) state = state.settingsReturned(granted = false)
                 }) { Text(stringResource(R.string.kavach_allow_background_running)) }
             },
             dismissButton = {
-                TextButton(onClick = { state = state.dismiss() }) { Text(stringResource(R.string.ekagra_not_now)) }
+                Button(style = com.composables.ui.components.ButtonStyle.Ghost, onClick = { state = state.dismiss() }) { Text(stringResource(R.string.ekagra_not_now)) }
             },
         )
     }

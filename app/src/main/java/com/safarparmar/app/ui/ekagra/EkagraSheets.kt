@@ -1,4 +1,7 @@
 package com.safarparmar.app.ui.ekagra
+
+import com.composables.ui.components.Text
+import com.composables.ui.components.Icon
 import com.safarparmar.app.ui.tutorial.tutorialTarget
 import com.composables.ui.components.HorizontalSeparator as HorizontalDivider
 
@@ -117,7 +120,7 @@ internal fun VisualThemeChoices(current: VisualTheme, onSelect: (VisualTheme) ->
         modifier = Modifier.fillMaxWidth()
     ) {
         Text(
-            "Select a backdrop and music theme to personalize your focus session.",
+            "Choose a timer design. Controls and session sheets follow its accent.",
             fontSize = 12.sp,
             color = ink.mutedText
         )
@@ -143,15 +146,12 @@ internal fun VisualThemeChoices(current: VisualTheme, onSelect: (VisualTheme) ->
                         val cardBg = if (isSelected) scheme.primaryContainer else scheme.surfaceContainerLow
                         val cardInk = if (isSelected) scheme.onPrimaryContainer else ink.primaryText
 
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(84.dp)
-                                .clip(RoundedCornerShape(16.dp))
-                                .background(cardBg)
-                                .border(cardBorder, RoundedCornerShape(16.dp))
-                                .clickable { onSelect(theme) }
-                                .padding(12.dp)
+                        com.composables.ui.components.Button(
+                            onClick = { onSelect(theme) }, style = com.composables.ui.components.ButtonStyle.Ghost,
+                            shape = RoundedCornerShape(16.dp), contentPadding = PaddingValues(12.dp),
+                            modifier = Modifier.weight(1f).height(116.dp)
+                                .background(cardBg, RoundedCornerShape(16.dp))
+                                .border(cardBorder, RoundedCornerShape(16.dp)),
                         ) {
                             Column(
                                 modifier = Modifier.fillMaxSize(),
@@ -169,7 +169,9 @@ internal fun VisualThemeChoices(current: VisualTheme, onSelect: (VisualTheme) ->
                                             .background(ekagraControlAccent(theme.name, com.safarparmar.app.ui.studyplanner.components.isPlannerDark).copy(alpha = 0.18f)),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        Text(theme.emoji, fontSize = 15.sp)
+                                        Box(Modifier.fillMaxSize().ekagraTimerCard(ekagraWarmPalette(theme.name)), contentAlignment = Alignment.Center) {
+                                            Icon(Icons.Default.Timer, contentDescription = null, tint = ekagraWarmPalette(theme.name).light, modifier = Modifier.size(20.dp))
+                                        }
                                     }
                                     if (isSelected) {
                                         Row(
@@ -192,7 +194,7 @@ internal fun VisualThemeChoices(current: VisualTheme, onSelect: (VisualTheme) ->
                                     }
                                 }
                                 Text(
-                                    theme.name,
+                                    ekagraWarmPalette(theme.name).title,
                                     fontFamily = EkagraSerif,
                                     fontSize = 15.sp,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
@@ -290,15 +292,15 @@ internal fun OrganizeFreeFocusContent(
     val focusedTimeLabel = formatTopicStudyTime(
         pending?.let(::topicStudyActualSeconds) ?: 0,
     )
-    
+
     // Sheets follow the app mode, independently of the timer's visual backdrop.
     val isThemeDark = isDarkTheme
-    val primaryTextColor = if (isThemeDark) Color.White else MaterialTheme.colorScheme.onSurface
-    val secondaryTextColor = if (isThemeDark) Color.White.copy(alpha = 0.72f) else MaterialTheme.colorScheme.onSurfaceVariant
+    val primaryTextColor = MaterialTheme.colorScheme.onSurface
+    val secondaryTextColor = MaterialTheme.colorScheme.onSurfaceVariant
     val dividerColor = (if (isThemeDark) Color.White else MaterialTheme.colorScheme.outlineVariant).copy(alpha = 0.2f)
 
-    val accent = if (isThemeDark) Color(0xFFB9C9FF) else Color(0xFF354F9B)
-    val onAccent = if (isThemeDark) Color(0xFF172449) else Color.White
+    val accent = MaterialTheme.colorScheme.primary
+    val onAccent = MaterialTheme.colorScheme.onPrimary
     var selectedGoalId by remember(pending?.sessionId) { mutableStateOf<String?>(initialGoalId) }
     val selectedGoal = todayGoals.firstOrNull { it.id == selectedGoalId }
     var showGoals by remember(pending?.sessionId) { mutableStateOf(initialShowGoals) }
@@ -316,7 +318,10 @@ internal fun OrganizeFreeFocusContent(
             .imePadding(),
     ) {
         // One dominant headline, followed by a short explanation of the save destination.
-        Column(Modifier.padding(start = 24.dp, end = 24.dp, top = 4.dp, bottom = 24.dp)) {
+        Column(Modifier.padding(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 20.dp)
+            .fillMaxWidth().background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(22.dp)).padding(18.dp)) {
+            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = accent, modifier = Modifier.size(32.dp))
+            Spacer(Modifier.height(10.dp))
             Text(
                 "SESSION COMPLETE",
                 fontSize = 12.sp,
@@ -360,30 +365,8 @@ internal fun OrganizeFreeFocusContent(
                     )
                 }
             } else {
-                com.safarparmar.app.ui.components.SafarRichTextField(
-                    value = titleInput,
-                    onValueChange = onTitleChange,
-                    label = { Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.ekagra_session_name_sentence), fontSize = 14.sp) },
-                    placeholder = { Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.ekagra_worked_on_hint), fontSize = 14.sp) },
-                    supportingText = { Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.common_optional), fontSize = 12.sp) },
-                    singleLine = true,
-                    textStyle = androidx.compose.ui.text.TextStyle(fontSize = 16.sp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = primaryTextColor,
-                        unfocusedTextColor = primaryTextColor,
-                        focusedBorderColor = accent,
-                        unfocusedBorderColor = dividerColor,
-                        focusedLabelColor = accent,
-                        unfocusedLabelColor = secondaryTextColor,
-                        focusedPlaceholderColor = secondaryTextColor,
-                        unfocusedPlaceholderColor = secondaryTextColor,
-                        focusedSupportingTextColor = secondaryTextColor,
-                        unfocusedSupportingTextColor = secondaryTextColor,
-                        cursorColor = accent,
-                    ),
-                    modifier = Modifier.fillMaxWidth().tutorialTarget("ekagra.saveName"),
-                )
+                EkagraSessionNameInput(titleInput, onTitleChange,
+                    Modifier.fillMaxWidth().tutorialTarget("ekagra.saveName"))
 
                 if (selectedGoalId == null && (availableTags.isNotEmpty() || onAddTag != null)) {
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -422,13 +405,9 @@ internal fun OrganizeFreeFocusContent(
                         )
                     }
                 } else {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { showGoals = !showGoals }
-                            .heightIn(min = 48.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    com.composables.ui.components.Button(
+                        onClick = { showGoals = !showGoals }, style = com.composables.ui.components.ButtonStyle.Ghost,
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp), contentPadding = PaddingValues.Zero,
                     ) {
                         Icon(Icons.Default.Link, contentDescription = null, tint = accent, modifier = Modifier.size(20.dp))
                         Column(Modifier.weight(1f)) {
@@ -528,7 +507,7 @@ internal fun OrganizeFreeFocusContent(
             com.composables.ui.components.Button(style = com.composables.ui.components.ButtonStyle.Ghost, onClick = onDiscard, modifier = Modifier.heightIn(min = 48.dp)) {
                 Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.common_discard), fontSize = 14.sp, color = secondaryTextColor)
             }
-            com.safarparmar.app.ui.components.SafarButton(
+            com.composables.ui.components.Button(
                 onClick = {
                     val goal = selectedGoal
                     when {
@@ -537,7 +516,7 @@ internal fun OrganizeFreeFocusContent(
                         else -> onSaveFree()
                     }
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = accent, contentColor = onAccent),
+                style = com.composables.ui.components.ButtonStyle.Primary, contentColor = onAccent,
                 shape = RoundedCornerShape(14.dp),
                 modifier = Modifier.weight(1f).heightIn(min = 52.dp),
             ) {
@@ -555,22 +534,11 @@ private fun SessionCompletionOption(
     accent: Color,
     textColor: Color,
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth()
-            .toggleable(value = checked, role = androidx.compose.ui.semantics.Role.Checkbox, onValueChange = onCheckedChange)
-            .heightIn(min = 48.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        com.safarparmar.app.ui.components.SafarColoredCheckbox(
-            checked = checked,
-            onCheckedChange = {},
-            checkedColor = accent,
-            uncheckedColor = MaterialTheme.colorScheme.onSurfaceVariant,
-            checkmarkColor = MaterialTheme.colorScheme.onPrimary,
-        )
+    com.composables.ui.components.Checkbox(checked = checked, onCheckedChange = onCheckedChange,
+        accessibilityLabel = label, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
         Text(label, fontSize = 14.sp, color = textColor)
     }
+
 }
 
 @Composable
@@ -581,11 +549,10 @@ private fun GoalListTab(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Surface(
-        modifier = modifier.clickable(onClick = onClick),
-        shape = RoundedCornerShape(10.dp),
-        color = if (selected) accent else accent.copy(alpha = 0.08f),
-        border = BorderStroke(1.dp, accent.copy(alpha = if (selected) 1f else 0.25f)),
+    com.composables.ui.components.Button(
+        onClick = onClick, style = com.composables.ui.components.ButtonStyle.Ghost,
+        modifier = modifier.background(if (selected) accent else accent.copy(alpha = 0.08f), RoundedCornerShape(10.dp)),
+        shape = RoundedCornerShape(10.dp), contentPadding = PaddingValues(horizontal = 8.dp),
     ) {
         Text(
             text = text,
@@ -1008,7 +975,7 @@ internal fun PostSaveGoalLinkingSheet(
             ) {
                 Surface(
                     shape = CircleShape,
-                    color = Color(0xFF10B981).copy(alpha = 0.12f),
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -1018,14 +985,14 @@ internal fun PostSaveGoalLinkingSheet(
                         Icon(
                             imageVector = Icons.Default.CheckCircle,
                             contentDescription = null,
-                            tint = Color(0xFF10B981),
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(13.dp),
                         )
                         Text(
                             text = stringResource(R.string.ekagra_session_saved).uppercase(),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF10B981),
+                            color = MaterialTheme.colorScheme.primary,
                             letterSpacing = 0.8.sp,
                         )
                     }

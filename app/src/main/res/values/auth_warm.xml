@@ -1,0 +1,4 @@
+<resources>
+    <string name="auth_warm_or">or</string>
+    <string name="auth_warm_sign_up">Sign up</string>
+</resources>

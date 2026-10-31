@@ -1,8 +1,10 @@
 package com.safarparmar.app.ui.ekagra
 
+import com.composables.ui.components.Button
+import com.composables.ui.components.IconButton
+import com.composables.ui.components.Text
+
 import com.safarparmar.app.ui.components.popups.SafarMaterialAlertDialog as AlertDialog
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.res.stringResource
@@ -21,12 +23,12 @@ fun EkagraPresencePrompt(timerService: TimerService?) {
         title = { Text(stringResource(R.string.ekagra_presence_question)) },
         text = { Text(stringResource(R.string.ekagra_presence_ranked_body)) },
         confirmButton = {
-            TextButton(onClick = service::confirmPresenceReminder) {
+            Button(style = com.composables.ui.components.ButtonStyle.Ghost, onClick = service::confirmPresenceReminder) {
                 Text(stringResource(R.string.common_yes))
             }
         },
         dismissButton = {
-            TextButton(onClick = service::declinePresenceReminder) {
+            Button(style = com.composables.ui.components.ButtonStyle.Ghost, onClick = service::declinePresenceReminder) {
                 Text(stringResource(R.string.ekagra_presence_no))
             }
         },

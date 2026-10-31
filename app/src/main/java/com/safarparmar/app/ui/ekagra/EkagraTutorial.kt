@@ -1,10 +1,12 @@
 package com.safarparmar.app.ui.ekagra
 
 import androidx.compose.ui.text.font.FontWeight
+import com.safarparmar.app.ui.theme.isLightBackground
 import com.safarparmar.app.ui.tutorial.TitliFeature
 import com.safarparmar.app.ui.tutorial.TutorialVisualStyle
 import com.safarparmar.app.ui.tutorial.TutorialLessonCard
 import com.safarparmar.app.ui.tutorial.TutorialLessonMenu
+import com.safarparmar.app.ui.tutorial.tutorialVisualColors
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.BarChart
@@ -158,8 +160,19 @@ internal fun EkagraTutorialPractice(
 @Composable
 private fun LessonPicker(completed: Set<String>, onStart: (EkagraTutorialLesson) -> Unit, onDone: () -> Unit) {
     TutorialLessonMenu(TitliFeature.EKAGRA) {
-        Text(stringResource(if (completed.contains(EkagraTutorialLesson.CORE.name)) R.string.ekagra_tutorial_complete else R.string.ekagra_tutorial_invite), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-        Text(stringResource(R.string.ekagra_tutorial_lessons), style = MaterialTheme.typography.bodyMedium)
+        val dark = !MaterialTheme.colorScheme.background.isLightBackground()
+        val c = tutorialVisualColors(dark)
+        Text(
+            text = stringResource(if (completed.contains(EkagraTutorialLesson.CORE.name)) R.string.ekagra_tutorial_complete else R.string.ekagra_tutorial_invite),
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            color = c.ink,
+        )
+        Text(
+            text = stringResource(R.string.ekagra_tutorial_lessons),
+            style = MaterialTheme.typography.bodyMedium,
+            color = c.muted,
+        )
         EkagraTutorialLesson.entries.forEach { lesson ->
             TutorialLessonCard(stringResource(lesson.titleRes), lesson.name in completed,
                 icon = when (lesson) {
@@ -169,7 +182,22 @@ private fun LessonPicker(completed: Set<String>, onStart: (EkagraTutorialLesson)
                     EkagraTutorialLesson.ORGANIZE -> Icons.Filled.BarChart
                 }, modifier = Modifier.testTag("tutorial.lesson.${lesson.name}"), onClick = { onStart(lesson) })
         }
-        Button(onClick = onDone, modifier = Modifier.fillMaxWidth().testTag("tutorial.done")) { Text(stringResource(R.string.feature_tutorial_finish)) }
+        Button(
+            onClick = onDone,
+            modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp).testTag("tutorial.done"),
+            shape = RoundedCornerShape(16.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = c.action,
+                contentColor = c.onAction,
+            ),
+        ) {
+            Text(
+                text = stringResource(R.string.feature_tutorial_finish),
+                color = c.onAction,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
     }
 }
 

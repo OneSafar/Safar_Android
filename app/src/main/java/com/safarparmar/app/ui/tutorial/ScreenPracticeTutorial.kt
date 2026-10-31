@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.safarparmar.app.ui.theme.isLightBackground
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -93,12 +94,21 @@ internal fun ScreenPracticeTutorial(feature: TitliFeature, isDarkTheme: Boolean,
                 val state = model.state
                 if (state == null) {
                     TutorialLessonMenu(feature) {
-                        Text(stringResource(R.string.practice_choose), style = MaterialTheme.typography.headlineSmall, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                        val dark = !MaterialTheme.colorScheme.background.isLightBackground()
+                        val c = tutorialVisualColors(dark)
+                        Text(stringResource(R.string.practice_choose), style = MaterialTheme.typography.headlineSmall, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold, color = c.ink)
                         PracticeLesson.forFeature(feature).forEach { lesson ->
                             TutorialLessonCard(stringResource(lesson.title), lesson.name in completed, lesson.lessonIcon(),
                                 modifier = Modifier.testTag("practice.lesson.${lesson.name}"), onClick = { model.start(lesson) })
                         }
-                        Button(onClick = model::close, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text(stringResource(R.string.feature_tutorial_finish)) }
+                        Button(
+                            onClick = model::close,
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
+                            shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = c.action, contentColor = c.onAction),
+                        ) {
+                            Text(stringResource(R.string.feature_tutorial_finish), color = c.onAction, style = MaterialTheme.typography.labelLarge, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
+                        }
                     }
                 } else FeatureTutorialHost(state, model::complete, model::close,
                     modifier = Modifier.weight(1f).background(background), onHelp = model::open,

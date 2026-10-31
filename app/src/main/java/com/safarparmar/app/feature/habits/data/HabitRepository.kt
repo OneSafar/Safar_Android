@@ -4,7 +4,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.first
 import java.time.DayOfWeek
 import java.time.LocalDate
 import javax.inject.Inject
@@ -18,89 +19,40 @@ class HabitRepository @Inject constructor(
     suspend fun refresh() = remoteStore.refresh()
 
     fun observeHabits(): Flow<List<HabitEntity>> = remoteStore.observeActiveHabits()
+    fun observeAllHabits(): Flow<List<HabitEntity>> = remoteStore.observeAllHabits()
 
-    // Keep schedule/history transformations off the collector's UI thread.
+    // Each view consumes a single immutable history projection; no mixed-version joins.
     fun observeForDate(date: LocalDate): Flow<List<HabitWithCompletion>> =
-        combine(
-            remoteStore.observeActiveHabits(),
-            remoteStore.observeCompletionsForDate(date),
-            remoteStore.observeActiveScheduleRevisionsThrough(date)
-        ) { habits, completions, revisions ->
-            val doneIds = completions.asSequence().filter { it.completed }.map { it.habitId }.toSet()
-            val revisionsByHabit = revisions.groupBy { it.habitId }
-            habits.mapNotNull { habit ->
-                val schedule = scheduleAt(habit, revisionsByHabit[habit.id].orEmpty(), date)
-                if (schedule != null && date.dayOfWeek in schedule) {
-                    HabitWithCompletion(habit, date, habit.id in doneIds)
-                } else null
+        remoteStore.observeHistory(date, date, activeOnly = true).map { history ->
+            val doneIds = history.completions.filter { it.completed }.map { it.habitId }.toSet()
+            val revisions = history.revisions.groupBy { it.habitId }
+            history.habits.mapNotNull { habit ->
+                val schedule = scheduleAt(habit, revisions[habit.id].orEmpty(), date)
+                if (schedule != null && date.dayOfWeek in schedule) HabitWithCompletion(habit, date, habit.id in doneIds)
+                else null
             }
         }.flowOn(Dispatchers.Default)
 
     fun observeForRange(start: LocalDate, end: LocalDate): Flow<List<HabitWithCompletions>> =
-        combine(
-            remoteStore.observeActiveHabits(),
-            remoteStore.observeCompletionsBetween(start, end),
-            remoteStore.observeActiveScheduleRevisionsThrough(end)
-        ) { habits, completions, revisions ->
-            val doneByHabit = completions
-                .asSequence()
-                .filter { it.completed }
-                .groupBy({ it.habitId }, { it.date })
-                .mapValues { it.value.toSet() }
-            val revisionsByHabit = revisions.groupBy { it.habitId }
+        observeHabitsWithCompletionsForRange(start, end)
 
-            habits.map { habit ->
-                val habitRevisions = revisionsByHabit[habit.id].orEmpty()
-                val doneDates = doneByHabit[habit.id].orEmpty()
-                val completionByDate = buildCompletionByDate(habit, habitRevisions, doneDates, start, end)
-                HabitWithCompletions(habit, completionByDate)
-            }
+    fun observeHabitsWithCompletionsForRange(startDate: LocalDate, endDate: LocalDate): Flow<List<HabitWithCompletions>> =
+        remoteStore.observeHistory(startDate, endDate).map { history ->
+            buildRange(history, startDate, endDate)
         }.flowOn(Dispatchers.Default)
 
-    fun observeHabitsWithCompletionsForRange(
-        startDate: LocalDate,
-        endDate: LocalDate
-    ): Flow<List<HabitWithCompletions>> =
-        combine(
-            remoteStore.observeHabitsForRange(startDate, endDate),
-            remoteStore.observeCompletionsBetween(startDate, endDate),
-            remoteStore.observeScheduleRevisionsForRange(startDate, endDate)
-        ) { habits, completions, revisions ->
-            val doneByHabit = completions
-                .asSequence()
-                .filter { it.completed }
-                .groupBy({ it.habitId }, { it.date })
-                .mapValues { it.value.toSet() }
-            val revisionsByHabit = revisions.groupBy { it.habitId }
+    suspend fun getHabitsWithCompletionsForRange(startDate: LocalDate, endDate: LocalDate,
+        selectedHabitIds: Set<Long>? = null): List<HabitWithCompletions> = withContext(Dispatchers.Default) {
+        buildRange(remoteStore.observeHistory(startDate, endDate).first(), startDate, endDate, selectedHabitIds)
+    }
 
-            habits.map { habit ->
-                val habitRevisions = revisionsByHabit[habit.id].orEmpty()
-                val doneDates = doneByHabit[habit.id].orEmpty()
-                val completionByDate = buildCompletionByDate(habit, habitRevisions, doneDates, startDate, endDate)
-                HabitWithCompletions(habit, completionByDate)
-            }
-        }.flowOn(Dispatchers.Default)
-
-    suspend fun getHabitsWithCompletionsForRange(
-        startDate: LocalDate,
-        endDate: LocalDate
-    ): List<HabitWithCompletions> = withContext(Dispatchers.Default) {
-        val habits = remoteStore.getHabitsForRange(startDate, endDate)
-        val completions = remoteStore.getCompletionsBetween(startDate, endDate)
-        val revisions = remoteStore.getScheduleRevisionsForRange(startDate, endDate)
-
-        val doneByHabit = completions
-            .asSequence()
-            .filter { it.completed }
-            .groupBy({ it.habitId }, { it.date })
-            .mapValues { it.value.toSet() }
-        val revisionsByHabit = revisions.groupBy { it.habitId }
-
-        habits.map { habit ->
-            val habitRevisions = revisionsByHabit[habit.id].orEmpty()
-            val doneDates = doneByHabit[habit.id].orEmpty()
-            val completionByDate = buildCompletionByDate(habit, habitRevisions, doneDates, startDate, endDate)
-            HabitWithCompletions(habit, completionByDate)
+    private fun buildRange(history: HabitHistory, start: LocalDate, end: LocalDate,
+        selectedHabitIds: Set<Long>? = null): List<HabitWithCompletions> {
+        val done = history.completions.filter { it.completed }.groupBy({ it.habitId }, { it.date })
+        val revisions = history.revisions.groupBy { it.habitId }
+        return history.habits.filter { selectedHabitIds == null || it.id in selectedHabitIds }.map { habit ->
+            HabitWithCompletions(habit, buildCompletionByDate(habit, revisions[habit.id].orEmpty(),
+                done[habit.id].orEmpty().toSet(), start, end))
         }
     }
 
@@ -131,10 +83,10 @@ class HabitRepository @Inject constructor(
 
     suspend fun deleteHabit(habit: HabitEntity) = remoteStore.deleteHabit(habit)
 
-    suspend fun createHabit(name: String, targetDays: Set<DayOfWeek>, isEveryDay: Boolean, order: Int, reminderTime: String? = null, emoji: String? = null) {
+    suspend fun createHabit(name: String, targetDays: Set<DayOfWeek>, isEveryDay: Boolean, order: Int, reminderTime: String? = null, emoji: String? = null, operationId: String? = null) {
         val today = LocalDate.now()
         remoteStore.insertHabit(HabitEntity(name = name, targetDays = targetDays,
-            isEveryDay = isEveryDay, scheduledSince = today, order = order, reminderTime = reminderTime), emoji)
+            isEveryDay = isEveryDay, scheduledSince = today, order = order, reminderTime = reminderTime), operationId, emoji)
     }
 
     /**

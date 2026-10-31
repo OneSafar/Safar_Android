@@ -238,7 +238,9 @@ fun AudioLibraryContent(
                 val label = category?.let { androidx.compose.ui.res.stringResource(it.displayNameRes) }
                     ?: androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.audio_category_all)
                 if (category == AudioCategory.ORIGINALS) {
-                    Box(
+                    com.composables.ui.components.Button(
+                        onClick = { selectedCategory = category }, style = com.composables.ui.components.ButtonStyle.Ghost,
+                        shape = CircleShape, contentPadding = PaddingValues(horizontal = 14.dp, vertical = 7.dp),
                         modifier = Modifier
                             .clip(CircleShape)
                             .background(
@@ -247,10 +249,7 @@ fun AudioLibraryContent(
                                 )
                             )
                             .let { if (selected) it.border(2.dp, colors.accent, CircleShape) else it }
-                            .shimmer()
-                            .clickable { selectedCategory = category }
-                            .padding(horizontal = 14.dp, vertical = 7.dp),
-                        contentAlignment = Alignment.Center,
+                            .shimmer(),
                     ) {
                         Text(
                             text = label,
@@ -285,20 +284,17 @@ fun AudioLibraryContent(
                 val isPreviewing = track.id == previewingTrackId
 
                 Column(Modifier.fillMaxWidth()) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                onTrackSelect(track)
-                                onDismiss()
-                            }
-                            .padding(vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    com.composables.ui.components.Button(
+                        onClick = { onTrackSelect(track); onDismiss() },
+                        style = com.composables.ui.components.ButtonStyle.Ghost,
+                        contentPadding = PaddingValues(vertical = 12.dp),
+                        modifier = Modifier.fillMaxWidth(),
                     ) {
-                        Box(
+                        com.composables.ui.components.IconButton(
+                            onClick = { onPreview(track) }, style = com.composables.ui.components.ButtonStyle.Ghost,
+                            shape = CircleShape,
                             modifier = Modifier
-                                .size(30.dp)
+                                .size(48.dp)
                                 .clip(CircleShape)
                                 .background(
                                     if (isSelected) {
@@ -306,9 +302,7 @@ fun AudioLibraryContent(
                                     } else {
                                         colors.hairline.copy(alpha = 0.45f)
                                     },
-                                )
-                                .clickable { onPreview(track) },
-                            contentAlignment = Alignment.Center,
+                                ),
                         ) {
                             if (isPreviewing) {
                                 EqualizerAnimation(color = colors.accent)

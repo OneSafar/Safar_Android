@@ -1,5 +1,10 @@
 package com.safarparmar.app.ui.auth
 
+import com.safarparmar.app.ui.onboarding.editorialCornerArtwork
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalResources
 import com.safarparmar.app.ui.components.popups.SafarExposedDropdownMenu
@@ -76,17 +81,31 @@ import kotlinx.coroutines.launch
 import com.safarparmar.app.ui.theme.SafarSemanticColors
 import com.safarparmar.app.ui.theme.isLightBackground
 import com.safarparmar.app.ui.theme.PoppinsFontFamily
-import com.safarparmar.app.ui.theme.LoraFontFamily
+import com.safarparmar.app.ui.theme.PoppinsFontFamily as LoraFontFamily
+import com.composables.ui.components.Text
+import com.composables.ui.components.Icon
+import com.composables.ui.components.IconButton
+import com.composables.ui.components.Button as UiButton
+import com.composables.ui.components.ButtonStyle
+import com.composables.ui.components.TabList
+import com.composables.ui.components.DropdownMenuPanel
+import com.composables.ui.components.DropdownMenuItem as UiDropdownMenuItem
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.foundation.text.input.rememberTextFieldState
+import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
+import kotlinx.coroutines.flow.distinctUntilChanged
+import com.safarparmar.app.ui.theme.SafarComposablesTheme
+import com.safarparmar.app.ui.theme.LocalSafarComposablesAccent
 
 private val LocalIsDarkTheme = staticCompositionLocalOf { false }
 
-private val BgCream: Color @Composable get() = if (LocalIsDarkTheme.current) Color(0xFF131316) else Color(0xFFFFF9F0)
-private val CardWhite: Color @Composable get() = if (LocalIsDarkTheme.current) Color(0xFF1E1E24) else Color(0xFFFFFFFF)
-private val TextDark: Color @Composable get() = if (LocalIsDarkTheme.current) Color(0xFFF8FAFC) else Color(0xFF1E1B4B)
-private val TextMuted: Color @Composable get() = if (LocalIsDarkTheme.current) Color(0xFF94A3B8) else Color(0xFF64748B)
-private val BorderSoft: Color @Composable get() = if (LocalIsDarkTheme.current) Color(0xFF33333D) else Color(0xFFE2DDF0)
+private val BgCream: Color @Composable get() = if (LocalIsDarkTheme.current) Color(0xFF211921) else Color(0xFFFFF5F0)
+private val CardWhite: Color @Composable get() = if (LocalIsDarkTheme.current) Color(0xFF342735) else Color(0xFFFFFDFC)
+private val TextDark: Color @Composable get() = if (LocalIsDarkTheme.current) Color(0xFFFFF0F6) else Color(0xFF39132E)
+private val TextMuted: Color @Composable get() = if (LocalIsDarkTheme.current) Color(0xFFCFBECB) else Color(0xFF75616F)
+private val BorderSoft: Color @Composable get() = if (LocalIsDarkTheme.current) Color(0xFF654D66) else Color(0xFFEADFE6)
 private val ShadowSoft: Color @Composable get() = if (LocalIsDarkTheme.current) Color.Black.copy(alpha = 0.2f) else Color(0xFF1E1B4B).copy(alpha = 0.04f)
-private val PrimaryAccent: Color @Composable get() = SafarSemanticColors.brandPurple(LocalIsDarkTheme.current)
+private val PrimaryAccent: Color @Composable get() = if (LocalIsDarkTheme.current) Color(0xFFF0BEDC) else Color(0xFF491438)
 private val AccentShadow: Color @Composable get() = PrimaryAccent.copy(alpha = 0.3f)
 private val AccentTint: Color @Composable get() = PrimaryAccent.copy(alpha = if (LocalIsDarkTheme.current) 0.15f else 0.12f)
 
@@ -121,6 +140,10 @@ fun AuthScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
     val snackbarHostState = remember { SnackbarHostState() }
+    val rootView = LocalView.current.rootView
+    val density = LocalDensity.current
+    val navigationBottom = WindowInsets.navigationBars.getBottom(density)
+    var artworkBottomCorrection by remember { mutableFloatStateOf(0f) }
     val context = LocalContext.current
     val localizedResources by rememberUpdatedState(LocalResources.current)
     val logoRes = if (isDark) R.drawable.ic_safar_logo_brand_dark else R.drawable.ic_safar_logo_brand_light
@@ -176,6 +199,7 @@ fun AuthScreen(
     }
 
     CompositionLocalProvider(LocalIsDarkTheme provides isDark) {
+        AuthWarmTheme {
         Scaffold(
             contentWindowInsets = WindowInsets(0, 0, 0, 0),
             snackbarHost = {
@@ -194,7 +218,13 @@ fun AuthScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(BgCream)
-                    .padding(padding),
+                    .padding(padding)
+                    .windowInsetsPadding(WindowInsets.systemBars.union(WindowInsets.displayCutout))
+                    .onGloballyPositioned { coordinates ->
+                        val localBottomInWindow = coordinates.positionInWindow().y + coordinates.size.height
+                        artworkBottomCorrection = (rootView.height - navigationBottom - localBottomInWindow).coerceAtLeast(0f)
+                    }
+                    .editorialCornerArtwork(artworkBottomCorrection),
                 contentAlignment = Alignment.Center
             ) {
                 AnimatedContent(
@@ -242,6 +272,7 @@ fun AuthScreen(
             }
         }
     }
+    } // AuthWarmTheme
 }
 
 @Composable
@@ -259,20 +290,26 @@ fun HtmlTextField(
 ) {
     val palette = authPalette()
     val cardShape = RoundedCornerShape(16.dp)
+    if (keyboardOptions.keyboardType != KeyboardType.Password) {
+        AuthLibraryInput(value, onValueChange, placeholder, leadingIcon, modifier, isError, keyboardOptions, keyboardActions)
+        return
+    }
 
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Text(placeholder, color = TextDark, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
     Row(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxWidth()
             .shadow(
-                elevation = 4.dp, 
+                elevation = 0.dp,
                 shape = cardShape, 
                 spotColor = ShadowSoft, 
                 ambientColor = ShadowSoft
             )
             .clip(cardShape)
             .background(CardWhite)
-            .border(width = 1.5.dp, color = BorderSoft, shape = cardShape)
-            .padding(horizontal = 16.dp, vertical = 16.dp),
+            .border(width = 1.dp, color = if (isError) MaterialTheme.colorScheme.error else BorderSoft, shape = cardShape)
+            .heightIn(min = 54.dp).padding(horizontal = 14.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(imageVector = leadingIcon, contentDescription = null, tint = palette.inputIcon, modifier = Modifier.size(20.dp))
@@ -304,6 +341,7 @@ fun HtmlTextField(
             }
         }
     }
+    } // field label
 }
 
 @Composable
@@ -327,7 +365,7 @@ fun HtmlPasswordField(
         isError = isError,
         visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
         trailingIcon = {
-            IconButton(onClick = onToggleVisibility, modifier = Modifier.size(24.dp)) {
+            IconButton(onClick = onToggleVisibility, style = ButtonStyle.Ghost, modifier = Modifier.size(48.dp)) {
                 Icon(
                     imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
                     contentDescription = if (passwordVisible) "Hide password" else "Show password",
@@ -343,213 +381,47 @@ fun HtmlPasswordField(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HtmlDropdownField(
-    value: String,
-    placeholder: String,
-    options: List<String>,
-    onSelect: (String) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val palette = authPalette()
+fun HtmlDropdownField(value: String, placeholder: String, options: List<String>, onSelect: (String) -> Unit, modifier: Modifier = Modifier) {
     var expanded by remember { mutableStateOf(false) }
-    val cardShape = RoundedCornerShape(16.dp)
-
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = it },
-        modifier = modifier.fillMaxWidth()
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .menuAnchor(MenuAnchorType.PrimaryEditable, enabled = true)
-                .shadow(
-                    elevation = 4.dp, 
-                    shape = cardShape, 
-                    spotColor = ShadowSoft, 
-                    ambientColor = ShadowSoft
-                )
-                .clip(cardShape)
-                .background(CardWhite)
-                .border(width = 1.5.dp, color = BorderSoft, shape = cardShape)
-                .padding(horizontal = 16.dp, vertical = 16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                text = value.ifEmpty { placeholder },
-                color = if (value.isEmpty()) palette.supportingText else palette.inputText,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Medium
-            )
-            ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
-        }
-        
-        SafarExposedDropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-            modifier = Modifier.background(MaterialTheme.colorScheme.surface)
-        ) {
-            options.forEach { opt ->
-                DropdownMenuItem(
-                    text = {
-                        Text(
-                            text = opt,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontSize = 15.sp
-                        )
-                    },
-                    onClick = {
-                        onSelect(opt)
-                        expanded = false
+    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(placeholder, color = TextDark, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+        com.safarparmar.app.ui.components.popups.SafarComposablesDropdownMenu(
+            expanded = expanded, onExpandedChange = { expanded = it }, modifier = Modifier.fillMaxWidth(),
+            panel = {
+                DropdownMenuPanel {
+                    options.forEach { option ->
+                        UiDropdownMenuItem(onClick = { onSelect(option); expanded = false }) {
+                            Text(option, fontSize = 14.sp)
+                        }
                     }
-                )
-            }
-        }
+                }
+            },
+            anchor = {
+                UiButton(onClick = { expanded = !expanded }, style = ButtonStyle.Outlined,
+                    shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth().heightIn(min = 54.dp), contentColor = TextDark) {
+                    Text(value.ifBlank { placeholder }, modifier = Modifier.weight(1f), fontSize = 14.sp,
+                        color = if (value.isBlank()) TextMuted else TextDark)
+                    Icon(Icons.Default.ExpandMore, contentDescription = null, modifier = Modifier.size(20.dp), tint = TextMuted)
+                }
+            })
     }
 }
 
 @Composable
-fun HtmlPrimaryButton(
-    text: String,
-    onClick: () -> Unit,
-    enabled: Boolean,
-    modifier: Modifier = Modifier,
-    isLoading: Boolean = false,
-) {
-    val isDarkTheme = LocalIsDarkTheme.current
-    val shape = RoundedCornerShape(20.dp)
-
-    val buttonColor = if (enabled && !isLoading) PrimaryAccent else PrimaryAccent.copy(alpha = 0.5f)
-    val borderBrush = if (isDarkTheme) {
-        Brush.verticalGradient(
-            colors = listOf(Color.White.copy(alpha = 0.35f), Color.White.copy(alpha = 0.05f))
-        )
-    } else {
-        Brush.verticalGradient(
-            colors = listOf(Color(0xFFE5E5EA), Color(0xFFD1D1D6))
-        )
-    }
-
-    val shadowElevation = if (isDarkTheme) 12.dp else 4.dp
-    val shadowColor = if (isDarkTheme) Color.Black.copy(alpha = 0.8f) else Color.Black.copy(alpha = 0.12f)
-
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(64.dp)
-            .shadow(
-                elevation = shadowElevation,
-                shape = shape,
-                spotColor = shadowColor,
-                ambientColor = shadowColor
-            )
-            .clip(shape)
-            .background(buttonColor)
-            .border(
-                width = 0.5.dp,
-                brush = borderBrush,
-                shape = shape
-            )
-            .clickable(enabled = enabled && !isLoading, onClick = onClick),
-        contentAlignment = Alignment.Center
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally)
-        ) {
-            if (isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(20.dp),
-                    strokeWidth = 2.5.dp,
-                    color = Color.White,
-                )
-            }
-            Text(
-                text = text,
-                color = Color.White,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 0.2.sp
-            )
-        }
+fun HtmlPrimaryButton(text: String, onClick: () -> Unit, enabled: Boolean, modifier: Modifier = Modifier, isLoading: Boolean = false) {
+    UiButton(onClick = onClick, enabled = enabled && !isLoading, modifier = modifier.fillMaxWidth().heightIn(min = 54.dp),
+        shape = CircleShape, style = ButtonStyle.Primary) {
+        if (isLoading) { CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = if (LocalIsDarkTheme.current) BgCream else Color.White); Spacer(Modifier.width(10.dp)) }
+        Text(text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
     }
 }
 
 @Composable
-fun GoogleSignInButton(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val isDarkTheme = LocalIsDarkTheme.current
-    val shape = RoundedCornerShape(20.dp)
-
-    val bodyColor = if (isDarkTheme) Color(0xFF2C2C2E).copy(alpha = 0.65f) else Color(0xFFF9F9FB)
-    val borderBrush = if (isDarkTheme) {
-        Brush.verticalGradient(
-            colors = listOf(Color.White.copy(alpha = 0.25f), Color.White.copy(alpha = 0.02f))
-        )
-    } else {
-        Brush.verticalGradient(
-            colors = listOf(Color(0xFFE5E5EA), Color(0xFFD1D1D6))
-        )
-    }
-
-    val shadowElevation = if (isDarkTheme) 12.dp else 4.dp
-    val shadowColor = if (isDarkTheme) Color.Black.copy(alpha = 0.8f) else Color.Black.copy(alpha = 0.12f)
-
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(44.dp)
-            .shadow(
-                elevation = shadowElevation,
-                shape = shape,
-                spotColor = shadowColor,
-                ambientColor = shadowColor
-            )
-            .clip(shape)
-            .background(bodyColor)
-            .border(
-                width = 0.5.dp,
-                brush = borderBrush,
-                shape = shape
-            )
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(38.dp)
-                    .clip(CircleShape)
-                    .background(Color.White),
-                contentAlignment = Alignment.Center
-            ) {
-                Image(
-                    painter = painterResource(id = R.drawable.ic_google_logo),
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-            Spacer(modifier = Modifier.width(12.dp))
-            Text(
-                text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.auth_continue_google),
-                color = TextDark,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.SemiBold,
-                letterSpacing = 0.2.sp
-            )
-        }
+fun GoogleSignInButton(onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true) {
+    UiButton(onClick = onClick, enabled = enabled, modifier = modifier.fillMaxWidth().heightIn(min = 54.dp),
+        style = ButtonStyle.Outlined, shape = RoundedCornerShape(16.dp), contentColor = TextDark) {
+        Image(painterResource(R.drawable.ic_google_logo), contentDescription = null, modifier = Modifier.size(22.dp))
+        Spacer(Modifier.width(12.dp)); Text(stringResource(R.string.auth_continue_google), fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
     }
 }
 
@@ -563,46 +435,10 @@ fun LoginContent(
     val palette = authPalette()
     val focusManager = LocalFocusManager.current
     var passwordVisible by rememberSaveable { mutableStateOf(false) }
-    val scroll = rememberScrollState()
-
-    val screenWidth = LocalConfiguration.current.screenWidthDp.dp
-    val contentWidth = if (screenWidth > 520.dp) 440.dp else screenWidth
-
-    Column(
-        modifier = Modifier
-            .width(contentWidth)
-            .verticalScroll(scroll)
-            .padding(horizontal = 24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+    com.safarparmar.app.ui.onboarding.EditorialAuthPage(
+        title = stringResource(R.string.auth_welcome_back), showLogo = true,
     ) {
-        Spacer(modifier = Modifier.height(16.dp))
-        val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
-        val logoRes = if (isDark) R.drawable.ic_safar_logo_brand_dark else R.drawable.ic_safar_logo_brand_light
-        AsyncImage(
-            model = logoRes,
-            contentDescription = stringResource(R.string.app_name),
-            modifier = Modifier
-                .size(96.dp)
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Welcome Text
-        Text(
-            text = stringResource(R.string.auth_welcome_back),
-            fontFamily = LoraFontFamily,
-            fontSize = 32.sp,
-            fontWeight = FontWeight.Bold,
-            color = palette.heading,
-            modifier = Modifier.padding(bottom = 6.dp)
-        )
-        Text(
-            text = stringResource(R.string.auth_glad_back),
-            color = palette.supportingText,
-            fontSize = 15.sp,
-            modifier = Modifier.padding(bottom = 24.dp)
-        )
-
+        Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
         // Email Input
         HtmlTextField(
             value = uiState.email,
@@ -669,37 +505,23 @@ fun LoginContent(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Footer Links
-        Row(
-            modifier = Modifier.padding(top = 12.dp, bottom = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = stringResource(R.string.auth_no_account),
-                color = palette.supportingText,
-                fontWeight = FontWeight.Medium,
-                fontSize = 14.sp
-            )
-            Row(
-                modifier = Modifier.clickable { onSwitchToSignup() },
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = stringResource(R.string.auth_sign_up_here),
-                    color = palette.accent,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium
-                )
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                    contentDescription = null,
-                    tint = palette.accent,
-                    modifier = Modifier.padding(start = 4.dp).size(14.dp)
-                )
+        // A real layout gap separates the prompt from the signup action; no reliance on trailing spaces.
+        Row(Modifier.widthIn(max = 420.dp).fillMaxWidth().padding(top = 8.dp, bottom = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(stringResource(R.string.auth_no_account).trim(), modifier = Modifier.weight(1f),
+                color = palette.supportingText, fontWeight = FontWeight.Medium, fontSize = 13.sp)
+            UiButton(onClick = onSwitchToSignup, enabled = !uiState.isLoading,
+                style = ButtonStyle.Ghost, contentColor = palette.accent,
+                contentPadding = PaddingValues(horizontal = 8.dp), modifier = Modifier.heightIn(min = 48.dp)) {
+                Text(stringResource(R.string.auth_sign_up_here), color = palette.accent,
+                    fontSize = 14.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null,
+                    tint = palette.accent, modifier = Modifier.padding(start = 4.dp).size(16.dp))
             }
         }
-        
+
         Spacer(modifier = Modifier.height(24.dp))
+        } // AuthFormCard
     }
 }
 
@@ -722,41 +544,10 @@ fun SignupContent(
     val screenWidth = LocalConfiguration.current.screenWidthDp.dp
     val contentWidth = if (screenWidth > 520.dp) 440.dp else screenWidth
 
-    Column(
-        modifier = Modifier
-            .width(contentWidth)
-            .verticalScroll(scroll)
-            .padding(horizontal = 24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+    com.safarparmar.app.ui.onboarding.EditorialAuthPage(
+        title = stringResource(R.string.auth_create_account), showLogo = true,
     ) {
-        Spacer(modifier = Modifier.height(16.dp))
-        val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
-        val logoRes = if (isDark) R.drawable.ic_safar_logo_brand_dark else R.drawable.ic_safar_logo_brand_light
-        AsyncImage(
-            model = logoRes,
-            contentDescription = stringResource(R.string.app_name),
-            modifier = Modifier
-                .size(96.dp)
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Welcome Text
-        Text(
-            text = stringResource(R.string.auth_create_account),
-            fontFamily = LoraFontFamily,
-            fontSize = 32.sp,
-            fontWeight = FontWeight.Bold,
-            color = palette.heading,
-            modifier = Modifier.padding(bottom = 6.dp)
-        )
-        Text(
-            text = stringResource(R.string.auth_start_study_journey),
-            color = palette.supportingText,
-            fontSize = 15.sp,
-            modifier = Modifier.padding(bottom = 24.dp)
-        )
-
+        Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
         // Form Fields
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
             // Full Name
@@ -892,37 +683,22 @@ fun SignupContent(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Footer Links
-        Row(
-            modifier = Modifier.padding(top = 12.dp, bottom = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = stringResource(R.string.auth_have_account),
-                color = palette.supportingText,
-                fontWeight = FontWeight.Medium,
-                fontSize = 14.sp
-            )
-            Row(
-                modifier = Modifier.clickable { onSwitchToLogin() },
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = stringResource(R.string.auth_sign_in),
-                    color = palette.accent,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium
-                )
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                    contentDescription = null,
-                    tint = palette.accent,
-                    modifier = Modifier.padding(start = 4.dp).size(14.dp)
-                )
+        Row(Modifier.widthIn(max = 420.dp).fillMaxWidth().padding(top = 8.dp, bottom = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(stringResource(R.string.auth_have_account).trim(), modifier = Modifier.weight(1f),
+                color = palette.supportingText, fontWeight = FontWeight.Medium, fontSize = 13.sp)
+            UiButton(onClick = onSwitchToLogin, enabled = !uiState.isLoading,
+                style = ButtonStyle.Ghost, contentColor = palette.accent,
+                contentPadding = PaddingValues(horizontal = 8.dp), modifier = Modifier.heightIn(min = 48.dp)) {
+                Text(stringResource(R.string.auth_sign_in), color = palette.accent,
+                    fontSize = 14.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null,
+                    tint = palette.accent, modifier = Modifier.padding(start = 4.dp).size(16.dp))
             }
         }
-        
+
         Spacer(modifier = Modifier.height(24.dp))
+        } // AuthFormCard
     }
 }
 
@@ -940,37 +716,22 @@ fun ForgotPasswordContent(
     val screenWidth = LocalConfiguration.current.screenWidthDp.dp
     val contentWidth = if (screenWidth > 520.dp) 440.dp else screenWidth
 
-    Column(
-        modifier = Modifier
-            .width(contentWidth)
-            .verticalScroll(scroll)
-            .padding(horizontal = 24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+    val pageTitle = when (uiState.forgotPasswordStep) {
+        ForgotPasswordStep.EMAIL -> "Reset password"
+        ForgotPasswordStep.EMAIL_SENT -> "Check your email"
+        ForgotPasswordStep.RESET -> "New password"
+    }
+    com.safarparmar.app.ui.onboarding.EditorialAuthPage(title = pageTitle,
+        onBack = onBackToLogin.takeUnless { uiState.forgotPasswordStep == ForgotPasswordStep.EMAIL_SENT },
+        showLogo = false,
     ) {
-        Spacer(modifier = Modifier.height(16.dp))
-        val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
-        val logoRes = if (isDark) R.drawable.ic_safar_logo_brand_dark else R.drawable.ic_safar_logo_brand_light
-        AsyncImage(
-            model = logoRes,
-            contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.auth_safar_logo),
-            modifier = Modifier.size(96.dp)
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Title
-        Text(
-            text = when (uiState.forgotPasswordStep) {
-                ForgotPasswordStep.EMAIL -> "Reset password"
-                ForgotPasswordStep.EMAIL_SENT -> "Check your email"
-                ForgotPasswordStep.RESET -> "New password"
-            },
-            fontFamily = LoraFontFamily,
-            fontSize = 32.sp,
-            fontWeight = FontWeight.Bold,
-            color = palette.heading,
-            modifier = Modifier.padding(bottom = 6.dp)
-        )
+        if (uiState.forgotPasswordStep != ForgotPasswordStep.RESET) {
+            Icon(Icons.Default.Email, contentDescription = null, tint = Color(0xFFB96E61),
+                modifier = Modifier.padding(vertical = 16.dp).size(64.dp)
+                    .background(Color(0xFFFFCBBE), RoundedCornerShape(16.dp)).padding(12.dp))
+            Text(pageTitle, color = palette.heading, fontWeight = FontWeight.Bold, fontSize = 24.sp,
+                modifier = Modifier.padding(bottom = 10.dp))
+        }
         Text(
             text = when (uiState.forgotPasswordStep) {
                 ForgotPasswordStep.EMAIL -> "Enter your email to request a reset link."
@@ -1030,15 +791,15 @@ fun ForgotPasswordContent(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
                     HtmlPrimaryButton(
-                        text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.auth_back_sign_in),
-                        onClick = onBackToLogin,
+                        text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.auth_email_retry),
+                        onClick = { onEvent(AuthEvent.ForgotPassword) },
                         enabled = true,
                     )
                     TextButton(
-                        onClick = { onEvent(AuthEvent.ForgotPassword) },
+                        onClick = onBackToLogin,
                     ) {
                         Text(
-                            text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.auth_email_retry),
+                            text = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.auth_back_sign_in),
                             color = palette.link,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.SemiBold,
@@ -1137,5 +898,84 @@ fun ForgotPasswordContent(
         }
 
         Spacer(modifier = Modifier.height(24.dp))
+    }
+}
+
+@Composable
+private fun AuthWarmTheme(content: @Composable () -> Unit) {
+    val scheme = MaterialTheme.colorScheme.copy(background = BgCream, surface = CardWhite,
+        surfaceContainerHigh = CardWhite, onBackground = TextDark, onSurface = TextDark,
+        onSurfaceVariant = TextMuted, primary = PrimaryAccent,
+        outlineVariant = BorderSoft, secondaryContainer = AccentTint, onSecondaryContainer = TextDark)
+    MaterialTheme(colorScheme = scheme, typography = MaterialTheme.typography.copy(
+        bodyLarge = MaterialTheme.typography.bodyLarge.copy(fontFamily = PoppinsFontFamily))) {
+        CompositionLocalProvider(LocalSafarComposablesAccent provides PrimaryAccent) {
+            SafarComposablesTheme { content() }
+        }
+    }
+}
+
+@Composable
+private fun AuthFormCard(signup: Boolean, enabled: Boolean, onSwitch: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
+    Column(Modifier.fillMaxWidth().background(CardWhite, RoundedCornerShape(28.dp)).padding(20.dp),
+        horizontalAlignment = Alignment.CenterHorizontally) {
+        com.composables.ui.components.Tabs(selectedTab = signup, onSelectedTabChange = { if (it != signup && enabled) onSwitch() },
+            orderedTabs = listOf(false, true)) {
+            TabList(modifier = Modifier.fillMaxWidth().clip(CircleShape).background(AccentTint), dividerColor = Color.Transparent) {
+                Row(Modifier.fillMaxWidth()) {
+                    listOf(false, true).forEach { tab ->
+                        com.composables.ui.components.Tab(key = tab, enabled = enabled,
+                            modifier = Modifier.weight(1f).heightIn(min = 48.dp).background(if (signup == tab) PrimaryAccent else Color.Transparent, CircleShape),
+                            text = { Text(stringResource(if (tab) R.string.auth_warm_sign_up else R.string.auth_sign_in),
+                                color = if (signup == tab) (if (LocalIsDarkTheme.current) BgCream else Color.White) else TextDark,
+                                fontSize = 14.sp, fontWeight = FontWeight.SemiBold) })
+                    }
+                }
+            }
+        }
+        Spacer(Modifier.height(22.dp))
+        content()
+    }
+}
+
+@Composable
+private fun AuthOrDivider() {
+    Row(Modifier.fillMaxWidth().padding(vertical = 16.dp), verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        com.composables.ui.components.HorizontalSeparator(modifier = Modifier.weight(1f), color = BorderSoft)
+        Text(stringResource(R.string.auth_warm_or), fontSize = 12.sp, color = TextMuted)
+        com.composables.ui.components.HorizontalSeparator(modifier = Modifier.weight(1f), color = BorderSoft)
+    }
+}
+
+@Composable
+private fun AuthLibraryInput(value: String, onValueChange: (String) -> Unit, label: String, icon: ImageVector,
+    modifier: Modifier, error: Boolean, keyboardOptions: KeyboardOptions, keyboardActions: KeyboardActions) {
+    val state = rememberTextFieldState(value)
+    val callback by rememberUpdatedState(onValueChange)
+    val current by rememberUpdatedState(value)
+    LaunchedEffect(value) { if (state.text.toString() != value) state.setTextAndPlaceCursorAtEnd(value) }
+    LaunchedEffect(state) { snapshotFlow { state.text.toString() }.distinctUntilChanged().collect { if (it != current) callback(it) } }
+    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(label, color = TextDark, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+        com.composables.ui.components.TextField(state = state, accessibilityLabel = label,
+            modifier = Modifier.fillMaxWidth().heightIn(min = 54.dp), shape = RoundedCornerShape(16.dp),
+            backgroundColor = CardWhite, contentColor = TextDark, borderColor = if (error) MaterialTheme.colorScheme.error else BorderSoft,
+            fontFamily = PoppinsFontFamily, fontSize = 14.sp, contentPadding = PaddingValues(horizontal = 14.dp, vertical = 12.dp),
+            leading = { Icon(icon, contentDescription = null, tint = TextMuted, modifier = Modifier.size(20.dp)) },
+            keyboardOptions = keyboardOptions, onKeyboardAction = { performDefault ->
+                val action = when (keyboardOptions.imeAction) {
+                    ImeAction.Next -> keyboardActions.onNext
+                    ImeAction.Done -> keyboardActions.onDone
+                    ImeAction.Go -> keyboardActions.onGo
+                    ImeAction.Search -> keyboardActions.onSearch
+                    ImeAction.Send -> keyboardActions.onSend
+                    ImeAction.Previous -> keyboardActions.onPrevious
+                    else -> null
+                }
+                if (action == null) performDefault() else action.invoke(object : androidx.compose.foundation.text.KeyboardActionScope {
+                    override fun defaultKeyboardAction(imeAction: ImeAction) { performDefault() }
+                })
+            })
     }
 }

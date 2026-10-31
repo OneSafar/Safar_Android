@@ -5,6 +5,9 @@ import com.safarparmar.app.ui.ekagra.focusshield.KavachCommandTextButton as Text
 import com.safarparmar.app.ui.ekagra.focusshield.KavachCommandField as OutlinedTextField
 
 
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.runtime.rememberUpdatedState
 
 import androidx.compose.ui.platform.LocalResources
@@ -341,18 +344,21 @@ fun FocusShieldSettingsContent(
         }
     }
 
+    var controlsHeight by remember { mutableIntStateOf(0) }
     val navBarBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     val contentBottomPadding = (if (state.isEnabled) 100.dp else 24.dp) + navBarBottom
 
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(scheme.background),
+            .background(scheme.background)
+            .kavachQuietArtwork(controlsHeight, !state.isEnabled, scheme.background.luminance() < .5f),
     ) {
         Column(
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
+                .onSizeChanged { controlsHeight = it.height }
                 .padding(horizontal = 20.dp)
                 .padding(
                     top = 16.dp,

@@ -1,5 +1,10 @@
 package com.safarparmar.app.ui.ekagra
 
+import com.composables.ui.components.Button
+import com.composables.ui.components.IconButton
+import com.composables.ui.components.Text
+import com.composables.ui.components.Icon
+
 import com.safarparmar.app.ui.tutorial.tutorialTarget
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
@@ -134,7 +139,7 @@ internal fun DurationTab(
             onValueChange = onBreakChange,
         )
 
-        EkagraHairline(ink.hairline)
+        EkagraPaper {
         SettingToggleRow(
             modifier = Modifier.tutorialTarget("ekagra.mute"),
             title    = stringResource(R.string.ekagra_audio),
@@ -165,23 +170,23 @@ internal fun DurationTab(
         }
         EkagraHairline(ink.hairline)
 
-        Spacer(Modifier.height(28.dp))
+        } // grouped settings card
+        Spacer(Modifier.height(20.dp))
 
-        Row(
+        Column(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalAlignment = Alignment.CenterVertically,
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             EkagraPrimaryAction(
                 label   = stringResource(R.string.goals_save_changes),
                 accent  = scheme.primary,
                 onClick = onSave,
-                modifier = Modifier.tutorialTarget("ekagra.settingsSave"),
+                modifier = Modifier.fillMaxWidth().tutorialTarget("ekagra.settingsSave"),
             )
             EkagraGhostAction(
                 label   = stringResource(R.string.ekagra_pomodoro),
                 ink     = ink,
-                modifier = Modifier.tutorialTarget("ekagra.pomodoroEntry"),
+                modifier = Modifier.fillMaxWidth().tutorialTarget("ekagra.pomodoroEntry"),
                 onClick = {
                     pomodoroFocusInput = focusMinutes.toString()
                     pomodoroBreakInput = breakMinutes.toString()
@@ -279,9 +284,10 @@ internal fun DurationSection(
     var customText      by remember { mutableStateOf("") }
     val alpha = if (enabled) 1f else 0.5f
 
-    EkagraHairline(ink.hairline)
     Column(
-        modifier = modifier.fillMaxWidth().alpha(alpha).padding(vertical = 20.dp),
+        modifier = modifier.fillMaxWidth().padding(bottom = 14.dp).alpha(alpha)
+            .background(scheme.surface, RoundedCornerShape(22.dp))
+            .border(1.dp, scheme.outlineVariant, RoundedCornerShape(22.dp)).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         // Label ↔ serif value, sharing a baseline
@@ -311,7 +317,7 @@ internal fun DurationSection(
                 modifier = Modifier.padding(bottom = 3.dp),
             )
             // Type an exact value — 48dp touch target for accessibility
-            IconButton(
+            IconButton(style = com.composables.ui.components.ButtonStyle.Ghost,
                 onClick  = { showCustomInput = !showCustomInput; customText = "" },
                 modifier = Modifier.size(48.dp),
             ) {
@@ -323,7 +329,7 @@ internal fun DurationSection(
         // Inline custom input (visible only when edit tapped)
         if (showCustomInput) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                OutlinedTextField(
+                com.safarparmar.app.ui.components.SafarRichTextField(
                     value         = customText,
                     // 4 digits: a 3-digit cap made values like 1200 impossible to
                     // even type, which read as "the limit is 999".
@@ -364,13 +370,13 @@ internal fun DurationSection(
         }
 
         // Line slider — fill and knob track the active theme accent
-        SlimSlider(
+        com.composables.ui.components.Slider(
             value         = value.toFloat(),
             onValueChange = { if (enabled) onValueChange(it.roundToInt().coerceIn(range.start.toInt(), range.endInclusive.toInt())) },
             valueRange    = range,
             modifier      = Modifier.fillMaxWidth(),
-            activeColor   = scheme.primary,
-            inactiveColor = ink.trackFaint,
+            enabled = enabled,
+            steps = (range.endInclusive - range.start).toInt().minus(1).coerceAtLeast(0),
         )
 
         // Range end-caps
@@ -413,25 +419,14 @@ private fun TimerAlertStyleRow(
         com.safarparmar.app.data.local.TimerAlertStyle.VIBRATE -> stringResource(R.string.ekagra_alert_vibrate)
     }
 
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .clickable { showSelector = true }
-            .padding(vertical = 14.dp, horizontal = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
+    Button(onClick = { showSelector = true }, style = com.composables.ui.components.ButtonStyle.Ghost,
+        modifier = Modifier.fillMaxWidth(), contentPadding = PaddingValues(vertical = 14.dp, horizontal = 6.dp)) {
         Column(Modifier.weight(1f)) {
             Text(stringResource(R.string.ekagra_timer_alert), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = ink.primaryText)
             Text(stringResource(R.string.ekagra_timer_alert_help), fontSize = 12.sp, color = ink.mutedText)
         }
-        Text(selectedLabel, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = ink.secondaryText)
-        Icon(
-            Icons.Default.ChevronRight,
-            contentDescription = stringResource(R.string.ekagra_choose_alert_style),
-            tint = ink.mutedText,
-            modifier = Modifier.size(18.dp),
-        )
+        Text(selectedLabel, fontSize = 13.sp, color = ink.secondaryText)
+        Icon(Icons.Default.ChevronRight, contentDescription = stringResource(R.string.ekagra_choose_alert_style), tint = ink.mutedText)
     }
 
     if (showSelector) {
@@ -439,37 +434,21 @@ private fun TimerAlertStyleRow(
             onDismissRequest = { showSelector = false },
             title = { Text(stringResource(R.string.ekagra_timer_alert_style)) },
             text = {
-                Column {
-                    listOf(
-                        com.safarparmar.app.data.local.TimerAlertStyle.SOUND to stringResource(R.string.ekagra_alert_sound),
-                        com.safarparmar.app.data.local.TimerAlertStyle.VIBRATE to stringResource(R.string.ekagra_alert_vibrate),
-                    ).forEach { (style, label) ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(10.dp))
-                                .clickable {
-                                    onStyleSelected(style)
-                                    showSelector = false
-                                }
-                                .padding(vertical = 10.dp, horizontal = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            RadioButton(
-                                selected = selectedStyle == style,
-                                onClick = {
-                                    onStyleSelected(style)
-                                    showSelector = false
-                                },
-                            )
-                            Spacer(Modifier.width(10.dp))
-                            Text(label, style = MaterialTheme.typography.bodyLarge)
+                com.composables.ui.components.RadioGroup(value = selectedStyle, onValueChange = {
+                    onStyleSelected(it); showSelector = false
+                }) {
+                    Column {
+                        listOf(
+                            com.safarparmar.app.data.local.TimerAlertStyle.SOUND to stringResource(R.string.ekagra_alert_sound),
+                            com.safarparmar.app.data.local.TimerAlertStyle.VIBRATE to stringResource(R.string.ekagra_alert_vibrate),
+                        ).forEach { (style, label) ->
+                            com.composables.ui.components.Radio(value = style, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text(label) }
                         }
                     }
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showSelector = false }) { Text(stringResource(R.string.common_cancel)) }
+                Button(style = com.composables.ui.components.ButtonStyle.Ghost, onClick = { showSelector = false }) { Text(stringResource(R.string.common_cancel)) }
             },
         )
     }
@@ -485,24 +464,16 @@ internal fun SettingToggleRow(
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .clickable { onCheckedChange(!checked) }
-            .padding(vertical = 12.dp, horizontal = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
+    com.composables.ui.components.Switch(
+        checked = checked,
+        onCheckedChange = onCheckedChange,
+        accessibilityLabel = title,
+        modifier = modifier.fillMaxWidth().heightIn(min = 56.dp).padding(vertical = 8.dp),
     ) {
-        Column(modifier = Modifier.weight(1f)) {
+        Column(Modifier.weight(1f)) {
             Text(title, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = ink.primaryText)
             Text(subtitle, fontSize = 12.sp, color = ink.mutedText)
         }
-        // M3 Switch keeps its default colours so it follows the active theme.
-        Switch(
-            checked = checked,
-            onCheckedChange = onCheckedChange,
-            modifier = Modifier.scale(0.85f),
-        )
     }
 }
 
@@ -525,7 +496,7 @@ private fun EkagraAlarmAccessRow() {
         Text(if (allowed) stringResource(R.string.ekagra_alarm_access_enabled)
             else stringResource(R.string.ekagra_alarm_access_needed),
             style = MaterialTheme.typography.bodySmall)
-        if (!allowed && android.os.Build.VERSION.SDK_INT >= 31) TextButton(onClick = {
+        if (!allowed && android.os.Build.VERSION.SDK_INT >= 31) Button(style = com.composables.ui.components.ButtonStyle.Ghost, onClick = {
             runCatching { context.startActivity(android.content.Intent(android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,
                 android.net.Uri.parse("package:${context.packageName}"))) }
         }) { Text(stringResource(R.string.ekagra_allow_alarms)) }
@@ -560,7 +531,7 @@ internal fun PomodoroSettingsContent(
                         modifier = Modifier.weight(1f),
                     ) { Text(label) }
                 } else {
-                    OutlinedButton(
+                    Button(style = com.composables.ui.components.ButtonStyle.Outlined,
                         onClick = { onStyleChange(option) },
                         modifier = Modifier.weight(1f),
                     ) { Text(label) }
@@ -580,7 +551,7 @@ internal fun PomodoroSettingsContent(
                 color = scheme.onSurfaceVariant,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
+                com.safarparmar.app.ui.components.SafarRichTextField(
                     value = focusInput,
                     onValueChange = onFocusChange,
                     label = { Text(stringResource(R.string.ekagra_pomodoro_focus_minutes)) },
@@ -588,7 +559,7 @@ internal fun PomodoroSettingsContent(
                     singleLine = true,
                     modifier = Modifier.weight(1f),
                 )
-                OutlinedTextField(
+                com.safarparmar.app.ui.components.SafarRichTextField(
                     value = breakInput,
                     onValueChange = onBreakChange,
                     label = { Text(stringResource(R.string.ekagra_pomodoro_break_minutes)) },
@@ -602,7 +573,7 @@ internal fun PomodoroSettingsContent(
                 style = MaterialTheme.typography.bodyMedium,
                 color = scheme.onSurfaceVariant
             )
-            OutlinedTextField(
+            com.safarparmar.app.ui.components.SafarRichTextField(
                 value = loopsInput,
                 onValueChange = onLoopsChange,
                 keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),

@@ -53,6 +53,7 @@ class HabitInsightsViewModelTest {
         )
 
         val repository = mockk<HabitRepository>()
+        every { repository.observeAllHabits() } returns MutableStateFlow(emptyList())
         every {
             repository.observeHabitsWithCompletionsForRange(any(), any())
         } returns MutableStateFlow(listOf(habitWithCompletions))
@@ -75,6 +76,7 @@ class HabitInsightsViewModelTest {
     @Test
     fun `navigation changes month and year within bounds`() = runTest {
         val repository = mockk<HabitRepository>()
+        every { repository.observeAllHabits() } returns MutableStateFlow(emptyList())
         every {
             repository.observeHabitsWithCompletionsForRange(any(), any())
         } returns MutableStateFlow(emptyList())
@@ -122,6 +124,7 @@ class HabitInsightsViewModelTest {
     @Test
     fun `habit selection updates selectedHabitId`() = runTest {
         val repository = mockk<HabitRepository>()
+        every { repository.observeAllHabits() } returns MutableStateFlow(emptyList())
         every {
             repository.observeHabitsWithCompletionsForRange(any(), any())
         } returns MutableStateFlow(emptyList())
@@ -164,6 +167,7 @@ class HabitInsightsViewModelTest {
         )
 
         val repository = mockk<HabitRepository>()
+        every { repository.observeAllHabits() } returns MutableStateFlow(emptyList())
         every {
             repository.observeHabitsWithCompletionsForRange(any(), any())
         } returns MutableStateFlow(listOf(hwc1, hwc2))

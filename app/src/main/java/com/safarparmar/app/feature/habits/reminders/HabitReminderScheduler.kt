@@ -57,17 +57,28 @@ class HabitReminderScheduler @Inject constructor(
         if (accounts.userId.first() != owner || !accounts.isLoggedIn.first()) return@withLock
         val old = cache.read()
         if (old != null && old.owner != owner) cache.clear()
-        val confirmed = habits.filterNot { it.deleted }
+        // Past completions and superseded schedules cannot affect a future alarm.
+        val today = java.time.LocalDate.now().toString()
+        val confirmed = habits.filter { !it.deleted && it.isActive && it.archivedAt == null && it.reminderTime != null }
+            .map { habit ->
+                val current = habit.revisions.filter { it.effectiveFrom <= today }.maxByOrNull { it.effectiveFrom }
+                habit.copy(revisions = listOfNotNull(current) + habit.revisions.filter { it.effectiveFrom > today },
+                    completions = habit.completions.filter { it.date >= today })
+            }.sortedBy { it.id }
+        val replacement = HabitReminderSnapshot(owner, confirmed)
+        if (old == replacement) return@withLock
+        val oldById = old?.takeIf { it.owner == owner }?.habits?.associateBy { it.id }.orEmpty()
+        val changedIds = confirmed.filter { oldById[it.id] != it }.map { it.id }.toSet()
         // Persist first: a process death here leaves old alarms able to read the new projection.
-        cache.replace(HabitReminderSnapshot(owner, confirmed))
+        cache.replace(replacement)
         old?.habits?.filter { previous -> old.owner != owner || confirmed.none { it.id == previous.id } }
             ?.forEach { cancelForHabit(old.owner, it.id) }
-        reconcileLocked()
+        reconcileLocked(changedIds)
     }
 
     suspend fun reconcile() = mutex.withLock { reconcileLocked() }
 
-    private suspend fun reconcileLocked() {
+    private suspend fun reconcileLocked(changedIds: Set<String>? = null) {
         val snapshot = cache.read() ?: return
         val owner = account.first()
         if (owner != snapshot.owner) {
@@ -77,7 +88,7 @@ class HabitReminderScheduler @Inject constructor(
             return
         }
         val now = ZonedDateTime.now()
-        snapshot.habits.forEach { habit ->
+        snapshot.habits.filter { changedIds == null || it.id in changedIds }.forEach { habit ->
             if (!HabitReminderPolicy.scheduled(habit, now.toLocalDate())) notificationManager.cancel(tag(owner, habit.id), 0)
             schedule(owner, habit, now)
         }

@@ -100,7 +100,7 @@ fun HabitScreen(
                     state = state,
                     habitIcons = habitIcons,
                     habitViewModel = viewModel,
-                    onAddHabit = { showAddHabit = true },
+                    onAddHabit = { if (!state.isLoading && !state.isMigrating) showAddHabit = true },
                     onEditHabit = { editingId = it.id },
                     onMore = { openDrawer() },
                     snackbar = snackbar
@@ -116,7 +116,7 @@ fun HabitScreen(
         if (showAddHabit) {
             AddHabitBottomSheet(
                 onDismiss = { showAddHabit = false },
-                onCreate = { name, days, isEveryDay, reminderTime, emoji -> viewModel.createHabit(name, days, isEveryDay, reminderTime, emoji) },
+                onCreate = { name, days, isEveryDay, reminderTime, emoji, operationId -> viewModel.createHabit(name, days, isEveryDay, reminderTime, emoji, operationId) },
                 onCreated = { name, days ->
                     scope.launch { snackbar.showSnackbar(habitCreatedMessage(name, days, LocalDate.now())) }
                 }

@@ -68,6 +68,7 @@ class HabitViewModelTest {
         every { dao.observeActiveScheduleRevisionsThrough(any()) } returns MutableStateFlow(emptyList())
         coEvery { dao.getCompletionsForHabit(1L) } returns done
         coEvery { dao.getScheduleRevisionsForHabit(1L) } returns emptyList()
+        every { dao.observeHistory(any(), any(), any()) } returns MutableStateFlow(HabitHistory(listOf(habit), done, emptyList()))
         val repo = HabitRepository(dao)
 
         assertTrue(repo.observeForDate(today).first().single().completed)
@@ -80,6 +81,7 @@ class HabitViewModelTest {
     @Test fun `midnight updates current periods and preserves browsed history`() = runTest {
         run {
             val dao = mockk<HabitRemoteStore>(relaxed = true)
+            every { dao.observeHistory(any(), any(), any()) } returns MutableStateFlow(HabitHistory(emptyList(), emptyList(), emptyList()))
             every { dao.observeActiveHabits() } returns MutableStateFlow(emptyList())
             every { dao.observeCompletionsForDate(any()) } returns MutableStateFlow(emptyList())
             every { dao.observeCompletionsBetween(any(), any()) } returns MutableStateFlow(emptyList())
@@ -139,6 +141,7 @@ class HabitViewModelTest {
         every { dao.observeCompletionsForDate(any()) } returns MutableStateFlow(emptyList())
         every { dao.observeActiveScheduleRevisionsThrough(any()) } returns MutableStateFlow(emptyList())
 
+        every { dao.observeHistory(any(), any(), any()) } returns MutableStateFlow(HabitHistory(listOf(sundayHabit), emptyList(), emptyList()))
         val repo = HabitRepository(dao)
 
         // Monday (2026-09-14)

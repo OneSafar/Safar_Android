@@ -1,10 +1,12 @@
 package com.safarparmar.app.ui.nishtha.goals
 
 import androidx.compose.ui.text.font.FontWeight
+import com.safarparmar.app.ui.theme.isLightBackground
 import com.safarparmar.app.ui.tutorial.TitliFeature
 import com.safarparmar.app.ui.tutorial.TutorialVisualStyle
 import com.safarparmar.app.ui.tutorial.TutorialLessonCard
 import com.safarparmar.app.ui.tutorial.TutorialLessonMenu
+import com.safarparmar.app.ui.tutorial.tutorialVisualColors
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Edit
@@ -14,6 +16,7 @@ import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
@@ -121,7 +124,9 @@ internal fun GoalsTutorialPractice(model: GoalsTutorialViewModel, completed: Set
 @Composable
 private fun GoalsTutorialLessons(completed: Set<String>, onStart: (GoalsTutorialLesson) -> Unit, onExit: () -> Unit) {
     TutorialLessonMenu(TitliFeature.GOALS) {
-        Text(stringResource(R.string.goals_tutorial_lessons), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        val dark = !MaterialTheme.colorScheme.background.isLightBackground()
+        val c = tutorialVisualColors(dark)
+        Text(stringResource(R.string.goals_tutorial_lessons), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = c.ink)
         GoalsTutorialLesson.entries.forEach { lesson ->
             TutorialLessonCard(stringResource(lesson.title), lesson.name in completed,
                 icon = when (lesson) {
@@ -131,7 +136,14 @@ private fun GoalsTutorialLessons(completed: Set<String>, onStart: (GoalsTutorial
                     GoalsTutorialLesson.PROGRESS -> Icons.Filled.BarChart
                 }, modifier = Modifier.testTag("goals.tutorial.lesson.${lesson.name}"), onClick = { onStart(lesson) })
         }
-        Button(onClick = onExit, modifier = Modifier.fillMaxWidth().testTag("goals.tutorial.done")) { Text(stringResource(R.string.feature_tutorial_finish)) }
+        Button(
+            onClick = onExit,
+            modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp).testTag("goals.tutorial.done"),
+            shape = RoundedCornerShape(16.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = c.action, contentColor = c.onAction),
+        ) {
+            Text(stringResource(R.string.feature_tutorial_finish), color = c.onAction, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+        }
     }
 }
 

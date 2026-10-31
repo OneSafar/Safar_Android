@@ -1,5 +1,7 @@
 package com.safarparmar.app.ui.ekagra
 
+import com.composables.ui.components.Text
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -57,7 +59,7 @@ internal fun formatTopicStudyTime(totalSeconds: Int): String {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun TopicStudySaveSheet(
-    sheetState: SheetState,
+    sheetState: com.composables.ui.components.BottomSheetState,
     pending: PendingEndedEkagraSession,
     state: TopicStudySheetState,
     selectedTheme: VisualTheme,
@@ -75,30 +77,28 @@ internal fun TopicStudySaveSheet(
         isDarkTheme = isDarkTheme,
     )
     val container = if (isDarkTheme) MaterialTheme.colorScheme.surface else Color.White
-    val accent = selectedTheme.accent
+    val accent = MaterialTheme.colorScheme.primary
     val canDismiss = state == TopicStudySheetState.Saved ||
         state == TopicStudySheetState.SavedOnPhone
 
-    ModalBottomSheet(
+    com.safarparmar.app.ui.components.popups.SafarComposablesBottomSheet(
         onDismissRequest = { if (canDismiss) onDismiss() },
-        sheetState = sheetState,
-        containerColor = container,
+        state = sheetState,
+        backgroundColor = container,
         contentColor = ink.primaryText,
         shape = androidx.compose.foundation.shape.RoundedCornerShape(
             topStart = 22.dp,
             topEnd = 22.dp,
         ),
-        dragHandle = { BottomSheetDefaults.DragHandle(color = ink.hairline) },
+
     ) {
-        Column(
+        EkagraPaper(
             modifier = Modifier
                 .fillMaxWidth()
                 .wrapContentWidth(Alignment.CenterHorizontally)
                 .widthIn(max = 560.dp)
                 .padding(horizontal = 24.dp, vertical = 16.dp)
                 .padding(bottom = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             EkagraEyebrow(stringResource(R.string.ekagra_study_finished), ink.mutedText)
             EkagraDisplayTitle(

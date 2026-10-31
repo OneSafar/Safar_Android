@@ -26,7 +26,8 @@ data class HabitUiState(
     val monthAnchor: LocalDate = LocalDate.now().withDayOfMonth(1),
     val selectedTab: HabitTab = HabitTab.TODAY,
     val syncError: String? = null,
-    val isLoading: Boolean = true
+    val isLoading: Boolean = true,
+    val isMigrating: Boolean = false
 )
 
 internal fun weekOf(date: LocalDate): LocalDate = date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
@@ -69,7 +70,8 @@ class HabitViewModel @Inject constructor(private val repository: HabitRepository
             monthAnchor = month.anchor,
             selectedTab = tab,
             syncError = sync.error,
-            isLoading = sync.loading
+            isLoading = sync.loading,
+            isMigrating = sync.migrating
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), HabitUiState())
 
@@ -132,7 +134,7 @@ class HabitViewModel @Inject constructor(private val repository: HabitRepository
                         errors.send("Habit not found.")
                 }
             } catch (e: CancellationException) { throw e }
-            catch (e: Exception) { errors.send("Unable to update habit. Please try again.") }
+            catch (e: Exception) { errors.send(e.message ?: "Unable to update habit. Please try again.") }
             finally { pendingTicks.update { it - key } }
         }
     }
@@ -146,7 +148,7 @@ class HabitViewModel @Inject constructor(private val repository: HabitRepository
         }
     }
 
-    suspend fun createHabit(name: String, targetDays: Set<DayOfWeek>, isEveryDay: Boolean, reminderTime: String? = null, emoji: String? = null) {
+    suspend fun createHabit(name: String, targetDays: Set<DayOfWeek>, isEveryDay: Boolean, reminderTime: String? = null, emoji: String? = null, operationId: String? = null) {
         val habits = repository.observeHabits().first()
         repository.createHabit(
             name = name,
@@ -154,7 +156,8 @@ class HabitViewModel @Inject constructor(private val repository: HabitRepository
             isEveryDay = isEveryDay,
             order = (habits.maxOfOrNull { it.order } ?: -1) + 1,
             reminderTime = reminderTime,
-            emoji = emoji
+            emoji = emoji,
+            operationId = operationId
         )
     }
 

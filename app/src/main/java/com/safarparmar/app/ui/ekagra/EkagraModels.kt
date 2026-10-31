@@ -136,18 +136,19 @@ val visualThemes = listOf(
         musicUrl = "https://del1.vultrobjects.com/qms-images/Safar/music_3.mp3",
         gradientColors = listOf(EkagraThemeColor.Thistle, EkagraThemeColor.Violet),
         hidden = true),
-    VisualTheme("Focus", "🚀", EkagraThemeColor.Navy,
-        gradientColors = listOf(EkagraThemeColor.Periwinkle, EkagraThemeColor.Navy)),
-    VisualTheme("Habits", "🌿", EkagraThemeColor.HunterGreen,
-        gradientColors = listOf(EkagraThemeColor.SageGreen, EkagraThemeColor.HunterGreen)),
-    VisualTheme("Journal", "📝", EkagraThemeColor.Mahogany,
-        gradientColors = listOf(EkagraThemeColor.Peach, EkagraThemeColor.Mahogany)),
-    VisualTheme("Peace", "🧘", EkagraThemeColor.Eggplant,
-        gradientColors = listOf(EkagraThemeColor.Thistle, EkagraThemeColor.Eggplant)),
+    // Slots 4–7 retain their legacy names and positions for persisted theme indices.
+    VisualTheme("Focus", "", Color(0xFF152C4C),
+        gradientColors = listOf(Color(0xFF296C9A), Color(0xFF091D37))),
+    VisualTheme("Habits", "", Color(0xFF123D3B),
+        gradientColors = listOf(Color(0xFF388B83), Color(0xFF092D30))),
+    VisualTheme("Journal", "", Color(0xFF8A3F22),
+        gradientColors = listOf(Color(0xFFBD632C), Color(0xFF462218))),
+    VisualTheme("Peace", "", Color(0xFF491438),
+        gradientColors = listOf(Color(0xFF873361), Color(0xFF310B29))),
 )
 
 /** The themes actually offered in the picker. */
-val selectableVisualThemes = visualThemes.filter { !it.hidden }
+val selectableVisualThemes = visualThemes.filter { !it.hidden }.sortedBy { when (it.name) { "Peace" -> 0; "Focus" -> 1; "Journal" -> 2; else -> 3 } }
 
 // Removed focusMusicTracks in favor of shared AudioLibrary
 

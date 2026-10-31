@@ -194,7 +194,7 @@ fun HabitInsightsContent(
 
     if (showExportDialog) {
         HabitExportDialog(
-            availableHabits = state.availableHabits,
+            availableHabits = state.exportableHabits,
             onDismiss = { showExportDialog = false },
             onExport = { rangeOption, customStart, customEnd, selectedHabitIds ->
                 scope.launch {

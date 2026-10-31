@@ -22,6 +22,8 @@ class HabitScheduleHistoryRepositoryTest {
         coEvery { dao.getHabitsForRange(any(), any()) } returns listOf(habit)
         coEvery { dao.getScheduleRevisionsForRange(any(), any()) } returns listOf(revision)
         coEvery { dao.getCompletionsBetween(any(), any()) } returns listOf(HabitCompletionEntity(1, monday, true))
+        every { dao.observeHistory(any(), any(), any()) } returns MutableStateFlow(HabitHistory(
+            listOf(habit), listOf(HabitCompletionEntity(1, monday, true)), listOf(revision)))
         val result = HabitRepository(dao).getHabitsWithCompletionsForRange(monday, monday.plusWeeks(1)).single()
         assertEquals(mapOf(monday to true, monday.plusDays(2) to false), result.completionByDate)
     }
@@ -29,6 +31,7 @@ class HabitScheduleHistoryRepositoryTest {
     @Test fun `days before the initial schedule have no completion slots`() = runTest {
         val dao = mockk<HabitRemoteStore>(relaxed = true)
         coEvery { dao.getHabitsForRange(any(), any()) } returns listOf(habit)
+        every { dao.observeHistory(any(), any(), any()) } returns MutableStateFlow(HabitHistory(listOf(habit), emptyList(), emptyList()))
         val result = HabitRepository(dao).getHabitsWithCompletionsForRange(monday.minusWeeks(1), monday).single()
         assertEquals(mapOf(monday to false), result.completionByDate)
     }
@@ -37,6 +40,8 @@ class HabitScheduleHistoryRepositoryTest {
         val dao = mockk<HabitRemoteStore>(relaxed = true)
         coEvery { dao.getHabitsForRange(any(), any()) } returns listOf(habit.copy(isArchived = true, archivedAt = monday))
         coEvery { dao.getCompletionsBetween(any(), any()) } returns listOf(HabitCompletionEntity(1, monday, true))
+        every { dao.observeHistory(any(), any(), any()) } returns MutableStateFlow(HabitHistory(
+            listOf(habit.copy(isArchived = true, archivedAt = monday)), listOf(HabitCompletionEntity(1, monday, true)), emptyList()))
         val result = HabitRepository(dao).getHabitsWithCompletionsForRange(monday, monday.plusWeeks(2)).single()
         assertEquals(mapOf(monday to true), result.completionByDate)
     }
@@ -49,6 +54,9 @@ class HabitScheduleHistoryRepositoryTest {
         every { dao.observeActiveScheduleRevisionsThrough(wednesday) } returns MutableStateFlow(listOf(
             HabitScheduleRevisionEntity(habitId = 1, effectiveFrom = monday.plusDays(1),
                 targetDays = setOf(DayOfWeek.WEDNESDAY), isEveryDay = false)))
+        every { dao.observeHistory(any(), any(), any()) } returns MutableStateFlow(HabitHistory(listOf(habit), emptyList(), listOf(
+            HabitScheduleRevisionEntity(habitId = 1, effectiveFrom = monday.plusDays(1),
+                targetDays = setOf(DayOfWeek.WEDNESDAY), isEveryDay = false))))
         val result = HabitRepository(dao).observeForDate(wednesday).first().single()
         assertEquals(habit, result.habit)
         assertEquals(wednesday, result.date)

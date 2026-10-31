@@ -1,5 +1,14 @@
 package com.safarparmar.app.ui.ekagra
 
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
+
+import com.composables.ui.components.Button
+import com.composables.ui.components.IconButton
+import com.composables.ui.components.Text
+import com.composables.ui.components.Icon
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -66,18 +75,11 @@ internal fun EkagraTagSelector(
         ) {
             // Add custom tag button
             if (onAddTag != null) {
-                Surface(
+                Button(
+                    onClick = { newTagInput = ""; newTagColorHex = TAG_COLOR_PALETTE[0]; showAddDialog = true },
+                    style = com.composables.ui.components.ButtonStyle.Outlined,
                     shape = RoundedCornerShape(10.dp),
-                    color = Color.Transparent,
-                    border = BorderStroke(1.dp, unselectedBorder),
-                    modifier = Modifier
-                        .height(34.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .clickable {
-                            newTagInput = ""
-                            newTagColorHex = TAG_COLOR_PALETTE[0]
-                            showAddDialog = true
-                        }
+                    contentPadding = PaddingValues(horizontal = 10.dp),
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 10.dp),
@@ -111,7 +113,7 @@ internal fun EkagraTagSelector(
 
                 Box(
                     modifier = Modifier
-                        .height(34.dp)
+                        .heightIn(min = 48.dp)
                         .clip(RoundedCornerShape(10.dp))
                         .background(chipBg)
                         .border(BorderStroke(1.dp, chipBorder), RoundedCornerShape(10.dp))
@@ -137,19 +139,11 @@ internal fun EkagraTagSelector(
                         horizontalArrangement = Arrangement.spacedBy(5.dp)
                     ) {
                         // Colored dot indicator — click to edit color if onSetTagColor != null
-                        Box(
-                            modifier = Modifier
-                                .size(14.dp)
-                                .clip(CircleShape)
-                                .then(
-                                    if (onSetTagColor != null) {
-                                        Modifier.clickable {
-                                            editColorHex = tagColorHex
-                                            tagToEditColor = tag
-                                        }
-                                    } else Modifier
-                                ),
-                            contentAlignment = Alignment.Center
+                        IconButton(
+                            onClick = { editColorHex = tagColorHex; tagToEditColor = tag },
+                            enabled = onSetTagColor != null,
+                            style = com.composables.ui.components.ButtonStyle.Ghost,
+                            modifier = Modifier.size(48.dp),
                         ) {
                             Box(
                                 modifier = Modifier
@@ -174,9 +168,9 @@ internal fun EkagraTagSelector(
                             color = chipTextColor,
                         )
                         if (onDeleteTag != null) {
-                            IconButton(
+                            IconButton(style = com.composables.ui.components.ButtonStyle.Ghost,
                                 onClick = { tagToDelete = tag },
-                                modifier = Modifier.size(22.dp)
+                                modifier = Modifier.size(48.dp)
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Close,
@@ -199,7 +193,7 @@ internal fun EkagraTagSelector(
             title = { Text(stringResource(R.string.ekagra_add_subject), fontSize = 16.sp, fontWeight = FontWeight.SemiBold) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedTextField(
+                    com.safarparmar.app.ui.components.SafarRichTextField(
                         value = newTagInput,
                         onValueChange = { newTagInput = it },
                         label = { Text(stringResource(R.string.ekagra_subject_name)) },
@@ -223,18 +217,14 @@ internal fun EkagraTagSelector(
                         for (colorHex in TAG_COLOR_PALETTE) {
                             val color = EkagraTagUtils.parseHexColor(colorHex)
                             val isColorSelected = colorHex.equals(newTagColorHex, ignoreCase = true)
-                            Box(
-                                modifier = Modifier
-                                    .size(28.dp)
-                                    .clip(CircleShape)
-                                    .background(color)
-                                    .border(
-                                        width = if (isColorSelected) 2.dp else 1.dp,
-                                        color = if (isColorSelected) (if (isDark) Color.White else Color.Black) else Color.Transparent,
-                                        shape = CircleShape
-                                    )
-                                    .clickable { newTagColorHex = colorHex },
-                                contentAlignment = Alignment.Center
+                            IconButton(
+                                onClick = { newTagColorHex = colorHex },
+                                style = com.composables.ui.components.ButtonStyle.Ghost,
+                                shape = CircleShape,
+                                modifier = Modifier.size(48.dp).background(color, CircleShape)
+                                    .border(if (isColorSelected) 2.dp else 1.dp,
+                                        if (isColorSelected) (if (isDark) Color.White else Color.Black) else Color.Transparent, CircleShape)
+                                    .semantics { contentDescription = "Subject color $colorHex"; selected = isColorSelected },
                             ) {
                                 if (isColorSelected) {
                                     Icon(
@@ -250,7 +240,7 @@ internal fun EkagraTagSelector(
                 }
             },
             confirmButton = {
-                TextButton(
+                Button(style = com.composables.ui.components.ButtonStyle.Ghost,
                     onClick = {
                         val trimmed = newTagInput.trim()
                         if (trimmed.isNotEmpty()) {
@@ -265,7 +255,7 @@ internal fun EkagraTagSelector(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showAddDialog = false }) {
+                Button(style = com.composables.ui.components.ButtonStyle.Ghost, onClick = { showAddDialog = false }) {
                     Text(stringResource(R.string.common_cancel))
                 }
             }
@@ -300,18 +290,14 @@ internal fun EkagraTagSelector(
                         for (colorHex in TAG_COLOR_PALETTE) {
                             val color = EkagraTagUtils.parseHexColor(colorHex)
                             val isColorSelected = colorHex.equals(editColorHex, ignoreCase = true)
-                            Box(
-                                modifier = Modifier
-                                    .size(30.dp)
-                                    .clip(CircleShape)
-                                    .background(color)
-                                    .border(
-                                        width = if (isColorSelected) 2.5.dp else 1.dp,
-                                        color = if (isColorSelected) (if (isDark) Color.White else Color.Black) else Color.Transparent,
-                                        shape = CircleShape
-                                    )
-                                    .clickable { editColorHex = colorHex },
-                                contentAlignment = Alignment.Center
+                            IconButton(
+                                onClick = { editColorHex = colorHex },
+                                style = com.composables.ui.components.ButtonStyle.Ghost,
+                                shape = CircleShape,
+                                modifier = Modifier.size(48.dp).background(color, CircleShape)
+                                    .border(if (isColorSelected) 2.dp else 1.dp,
+                                        if (isColorSelected) (if (isDark) Color.White else Color.Black) else Color.Transparent, CircleShape)
+                                    .semantics { contentDescription = "Subject color $colorHex"; selected = isColorSelected },
                             ) {
                                 if (isColorSelected) {
                                     Icon(
@@ -327,7 +313,7 @@ internal fun EkagraTagSelector(
                 }
             },
             confirmButton = {
-                TextButton(
+                Button(style = com.composables.ui.components.ButtonStyle.Ghost,
                     onClick = {
                         if (editColorHex.isNotBlank()) {
                             onSetTagColor?.invoke(tag, editColorHex)
@@ -339,7 +325,7 @@ internal fun EkagraTagSelector(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { tagToEditColor = null }) {
+                Button(style = com.composables.ui.components.ButtonStyle.Ghost, onClick = { tagToEditColor = null }) {
                     Text(stringResource(R.string.common_cancel))
                 }
             }
@@ -355,7 +341,7 @@ internal fun EkagraTagSelector(
                 Text(stringResource(R.string.ekagra_remove_subject_body, tag), fontSize = 13.sp)
             },
             confirmButton = {
-                TextButton(
+                Button(style = com.composables.ui.components.ButtonStyle.Ghost,
                     onClick = {
                         onDeleteTag?.invoke(tag)
                         if (selectedTag == tag) {
@@ -368,7 +354,7 @@ internal fun EkagraTagSelector(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { tagToDelete = null }) {
+                Button(style = com.composables.ui.components.ButtonStyle.Ghost, onClick = { tagToDelete = null }) {
                     Text(stringResource(R.string.common_cancel))
                 }
             }

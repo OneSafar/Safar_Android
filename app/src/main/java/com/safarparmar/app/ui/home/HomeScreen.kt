@@ -338,89 +338,39 @@ fun HomeScreen(
 }
 
 @Composable
-private fun SafarWelcomeDialog(
-    userName: String,
-    isDarkTheme: Boolean,
-    onDismiss: () -> Unit,
-) {
-    val isLight = !isDarkTheme
-    val titleColor = if (isLight) Color(0xFF581C87) else Color(0xFFC084FC)
-    val headlineColor = if (isLight) Color(0xFF1F2937) else Color(0xFFF9FAFB)
-    val bodyColor = if (isLight) Color(0xFF4B5563) else Color(0xFF9CA3AF)
-    val buttonBg = if (isDarkTheme) Color(0xFF3B0764) else Color(0xFF581C87)
-    val shape = RoundedCornerShape(24.dp)
-
-    Dialog(
-        onDismissRequest = {},
-        properties = DialogProperties(usePlatformDefaultWidth = false),
-    ) {
-        Surface(
-            modifier = Modifier
-                .padding(horizontal = 24.dp)
-                .widthIn(max = 380.dp)
-                .fillMaxWidth(),
-            shape = shape,
-            color = if (isLight) Color.White else Color(0xFF1E1F25),
-            shadowElevation = 12.dp,
-            border = BorderStroke(1.dp, if (isLight) Color(0xFFE2E8F0) else Color(0xFF2D2F36)),
-        ) {
-            Column(
-                modifier = Modifier.padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+private fun SafarWelcomeDialog(userName: String, isDarkTheme: Boolean, onDismiss: () -> Unit) {
+    val paper = if (isDarkTheme) Color(0xFF342735) else Color(0xFFFFF9F4)
+    val ink = if (isDarkTheme) Color(0xFFFFF0F6) else Color(0xFF39132E)
+    val muted = if (isDarkTheme) Color(0xFFCFBECB) else Color(0xFF75616F)
+    val plum = if (isDarkTheme) Color(0xFFF0BEDC) else Color(0xFF491438)
+    CompositionLocalProvider(com.safarparmar.app.ui.theme.LocalSafarComposablesAccent provides plum) {
+        com.safarparmar.app.ui.theme.SafarComposablesTheme {
+            com.safarparmar.app.ui.components.popups.SafarComposablesAlertDialog(
+                visible = true, onDismissRequest = {},
+                modifier = Modifier.widthIn(max = 400.dp).fillMaxWidth(),
+                paneTitle = stringResource(R.string.home_welcome_hello), shape = RoundedCornerShape(28.dp),
+                backgroundColor = paper, contentColor = ink, contentPadding = PaddingValues(24.dp),
             ) {
-                Text(
-                    text = if (userName.isNotBlank()) {
-                        stringResource(R.string.home_welcome_hello_name, userName)
-                    } else {
-                        stringResource(R.string.home_welcome_hello)
-                    },
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Black,
-                    color = titleColor,
-                    textAlign = TextAlign.Center,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    Text(
-                        text = stringResource(R.string.home_welcome_intro),
-                        fontSize = 14.5.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = headlineColor,
-                        textAlign = TextAlign.Center,
-                        lineHeight = 19.sp,
-                    )
-                    Text(
-                        text = stringResource(R.string.home_welcome_message),
-                        fontSize = 12.5.sp,
-                        color = bodyColor,
-                        textAlign = TextAlign.Center,
-                        lineHeight = 16.5.sp,
-                    )
-                    Text(
-                        text = stringResource(R.string.home_welcome_journey),
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = titleColor,
-                        textAlign = TextAlign.Center,
-                    )
-                }
-                Button(
-                    onClick = onDismiss,
-                    style = ButtonStyle.Primary,
-                    buttonSize = ButtonSize.Regular,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(
-                        text = stringResource(R.string.home_welcome_start),
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                    )
+                Column(Modifier.fillMaxWidth().heightIn(max = 680.dp).verticalScroll(rememberScrollState()),
+                    horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Image(painterResource(R.drawable.home_welcome_book), contentDescription = null,
+                        modifier = Modifier.fillMaxWidth().heightIn(max = 165.dp), contentScale = ContentScale.Fit)
+                    Text(if (userName.isNotBlank()) stringResource(R.string.home_welcome_hello_name, userName)
+                        else stringResource(R.string.home_welcome_hello), color = ink, fontFamily = PoppinsFontFamily,
+                        fontSize = 25.sp, lineHeight = 32.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+                    Text(stringResource(R.string.home_welcome_intro), color = ink, fontSize = 15.sp,
+                        lineHeight = 22.sp, fontWeight = FontWeight.Medium, textAlign = TextAlign.Center)
+                    Text(stringResource(R.string.home_welcome_message), color = muted, fontSize = 13.sp,
+                        lineHeight = 20.sp, textAlign = TextAlign.Center)
+                    Text(stringResource(R.string.home_welcome_journey), color = plum, fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)
+                    Button(onClick = onDismiss, style = ButtonStyle.Ghost, shape = CircleShape,
+                        contentColor = if (isDarkTheme) paper else Color.White,
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp).background(plum, CircleShape)) {
+                        Text(stringResource(R.string.home_welcome_start), fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                        Spacer(Modifier.width(8.dp))
+                        ComposablesIcon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, modifier = Modifier.size(18.dp))
+                    }
                 }
             }
         }

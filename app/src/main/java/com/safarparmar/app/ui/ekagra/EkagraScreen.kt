@@ -1,5 +1,8 @@
 package com.safarparmar.app.ui.ekagra
 
+import com.composables.ui.components.Text
+import com.composables.ui.components.Icon
+
 import com.safarparmar.app.ui.adaptive.isSpaciousLandscape
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.draw.drawBehind
@@ -146,7 +149,7 @@ fun EkagraScreen(
     val fallbackTotalSeconds     = remember { MutableStateFlow(25 * 60) }
     val fallbackTimerRunning     = remember { MutableStateFlow(false) }
     val fallbackTimerMode        = remember { MutableStateFlow(TimerMode.FOCUS) }
-    
+
     val secondsLeft       by (timerService?.secondsLeft        ?: fallbackSecondsLeft).collectAsStateWithLifecycle()
     val totalSeconds      by (timerService?.totalSeconds       ?: fallbackTotalSeconds).collectAsStateWithLifecycle()
     val timerRunning      by (timerService?.isRunning          ?: fallbackTimerRunning).collectAsStateWithLifecycle()
@@ -498,10 +501,7 @@ fun EkagraScreen(
         focusShieldViewModel.clearActivationMessage()
     }
 
-    LaunchedEffect(selectedTab) {
-        if (selectedTab == EkagraNavTab.TIMER && timerService?.isActive() == false && timerMode != TimerMode.POMODORO && (timerService?.targetPomodoroLoops?.value ?: 0) <= 0)
-            timerService?.setDuration(TimerMode.FOCUS, focusMinutes * 60, breakMinutes * 60)
-    }
+    // Tab navigation must never reconfigure the service. Start/Save explicitly apply durations.
     LaunchedEffect(initialView) {
         if (initialView == "analytics") onNavigate(Routes.nishthaAnalytics("ekagra"))
     }
@@ -665,102 +665,12 @@ fun EkagraScreen(
         label = "breakSaturation",
     )
 
-    val themeColorScheme = remember(selectedTheme, isDarkTheme, isBreakActive) {
-        val seed = if (isBreakActive) {
-            if (isDarkTheme) Color(0xFFE2E8F0) else Color(0xFF1E293B)
-        } else {
-            ekagraControlAccent(selectedTheme.name, isDarkTheme)
-        }
-
-        if (isDarkTheme) {
-            val bgTint = Color(0xFF131316)
-            val surfaceTint = blendColors(seed, Color(0xFF111416), 0.10f)
-            val surfaceVariantTint = blendColors(seed, Color(0xFF272C35), 0.12f)
-            val containerLowestTint = blendColors(seed, Color(0xFF0C0E10), 0.05f)
-            val containerLowTint = blendColors(seed, Color(0xFF191C1F), 0.08f)
-            val containerTint = blendColors(seed, Color(0xFF1D2024), 0.10f)
-            val containerHighTint = blendColors(seed, Color(0xFF272A2E), 0.12f)
-            val containerHighestTint = blendColors(seed, Color(0xFF323538), 0.15f)
-            val outlineTint = blendColors(seed, Color(0xFF8C9399), 0.35f)
-            val outlineVariantTint = blendColors(seed, Color(0xFF42494F), 0.20f)
-            
-            val onBgTint = blendColors(seed, Color(0xFFE7EBEF), 0.05f)
-            val onSurfaceTint = blendColors(seed, Color(0xFFE1E2E5), 0.05f)
-            val onSurfaceVariantTint = blendColors(seed, Color(0xFFC2C9CF), 0.10f)
-
-            darkColorScheme(
-                primary                = seed,
-                onPrimary              = contrastOn(seed),
-                primaryContainer       = seed.copy(alpha = 0.22f),
-                onPrimaryContainer     = contrastOn(seed.copy(alpha = 0.22f)),
-                secondary              = seed.copy(alpha = 0.72f),
-                onSecondary            = contrastOn(seed.copy(alpha = 0.72f)),
-                secondaryContainer     = seed.copy(alpha = 0.18f),
-                onSecondaryContainer   = contrastOn(seed.copy(alpha = 0.18f)),
-                background             = bgTint,
-                onBackground           = onBgTint,
-                surface                = surfaceTint,
-                onSurface              = onSurfaceTint,
-                surfaceVariant         = surfaceVariantTint,
-                onSurfaceVariant       = onSurfaceVariantTint,
-                surfaceContainerLowest = containerLowestTint,
-                surfaceContainerLow    = containerLowTint,
-                surfaceContainer       = containerTint,
-                surfaceContainerHigh   = containerHighTint,
-                surfaceContainerHighest= containerHighestTint,
-                outline                = outlineTint,
-                outlineVariant         = outlineVariantTint,
-                tertiary               = Color(0xFFC8BFFF),
-                tertiaryContainer      = Color(0xFF43398A),
-                onTertiaryContainer    = Color(0xFFE3DFFF),
-            )
-        } else {
-            val bgTint = blendColors(seed, Color(0xFFF8F9FB), 0.04f)
-            val surfaceTint = blendColors(seed, Color(0xFFF8F9FB), 0.04f)
-            val surfaceVariantTint = blendColors(seed, Color(0xFFE4E8EC), 0.08f)
-            val containerLowestTint = blendColors(seed, Color(0xFFFFFFFF), 0.00f)
-            val containerLowTint = blendColors(seed, Color(0xFFF2F4F6), 0.04f)
-            val containerTint = blendColors(seed, Color(0xFFEBEEF1), 0.06f)
-            val containerHighTint = blendColors(seed, Color(0xFFE4E8EC), 0.08f)
-            val containerHighestTint = blendColors(seed, Color(0xFFDEE2E7), 0.10f)
-            val outlineTint = blendColors(seed, Color(0xFF72797F), 0.25f)
-            val outlineVariantTint = blendColors(seed, Color(0xFFC2C9CF), 0.10f)
-            
-            val onBgTint = blendColors(seed, Color(0xFF191C1F), 0.10f)
-            val onSurfaceTint = blendColors(seed, Color(0xFF191C1F), 0.10f)
-            val onSurfaceVariantTint = blendColors(seed, Color(0xFF42494F), 0.15f)
-
-            lightColorScheme(
-                primary                = seed,
-                onPrimary              = contrastOn(seed),
-                primaryContainer       = seed.copy(alpha = 0.14f),
-                onPrimaryContainer     = contrastOn(seed.copy(alpha = 0.14f)),
-                secondary              = seed.copy(alpha = 0.68f),
-                onSecondary            = contrastOn(seed.copy(alpha = 0.68f)),
-                secondaryContainer     = seed.copy(alpha = 0.12f),
-                onSecondaryContainer   = contrastOn(seed.copy(alpha = 0.12f)),
-                background             = bgTint,
-                onBackground           = onBgTint,
-                surface                = surfaceTint,
-                onSurface              = onSurfaceTint,
-                surfaceVariant         = surfaceVariantTint,
-                onSurfaceVariant       = onSurfaceVariantTint,
-                surfaceContainerLowest = containerLowestTint,
-                surfaceContainerLow    = containerLowTint,
-                surfaceContainer       = containerTint,
-                surfaceContainerHigh   = containerHighTint,
-                surfaceContainerHighest= containerHighestTint,
-                outline                = outlineTint,
-                outlineVariant         = outlineVariantTint,
-                tertiary               = Color(0xFF5C5490),
-                tertiaryContainer      = Color(0xFFE3DFFF),
-                onTertiaryContainer    = Color(0xFF19115B),
-            )
-        }
-    }
+    val themeColorScheme = remember(selectedTheme, isDarkTheme) { ekagraWarmColorScheme(selectedTheme, isDarkTheme) }
 
     CompositionLocalProvider(
         LocalPlannerIsDarkTheme provides isDarkTheme,
+        LocalEkagraWarmPalette provides ekagraWarmPalette(selectedTheme.name),
+        com.safarparmar.app.ui.theme.LocalSafarComposablesAccent provides themeColorScheme.primary,
     ) {
         MaterialTheme(colorScheme = themeColorScheme) {
         com.safarparmar.app.ui.theme.SafarComposablesTheme {
@@ -779,9 +689,9 @@ fun EkagraScreen(
                 else -> {
                     // ── Dialogs / sheets ─────────────────────────────────────────
                     if (showThemeDialog)
-                        VisualThemeDialog(current = selectedTheme, onSelect = { 
+                        VisualThemeDialog(current = selectedTheme, onSelect = {
                             selectedTheme = it
-                            showThemeDialog = false 
+                            showThemeDialog = false
                         }, onDismiss = { showThemeDialog = false })
                     if (showEndSessionConfirmDialog) {
                         com.safarparmar.app.ui.components.popups.SafarComposablesAlertDialog(
@@ -981,11 +891,11 @@ fun EkagraScreen(
                                     skipMusicPrompt = true
                                 }
                                 showMusicPromptDialog = false
-                                
+
                                 val silenceTrack = com.safarparmar.app.ui.audio.AudioLibrary.NONE_TRACK
                                 selectedMusicTrack = silenceTrack
                                 com.safarparmar.app.ui.audio.AudioLibrary.persistTrackId(context, silenceTrack.id)
-                                
+
                                 isStartingFromMusicSelection = true
                                 pendingStartTimerArgs?.let { (mode, mins) ->
                                     startTimer(mode, mins)
@@ -1026,7 +936,7 @@ fun EkagraScreen(
                         val pending = pendingEndedSession
                         if (pending != null && pending.topicId != null && pending.planId != null) {
                             @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
-                            val topicSheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)
+                            val topicSheetState = com.composables.ui.components.rememberBottomSheetState(initialDetent = com.composables.ui.components.BottomSheetDetent.FullyExpanded)
 
                             fun closeTopicSheet() {
                                 showTopicStudySheet = false
@@ -1240,7 +1150,7 @@ fun EkagraScreen(
                                 completesTarget = confirmation.completesTarget,
                                 keepsGoalOpen = confirmation.keepsGoalOpen,
                                 linksTopic = confirmation.linksTopic,
-                                accentColor = selectedTheme?.accent ?: themeColorScheme.primary,
+                                accentColor = themeColorScheme.primary,
                                 onConfirm = {
                                     pendingSaveConfirmation = null
                                     confirmation.commit()
@@ -1328,22 +1238,12 @@ fun EkagraScreen(
                                     )
                                     Spacer(Modifier.height(16.dp))
                                     // "Do not show this again" checkbox row
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clip(RoundedCornerShape(8.dp))
-                                            .clickable { dontShowDurationPromptAgain = !dontShowDurationPromptAgain }
-                                            .padding(vertical = 2.dp),
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    com.composables.ui.components.Checkbox(
+                                        checked = dontShowDurationPromptAgain,
+                                        onCheckedChange = { dontShowDurationPromptAgain = it },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        accessibilityLabel = stringResource(R.string.common_do_not_show_again),
                                     ) {
-                                        com.safarparmar.app.ui.components.SafarColoredCheckbox(
-                                            checked = dontShowDurationPromptAgain,
-                                            onCheckedChange = { dontShowDurationPromptAgain = it },
-                                            checkedColor = dialogAccent,
-                                            uncheckedColor = dialogBody,
-                                            checkmarkColor = Color.White,
-                                        )
                                         Text(
                                             text = stringResource(R.string.common_do_not_show_again),
                                             fontSize = 13.sp,
@@ -1402,7 +1302,7 @@ fun EkagraScreen(
                     // drawn straight on the canvas. Tint still follows the Timer
                     // tab's video/gradient canvas vs. the plain surface elsewhere.
                     val headerInk = rememberEkagraInk(
-                        onCanvas = selectedTab == EkagraNavTab.TIMER,
+                        onCanvas = false,
                         theme = selectedTheme,
                         isDarkTheme = isDarkTheme,
                     )
@@ -1461,11 +1361,8 @@ fun EkagraScreen(
                     Box(
                         Modifier
                             .fillMaxSize()
-                            .saturation(breakSaturation)
                     ) {
-                        if (selectedTab == EkagraNavTab.TIMER) {
-                            EkagraTimerBackground(selectedTheme, isDarkTheme, isBreakActive, timerImmersiveActive)
-                        }
+                        Box(Modifier.fillMaxSize().background(themeColorScheme.background))
                         SafarDrawerScaffold(
                             title              = stringResource(R.string.module_ekagra),
                             subtitle           = stringResource(R.string.app_name),
@@ -1485,48 +1382,29 @@ fun EkagraScreen(
                                 snackbarHost        = { SnackbarHost(snackbarHostState) },
                                 topBar = {
                                     EkagraTopBar(
-                                        ink = headerInk,
+                                        ink = rememberEkagraInk(onCanvas = false),
                                         onOpenDrawer = { openDrawer() },
                                         trailing = ekagraTopBarActions,
                                     )
                                 },
                                 bottomBar = {
-                                    androidx.compose.animation.AnimatedVisibility(
-                                        visible = true,
-                                        enter = androidx.compose.animation.fadeIn(animationSpec = androidx.compose.animation.core.tween(500)) +
-                                                androidx.compose.animation.expandVertically(animationSpec = androidx.compose.animation.core.tween(500)),
-                                        exit = androidx.compose.animation.fadeOut(animationSpec = androidx.compose.animation.core.tween(500)) +
-                                               androidx.compose.animation.shrinkVertically(animationSpec = androidx.compose.animation.core.tween(500))
-                                    ) {
-                                        EkagraBottomNav(
-                                            selectedTab = selectedTab,
-                                            onSelect    = { tab ->
-                                                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                                when (tab) {
-                                                    EkagraNavTab.MUSIC -> showAudioLibraryPanel = true
-                                                    EkagraNavTab.THEME -> showThemeDialog = true
-                                                    else -> tabBackStack.select(tab)
-                                                }
-                                            },
-                                            // On timer tab the nav sits over the video scrim — use contrasting colours
-                                            isOnVideo   = selectedTab == EkagraNavTab.TIMER,
-                                            isDarkTheme = isDarkTheme,
-                                            selectedTheme = selectedTheme,
-                                        )
-                                    }
+                                    EkagraBottomNav(
+                                        selectedTab = ekagraNavigationSelection(selectedTab, showAudioLibraryPanel, showThemeDialog),
+                                        onSelect    = { tab ->
+                                            when (tab) {
+                                                EkagraNavTab.MUSIC -> showAudioLibraryPanel = true
+                                                EkagraNavTab.THEME -> showThemeDialog = true
+                                                else -> tabBackStack.select(tab)
+                                            }
+                                        },
+                                        // On timer tab the nav sits over the video scrim — use contrasting colours
+                                        isOnVideo   = selectedTab == EkagraNavTab.TIMER,
+                                        isDarkTheme = isDarkTheme,
+                                        selectedTheme = selectedTheme,
+                                    )
                                 },
                             ) { innerPadding ->
-                                // Cross-fade with a gentle rise between tabs — the old
-                                // instant snap made switching feel abrupt and unpolished.
-                                AnimatedContent(
-                                    targetState = selectedTab,
-                                    transitionSpec = {
-                                        (fadeIn(tween(240, delayMillis = 40)) +
-                                            slideInVertically(tween(300, easing = FastOutSlowInEasing)) { it / 24 })
-                                            .togetherWith(fadeOut(tween(120)))
-                                    },
-                                    label = "ekagraTabContent",
-                                ) { tab ->
+                                EkagraTabContent(selectedTab) { tab ->
                                 when (tab) {
 
                                     EkagraNavTab.TIMER -> TimerFocusTab(
@@ -1744,7 +1622,7 @@ fun EkagraScreen(
                                         analytics = ekagraAnalytics,
                                         selectedTheme = selectedTheme,
                                     )
-                                    
+
                                     EkagraNavTab.MUSIC -> {}
                                     EkagraNavTab.THEME -> {}
                                 }
@@ -1800,21 +1678,12 @@ fun MusicPromptDialog(
                     text = stringResource(R.string.ekagra_play_ambient_body),
                     fontSize = 14.sp
                 )
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = androidx.compose.ui.Modifier
-                        .fillMaxWidth()
-                        .clickable { dontShowAgain = !dontShowAgain }
-                        .padding(vertical = 4.dp)
+                com.composables.ui.components.Checkbox(
+                    checked = dontShowAgain,
+                    onCheckedChange = { dontShowAgain = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    accessibilityLabel = stringResource(R.string.common_do_not_show_again),
                 ) {
-                    com.safarparmar.app.ui.components.SafarColoredCheckbox(
-                        checked = dontShowAgain,
-                        onCheckedChange = { dontShowAgain = it },
-                        checkedColor = MaterialTheme.colorScheme.primary,
-                        uncheckedColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        checkmarkColor = MaterialTheme.colorScheme.onPrimary,
-                    )
-                    Spacer(modifier = androidx.compose.ui.Modifier.width(8.dp))
                     Text(
                         text = stringResource(R.string.common_do_not_show_again),
                         fontSize = 14.sp

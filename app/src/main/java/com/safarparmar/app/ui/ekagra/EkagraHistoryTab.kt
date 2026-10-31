@@ -1,5 +1,10 @@
 package com.safarparmar.app.ui.ekagra
 
+import com.composables.ui.components.Button
+import com.composables.ui.components.IconButton
+import com.composables.ui.components.Text
+import com.composables.ui.components.Icon
+
 import androidx.compose.ui.platform.LocalLocale
 
 import com.safarparmar.app.ui.tutorial.tutorialTarget
@@ -309,7 +314,7 @@ internal fun FocusHistoryContent(
         }
         saveError?.let { message ->
             Text(message, color = MaterialTheme.colorScheme.error)
-            TextButton(onClick = onRetry) { Text(stringResource(R.string.ekagra_retry_save)) }
+            Button(style = com.composables.ui.components.ButtonStyle.Ghost, onClick = onRetry) { Text(stringResource(R.string.ekagra_retry_save)) }
         }
 
         EkagraEyebrow(stringResource(R.string.ekagra_history_title), ink.secondaryText)
@@ -344,7 +349,7 @@ internal fun FocusHistoryContent(
         Surface(
             modifier = Modifier.fillMaxWidth().tutorialTarget("ekagra.historySummary"),
             shape = RoundedCornerShape(18.dp),
-            color = scheme.surfaceVariant.copy(alpha = 0.52f),
+            color = scheme.surface,
         ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 16.dp),
@@ -458,13 +463,9 @@ internal fun FocusHistoryContent(
                     color = ink.mutedText,
                 )
                 if (activeTagFilter != null) {
-                    Text(
-                        stringResource(R.string.ekagra_clear),
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = tabAccentColor,
-                        modifier = Modifier.clickable { activeTagFilter = null }
-                    )
+                    Button(onClick = { activeTagFilter = null }, style = com.composables.ui.components.ButtonStyle.Ghost) {
+                        Text(stringResource(R.string.ekagra_clear), fontSize = 11.sp, color = tabAccentColor)
+                    }
                 }
             }
             Spacer(Modifier.height(8.dp))
@@ -602,11 +603,11 @@ internal fun FocusHistoryContent(
         )
         if (!showAllSessions && displayedSessions.size > visibleSessions.size) {
             Spacer(Modifier.height(8.dp))
-            OutlinedButton(
+            Button(style = com.composables.ui.components.ButtonStyle.Outlined,
                 onClick = { showAllSessions = true },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(14.dp),
-                border = BorderStroke(1.dp, tabAccentColor.copy(alpha = 0.35f)),
+                borderWidth = 1.dp,
                 contentPadding = PaddingValues(vertical = 12.dp),
             ) {
                 Text(
@@ -731,8 +732,9 @@ internal fun FocusSessionRow(
 
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.38f),
+        shape = RoundedCornerShape(22.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        color = MaterialTheme.colorScheme.surface,
     ) {
     Row(
         modifier = Modifier
@@ -750,12 +752,8 @@ internal fun FocusSessionRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Box(
-            Modifier
-                .size(7.dp)
-                .clip(CircleShape)
-                .background(if (completed) accentColor else ink.mutedText),
-        )
+        Icon(Icons.Default.Timer, contentDescription = null, tint = accentColor,
+            modifier = Modifier.size(44.dp).background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(14.dp)).padding(10.dp))
         Column(Modifier.weight(1f)) {
             val (parsedTag, cleanTask) = remember(session.taskText) { EkagraTagUtils.parseTagAndTask(session.taskText) }
             val tagColor = remember(parsedTag, tagColors) {
@@ -790,13 +788,9 @@ internal fun FocusSessionRow(
                         }
                     }
                 } else if (!session.isGoalLinked && onEditSession != null && !session.pendingSync) {
-                    Surface(
-                        shape = RoundedCornerShape(4.dp),
-                        color = accentColor.copy(alpha = 0.08f),
-                        border = BorderStroke(1.dp, accentColor.copy(alpha = 0.25f)),
-                        modifier = Modifier
-                            .padding(end = 6.dp)
-                            .clickable { onEditSession() }
+                    Button(onClick = onEditSession, style = com.composables.ui.components.ButtonStyle.Ghost,
+                        shape = RoundedCornerShape(8.dp), contentPadding = PaddingValues(horizontal = 6.dp),
+                        modifier = Modifier.padding(end = 6.dp).background(accentColor.copy(alpha = 0.08f), RoundedCornerShape(8.dp)),
                     ) {
                         Text(
                             text = "+ Tag",
@@ -816,9 +810,9 @@ internal fun FocusSessionRow(
                     modifier   = Modifier.weight(1f, fill = false),
                 )
                 if (onEditSession != null && !session.pendingSync) {
-                    IconButton(
+                    IconButton(style = com.composables.ui.components.ButtonStyle.Ghost,
                         onClick = onEditSession,
-                        modifier = Modifier.size(24.dp).padding(start = 4.dp),
+                        modifier = Modifier.size(48.dp).padding(start = 4.dp),
                     ) {
                         Icon(
                             imageVector = Icons.Default.Edit,
@@ -831,7 +825,7 @@ internal fun FocusSessionRow(
             }
             if (session.pendingSync) {
                 Text(stringResource(R.string.ekagra_saved_waiting_sync), fontSize = 11.sp, color = ink.mutedText)
-                TextButton(onClick = onRetry) { Text(stringResource(R.string.ekagra_retry_sync)) }
+                Button(style = com.composables.ui.components.ButtonStyle.Ghost, onClick = onRetry) { Text(stringResource(R.string.ekagra_retry_sync)) }
             }
             if (session.isGoalLinked) {
                 Text(
@@ -899,7 +893,7 @@ private fun RenameSessionDialog(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                OutlinedTextField(
+                com.safarparmar.app.ui.components.SafarRichTextField(
                     value = titleInput,
                     onValueChange = { titleInput = it },
                     label = { Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.ekagra_session_name)) },
@@ -930,7 +924,7 @@ private fun RenameSessionDialog(
             }
         },
         confirmButton = {
-            TextButton(
+            Button(style = com.composables.ui.components.ButtonStyle.Ghost,
                 onClick = {
                     val formatted = EkagraTagUtils.formatTaggedTask(selectedTag, titleInput.trim())
                     onConfirm(formatted)
@@ -940,7 +934,7 @@ private fun RenameSessionDialog(
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            Button(style = com.composables.ui.components.ButtonStyle.Ghost, onClick = onDismiss) {
                 Text(androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.common_cancel))
             }
         },

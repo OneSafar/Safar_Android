@@ -163,6 +163,7 @@ internal fun HabitTimetableContent(
             }
         } else {
             LazyColumn(Modifier.weight(1f).fillMaxWidth(), contentPadding = PaddingValues(20.dp, 8.dp, 20.dp, 24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                if (state.isMigrating) item { Text("Importing your previous habits…", color = HabitColors.TextSecondary) }
                 if (section != 1) state.syncError?.let { message -> item {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(message, Modifier.weight(1f), color = HabitColors.TextSecondary, fontSize = 12.sp)

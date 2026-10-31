@@ -3,6 +3,7 @@ package com.safarparmar.app.ui.tutorial
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,7 +25,8 @@ internal fun TutorialLessonMenu(feature: TitliFeature, content: @Composable Colu
     var contentHeight by remember { mutableIntStateOf(0) }
     val dark = !MaterialTheme.colorScheme.background.isLightBackground()
     val colors = tutorialArtPalette(dark)
-    val ink = tutorialVisualColors(dark).action
+    val c = tutorialVisualColors(dark)
+    val ink = c.action
     val arrangement = feature.menuArtwork()
     Box(Modifier.fillMaxSize().drawWithCache {
         val top = contentHeight.toFloat() + 20.dp.toPx()
@@ -72,9 +74,11 @@ internal fun TutorialLessonMenu(feature: TitliFeature, content: @Composable Colu
             }
         }
     }) {
-        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally) {
-            Column(Modifier.widthIn(max = 640.dp).fillMaxWidth().onSizeChanged { contentHeight = it.height }.padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp), content = content)
+        CompositionLocalProvider(LocalContentColor provides c.ink) {
+            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally) {
+                Column(Modifier.widthIn(max = 640.dp).fillMaxWidth().onSizeChanged { contentHeight = it.height }.padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp), content = content)
+            }
         }
     }
 }

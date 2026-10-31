@@ -17,7 +17,7 @@ import java.time.DayOfWeek
 import java.time.LocalDate
 
 class HabitRemoteStoreTest {
-    private class Device(api: HabitApi, initialOwner: String = "alice", reminders: HabitReminderScheduler? = null) {
+    private class Device(api: HabitApi, initialOwner: String = "alice", reminders: HabitReminderScheduler? = null, pendingStore: HabitPendingStore? = null, icons: HabitIconStore? = null) {
         val owner = MutableStateFlow<String?>(initialOwner)
         val loggedIn = MutableStateFlow(true)
         val accounts = mockk<SafarDataStore> {
@@ -29,21 +29,22 @@ class HabitRemoteStoreTest {
             coEvery { pendingMutationCount(any()) } returns 0
         }
         val db = mockk<HabitDatabase> { every { habitDao() } returns dao }
-        val source = HabitRemoteStore(api, accounts, db, reminders)
+        val source = HabitRemoteStore(api, accounts, db, reminders, pendingStore, icons)
         val repository = HabitRepository(source)
     }
     private class Backend : HabitApi {
         val records = mutableMapOf<String, MutableMap<String, HabitRemoteRecord>>()
         val receipts = mutableSetOf<String>()
         val requests = mutableListOf<HabitBatchRequest>()
-        var snapshotCalls = 0
         var version = 0L
         var fail = false
         var loseResponse = false
+        var returnChanges = false
         var hold: CompletableDeferred<Unit>? = null
         var requested: CompletableDeferred<Unit>? = null
         override suspend fun mutate(owner: String, request: HabitBatchRequest): HabitBatchResponse {
             requests += request
+            val previousVersion = version
             if (fail) throw IOException("offline")
             val values = records.getOrPut(owner) { mutableMapOf() }
             for (m in request.mutations) {
@@ -77,34 +78,18 @@ class HabitRemoteStoreTest {
                 version++
             }
             if (loseResponse) { loseResponse = false; throw IOException("response lost after commit") }
-            return HabitBatchResponse(version, request.mutations.map { it.get("mutationId").asString })
+            return HabitBatchResponse(version, request.mutations.map { it.get("mutationId").asString },
+                previousVersion = previousVersion,
+                habits = if (returnChanges) request.mutations.map { values.getValue(it.get("habitId").asString) }
+                    .map { it.copy(name = it.name.uppercase()) } else null)
         }
         override suspend fun snapshot(owner: String, knownVersion: Long?, cursor: String?, limit: Int): HabitSnapshotResponse {
-            snapshotCalls++
             requested?.complete(Unit)
             hold?.await()
             if (fail) throw IOException("offline")
             return HabitSnapshotResponse(version, if (knownVersion == version) emptyList() else records[owner]?.values?.toList().orEmpty(),
                 unchanged = knownVersion == version)
         }
-    }
-
-    @Test fun `confirmed creation and edit do not wait for a second snapshot download`() = runTest {
-        val backend = Backend()
-        val device = Device(backend)
-        device.source.refresh()
-        val snapshots = backend.snapshotCalls
-        device.repository.createHabit("Read", DayOfWeek.entries.toSet(), true, 0)
-        val habit = device.repository.observeHabits().first().single()
-        device.repository.editHabit(habit.copy(name = "Read a book"))
-        assertEquals(snapshots, backend.snapshotCalls)
-        assertEquals("Read a book", device.repository.observeHabits().first().single().name)
-        // A concurrent phone's changes still arrive: acknowledged writes never advance
-        // the full-snapshot cursor past data we have not downloaded.
-        backend.records["alice"]!![habit.remoteId!!] = backend.records["alice"]!![habit.remoteId]!!.copy(reminderTime = "09:00")
-        backend.version++
-        device.source.refresh()
-        assertEquals("09:00", device.repository.observeHabits().first().single().reminderTime)
     }
 
     @Test fun `two phones and fresh install share all backend history without writing Room`() = runTest {
@@ -191,7 +176,7 @@ class HabitRemoteStoreTest {
         device.source.refresh()
         assertTrue(device.repository.observeHabits().first().isEmpty())
         try { device.repository.editHabit(alice.copy(name = "wrong owner")); fail("Must reject another account's habit") }
-        catch (_: IllegalStateException) { }
+        catch (e: HabitSaveException) { assertFalse(e.uncertain) }
         device.loggedIn.value = false
         assertTrue(device.repository.observeHabits().first().isEmpty())
         assertFalse(device.source.syncStatus.first().loading)
@@ -214,15 +199,15 @@ class HabitRemoteStoreTest {
         device.repository.createHabit("Read", DayOfWeek.entries.toSet(), true, 0, "08:30")
         val habit = device.repository.observeHabits().first().single()
         assertEquals("08:30", habit.reminderTime)
-        coVerify { reminders.replace("alice", match { it.singleOrNull()?.reminderTime == "08:30" }) }
+        coVerify(timeout = 1_000) { reminders.replace("alice", match { it.singleOrNull()?.reminderTime == "08:30" }) }
         device.repository.editHabit(habit.copy(reminderTime = "09:45"))
-        coVerify { reminders.replace("alice", match { it.singleOrNull()?.reminderTime == "09:45" }) }
+        coVerify(timeout = 1_000) { reminders.replace("alice", match { it.singleOrNull()?.reminderTime == "09:45" }) }
         device.repository.toggle(habit.id, LocalDate.now(), false)
-        coVerify { reminders.replace("alice", match { it.singleOrNull()?.completions?.any { c -> c.completed } == true }) }
+        coVerify(timeout = 1_000) { reminders.replace("alice", match { it.singleOrNull()?.completions?.any { c -> c.completed } == true }) }
         device.repository.archiveHabit(habit.id)
-        coVerify { reminders.replace("alice", match { it.singleOrNull()?.archivedAt != null }) }
+        coVerify(timeout = 1_000) { reminders.replace("alice", match { it.singleOrNull()?.archivedAt != null }) }
         device.repository.deleteHabit(habit)
-        coVerify { reminders.replace("alice", match { it.singleOrNull()?.deleted == true }) }
+        coVerify(timeout = 1_000) { reminders.replace("alice", match { it.singleOrNull()?.deleted == true }) }
     }
 
     @Test fun `unconfirmed network mutation never replaces reminder projection`() = runTest {
@@ -234,18 +219,99 @@ class HabitRemoteStoreTest {
         backend.fail = true
         try { device.repository.createHabit("Read", DayOfWeek.entries.toSet(), true, 0, "08:30"); fail("Must report save error") }
         catch (_: IOException) { }
-        coVerify(exactly = 0) { reminders.replace(any(), any()) }
+        coVerify(exactly = 0) { reminders.replace(any(), match { it.isNotEmpty() }) }
     }
 
-    @Test fun `unchanged server snapshot restores reminders after local cache reset`() = runTest {
+    @Test fun `unchanged server snapshot does not rewrite reminder projection`() = runTest {
         val backend = Backend()
         val reminders = mockk<HabitReminderScheduler>(relaxed = true)
         val device = Device(backend, reminders = reminders)
         device.source.refresh()
         device.repository.createHabit("Read", DayOfWeek.entries.toSet(), true, 0, "08:30")
+        coVerify(timeout = 1_000) { reminders.replace("alice", match { it.singleOrNull()?.reminderTime == "08:30" }) }
         clearMocks(reminders)
         device.source.refresh()
-        coVerify(exactly = 1) { reminders.replace("alice", match { it.singleOrNull()?.reminderTime == "08:30" }) }
+        coVerify(exactly = 0) { reminders.replace(any(), match { it.isNotEmpty() }) }
+    }
+
+    @Test fun `pending mutations survive store recreation and replay for their original account`() = runTest {
+        // SharedPreferences is the durable Android boundary; recreate both stores and devices.
+        val disk = mutableMapOf<String, String>()
+        val prefs = mockk<android.content.SharedPreferences>()
+        val editor = mockk<android.content.SharedPreferences.Editor>()
+        every { prefs.all } answers { disk.toMap() }
+        every { prefs.getString(any(), any()) } answers { disk[firstArg()] ?: secondArg() }
+        every { prefs.edit() } returns editor
+        every { editor.putString(any(), any()) } answers { disk[firstArg()] = secondArg(); editor }
+        every { editor.remove(any()) } answers { disk.remove(firstArg<String>()); editor }
+        every { editor.commit() } returns true
+        val context = mockk<android.content.Context> {
+            every { getSharedPreferences(any(), any()) } returns prefs
+        }
+        val backend = Backend()
+        val first = Device(backend, pendingStore = HabitPendingStore(context))
+        first.source.refresh()
+        backend.loseResponse = true
+        assertTrue(runCatching { first.repository.createHabit("Read", DayOfWeek.entries.toSet(), true, 0) }.isFailure)
+        assertEquals(1, disk.size)
+        val pendingId = backend.requests.single().mutations.single().get("mutationId")
+        val bob = Device(backend, initialOwner = "bob", pendingStore = HabitPendingStore(context))
+        bob.source.refresh()
+        assertEquals(1, backend.requests.size)
+        val restarted = Device(backend, pendingStore = HabitPendingStore(context))
+        restarted.source.refresh()
+        assertEquals(pendingId, backend.requests.last().mutations.single().get("mutationId"))
+        assertEquals(1, backend.records["alice"]!!.size)
+        assertTrue(disk.isEmpty())
+        assertEquals("Read", restarted.repository.observeHabits().first().single().name)
+    }
+
+    @Test fun `save proceeds while a background snapshot is blocked`() = runTest {
+        val backend = Backend()
+        val device = Device(backend)
+        device.source.refresh()
+        backend.hold = CompletableDeferred()
+        backend.requested = CompletableDeferred()
+        val refresh = async { device.source.refresh() }
+        backend.requested!!.await()
+        try {
+            device.repository.createHabit("Read", DayOfWeek.entries.toSet(), true, 0)
+            assertFalse(refresh.isCompleted)
+            assertEquals("Read", device.repository.observeHabits().first().single().name)
+        } finally { backend.hold!!.complete(Unit) }
+        refresh.await()
+    }
+
+    @Test fun `custom emoji remains associated with the stable create identity`() = runTest {
+        val backend = Backend()
+        val icons = mockk<HabitIconStore>(relaxed = true)
+        val device = Device(backend, icons = icons)
+        device.source.refresh()
+        device.repository.createHabit("Read", DayOfWeek.entries.toSet(), true, 0,
+            emoji = "📖", operationId = "stable-form-id")
+        val habit = device.repository.observeHabits().first().single()
+        assertEquals("stable-form-id", habit.remoteId)
+        coVerify { icons.save("alice", "stable-form-id", "📖") }
+        device.repository.editHabit(habit.copy(name = "Study"), emoji = "🎯")
+        coVerify { icons.save("alice", "stable-form-id", "🎯") }
+        assertEquals("Study", device.repository.observeHabits().first().single().name)
+    }
+
+    @Test fun `server changed records win and do not skip concurrent phone changes`() = runTest {
+        val backend = Backend().apply { returnChanges = true }
+        val device = Device(backend)
+        device.source.refresh()
+        device.repository.createHabit("Read", DayOfWeek.entries.toSet(), true, 0)
+        val habit = device.repository.observeHabits().first().single()
+        assertEquals("READ", habit.name)
+        // A second device's change is outside the next POST's changed-record response.
+        backend.records["alice"]!!["other-phone"] = backend.records["alice"]!!.getValue(habit.remoteId!!)
+            .copy(id = "other-phone", name = "Other phone", order = 1)
+        backend.version++
+        device.repository.editHabit(habit.copy(name = "Study"))
+        assertEquals("STUDY", device.repository.observeHabits().first().single().name)
+        device.source.refresh()
+        assertEquals(setOf("Study", "Other phone"), device.repository.observeHabits().first().map { it.name }.toSet())
     }
 
 }

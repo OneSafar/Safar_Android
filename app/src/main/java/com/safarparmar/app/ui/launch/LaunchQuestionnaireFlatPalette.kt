@@ -20,11 +20,11 @@ object LaunchFlatColors {
     private val isDark: Boolean
         @Composable get() = !isLight
 
-    val Bg @Composable get() = if (isDark) Color(0xFF131316) else Color(0xFFFFF9F0)
-    val Text @Composable get() = if (isDark) Color(0xFFF8FAFC) else Color(0xFF1E1B4B)
+    val Bg @Composable get() = if (isDark) Color(0xFF211921) else Color(0xFFFFF5F0)
+    val Text @Composable get() = if (isDark) Color(0xFFFFF0F6) else Color(0xFF39132E)
     /** Stronger than typical muted — must stay readable on cream and on glass. */
-    val Muted @Composable get() = if (isDark) Color(0xFFCBD5E1) else Color(0xFF475569)
-    val Hairline @Composable get() = if (isDark) Color(0xFF3F3F46) else Color(0xFFE2DDF0)
+    val Muted @Composable get() = if (isDark) Color(0xFFCFBECB) else Color(0xFF75616F)
+    val Hairline @Composable get() = if (isDark) Color(0xFF654D66) else Color(0xFFE8DEE5)
 
     /**
      * Ink for text drawn **on** opaque Control Center glass.
@@ -34,13 +34,13 @@ object LaunchFlatColors {
     val OnGlassMuted @Composable get() = if (isDark) Color(0xFFD1D1D6) else Color(0xFF3A3A3C)
 
     /** Primary Kavach / setup accent — violet */
-    val Primary @Composable get() = if (isDark) Color(0xFFC084FC) else Color(0xFF581C87)
+    val Primary @Composable get() = if (isDark) Color(0xFFF0BEDC) else Color(0xFF542347)
 
-    val Beast @Composable get() = if (isDark) Color(0xFFFB7185) else Color(0xFF881337)
+    val Beast @Composable get() = Primary
     val AlwaysOn @Composable get() = Primary
-    val Normal @Composable get() = if (isDark) Color(0xFF60A5FA) else Color(0xFF1E3A8A)
+    val Normal @Composable get() = Primary
 
-    val Habit @Composable get() = if (isDark) Color(0xFFF472B6) else Color(0xFFDB2777)
-    val Journal @Composable get() = if (isDark) Color(0xFFFB923C) else Color(0xFFEA580C)
-    val Calm @Composable get() = if (isDark) Color(0xFFA78BFA) else Color(0xFF7C3AED)
+    val Habit @Composable get() = Primary
+    val Journal @Composable get() = Primary
+    val Calm @Composable get() = Primary
 }

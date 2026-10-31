@@ -5,6 +5,7 @@ import com.google.gson.JsonObject
 import com.google.gson.annotations.SerializedName
 import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.Headers
 import retrofit2.http.Header
 import retrofit2.http.POST
 import retrofit2.http.Query
@@ -17,7 +18,9 @@ data class HabitBatchRequest(
 @Keep
 data class HabitBatchResponse(
     @SerializedName("version") val version: Long,
-    @SerializedName("acknowledged") val acknowledged: List<String>
+    @SerializedName("acknowledged") val acknowledged: List<String>,
+    @SerializedName("previousVersion") val previousVersion: Long? = null,
+    @SerializedName("habits") val habits: List<HabitRemoteRecord>? = null
 )
 @Keep
 data class HabitSnapshotResponse(
@@ -51,6 +54,7 @@ data class HabitRemoteRevision(
 data class HabitRemoteCompletion(val date: String, val completed: Boolean)
 
 interface HabitApi {
+    @Headers("X-Habit-Changes: 1")
     @POST("habits/sync/mutations")
     suspend fun mutate(@Header("X-Habit-Owner") owner: String, @Body request: HabitBatchRequest): HabitBatchResponse
 

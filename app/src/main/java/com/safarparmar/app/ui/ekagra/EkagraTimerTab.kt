@@ -1,5 +1,8 @@
 package com.safarparmar.app.ui.ekagra
 
+import com.composables.ui.components.Text
+import com.composables.ui.components.Icon
+
 import com.safarparmar.app.ui.adaptive.isSpaciousLandscape
 import com.safarparmar.app.ui.tutorial.tutorialTarget
 import androidx.compose.animation.*
@@ -146,7 +149,7 @@ internal fun ModeTabs(
     onSelect: (TimerMode) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val modes = remember { TimerMode.entries.filter { it.showInPill } }
+    val modes = remember { TimerMode.entries.filter { it.showInPill && it != TimerMode.BREAK } }
 
     val trackBg = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)
     val trackBorder = MaterialTheme.colorScheme.outlineVariant
@@ -178,7 +181,7 @@ internal fun ModeTabs(
                 shape = CircleShape,
                 contentColor = contentColor,
                 contentPadding = PaddingValues(horizontal = 14.dp, vertical = 7.dp),
-                modifier = Modifier.height(30.dp).background(pillBg, CircleShape),
+                modifier = Modifier.weight(1f).heightIn(min = 48.dp).background(pillBg, CircleShape),
             ) {
                 Icon(
                     imageVector = iconVector,
@@ -245,340 +248,99 @@ internal fun TimerFocusTab(
     onEnableYoutubeFocus: () -> Unit = {},
     summaryContent: (@Composable () -> Unit)? = null,
 ) {
-    val scheme  = MaterialTheme.colorScheme
-    val configuration   = LocalConfiguration.current
-    val isCompactHeight = configuration.screenHeightDp < 600
-    val adaptive = com.safarparmar.app.ui.adaptive.rememberSafarAdaptiveState()
-    val tabletLayout = adaptive.isSpaciousLandscape
-    val ink = rememberEkagraInk(onCanvas = true, theme = selectedTheme, isDarkTheme = isDarkTheme)
-
-    val pulse by animateFloatAsState(
-        targetValue    = if (isRunning) 1f else 0f,
-        animationSpec  = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
-        label          = "timerPulse",
-    )
-
-    BoxWithConstraints(modifier = modifier, contentAlignment = Alignment.TopCenter) {
-      val contentWidth = if (tabletLayout) ekagraTabletChromeWidth(maxWidth) else maxWidth
-      val ringDiameter = if (tabletLayout) {
-          val extraProtectionChip = shieldState.hasUsageStats && shieldState.hasOverlayPermission
-          (maxHeight - if (extraProtectionChip) 390.dp else 330.dp).coerceIn(180.dp, 280.dp)
-      } else timerDiameter
-      Column(Modifier.width(contentWidth).fillMaxHeight()) {
-        // Pinned above the scrolling, vertically-centred timer column so the
-        // summary sits just under the top bar. Inside controlsVisible on purpose:
-        // once a session is running the chrome hides.
-        AnimatedVisibility(
-            visible = controlsVisible,
-            enter = fadeIn(animationSpec = tween(500, easing = FastOutSlowInEasing)),
-            exit = fadeOut(animationSpec = tween(500, easing = FastOutSlowInEasing)),
-        ) {
-            if (summaryContent != null) summaryContent() else com.safarparmar.app.feature.kavachanalytics.ui.KavachSummaryPills(
-                ink = ink,
-                isDarkTheme = isDarkTheme,
-                themeAccent = themeAccent,
-                onOpenAnalytics = onOpenAnalytics,
-                myCircles = myCircles,
-                selectedCircle = selectedStudyCircle,
-                onSelectCircle = onSelectStudyCircle,
-                onNavigate = onNavigate,
-                modifier = if (tabletLayout) Modifier.padding(top = 2.dp, bottom = 4.dp)
-                    else Modifier.padding(start = 20.dp, end = 20.dp, top = 2.dp, bottom = 4.dp),
-            )
-        }
-
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 20.dp)
-                .verticalScroll(rememberScrollState()),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-        ) {
-            AnimatedVisibility(
-                visible = controlsVisible,
-                enter = fadeIn(animationSpec = tween(500, easing = FastOutSlowInEasing)) +
-                        expandVertically(animationSpec = tween(500, easing = FastOutSlowInEasing)),
-                exit = fadeOut(animationSpec = tween(500, easing = FastOutSlowInEasing)) +
-                       shrinkVertically(animationSpec = tween(500, easing = FastOutSlowInEasing))
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Spacer(Modifier.height(if (isCompactHeight) 8.dp else 12.dp))
-
-                    ModeTabs(
-                        selected = selectedDisplayMode,
-                        accentColor = themeAccent,
-                        ink = ink,
-                        isDarkTheme = isDarkTheme,
-                        onSelect = onModeChange,
-                        modifier = Modifier.tutorialTarget("ekagra.mode"),
-                    )
-                    Spacer(Modifier.height(if (tabletLayout) 20.dp else if (isCompactHeight) 20.dp else 36.dp))
-
-                    val hasAllPermissions = shieldState.hasUsageStats &&
-                                            shieldState.hasOverlayPermission
-
-                    if (hasAllPermissions) {
-                        // Status chip — a hairline outline and a single accent dot
-                        // instead of a frosted panel with a full switch.
-                        // Under Always On the chip is read-only: tapping it used to
-                        // run setEnabled(false), which clears the Always On flag and
-                        // silently drops the user back to Normal mode.
+    val scheme = MaterialTheme.colorScheme
+    val palette = selectedTheme?.let { ekagraWarmPalette(it.name) } ?: LocalEkagraWarmPalette.current
+    val ink = rememberEkagraInk(onCanvas = true)
+    BoxWithConstraints(modifier, contentAlignment = Alignment.TopCenter) {
+        val width = minOf(maxWidth, 600.dp)
+        val diameter = minOf(width - 72.dp, timerDiameter).coerceAtLeast(160.dp)
+        Column(Modifier.width(width).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            if (controlsVisible) {
+                ModeTabs(selectedDisplayMode, scheme.primary, rememberEkagraInk(false), isDarkTheme, onModeChange, Modifier.fillMaxWidth())
+                if (summaryContent != null) summaryContent() else com.safarparmar.app.feature.kavachanalytics.ui.KavachSummaryPills(
+                    ink = rememberEkagraInk(false), isDarkTheme = isDarkTheme, themeAccent = scheme.primary,
+                    onOpenAnalytics = onOpenAnalytics, myCircles = myCircles, selectedCircle = selectedStudyCircle,
+                    onSelectCircle = onSelectStudyCircle, onNavigate = onNavigate)
+            }
+            Column(Modifier.fillMaxWidth().ekagraTimerCard(palette).padding(horizontal = 16.dp, vertical = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(24.dp)) {
+                if (controlsVisible) {
+                    if (shieldState.hasUsageStats && shieldState.hasOverlayPermission) {
                         val alwaysOn = shieldState.isAlwaysOnMode
-                        val dotColor = when {
-                            shieldState.isProtectionActive -> themeAccent
-                            shieldState.isProtectionStarting -> Color(0xFFF59E0B)
-                            shieldState.isEnabled && !isRunning -> themeAccent.copy(alpha = 0.7f)
-                            else -> null
+                        com.composables.ui.components.Button(onClick = { onToggleKavach(!shieldState.isEnabled) }, enabled = !alwaysOn,
+                            style = com.composables.ui.components.ButtonStyle.Ghost, shape = CircleShape,
+                            contentColor = Color.White, modifier = Modifier.background(Color.White.copy(alpha = .15f), CircleShape).heightIn(min = 48.dp)) {
+                            Icon(Icons.Default.Shield, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text(stringResource(when {
+                                shieldState.isProtectionActive && alwaysOn -> R.string.ekagra_kavach_always_active
+                                shieldState.isProtectionActive -> R.string.ekagra_kavach_active
+                                shieldState.isProtectionStarting -> R.string.ekagra_kavach_starting
+                                shieldState.isEnabled && !isRunning -> R.string.ekagra_kavach_ready
+                                shieldState.isEnabled -> R.string.ekagra_kavach_unavailable
+                                else -> R.string.ekagra_kavach_off
+                            }), fontSize = 12.sp, color = Color.White)
                         }
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier
-                                .tutorialTarget("ekagra.kavach")
-                                .clip(CircleShape)
-                                .border(EkagraChrome.stroke(1f), ink.hairline, CircleShape)
-                                .then(
-                                    if (alwaysOn) Modifier
-                                    else Modifier.clickable { onToggleKavach(!shieldState.isEnabled) }
-                                )
-                                .padding(horizontal = EkagraChrome.size(14f), vertical = EkagraChrome.size(7f)),
-                        ) {
-                            Box(
-                                Modifier
-                                    .size(EkagraChrome.size(6f))
-                                    .clip(CircleShape)
-                                    .then(
-                                        if (dotColor != null) Modifier.background(dotColor)
-                                        else Modifier.border(EkagraChrome.stroke(1f), ink.mutedText, CircleShape)
-                                    ),
-                            )
-                            Text(
-                                text = when {
-                                    shieldState.isProtectionActive && alwaysOn -> stringResource(R.string.ekagra_kavach_always_active)
-                                    shieldState.isProtectionActive -> stringResource(R.string.ekagra_kavach_active)
-                                    shieldState.isProtectionStarting -> stringResource(R.string.ekagra_kavach_starting)
-                                    shieldState.isEnabled && !isRunning -> stringResource(R.string.ekagra_kavach_ready)
-                                    shieldState.isEnabled -> stringResource(R.string.ekagra_kavach_unavailable)
-                                    else -> stringResource(R.string.ekagra_kavach_off)
-                                },
-                                fontSize = EkagraChrome.text(12f),
-                                fontWeight = FontWeight.SemiBold,
-                                color = if (shieldState.isEnabled || alwaysOn) ink.primaryText else ink.mutedText,
-                            )
-                        }
-                        Spacer(Modifier.height(24.dp))
+                    } else {
+                        com.composables.ui.components.Button(onClick = onOpenAppPicker, style = com.composables.ui.components.ButtonStyle.Ghost,
+                            contentColor = Color.White) { Text(stringResource(R.string.ekagra_apps_to_block), color = Color.White, fontSize = 12.sp) }
                     }
                 }
-            }
-
-
-            val clampedProgress = progress.coerceIn(0f, 1f)
-            val ringColor  = if (isDarkTheme) Color.White else Color.White
-            val trackColor = if (isDarkTheme) Color.White.copy(alpha = 0.20f) else Color.White.copy(alpha = 0.40f)
-
-            Box(contentAlignment = Alignment.Center, modifier = Modifier.size(ringDiameter)) {
-                // Ambient glow and soft radial background
-                androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize().padding(4.dp)) {
-                    // Soft outer bloom
-                    drawCircle(
-                        color = Color.White.copy(alpha = if (isDarkTheme) 0.10f else 0.22f),
-                        radius = size.minDimension / 2f,
-                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 16.dp.toPx())
-                    )
-                    // Soft inner radial wash
-                    drawCircle(
-                        brush = androidx.compose.ui.graphics.Brush.radialGradient(
-                            colors = listOf(
-                                Color.White.copy(alpha = if (isDarkTheme) 0.06f else 0.12f),
-                                Color.Transparent,
-                            ),
-                            center = center,
-                            radius = size.minDimension / 2f
-                        )
-                    )
-                }
-
-                // Track ring
-                com.safarparmar.app.ui.components.SafarCircularProgressIndicator(
-                    progress      = { 1f },
-                    modifier      = Modifier.fillMaxSize(),
-                    color         = trackColor,
-                    strokeWidth   = EkagraChrome.stroke(5.5f),
-                    strokeCap     = StrokeCap.Round,
-                    trackColor    = Color.Transparent,
-                    gapSize       = 0.dp,
-                )
-                // Progress ring — glowing illuminated arc
-                com.safarparmar.app.ui.components.SafarCircularProgressIndicator(
-                    progress      = { clampedProgress },
-                    modifier      = Modifier.fillMaxSize(),
-                    color         = ringColor,
-                    strokeWidth   = EkagraChrome.stroke(6f + pulse * 0.8f),
-                    strokeCap     = StrokeCap.Round,
-                    trackColor    = Color.Transparent,
-                    gapSize       = 0.dp,
-                )
-
-                // Timer text inside the ring
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    // Build time text — all modes support h:mm:ss when >= 1 hour
-                    val h = secondsLeft / 3600
-                    val m = (secondsLeft % 3600) / 60
-                    val s = secondsLeft % 60
-                    val timerText = when (timerMode) {
-                        TimerMode.STOPWATCH -> formatElapsedDuration(secondsLeft.toLong())
-                        else -> if (h > 0) "%d:%02d:%02d".format(h, m, s)
-                                else "%02d:%02d".format(m, s)
-                    }
-
-                    // 3-tier adaptive font size: shrinks as content grows
-                    // Tier 1 — under 1 min   → e.g. "59s"         → 62sp (largest)
-                    // Tier 2 — 1 min – 59 min → e.g. "59m 59s"    → 50sp
-                    // Tier 3 — 1 h+          → e.g. "1h 59m 59s"  → 34sp (fits comfortably)
-                    val timerFontSize = when {
-                        secondsLeft >= 3600 -> EkagraChrome.text(34f)
-                        secondsLeft >= 60   -> EkagraChrome.text(50f)
-                        else                -> EkagraChrome.text(62f)
-                    }
-                    val timerLetterSpacing = if (secondsLeft >= 3600) 0.sp else 1.sp
-
-                    // The 3-2-1 countdown itself is rendered by the full-screen
-                    // scrim in EkagraScreen (above the dim overlay, not inside
-                    // this ring) — this inner circle only ever shows the running
-                    // time once the countdown finishes.
-                    Text(
-                        timerText,
-                        fontFamily    = EkagraSerif,
-                        fontSize      = timerFontSize,
-                        fontWeight    = FontWeight.Medium,
-                        letterSpacing = timerLetterSpacing,
-                        color         = ink.primaryText,
-                        textAlign     = TextAlign.Center,
-                        maxLines      = 1,
-                    )
-
-                    AnimatedVisibility(
-                        visible = controlsVisible,
-                        enter = fadeIn(animationSpec = tween(400, easing = FastOutSlowInEasing)) +
-                                expandVertically(animationSpec = tween(400, easing = FastOutSlowInEasing)),
-                        exit = fadeOut(animationSpec = tween(400, easing = FastOutSlowInEasing)) +
-                               shrinkVertically(animationSpec = tween(400, easing = FastOutSlowInEasing))
-                    ) {
-                        val subtext = when (timerMode) {
-                            TimerMode.STOPWATCH -> if (isRunning) stringResource(R.string.ekagra_stopwatch_running) else stringResource(R.string.ekagra_ready_start)
-                            TimerMode.BREAK -> if (isRunning) stringResource(R.string.ekagra_break_running) else stringResource(R.string.ekagra_ready_break)
-                            TimerMode.POMODORO -> if (isRunning) stringResource(R.string.ekagra_pomodoro_running) else stringResource(R.string.ekagra_ready_pomodoro)
-                            else -> if (isRunning) stringResource(R.string.ekagra_running) else stringResource(R.string.ekagra_ready)
-                        }
-                        Text(
-                            subtext,
-                            fontSize      = EkagraChrome.text(12f),
-                            fontWeight    = FontWeight.SemiBold,
-                            letterSpacing = 0.5.sp,
-                            color         = ink.secondaryText,
-                            textAlign     = TextAlign.Center,
-                        )
+                Box(Modifier.size(diameter), contentAlignment = Alignment.Center) {
+                    com.safarparmar.app.ui.components.SafarCircularProgressIndicator(
+                        progress = { progress.coerceIn(0f, 1f) }, modifier = Modifier.fillMaxSize(),
+                        color = palette.light, trackColor = palette.light.copy(alpha = .24f), strokeWidth = 8.dp,
+                        strokeCap = StrokeCap.Round, gapSize = 0.dp)
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        val h = secondsLeft / 3600
+                        val m = (secondsLeft % 3600) / 60
+                        val secs = secondsLeft % 60
+                        val text = if (timerMode == TimerMode.STOPWATCH) formatElapsedDuration(secondsLeft.toLong())
+                            else if (h > 0) "%d:%02d:%02d".format(h, m, secs) else "%02d:%02d".format(m, secs)
+                        Text(text, fontFamily = EkagraSerif, fontSize = if (secondsLeft >= 3600) 32.sp else 48.sp,
+                            color = Color.White, fontWeight = FontWeight.Bold, maxLines = 1)
+                        if (controlsVisible) Text(stringResource(when (timerMode) {
+                            TimerMode.STOPWATCH -> if (isRunning) R.string.ekagra_stopwatch_running else R.string.ekagra_ready_start
+                            TimerMode.BREAK -> if (isRunning) R.string.ekagra_break_running else R.string.ekagra_ready_break
+                            TimerMode.POMODORO -> if (isRunning) R.string.ekagra_pomodoro_running else R.string.ekagra_ready_pomodoro
+                            else -> if (isRunning) R.string.ekagra_running else R.string.ekagra_ready
+                        }), fontSize = 12.sp, color = Color.White.copy(alpha = .85f))
                     }
                 }
-            }
-
-
-            Spacer(Modifier.height(if (tabletLayout) 20.dp else 28.dp))
-
-            // ── Controls — symmetrical horizontal control group ──
-            Row(
-                modifier = Modifier.tutorialTarget("ekagra.controls"),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                if (!isBrowsingOtherMode) {
-                    EkagraGhostAction(
-                        label = if (timerMode == TimerMode.BREAK) stringResource(R.string.ekagra_end_break) else stringResource(R.string.common_end),
-                        ink = ink,
-                        onClick = onReset,
-                        modifier = Modifier.tutorialTarget("ekagra.end"),
-                    )
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (!isBrowsingOtherMode) EkagraTimerSideAction(
+                        stringResource(if (timerMode == TimerMode.BREAK) R.string.ekagra_end_break else R.string.common_end),
+                        Icons.Default.Stop, onReset, Modifier.tutorialTarget("ekagra.end"))
+                    com.composables.ui.components.Button(onClick = onPlayPause, style = com.composables.ui.components.ButtonStyle.Ghost,
+                        shape = CircleShape, contentColor = palette.accent,
+                        modifier = Modifier.weight(1f).heightIn(min = 54.dp).background(palette.light, CircleShape).tutorialTarget("ekagra.play")) {
+                        Icon(if (isRunning) Icons.Default.Pause else Icons.Default.PlayArrow, contentDescription = null,
+                            tint = palette.accent, modifier = Modifier.size(22.dp))
+                        Text(stringResource(if (isRunning) R.string.common_pause else if (hasProgress) R.string.common_resume else R.string.common_start),
+                            color = palette.accent, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                    }
+                    if (canStartBreak) EkagraTimerSideAction(stringResource(R.string.ekagra_break), Icons.Default.FreeBreakfast,
+                        onStartBreak, Modifier.tutorialTarget("ekagra.break"))
                 }
-                EkagraPrimaryAction(
-                    label = when {
-                        isRunning   -> stringResource(R.string.common_pause)
-                        hasProgress -> stringResource(R.string.common_resume)
-                        else        -> stringResource(R.string.common_start)
-                    },
-                    accent  = themeAccent,
-                    onClick = onPlayPause,
-                    modifier = Modifier.tutorialTarget("ekagra.play"),
-                )
-                if (canStartBreak) {
-                    EkagraGhostAction(
-                        label = stringResource(R.string.ekagra_break),
-                        ink   = ink,
-                        onClick = onStartBreak,
-                        modifier = Modifier.tutorialTarget("ekagra.break"),
-                    )
-                }
+                if (isBrowsingOtherMode) Text(stringResource(R.string.ekagra_other_mode_active, activeModeLabel), color = Color.White,
+                    textAlign = TextAlign.Center, fontSize = 12.sp)
+                if (controlsVisible && mottoText.isNotBlank()) Text(mottoText, color = Color.White.copy(alpha = .7f),
+                    textAlign = TextAlign.Center, fontSize = 10.sp)
             }
-
-            if (isBrowsingOtherMode) {
-                Spacer(Modifier.height(12.dp))
-                Text(
-                    text = stringResource(R.string.ekagra_other_mode_active, activeModeLabel),
-                    fontSize = EkagraChrome.text(12f),
-                    color = ink.secondaryText,
-                    textAlign = TextAlign.Center,
-                )
-            }
-
-            AnimatedVisibility(
-                visible = controlsVisible,
-                enter = fadeIn(animationSpec = tween(500, easing = FastOutSlowInEasing)) +
-                        expandVertically(animationSpec = tween(500, easing = FastOutSlowInEasing)),
-                exit = fadeOut(animationSpec = tween(500, easing = FastOutSlowInEasing)) +
-                       shrinkVertically(animationSpec = tween(500, easing = FastOutSlowInEasing))
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Spacer(Modifier.height(20.dp))
-
-                    Text(
-                        text       = mottoText,
-                        fontSize   = EkagraChrome.text(10f),
-                        fontWeight = FontWeight.SemiBold,
-                        letterSpacing = 2.sp,
-                        color      = ink.secondaryText,
-                        textAlign  = TextAlign.Center,
-                    )
-
-                    Spacer(Modifier.height(if (tabletLayout) 16.dp else if (showYoutubeBanner) 72.dp else 16.dp))
-                }
-            }
-            if (tabletLayout) {
-                AnimatedVisibility(visible = showYoutubeBanner && controlsVisible,
-                    enter = fadeIn(tween(220)), exit = fadeOut(tween(120))) {
-                    EkagraYouTubeStudyBanner(onEnableClick = onEnableYoutubeFocus,
-                        onDismiss = onDismissYoutubeFocus)
-                }
-                Spacer(Modifier.height(12.dp))
-            }
+            if (showYoutubeBanner && controlsVisible) EkagraYouTubeStudyBanner(onEnableClick = onEnableYoutubeFocus, onDismiss = onDismissYoutubeFocus)
         }
-      }
+    }
+}
 
-      AnimatedVisibility(
-          visible = !tabletLayout && showYoutubeBanner && controlsVisible,
-          enter = fadeIn(animationSpec = tween(500, easing = FastOutSlowInEasing)),
-          exit = fadeOut(animationSpec = tween(500, easing = FastOutSlowInEasing)),
-          modifier = Modifier
-              .align(Alignment.BottomCenter)
-              .padding(start = 20.dp, end = 20.dp, bottom = 12.dp),
-      ) {
-          EkagraYouTubeStudyBanner(
-              onEnableClick = onEnableYoutubeFocus,
-              onDismiss = onDismissYoutubeFocus,
-          )
-      }
+@Composable
+private fun EkagraTimerSideAction(label: String, icon: ImageVector, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        com.composables.ui.components.IconButton(onClick = onClick, style = com.composables.ui.components.ButtonStyle.Ghost,
+            shape = CircleShape, contentColor = Color.White, modifier = Modifier.size(48.dp).border(1.dp, Color.White.copy(alpha = .6f), CircleShape)) {
+            Icon(icon, contentDescription = label, tint = Color.White, modifier = Modifier.size(22.dp))
+        }
+        Text(label, color = Color.White, fontSize = 11.sp)
     }
 }
 
