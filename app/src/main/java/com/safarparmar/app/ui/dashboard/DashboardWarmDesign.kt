@@ -1,5 +1,7 @@
 package com.safarparmar.app.ui.dashboard
 
+import com.safarparmar.app.ui.theme.RoyalPurpleMid
+import com.safarparmar.app.ui.theme.RoyalPurpleDeep
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -33,9 +35,9 @@ import com.safarparmar.app.ui.navigation.Routes
 import com.safarparmar.app.ui.studyplanner.analytics.StudyPlannerAnalytics
 import com.safarparmar.app.ui.theme.*
 
-internal val DashboardPlum = Color(0xFF491438)
-internal val DashboardPeach = Color(0xFFFFDFD5)
-internal val DashboardLilac = Color(0xFFEDE0F4)
+internal val DashboardPlum = RoyalPurple
+internal val DashboardPeach = RoyalPurpleSoft
+internal val DashboardLilac = RoyalPurpleSoft
 
 @Composable
 internal fun DashboardWarmTheme(content: @Composable () -> Unit) {
@@ -125,7 +127,7 @@ internal fun DashboardPlanHero(state: DashboardStudyPlanState, onNavigate: (Stri
         onNavigate(if (state.planId.isNullOrBlank()) Routes.STUDY_PLANNER else "${Routes.STUDY_PLANNER}?planId=${state.planId}")
     }
     Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp))
-        .background(Brush.linearGradient(listOf(DashboardPlum, Color(0xFF35102C), Color(0xFF65315B))))) {
+        .background(Brush.linearGradient(listOf(DashboardPlum, RoyalPurpleDeep, RoyalPurpleMid)))) {
         Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = DashboardPeach,
             modifier = Modifier.align(Alignment.TopEnd).padding(14.dp).size(25.dp))
         BoxWithConstraints(Modifier.fillMaxWidth().padding(20.dp)) {

@@ -80,76 +80,16 @@ import com.safarparmar.app.ui.studyplanner.components.rememberPlannerBackdropBlu
 import com.safarparmar.app.ui.theme.*
 import com.safarparmar.app.util.YoutubeUrls
 import com.safarparmar.app.util.bounceClick
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-
-private data class HomeSlide(
-    val titleRes: Int,
-    val headlineRes: Int,
-    val bodyRes: Int,
-    val bgImageUrl: String,
-    val route: String,
-    val accentColor: Color,
-    val uiColor: Color,
-)
 
 private data class ToolCard(
     val labelRes: Int,
     val imageRes: Int,
     val route: String,
 )
-
-private val slides = listOf(
-    HomeSlide(
-        R.string.module_ekagra,
-        R.string.home_slide_ekagra_headline,
-        R.string.home_slide_ekagra_body,
-        "img_ekagara.webp",
-        Routes.EKAGRA,
-        Color(0xFFAAC7FF),
-        Color(0xFF0A305F)
-    ),
-    HomeSlide(
-        R.string.module_nishtha,
-        R.string.home_slide_nishtha_headline,
-        R.string.home_slide_nishtha_body,
-        "img_nishtha.webp",
-        Routes.nishthaRoot(),
-        Color(0xFFA9D0B3),
-        Color(0xFF143723)
-    ),
-    HomeSlide(
-        R.string.module_mehfil,
-        R.string.home_slide_mehfil_headline,
-        R.string.home_slide_mehfil_body,
-        "img_mehefil.webp",
-        Routes.MEHFIL,
-        Color(0xFFFFB5A0),
-        Color(0xFF561F0F)
-    ),
-    HomeSlide(
-        R.string.module_dhyan,
-        R.string.home_slide_dhyan_headline,
-        R.string.home_slide_dhyan_body,
-        "img_dhyan.webp",
-        Routes.DHYAN,
-        Color(0xFFDDBCE0),
-        Color(0xFF3F2844)
-    ),
-    HomeSlide(
-        R.string.module_study_planner,
-        R.string.home_slide_planner_headline,
-        R.string.home_slide_planner_body,
-        "study_planner_light.webp",
-        Routes.STUDY_PLANNER,
-        Color(0xFFC8D3A5),
-        Color(0xFF2D3615)
-    ),
-)
-
 
 private val toolCards = listOf(
     ToolCard(R.string.module_ekagra, R.drawable.tool_ekagra, Routes.EKAGRA),
@@ -192,17 +132,6 @@ fun HomeScreen(
     // Keep first-run prompts sequential: SAFAR welcome first, then Android notifications.
     if (homeWelcomeSeen == true) {
         NotificationPermissionRequest()
-    }
-
-    var currentPage by remember { mutableIntStateOf((0 until slides.size).random()) }
-
-    LaunchedEffect(currentPage) {
-        delay(4000L)
-        var next = currentPage
-        while (next == currentPage) {
-            next = (0 until slides.size).random()
-        }
-        currentPage = next
     }
 
     var showAnnouncementsSheet by remember { mutableStateOf(false) }
@@ -267,8 +196,7 @@ fun HomeScreen(
         showTopBar = false,
         onDrawerControllerReady = { openDrawerAction = it },
     ) { padding ->
-        val currentSlide = slides[currentPage]
-        val baseBgColor = if (isDarkTheme) BgDark else Color(0xFFFFF5F0)
+        val baseBgColor = if (isDarkTheme) BgDark else Color(0xFFFAF8FF)
 
         BoxWithConstraints(
             modifier = Modifier
@@ -298,19 +226,15 @@ fun HomeScreen(
             } else {
                 PlumPhoneHome(
                     isDarkTheme = isDarkTheme,
-                    slideTitle = stringResource(currentSlide.titleRes),
-                    slideHeadline = stringResource(currentSlide.headlineRes),
-                    slideCount = slides.size, currentPage = currentPage,
-                    onPage = { currentPage = it }, onHero = { onNavigate(currentSlide.route) },
                     onNavigate = onNavigate, onMenu = { openDrawerAction?.invoke() },
                     modifier = Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding),
                     actions = {
                         com.safarparmar.app.ui.tutorial.TitliGuideButton(artworkSize = 42.dp)
-                        VideoPlaylistEntryPoint(dataStore = dataStore, tint = if (isDarkTheme) Color(0xFFFFF0F6) else Color(0xFF39132E),
+                        VideoPlaylistEntryPoint(dataStore = dataStore, tint = if (isDarkTheme) Color(0xFFFFF0F6) else Color(0xFF241544),
                             isDarkTheme = isDarkTheme, showTooltip = true, modifier = Modifier.size(48.dp), iconSize = 30.dp)
                         ComposablesIconButton(onClick = { showAnnouncementsSheet = true }, style = ButtonStyle.Ghost, modifier = Modifier.size(48.dp)) {
                             Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
-                                Icon(Icons.Outlined.Notifications, stringResource(R.string.home_notifications_updates), modifier = Modifier.size(32.dp), tint = if (isDarkTheme) Color(0xFFFFF0F6) else Color(0xFF39132E))
+                                Icon(Icons.Outlined.Notifications, stringResource(R.string.home_notifications_updates), modifier = Modifier.size(32.dp), tint = if (isDarkTheme) Color(0xFFFFF0F6) else Color(0xFF241544))
                                 if (notificationBellState.unreadCount > 0) Badge(
                                     modifier = Modifier.align(Alignment.TopEnd).offset(x = 1.dp, y = 1.dp),
                                     containerColor = Color(0xFFB3261E), contentColor = Color.White) {
@@ -340,9 +264,9 @@ fun HomeScreen(
 @Composable
 private fun SafarWelcomeDialog(userName: String, isDarkTheme: Boolean, onDismiss: () -> Unit) {
     val paper = if (isDarkTheme) Color(0xFF342735) else Color(0xFFFFF9F4)
-    val ink = if (isDarkTheme) Color(0xFFFFF0F6) else Color(0xFF39132E)
+    val ink = if (isDarkTheme) Color(0xFFFFF0F6) else Color(0xFF241544)
     val muted = if (isDarkTheme) Color(0xFFCFBECB) else Color(0xFF75616F)
-    val plum = if (isDarkTheme) Color(0xFFF0BEDC) else Color(0xFF491438)
+    val plum = if (isDarkTheme) RoyalPurpleDark else RoyalPurple
     CompositionLocalProvider(com.safarparmar.app.ui.theme.LocalSafarComposablesAccent provides plum) {
         com.safarparmar.app.ui.theme.SafarComposablesTheme {
             com.safarparmar.app.ui.components.popups.SafarComposablesAlertDialog(
@@ -351,19 +275,18 @@ private fun SafarWelcomeDialog(userName: String, isDarkTheme: Boolean, onDismiss
                 paneTitle = stringResource(R.string.home_welcome_hello), shape = RoundedCornerShape(28.dp),
                 backgroundColor = paper, contentColor = ink, contentPadding = PaddingValues(24.dp),
             ) {
-                Column(Modifier.fillMaxWidth().heightIn(max = 680.dp).verticalScroll(rememberScrollState()),
-                    horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                Column(Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Image(painterResource(R.drawable.home_welcome_book), contentDescription = null,
-                        modifier = Modifier.fillMaxWidth().heightIn(max = 165.dp), contentScale = ContentScale.Fit)
+                        modifier = Modifier.fillMaxWidth().height(110.dp), contentScale = ContentScale.Fit)
                     Text(if (userName.isNotBlank()) stringResource(R.string.home_welcome_hello_name, userName)
                         else stringResource(R.string.home_welcome_hello), color = ink, fontFamily = PoppinsFontFamily,
                         fontSize = 25.sp, lineHeight = 32.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
-                    Text(stringResource(R.string.home_welcome_intro), color = ink, fontSize = 15.sp,
-                        lineHeight = 22.sp, fontWeight = FontWeight.Medium, textAlign = TextAlign.Center)
-                    Text(stringResource(R.string.home_welcome_message), color = muted, fontSize = 13.sp,
-                        lineHeight = 20.sp, textAlign = TextAlign.Center)
+                    Text((stringResource(R.string.home_welcome_intro) + " " + stringResource(R.string.home_welcome_message))
+                        .replace(Regex("\\s+"), " "), color = muted, fontSize = 13.sp,
+                        lineHeight = 19.sp, textAlign = TextAlign.Start)
                     Text(stringResource(R.string.home_welcome_journey), color = plum, fontSize = 14.sp,
-                        fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)
+                        fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center, maxLines = 1)
                     Button(onClick = onDismiss, style = ButtonStyle.Ghost, shape = CircleShape,
                         contentColor = if (isDarkTheme) paper else Color.White,
                         modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp).background(plum, CircleShape)) {
@@ -431,6 +354,10 @@ private fun HomeFrostedToolsCard(
     onNavigate: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var showAllTools by remember { mutableStateOf(false) }
+    if (showAllTools) AllToolsSheet(onDismiss = { showAllTools = false }, onNavigate = { showAllTools = false; onNavigate(it) })
+
+
     val glassShape = RoundedCornerShape(20.dp)
     val glassBaseColor = if (isDarkTheme) {
         Color(0xFF14171E).copy(alpha = 0.62f)
@@ -523,7 +450,7 @@ private fun HomeFrostedToolsCard(
                     }
                     // "Explore" mini button
                     Button(
-                        onClick = { onNavigate(Routes.DASHBOARD) },
+                        onClick = { showAllTools = true },
                         style = ButtonStyle.Ghost,
                         buttonSize = ButtonSize.Small
                     ) {
@@ -532,7 +459,7 @@ private fun HomeFrostedToolsCard(
                             horizontalArrangement = Arrangement.spacedBy(3.dp)
                         ) {
                             Text(
-                                text = "Explore",
+                                text = "See All",
                                 fontSize = 12.sp,
                                 color = if (isDarkTheme) Color(0xFFB9E4C9) else Color(0xFF123F28),
                                 fontWeight = FontWeight.SemiBold,

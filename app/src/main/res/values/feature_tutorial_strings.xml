@@ -77,8 +77,8 @@
     <string name="ekagra_tutorial_kavach_apps_body">Turn on the apps you want to block, then tap Save apps. Search and the selection shortcuts help with longer lists. These are sample apps only.</string>
     <string name="ekagra_tutorial_kavach_active_title">Check protection status</string>
     <string name="ekagra_tutorial_kavach_active_body">Ready means Kavach is configured. Active means protection is running. Always On may keep protection active outside sessions; unavailable means protection needs attention.</string>
-    <string name="ekagra_tutorial_youtube_title">Study with YouTube Focus</string>
-    <string name="ekagra_tutorial_youtube_body">This shortcut opens YouTube Focus setup. Use the existing permission guide there, then select study content. The practice shortcut stays inside this tutorial.</string>
+    <string name="ekagra_tutorial_apps_to_block_title">Choose apps to block</string>
+    <string name="ekagra_tutorial_apps_to_block_body">Open Apps to Block to choose the apps Kavach should block during focus sessions. This practice shortcut stays inside the tutorial.</string>
     <string name="ekagra_tutorial_music_title">Choose your focus audio</string>
     <string name="ekagra_tutorial_music_body">Music opens the audio library. Browse categories and select a track. Preview controls play audio in normal use; this practice stays silent.</string>
     <string name="ekagra_tutorial_theme_title">Choose a backdrop</string>
@@ -130,7 +130,7 @@
     <string name="ekagra_tutorial_kavach_ready_instruction">Enable Kavach before you focus.</string>
     <string name="ekagra_tutorial_kavach_apps_instruction">Select apps, then tap Save apps.</string>
     <string name="ekagra_tutorial_kavach_active_instruction">Check that Kavach shows Active.</string>
-    <string name="ekagra_tutorial_youtube_instruction">Open YouTube Focus to set up study.</string>
+    <string name="ekagra_tutorial_apps_to_block_instruction">Tap Apps to Block to choose distracting apps.</string>
     <string name="ekagra_tutorial_music_instruction">Choose a track from the audio library.</string>
     <string name="ekagra_tutorial_theme_instruction">Choose a backdrop for your timer.</string>
     <string name="ekagra_tutorial_muted_instruction">Use Audio to mute or unmute.</string>

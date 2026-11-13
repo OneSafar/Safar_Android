@@ -271,12 +271,18 @@ fun PlanSettingsSheet(
     onExamDateChanged: (String) -> Unit = {},
     focusDailyGoal: Boolean = false,
     focusExamDate: Boolean = false,
+    /** The student's saved study style ("interleaved" / "sequential"), used by
+     *  "Create new study dates" so it matches every other rebuild entry point. */
+    preferredStrategy: String = "interleaved",
 ) {
     var title by remember(plan.id) { mutableStateOf(plan.title) }
     var examType by remember(plan.id) { mutableStateOf(plan.examType.orEmpty()) }
     var examDate by remember(plan.id) { mutableStateOf(plan.examDate?.take(10).orEmpty()) }
     var dailyGoal by remember(plan.id) { mutableStateOf((plan.dailyGoal ?: 3).toString()) }
     var offDays by remember(plan.id) { mutableStateOf(plan.offDays.toSet()) }
+    var studyStyle by remember(plan.id, preferredStrategy) {
+        mutableStateOf(if (preferredStrategy == "sequential") "sequential" else "interleaved")
+    }
 
     val isPlanScheduled = remember(plan) {
         plan.subjects.isNotEmpty() && plan.subjects.any { s ->
@@ -286,7 +292,7 @@ fun PlanSettingsSheet(
         }
     }
 
-    fun performSave() {
+    fun performSave(offerReschedule: Boolean = true) {
         val newExamDate = examDate.ifBlank { null }
         val newGoal = dailyGoal.toIntOrNull()?.coerceAtLeast(1) ?: 3
         actions.updatePlan(
@@ -298,6 +304,15 @@ fun PlanSettingsSheet(
                 offDays = offDays.toList(),
             ),
         )
+        // Study style is a per-plan preference on the phone, not a server field.
+        if (studyStyle != preferredStrategy) actions.setPreferredStudyStrategy(studyStyle)
+        // A new exam date leaves every existing study date where it was, so topics
+        // can end up after the exam or bunched up. Hand off to the reschedule flow
+        // before dismissing so the host can replace any "return to" routing.
+        val examDateChanged = newExamDate != null && newExamDate != plan.examDate?.take(10)
+        if (offerReschedule && examDateChanged && isPlanScheduled) {
+            onExamDateChanged(newExamDate!!)
+        }
         onDismiss()
     }
 
@@ -458,6 +473,29 @@ fun PlanSettingsSheet(
                                 offDays = if (day in offDays) offDays - day else offDays + day
                             },
                         )
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text(stringResource(R.string.planner_study_style), style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold, color = PlannerFlatColors.TextDark)
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                listOf(
+                                    "interleaved" to R.string.planner_balanced_mode,
+                                    "sequential" to R.string.planner_deep_focus_mode,
+                                ).forEach { (value, label) ->
+                                    androidx.compose.material3.FilterChip(
+                                        selected = studyStyle == value,
+                                        onClick = { studyStyle = value },
+                                        label = { Text(stringResource(label)) },
+                                        modifier = Modifier.heightIn(min = 48.dp),
+                                    )
+                                }
+                            }
+                            Text(
+                                stringResource(if (studyStyle == "sequential") R.string.planner_deep_focus_mode_body else R.string.planner_balanced_mode_body) +
+                                    " " + stringResource(R.string.planner_study_style_help),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = PlannerFlatColors.TextMuted,
+                            )
+                        }
                     }
                 }
             }
@@ -484,8 +522,8 @@ fun PlanSettingsSheet(
                 item {
                     OutlinedButton(
                         onClick = {
-                            performSave()
-                            actions.autoDistribute(lockExisting = false, strategy = "interleaved")
+                            performSave(offerReschedule = false)
+                            actions.autoDistribute(lockExisting = false, strategy = studyStyle)
                         },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -499,6 +537,25 @@ fun PlanSettingsSheet(
                         Icon(Icons.Default.CalendarMonth, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(8.dp))
                         Text(stringResource(R.string.planner_make_new_dates), fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+            if (plan.subjects.isNotEmpty()) {
+                item {
+                    // Moved here from the Syllabus tab's old "Change your study plan" sheet.
+                    OutlinedButton(
+                        onClick = { actions.saveCurrentSyllabusForReuse() },
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        border = BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
+                    ) {
+                        Column(Modifier.fillMaxWidth()) {
+                            Text(
+                                stringResource(if (plan.savedSyllabusId.isNullOrBlank()) R.string.planner_save_syllabus_reuse else R.string.planner_update_saved_syllabus),
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            Text(stringResource(R.string.planner_save_reuse_note), style = MaterialTheme.typography.bodySmall, color = PlannerFlatColors.TextMuted)
+                        }
                     }
                 }
             }

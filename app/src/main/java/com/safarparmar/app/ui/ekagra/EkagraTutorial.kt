@@ -336,7 +336,6 @@ private fun PracticeTimer(demo: EkagraTutorialDemoState, isDarkTheme: Boolean, s
                 blockedPackages = setOf("practice.social"), isProtectionActive = demo.scene == EkagraTutorialScene.KAVACH_ACTIVE,
             ),
             isDarkTheme = isDarkTheme, selectedTheme = selectedTheme, themeAccent = accent, onToggleKavach = {}, onOpenAppPicker = {}, onNavigate = {},
-            showYoutubeBanner = demo.scene == EkagraTutorialScene.YOUTUBE,
             summaryContent = {
                 KavachSummaryPillsContent(distractingSeconds = 0, modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 2.dp, bottom = 4.dp), isDarkTheme = isDarkTheme, themeAccent = accent, ink = ink,
                     myCircles = circles, selectedCircle = circles.firstOrNull())

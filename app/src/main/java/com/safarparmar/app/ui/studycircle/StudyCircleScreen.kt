@@ -1,5 +1,8 @@
 package com.safarparmar.app.ui.studycircle
 
+import com.safarparmar.app.ui.theme.RoyalPurple
+import com.safarparmar.app.ui.theme.RoyalPurpleDark
+
 import com.safarparmar.app.ui.theme.isLightBackground
 
 import androidx.compose.ui.platform.LocalResources
@@ -93,10 +96,10 @@ private const val MAX_CIRCLE_NAME_LENGTH = 40
 
 /** Primary color: Deep Royal Purple/Blue */
 private val CirclePrimary: Color
-    @Composable get() = if (isPlannerDark) Color(0xFFF0BEDC) else Color(0xFF542347)
+    @Composable get() = if (isPlannerDark) RoyalPurpleDark else RoyalPurple
 
 private val CirclePrimaryButton: Color
-    @Composable get() = if (isPlannerDark) Color(0xFF542347) else Color(0xFF542347)
+    @Composable get() = if (isPlannerDark) RoyalPurple else RoyalPurple
 
 /** Secondary color: Deep Green for Live & Active indicators */
 private val DeepGreen: Color
@@ -2360,7 +2363,7 @@ internal fun LeaderboardMemberRow(
     val liveGreen = DeepGreen
 
     val rowBg = when {
-        isSelf -> Color(0xFF542347)
+        isSelf -> RoyalPurple
         isLive -> CircleWorkspaceColors.CardWhite
         else -> CircleWorkspaceColors.CardWhite
     }

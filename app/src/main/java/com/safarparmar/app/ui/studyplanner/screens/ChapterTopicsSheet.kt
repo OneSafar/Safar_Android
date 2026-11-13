@@ -28,6 +28,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -75,12 +76,19 @@ internal fun ChapterTopicsSheet(
     onRenameTopic: (StudyTopic) -> Unit,
     onDeleteTopic: (StudyTopic) -> Unit,
     onAssignToday: (StudyTopic) -> Unit,
-    canReorder: Boolean,
+    /** Study vs Edit mode, shared with the subject list. */
+    editMode: Boolean,
+    onToggleEdit: () -> Unit,
     onMoveTopicUp: (StudyTopic) -> Unit,
     onMoveTopicDown: (StudyTopic) -> Unit,
     onTopicDragEnd: (StudyTopic) -> Unit,
     onChangeDate: (StudyTopic) -> Unit = {},
     onMarkDoneTopic: (StudyTopic) -> Unit = {},
+    onMarkNotDoneTopic: (StudyTopic) -> Unit = {},
+    onAssignTomorrow: (StudyTopic) -> Unit = {},
+    onFocusTopic: (StudyTopic) -> Unit = {},
+    /** Scrolled into view and outlined when the sheet opens from search or Today. */
+    focusTopicId: String? = null,
     onToReviseTopic: (StudyTopic) -> Unit = {},
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -90,7 +98,9 @@ internal fun ChapterTopicsSheet(
     // Capped to 60% of the screen (bottom half plus a 10% margin) instead of letting
     // a long topic list stretch the sheet all the way to the top — the topic list
     // scrolls within that cap instead.
-    val maxSheetHeight = LocalConfiguration.current.screenHeightDp.dp * 0.6f
+    // 60% only fit ~3 topic rows on a 720x1600 phone; most of the screen is free
+    // while this sheet is open, so give the list nearly all of it.
+    val maxSheetHeight = LocalConfiguration.current.screenHeightDp.dp * 0.9f
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -192,10 +202,20 @@ internal fun ChapterTopicsSheet(
                         color = PlannerFlatColors.TextDark,
                         modifier = Modifier.weight(1f),
                     )
-                    SyllabusGlassAddButton(
-                        onClick = { showAddRow = true },
-                        contentDescription = stringResource(R.string.planner_add_topic),
-                    )
+                    // An empty chapter keeps its add button so it is never a dead end.
+                    if (editMode || topics.isEmpty()) {
+                        SyllabusGlassAddButton(
+                            onClick = { showAddRow = true },
+                            contentDescription = stringResource(R.string.planner_add_topic),
+                        )
+                    }
+                    TextButton(onClick = onToggleEdit, modifier = Modifier.heightIn(min = 48.dp)) {
+                        Text(
+                            stringResource(if (editMode) R.string.common_done else R.string.common_edit),
+                            fontWeight = FontWeight.SemiBold,
+                            color = PlannerFlatColors.PrimaryAccent,
+                        )
+                    }
                 }
             }
             Spacer(Modifier.height(14.dp))
@@ -208,7 +228,13 @@ internal fun ChapterTopicsSheet(
                     modifier = Modifier.padding(horizontal = 24.dp, vertical = 20.dp),
                 )
             } else {
+                val listState = androidx.compose.foundation.lazy.rememberLazyListState()
+                LaunchedEffect(focusTopicId) {
+                    val index = topics.indexOfFirst { it.id == focusTopicId }
+                    if (index >= 0) listState.animateScrollToItem(index)
+                }
                 LazyColumn(
+                    state = listState,
                     modifier = Modifier.fillMaxWidth().weight(1f, fill = false),
                     contentPadding = PaddingValues(horizontal = 24.dp),
                 ) {
@@ -221,10 +247,14 @@ internal fun ChapterTopicsSheet(
                                 onRename = { onRenameTopic(topic) },
                                 onDelete = { onDeleteTopic(topic) },
                                 onAssignToday = { onAssignToday(topic) },
+                                onAssignTomorrow = { onAssignTomorrow(topic) },
                                 onChangeDate = { onChangeDate(topic) },
                                 onMarkDone = { onMarkDoneTopic(topic) },
+                                onMarkNotDone = { onMarkNotDoneTopic(topic) },
                                 onToRevise = { onToReviseTopic(topic) },
-                                canReorder = canReorder,
+                                onFocus = { onFocusTopic(topic) },
+                                editMode = editMode,
+                                highlighted = topic.id == focusTopicId,
                                 onMoveUp = { onMoveTopicUp(topic) },
                                 onMoveDown = { onMoveTopicDown(topic) },
                                 onDragEnd = { onTopicDragEnd(topic) },

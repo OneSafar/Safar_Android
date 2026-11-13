@@ -45,10 +45,10 @@ private data class AchievementPalette(val canvas: Color, val paper: Color, val i
 @Composable
 private fun achievementPalette(): AchievementPalette {
     val light = MaterialTheme.colorScheme.background.isLightBackground()
-    return if (light) AchievementPalette(Color(0xFFFFF5F0), Color(0xFFFFFDFC), Color(0xFF39132E), Color(0xFF75616F),
-        Color(0xFF491438), Color(0xFFEDE0F4), Color(0xFFFFDFD5), Color(0xFFEADFE6))
+    return if (light) AchievementPalette(Color(0xFFFAF8FF), Color(0xFFFFFDFC), Color(0xFF241544), Color(0xFF75616F),
+        RoyalPurple, RoyalPurpleSoft, RoyalPurpleSoft, Color(0xFFEADFE6))
     else AchievementPalette(Color(0xFF211921), Color(0xFF342735), Color(0xFFFFF0F6), Color(0xFFCFBECB),
-        Color(0xFFF0BEDC), Color(0xFF513551), Color(0xFF684047), Color(0xFF654D66))
+        RoyalPurpleDark, RoyalPurpleSoftDark, RoyalPurpleSoftDark, Color(0xFF654D66))
 }
 
 @Composable

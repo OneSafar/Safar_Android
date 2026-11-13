@@ -1488,7 +1488,9 @@ private fun PlannerHome(
     }
 
     Column(Modifier.fillMaxSize()) {
-        if (plan != null && chromeState.section != PlannerSection.YOUR_EXAMS && chromeState.section != PlannerSection.PLAN) {
+        // Today and Syllabus draw their own exam chip next to "Plan settings".
+        if (plan != null && chromeState.section != PlannerSection.YOUR_EXAMS && chromeState.section != PlannerSection.PLAN &&
+            chromeState.section != PlannerSection.SYLLABUS) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
                 FilledTonalButton(onClick = { actions.setSection(PlannerSection.YOUR_EXAMS) }, shape = RoundedCornerShape(16.dp)) {
                     Text(plan.title, maxLines = 2, overflow = TextOverflow.Ellipsis)

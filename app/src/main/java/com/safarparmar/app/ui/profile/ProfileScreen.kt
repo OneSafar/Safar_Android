@@ -1,5 +1,7 @@
 package com.safarparmar.app.ui.profile
 
+import com.safarparmar.app.ui.theme.RoyalPurpleDark
+
 import androidx.compose.ui.platform.LocalResources
 
 import android.widget.Toast
@@ -165,7 +167,7 @@ fun ProfileScreen(
             showTutorialButton = false,
             topBarActions = {
                 val canSave = !uiState.isLoading && !uiState.isAvatarUploading && !uiState.isDeletingAccount && !uiState.isLoggingOut
-                val tickColor = if (isDarkTheme) Color(0xFFF0BEDC) else profileColors.plum
+                val tickColor = if (isDarkTheme) RoyalPurpleDark else profileColors.plum
                 ComposablesIconButton(
                     onClick = { viewModel.onEvent(ProfileEvent.SaveProfile) },
                     enabled = canSave && !uiState.isSaving,
@@ -201,9 +203,9 @@ fun ProfileScreen(
                 identity = { vertical ->
                     CompactIdentityCard(uiState, premiumStatus.hasAnyPaidAccess, vertical,
                         onAvatarClick = {
-                            if (uiState.userAvatar.isNullOrBlank()) imagePicker.launch("image/*")
+                            if (uiState.userAvatar.isNullOrBlank()) viewModel.onEvent(ProfileEvent.ShowAvatarPicker)
                             else showAvatarPreview = true
-                        }, onEditAvatar = { imagePicker.launch("image/*") })
+                        }, onEditAvatar = { viewModel.onEvent(ProfileEvent.ShowAvatarPicker) })
                 },
                 form = {
                     CompactProfileSurface {
@@ -319,8 +321,21 @@ fun ProfileScreen(
                     onDismiss = { showAvatarPreview = false },
                     onEdit = {
                         showAvatarPreview = false
-                        imagePicker.launch("image/*")
+                        viewModel.onEvent(ProfileEvent.ShowAvatarPicker)
                     },
+                )
+            }
+
+            if (uiState.showAvatarPicker) {
+                AvatarPickerBottomSheet(
+                    avatars = uiState.avatarList,
+                    isLoading = uiState.isAvatarListLoading,
+                    selectedAvatarUrl = uiState.selectedPresetAvatarUrl,
+                    isApplying = uiState.isApplyingAvatar,
+                    onSelectAvatar = { url -> viewModel.onEvent(ProfileEvent.SelectPresetAvatar(url)) },
+                    onApplyAvatar = { viewModel.onEvent(ProfileEvent.ApplySelectedAvatar) },
+                    onUploadCustom = { imagePicker.launch("image/*") },
+                    onDismissRequest = { viewModel.onEvent(ProfileEvent.DismissAvatarPicker) },
                 )
             }
         }

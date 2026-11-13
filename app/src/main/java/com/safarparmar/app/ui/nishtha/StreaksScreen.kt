@@ -1,5 +1,7 @@
 package com.safarparmar.app.ui.nishtha
 
+import com.safarparmar.app.ui.theme.RoyalPurple
+
 import androidx.compose.ui.platform.LocalLocale
 
 import androidx.compose.foundation.Canvas
@@ -113,7 +115,7 @@ private object StreaksPalette {
     val Trend @Composable get() = if (!MaterialTheme.colorScheme.background.isLightBackground()) {
         Color(0xFFC084FC)
     } else {
-        Color(0xFF581C87)
+        RoyalPurple
     }
 }
 

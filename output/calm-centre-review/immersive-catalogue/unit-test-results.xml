@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.safarparmar.app.ui.calmcentre.CalmPracticeTest" tests="11" skipped="0" failures="0" errors="0" timestamp="2026-11-11T13:47:40.160Z" hostname="Shashanks-MacBook-Air.local" time="0.033">
+  <properties/>
+  <testcase name="textFillTracksBreathingAndMoonMovementBoundaries" classname="com.safarparmar.app.ui.calmcentre.CalmPracticeTest" time="0.001"/>
+  <testcase name="windDownMoonFollowsCueStepsWithoutBoundaryJumps" classname="com.safarparmar.app.ui.calmcentre.CalmPracticeTest" time="0.007"/>
+  <testcase name="selectableBreathingPatternsUseRealPhaseTimings" classname="com.safarparmar.app.ui.calmcentre.CalmPracticeTest" time="0.004"/>
+  <testcase name="breathingCurveIsContinuousAndBoundedAcrossManyCycles" classname="com.safarparmar.app.ui.calmcentre.CalmPracticeTest" time="0.001"/>
+  <testcase name="everyTechniqueHasAContinuousBoundedAnimationAndTextProgress" classname="com.safarparmar.app.ui.calmcentre.CalmPracticeTest" time="0.006"/>
+  <testcase name="kindnessCompanionsExchangePlacesAndCloseTheirOrbit" classname="com.safarparmar.app.ui.calmcentre.CalmPracticeTest" time="0.001"/>
+  <testcase name="countdownRoundsUpWithoutShowingNegativeTime" classname="com.safarparmar.app.ui.calmcentre.CalmPracticeTest" time="0.007"/>
+  <testcase name="explicitIntentionTakesPriorityOverMood" classname="com.safarparmar.app.ui.calmcentre.CalmPracticeTest" time="0.0"/>
+  <testcase name="blossomAndInstructionsShareExactFourSixBoundaries" classname="com.safarparmar.app.ui.calmcentre.CalmPracticeTest" time="0.001"/>
+  <testcase name="resetMeetsTheUsersCurrentMood" classname="com.safarparmar.app.ui.calmcentre.CalmPracticeTest" time="0.001"/>
+  <testcase name="sensorySequenceUsesAllFiveStepsAtEveryDuration" classname="com.safarparmar.app.ui.calmcentre.CalmPracticeTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

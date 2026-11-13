@@ -7,7 +7,10 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.material.icons.filled.DragHandle
+import com.safarparmar.app.ui.studyplanner.logic.isLate
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -78,8 +81,8 @@ import com.safarparmar.app.ui.studyplanner.components.isPlannerDark
 import com.safarparmar.app.domain.model.studyplanner.TopicSize
 import com.safarparmar.app.ui.studyplanner.logic.NodeProgress
 import com.safarparmar.app.ui.studyplanner.logic.NodeState
-import com.safarparmar.app.ui.studyplanner.logic.CourseMapNudge
-import com.safarparmar.app.ui.studyplanner.logic.CourseMapNudgeKind
+import com.safarparmar.app.ui.studyplanner.logic.SyllabusReadinessStatus
+import androidx.compose.ui.res.pluralStringResource
 import com.safarparmar.app.ui.studyplanner.logic.progressState
 import com.safarparmar.app.ui.studyplanner.logic.readableDate
 import com.safarparmar.app.ui.studyplanner.logic.todayKey
@@ -87,61 +90,104 @@ import com.safarparmar.app.ui.studyplanner.plan.PlanEyebrow
 import com.safarparmar.app.ui.studyplanner.plan.PlanHairline
 import com.safarparmar.app.ui.theme.LoraFontFamily
 
-/** Syllabus overview and cards share the planner theme and existing editing actions. */
+/** Callbacks for the one action the readiness card can offer. */
+internal class SyllabusReadinessActions(
+    val onCreateDates: () -> Unit = {},
+    val onSetExamDate: () -> Unit = {},
+    val onGiveDates: () -> Unit = {},
+    val onUpdateDates: () -> Unit = {},
+    val onDismissRatings: () -> Unit = {},
+    val onCatchUp: () -> Unit = {},
+    val onStudyMore: () -> Unit = {},
+)
+
+/**
+ * The top of the Syllabus tab: how much is covered, how long is left, and ONE
+ * status line with at most ONE button (see [syllabusReadiness] for the order).
+ * Replaces the old progress card, days-left link, "Change your study plan"
+ * button, ratings bar and course-map nudge.
+ */
 @Composable
-internal fun SyllabusMagazineHeader(
-    planTitle: String,
+internal fun SyllabusReadinessCard(
     completionPercent: Int,
-    subjectCount: Int,
-    chapterCount: Int,
-    topicCount: Int,
+    doneTopics: Int,
+    totalTopics: Int,
     daysUntilExam: Int?,
-    notStartedChapters: Int,
-    onExamDateClick: () -> Unit,
-    onPlanTitleClick: () -> Unit = {},
+    status: SyllabusReadinessStatus,
+    busy: Boolean,
+    actions: SyllabusReadinessActions,
     modifier: Modifier = Modifier,
-    showTitle: Boolean = true,
 ) {
     val scheme = MaterialTheme.colorScheme
-    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        if (showTitle) Text(stringResource(R.string.planner_warm_syllabus), style = MaterialTheme.typography.headlineMedium, color = scheme.onSurface)
-        Text(planTitle, style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis,
-            color = scheme.onSurfaceVariant, modifier = Modifier.heightIn(min = 48.dp).clickable(onClick = onPlanTitleClick))
-        Surface(color = scheme.surface, shape = RoundedCornerShape(24.dp)) {
-            Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text(stringResource(R.string.planner_syllabus_done), style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                    Text("$completionPercent%", style = MaterialTheme.typography.headlineSmall)
+    val warn = Color(0xFFC2410C)
+    val (message, actionLabel, onAction, isWarning) = when (status) {
+        SyllabusReadinessStatus.ReorderThenCreateDates -> ReadinessLine(
+            stringResource(R.string.planner_armed_rebuild_body), stringResource(R.string.planner_armed_rebuild_action), actions.onCreateDates, false)
+        SyllabusReadinessStatus.ExamDatePassed -> ReadinessLine(
+            stringResource(R.string.planner_ready_exam_passed), stringResource(R.string.planner_ready_set_new_exam_date), actions.onSetExamDate, true)
+        SyllabusReadinessStatus.NoExamDate -> ReadinessLine(
+            stringResource(R.string.planner_ready_no_exam), stringResource(R.string.planner_ready_add_exam_date), actions.onSetExamDate, false)
+        is SyllabusReadinessStatus.NeedsDates -> ReadinessLine(
+            pluralStringResource(R.plurals.planner_ready_needs_dates, status.unscheduledCount, status.unscheduledCount),
+            stringResource(R.string.planner_ready_give_dates), actions.onGiveDates, true)
+        SyllabusReadinessStatus.RatingsChanged -> ReadinessLine(
+            stringResource(R.string.planner_ready_ratings_changed), stringResource(R.string.planner_ready_update_dates), actions.onUpdateDates, false)
+        is SyllabusReadinessStatus.Late -> ReadinessLine(
+            pluralStringResource(R.plurals.planner_ready_late, status.lateCount, status.lateCount, status.chapterName),
+            stringResource(R.string.planner_ready_catch_up), actions.onCatchUp, true)
+        is SyllabusReadinessStatus.FinishAfterExam -> ReadinessLine(
+            pluralStringResource(R.plurals.planner_ready_after_exam, status.daysAfterExam, readableDate(status.forecastDate), status.daysAfterExam),
+            stringResource(R.string.planner_ready_study_more), actions.onStudyMore, true)
+        is SyllabusReadinessStatus.OnTrack -> ReadinessLine(
+            if (status.forecastDate != null) stringResource(R.string.planner_ready_on_track_date, readableDate(status.forecastDate))
+            else stringResource(R.string.planner_ready_on_track), null, null, false)
+        SyllabusReadinessStatus.Finished -> ReadinessLine(
+            stringResource(R.string.planner_ready_finished), null, null, false)
+    }
+    Surface(color = scheme.surface, shape = RoundedCornerShape(24.dp), modifier = modifier.fillMaxWidth()) {
+        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(stringResource(R.string.planner_ready_covered, completionPercent), style = MaterialTheme.typography.titleLarge,
+                    color = scheme.onSurface, modifier = Modifier.weight(1f))
+                daysUntilExam?.let { days ->
+                    Text(when {
+                        days < 0 -> stringResource(R.string.planner_warm_exam_passed)
+                        days == 0 -> stringResource(R.string.planner_warm_exam_today)
+                        else -> stringResource(R.string.planner_warm_days_left, days)
+                    }, style = MaterialTheme.typography.labelLarge, color = if (days < 0) warn else scheme.onSurfaceVariant)
                 }
-                LinearProgressIndicator(progress = { completionPercent.coerceIn(0, 100) / 100f }, modifier = Modifier.fillMaxWidth().height(8.dp).clip(CircleShape), color = scheme.secondary, trackColor = scheme.outlineVariant)
-                Text(stringResource(R.string.planner_warm_syllabus_counts, subjectCount, chapterCount, topicCount), style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant)
-                if (notStartedChapters > 0) Text(stringResource(R.string.planner_warm_chapters_not_started, notStartedChapters), style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant)
             }
-        }
-        TextButton(onClick = onExamDateClick) {
-            Text(if (daysUntilExam == null) stringResource(R.string.planner_warm_set_exam_date) else when {
-                daysUntilExam < 0 -> stringResource(R.string.planner_warm_exam_passed)
-                daysUntilExam == 0 -> stringResource(R.string.planner_warm_exam_today)
-                else -> stringResource(R.string.planner_warm_days_left, daysUntilExam)
-            })
+            LinearProgressIndicator(progress = { completionPercent.coerceIn(0, 100) / 100f },
+                modifier = Modifier.fillMaxWidth().height(8.dp).clip(CircleShape), color = scheme.secondary, trackColor = scheme.outlineVariant)
+            Text(stringResource(R.string.planner_ready_topics_done, doneTopics, totalTopics),
+                style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant)
+            PlanHairline()
+            Text(message, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold,
+                color = if (isWarning) warn else scheme.onSurface)
+            if (actionLabel != null && onAction != null) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    androidx.compose.material3.Button(onClick = onAction, enabled = !busy,
+                        modifier = Modifier.weight(1f).heightIn(min = 48.dp), shape = RoundedCornerShape(16.dp)) {
+                        Text(actionLabel, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                    if (status == SyllabusReadinessStatus.RatingsChanged) {
+                        IconButton(onClick = actions.onDismissRatings, modifier = Modifier.size(48.dp)) {
+                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.common_dismiss), tint = scheme.onSurfaceVariant)
+                        }
+                    }
+                }
+            }
         }
     }
 }
 
-/**
- * One obvious edit entry point. It stays in the flat magazine system: two
- * hairlines and type hierarchy, without an elevated or filled card.
- */
-@Composable
-internal fun SyllabusChangePlanBand(
-    enabled: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    androidx.compose.material3.FilledTonalButton(onClick = onClick, enabled = enabled, modifier = modifier.fillMaxWidth().heightIn(min = 48.dp), shape = RoundedCornerShape(18.dp)) {
-        Text(stringResource(R.string.planner_change_study_plan), maxLines = 2)
-    }
-}
+private data class ReadinessLine(
+    val message: String,
+    val actionLabel: String?,
+    val onAction: (() -> Unit)?,
+    val isWarning: Boolean,
+)
+
 
 @Composable
 private fun SyllabusNodeProgressRule(
@@ -181,185 +227,6 @@ private fun NodeProgress.stateLabel(): String = when (state) {
     NodeState.FINISHED -> "Finished"
 }
 
-/**
- * Full exam/plan name card — sits just above the bottom navigation buttons
- * when a clipped title is tapped.
- */
-@Composable
-internal fun SyllabusFullPlanTitleCard(
-    planTitle: String,
-    onDismiss: () -> Unit,
-    modifier: Modifier = Modifier,
-    isDarkTheme: Boolean = false,
-) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-            .glassSurface(shape = RoundedCornerShape(16.dp), isDarkTheme = isDarkTheme)
-            .padding(horizontal = 14.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.Top,
-    ) {
-        Text(
-            text = planTitle,
-            fontFamily = com.safarparmar.app.ui.theme.MulishFontFamily,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Normal,
-            color = PlannerFlatColors.TextDark,
-            modifier = Modifier.weight(1f),
-        )
-        Spacer(Modifier.width(8.dp))
-        Box(
-            modifier = Modifier
-                .size(48.dp)
-                .clip(CircleShape)
-                .clickable(onClick = onDismiss),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = Icons.Default.Close,
-                contentDescription = stringResource(R.string.common_close),
-                tint = PlannerFlatColors.TextMuted,
-                modifier = Modifier.size(16.dp),
-            )
-        }
-    }
-}
-
-@Composable
-internal fun SyllabusRatingRebuildBar(
-    hasExamDate: Boolean,
-    rebuilding: Boolean,
-    onRebuild: () -> Unit,
-    onSetExamDate: () -> Unit,
-    onDismiss: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .border(0.5.dp, PlannerFlatColors.BorderSoft, RoundedCornerShape(8.dp))
-            .padding(start = 12.dp, top = 10.dp, bottom = 10.dp, end = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = if (hasExamDate) {
-                "Ratings changed. Today's topics stay where they are."
-            } else {
-                "Ratings changed. Set an exam date to rebuild."
-            },
-            fontSize = 13.sp,
-            color = PlannerFlatColors.TextDark,
-            modifier = Modifier.weight(1f),
-        )
-        Spacer(Modifier.width(8.dp))
-        Text(
-            text = if (hasExamDate) "Rebuild schedule" else "Set exam date",
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Bold,
-            color = PlannerFlatColors.PrimaryAccent,
-            modifier = Modifier.clickable(
-                enabled = !rebuilding,
-                onClick = if (hasExamDate) onRebuild else onSetExamDate,
-            ),
-        )
-        Box(
-            modifier = Modifier.size(48.dp).clip(CircleShape).clickable(onClick = onDismiss),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.common_dismiss), tint = PlannerFlatColors.TextMuted, modifier = Modifier.size(14.dp))
-        }
-    }
-}
-
-@Composable
-internal fun SyllabusCourseMapNudge(
-    nudge: CourseMapNudge,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val lead = when (nudge.kind) {
-        CourseMapNudgeKind.LATE -> "Study first: "
-        CourseMapNudgeKind.TODAY -> "Today's work: "
-        CourseMapNudgeKind.TODAY_FINISHED -> "Today's work is finished ✓"
-        CourseMapNudgeKind.NEEDS_SCHEDULE -> "Make study dates to see today's work"
-        CourseMapNudgeKind.ON_TRACK -> "You're on track · No late topics"
-    }
-    val actionable = nudge.kind == CourseMapNudgeKind.LATE ||
-        nudge.kind == CourseMapNudgeKind.TODAY ||
-        nudge.kind == CourseMapNudgeKind.NEEDS_SCHEDULE
-    val markerColor = when (nudge.kind) {
-        CourseMapNudgeKind.LATE -> Color(0xFFF97316)
-        CourseMapNudgeKind.NEEDS_SCHEDULE -> PlannerFlatColors.PrimaryAccent
-        else -> PlannerFlatColors.PrimaryAccent
-    }
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .heightIn(min = 48.dp)
-            .clickable(enabled = actionable, onClick = onClick)
-            .padding(vertical = 11.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Box(
-            modifier = Modifier
-                .width(2.dp)
-                .height(28.dp)
-                .clip(RoundedCornerShape(1.dp))
-                .background(markerColor.copy(alpha = if (actionable) 1f else 0.45f)),
-        )
-        Spacer(Modifier.width(12.dp))
-        if (nudge.chapterName != null) {
-            Text(lead, fontSize = 13.sp, color = PlannerFlatColors.TextMuted)
-            Text(
-                nudge.chapterName,
-                fontFamily = com.safarparmar.app.ui.theme.MulishFontFamily,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Normal,
-                color = PlannerFlatColors.TextDark,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f),
-            )
-            val detail = when (nudge.kind) {
-                CourseMapNudgeKind.LATE -> if (nudge.topicCount == 1) "1 topic late" else "${nudge.topicCount} topics late"
-                else -> if (nudge.topicCount == 1) "1 topic left" else "${nudge.topicCount} topics left"
-            }
-            Text(
-                text = " · $detail",
-                fontSize = 13.sp,
-                color = if (nudge.kind == CourseMapNudgeKind.LATE) Color(0xFFF97316) else PlannerFlatColors.TextMuted,
-            )
-        } else {
-            Text(
-                text = lead,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = if (nudge.kind == CourseMapNudgeKind.NEEDS_SCHEDULE) {
-                    PlannerFlatColors.PrimaryAccent
-                } else {
-                    PlannerFlatColors.TextDark
-                },
-                modifier = Modifier.weight(1f),
-            )
-        }
-        if (actionable) {
-            Spacer(Modifier.width(8.dp))
-            Text(
-                text = if (nudge.kind == CourseMapNudgeKind.NEEDS_SCHEDULE) "Make dates" else "Open",
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
-                color = PlannerFlatColors.PrimaryAccent,
-            )
-            Icon(
-                Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = null,
-                tint = PlannerFlatColors.PrimaryAccent,
-                modifier = Modifier.size(16.dp),
-            )
-        }
-    }
-}
 
 /** macOS translucent circled "+" — shared Add control for subjects / chapters / topics. */
 @Composable
@@ -380,6 +247,8 @@ internal fun SyllabusMagazineListHeader(
     onAddSubject: () -> Unit,
     modifier: Modifier = Modifier,
     addContentDescription: String = "Add",
+    /** Adding is an Edit-mode action; Study mode shows the title alone. */
+    showAdd: Boolean = true,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         PlanHairline()
@@ -398,22 +267,127 @@ internal fun SyllabusMagazineListHeader(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            SyllabusGlassAddButton(
-                onClick = onAddSubject,
-                contentDescription = addContentDescription,
+            if (showAdd) {
+                SyllabusGlassAddButton(
+                    onClick = onAddSubject,
+                    contentDescription = addContentDescription,
+                )
+            } else {
+                Spacer(Modifier.heightIn(min = 48.dp))
+            }
+        }
+    }
+}
+
+/** Drag state for one reorderable row: the row moves, the ≡ handle drives it. */
+internal class ReorderDragState {
+    var offsetY by mutableFloatStateOf(0f)
+    var dragging by mutableStateOf(false)
+    var itemHeightPx by mutableIntStateOf(0)
+}
+
+/** Lifts the dragged row above its neighbours and follows the finger. */
+internal fun Modifier.reorderRow(state: ReorderDragState): Modifier = this
+    .zIndex(if (state.dragging) 1f else 0f)
+    .onGloballyPositioned { state.itemHeightPx = it.size.height }
+    .graphicsLayer { translationY = if (state.dragging) state.offsetY else 0f }
+
+/**
+ * Edit-mode ≡ handle. Dragging starts immediately — no long-press to guess —
+ * and each half-row of travel swaps the row one place, as before.
+ */
+@Composable
+internal fun SyllabusReorderHandle(
+    state: ReorderDragState,
+    key: Any,
+    onMoveUp: () -> Unit,
+    onMoveDown: () -> Unit,
+    onDragEnd: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val haptic = LocalHapticFeedback.current
+    val moveUp by rememberUpdatedState(onMoveUp)
+    val moveDown by rememberUpdatedState(onMoveDown)
+    val dragEnd by rememberUpdatedState(onDragEnd)
+    Box(
+        modifier = modifier
+            .size(48.dp)
+            .pointerInput(key) {
+                detectDragGestures(
+                    onDragStart = {
+                        state.dragging = true
+                        state.offsetY = 0f
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    },
+                    onDragEnd = {
+                        state.dragging = false
+                        state.offsetY = 0f
+                        dragEnd()
+                    },
+                    onDragCancel = {
+                        state.dragging = false
+                        state.offsetY = 0f
+                    },
+                    onDrag = { change, dragAmount ->
+                        change.consume()
+                        state.offsetY += dragAmount.y
+                        val height = state.itemHeightPx
+                        val threshold = height * 0.5f
+                        if (threshold > 0) {
+                            while (state.offsetY >= threshold) {
+                                moveDown()
+                                state.offsetY -= height
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            }
+                            while (state.offsetY <= -threshold) {
+                                moveUp()
+                                state.offsetY += height
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            }
+                        }
+                    },
+                )
+            },
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = Icons.Default.DragHandle,
+            contentDescription = stringResource(R.string.planner_drag_to_reorder),
+            tint = PlannerFlatColors.TextMuted,
+            modifier = Modifier.size(22.dp),
+        )
+    }
+}
+
+/** "2 / 34 topics · 3 late" — the late part in orange so the list shows where to go. */
+@Composable
+private fun SyllabusRowMeta(done: Int, total: Int, late: Int) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            text = stringResource(R.string.planner_topics_progress, done, total),
+            fontSize = 13.sp,
+            color = PlannerFlatColors.TextMuted,
+            maxLines = 1,
+        )
+        if (late > 0) {
+            Text(
+                text = " · " + stringResource(R.string.planner_late_count, late),
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = SyllabusLateColor,
+                maxLines = 1,
             )
         }
     }
 }
 
+internal val SyllabusLateColor = Color(0xFFC2410C)
+
+private fun List<StudyTopic>.lateCount(today: String): Int = count { it.isLate(today) }
+
 /**
- * One flat subject row: a hairline-bordered initial badge, the subject name with
- * its chapter/topic meta and a slim inline progress bar — no bordered card, no
- * per-subject wrapper.
- *
- * The mock shows only a chevron, but rename / add-chapter / mark-done / delete
- * have no other entry point on this screen, so they stay behind a muted overflow
- * rather than being dropped. Long-press-and-drag still reorders, as before.
+ * Subject row. Study mode: name, progress and late count — tap opens the
+ * subject. Edit mode adds the ≡ handle and a ⋮ for add/rename/mark/delete.
  */
 @Composable
 internal fun SyllabusMagazineSubjectRow(
@@ -423,174 +397,82 @@ internal fun SyllabusMagazineSubjectRow(
     onRename: () -> Unit,
     onDelete: () -> Unit,
     onMarkDone: () -> Unit,
-    canReorder: Boolean,
+    editMode: Boolean,
     onMoveUp: () -> Unit,
     onMoveDown: () -> Unit,
     onDragEnd: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val accent = PlannerFlatColors.PrimaryAccent
     val progress = subject.progressState()
-    val chapterCount = subject.chapters.size
-    val topicCount = subject.chapters.sumOf { it.topics.size }
-
+    val topics = subject.chapters.flatMap { it.topics }
+    val late = topics.lateCount(todayKey())
+    val drag = remember(subject.id) { ReorderDragState() }
     var showMenu by remember { mutableStateOf(false) }
-    var dragOffsetY by remember { mutableFloatStateOf(0f) }
-    var isDragging by remember { mutableStateOf(false) }
-    var itemHeightPx by remember { mutableIntStateOf(0) }
-    val haptic = LocalHapticFeedback.current
 
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(22.dp))
+            .reorderRow(drag)
+            .clip(RoundedCornerShape(18.dp))
             .background(MaterialTheme.colorScheme.surface)
-            .padding(horizontal = 12.dp)
-            .zIndex(if (isDragging) 1f else 0f)
-            .onGloballyPositioned { itemHeightPx = it.size.height }
-            .graphicsLayer { translationY = if (isDragging) dragOffsetY else 0f }
-            .then(
-                if (canReorder) {
-                    Modifier.pointerInput(subject.id) {
-                        detectDragGesturesAfterLongPress(
-                            onDragStart = {
-                                isDragging = true
-                                dragOffsetY = 0f
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            },
-                            onDragEnd = {
-                                isDragging = false
-                                dragOffsetY = 0f
-                                onDragEnd()
-                            },
-                            onDragCancel = {
-                                isDragging = false
-                                dragOffsetY = 0f
-                            },
-                            onDrag = { change, dragAmount ->
-                                change.consume()
-                                dragOffsetY += dragAmount.y
-                                val threshold = itemHeightPx * 0.5f
-                                if (threshold > 0) {
-                                    while (dragOffsetY >= threshold) {
-                                        onMoveDown()
-                                        dragOffsetY -= itemHeightPx
-                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    }
-                                    while (dragOffsetY <= -threshold) {
-                                        onMoveUp()
-                                        dragOffsetY += itemHeightPx
-                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    }
-                                }
-                            },
-                        )
-                    }
-                } else {
-                    Modifier
-                },
-            )
             .clickable(onClick = onClick)
-            .padding(vertical = 16.dp),
+            .padding(start = if (editMode) 4.dp else 16.dp, end = 8.dp, top = 12.dp, bottom = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Initial badge — soft accent wash + 0.5dp hairline (flat magazine chip).
-        Box(
-            modifier = Modifier
-                .size(36.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .background(PlannerFlatColors.AccentTint)
-                .border(0.5.dp, PlannerFlatColors.BorderSoft, RoundedCornerShape(10.dp)),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = subject.name.trim().take(1).uppercase(),
-                fontFamily = com.safarparmar.app.ui.theme.MulishFontFamily,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Normal,
-                color = accent,
-            )
+        if (editMode) {
+            SyllabusReorderHandle(drag, subject.id, onMoveUp, onMoveDown, onDragEnd)
         }
-
-        Spacer(Modifier.width(14.dp))
-
         Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = subject.name,
-                fontFamily = com.safarparmar.app.ui.theme.MulishFontFamily,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Normal,
-                color = PlannerFlatColors.TextDark,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Spacer(Modifier.height(3.dp))
-            Text(
-                text = "$chapterCount chapters · $topicCount topics",
-                fontSize = 13.sp,
-                color = PlannerFlatColors.TextMuted,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Spacer(Modifier.height(3.dp))
-            Text(
-                text = "${progress.stateLabel()} · ${progress.percent}%",
-                fontSize = 13.sp,
-                color = PlannerFlatColors.TextMuted,
-                maxLines = 1,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = subject.name,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = PlannerFlatColors.TextDark,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+                Text(
+                    text = "${progress.percent}%",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = PlannerFlatColors.PrimaryAccent,
+                )
+            }
+            Spacer(Modifier.height(4.dp))
+            SyllabusRowMeta(done = topics.count { it.status.isStudied }, total = topics.size, late = late)
             Spacer(Modifier.height(8.dp))
             SyllabusNodeProgressRule(progress)
         }
-
-        Spacer(Modifier.width(8.dp))
-
-        Box {
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .clickable { showMenu = true },
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Default.MoreVert,
-                    contentDescription = stringResource(R.string.planner_subject_options),
-                    tint = PlannerFlatColors.TextMuted,
-                    modifier = Modifier.size(16.dp),
-                )
-            }
-            PlannerOverflowMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-                if (canReorder) {
+        if (editMode) {
+            Box {
+                IconButton(onClick = { showMenu = true }) {
+                    Icon(Icons.Default.MoreVert, stringResource(R.string.planner_subject_options), tint = PlannerFlatColors.TextMuted)
+                }
+                PlannerOverflowMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
                     PlannerOverflowMenuItem(stringResource(R.string.planner_warm_move_up)) { showMenu = false; onMoveUp(); onDragEnd() }
                     PlannerOverflowMenuItem(stringResource(R.string.planner_warm_move_down)) { showMenu = false; onMoveDown(); onDragEnd() }
+                    PlannerOverflowMenuItem("Add chapter") { showMenu = false; onAddChapter() }
+                    PlannerOverflowMenuItem("Rename") { showMenu = false; onRename() }
+                    PlannerOverflowMenuItem("Mark all done") { showMenu = false; onMarkDone() }
+                    PlannerOverflowMenuItem("Delete", destructive = true) { showMenu = false; onDelete() }
                 }
-                PlannerOverflowMenuItem("Add chapter") { showMenu = false; onAddChapter() }
-                PlannerOverflowMenuItem("Rename") { showMenu = false; onRename() }
-                PlannerOverflowMenuItem("Mark all done") { showMenu = false; onMarkDone() }
-                PlannerOverflowMenuItem("Delete", destructive = true) { showMenu = false; onDelete() }
             }
+        } else {
+            Icon(
+                Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = PlannerFlatColors.TextMuted,
+                modifier = Modifier.padding(start = 4.dp).size(20.dp),
+            )
         }
-
-        Text(
-            text = stringResource(R.string.common_open),
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Bold,
-            color = PlannerFlatColors.PrimaryAccent,
-        )
-        Icon(
-            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-            contentDescription = null,
-            tint = PlannerFlatColors.PrimaryAccent,
-            modifier = Modifier.size(18.dp),
-        )
     }
 }
 
 /**
- * Drill-down header: the subject's completion rule and counts, then the
- * "Chapters" list header with "+ Add chapter" as a text link — replacing the
- * full-width filled "Add Chapter" button.
+ * Subject screen header: completion, counts, and — in Edit mode only — the
+ * "+ Add chapter" control.
  */
 @Composable
 internal fun SyllabusMagazineChapterHeader(
@@ -599,6 +481,7 @@ internal fun SyllabusMagazineChapterHeader(
     topicCount: Int,
     onAddChapter: () -> Unit,
     modifier: Modifier = Modifier,
+    showAdd: Boolean = true,
 ) {
     val accent = PlannerFlatColors.PrimaryAccent
     val animatedPercent by animateFloatAsState(
@@ -644,8 +527,287 @@ internal fun SyllabusMagazineChapterHeader(
             title = stringResource(R.string.planner_chapters),
             onAddSubject = onAddChapter,
             addContentDescription = "Add chapter",
+            showAdd = showAdd,
         )
         Spacer(Modifier.height(6.dp))
+    }
+}
+
+/**
+ * Chapter row. Study mode: name, progress, late count and a read-only size tag
+ * — tap opens its topics. Edit mode adds the ≡ handle, ⋮, and (on effort-
+ * planned plans) the Easy/Normal/Tough chips.
+ */
+@Composable
+internal fun SyllabusMagazineChapterRow(
+    chapter: StudyChapter,
+    onOpenTopics: () -> Unit,
+    onRename: () -> Unit,
+    onDelete: () -> Unit,
+    onMarkDone: () -> Unit,
+    onRate: (String?) -> Unit,
+    editMode: Boolean,
+    onMoveUp: () -> Unit,
+    onMoveDown: () -> Unit,
+    onDragEnd: () -> Unit,
+    /** False on a "Same every day" plan, where rating a chapter would break the
+     *  exact-count promise. Defaults true so older plans are unaffected. */
+    showDifficultyChips: Boolean = true,
+    modifier: Modifier = Modifier,
+) {
+    val progress = chapter.progressState()
+    val late = chapter.topics.lateCount(todayKey())
+    val drag = remember(chapter.id) { ReorderDragState() }
+    var showMenu by remember { mutableStateOf(false) }
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .reorderRow(drag)
+            .clip(RoundedCornerShape(18.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .clickable(onClick = onOpenTopics)
+            .padding(start = if (editMode) 4.dp else 16.dp, end = 8.dp, top = 12.dp, bottom = 12.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (editMode) {
+                SyllabusReorderHandle(drag, chapter.id, onMoveUp, onMoveDown, onDragEnd)
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = chapter.name,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = PlannerFlatColors.TextDark,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false),
+                    )
+                    val difficulty = chapter.difficulty
+                    if (!editMode && showDifficultyChips && difficulty != null) {
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = difficulty.label,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = PlannerFlatColors.TextMuted,
+                            modifier = Modifier
+                                .border(1.dp, PlannerFlatColors.BorderSoft, RoundedCornerShape(6.dp))
+                                .padding(horizontal = 6.dp, vertical = 1.dp),
+                        )
+                    }
+                    Spacer(Modifier.weight(1f, fill = true).widthIn(min = 4.dp))
+                    Text(
+                        text = "${progress.percent}%",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = PlannerFlatColors.PrimaryAccent,
+                    )
+                }
+                Spacer(Modifier.height(4.dp))
+                SyllabusRowMeta(done = chapter.topics.count { it.status.isStudied }, total = chapter.topics.size, late = late)
+                Spacer(Modifier.height(8.dp))
+                SyllabusNodeProgressRule(progress)
+            }
+            if (editMode) {
+                Box {
+                    IconButton(onClick = { showMenu = true }) {
+                        Icon(Icons.Default.MoreVert, stringResource(R.string.planner_chapter_options), tint = PlannerFlatColors.TextMuted)
+                    }
+                    PlannerOverflowMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+                        PlannerOverflowMenuItem(stringResource(R.string.planner_warm_move_up)) { showMenu = false; onMoveUp(); onDragEnd() }
+                        PlannerOverflowMenuItem(stringResource(R.string.planner_warm_move_down)) { showMenu = false; onMoveDown(); onDragEnd() }
+                        PlannerOverflowMenuItem("Rename") { showMenu = false; onRename() }
+                        PlannerOverflowMenuItem("Mark all done") { showMenu = false; onMarkDone() }
+                        PlannerOverflowMenuItem("Delete", destructive = true) { showMenu = false; onDelete() }
+                    }
+                }
+            } else {
+                Icon(
+                    Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = PlannerFlatColors.TextMuted,
+                    modifier = Modifier.padding(start = 4.dp).size(20.dp),
+                )
+            }
+        }
+        if (editMode && showDifficultyChips) {
+            Spacer(Modifier.height(10.dp))
+            SyllabusMagazineDifficultyChips(
+                selected = chapter.difficulty,
+                onSelect = onRate,
+                modifier = Modifier.padding(start = 48.dp),
+            )
+        }
+    }
+}
+
+private val ShortDateFormat = java.time.format.DateTimeFormatter.ofPattern("d MMM")
+
+private fun shortDate(iso: String?): String =
+    runCatching { java.time.LocalDate.parse(iso!!.take(10)).format(ShortDateFormat) }.getOrDefault(iso.orEmpty())
+
+/**
+ * Topic row in the chapter sheet.
+ *
+ * Study mode: a two-way tick, the name, and ONE date chip ("Today", "14 Nov",
+ * "Late · 2 Nov" or "+ Plan") whose menu sets the date. Tapping the row offers
+ * Focus now / To revise / Mark not done.
+ *
+ * Edit mode: ≡ handle, the name, and ⋮ for move/rename/delete.
+ */
+@Composable
+internal fun SyllabusMagazineTopicRow(
+    topic: StudyTopic,
+    chapter: StudyChapter?,
+    onRename: () -> Unit,
+    onDelete: () -> Unit,
+    onAssignToday: () -> Unit,
+    onAssignTomorrow: () -> Unit,
+    onChangeDate: () -> Unit,
+    onMarkDone: () -> Unit,
+    onMarkNotDone: () -> Unit,
+    onToRevise: () -> Unit,
+    onFocus: () -> Unit,
+    editMode: Boolean,
+    onMoveUp: () -> Unit,
+    onMoveDown: () -> Unit,
+    onDragEnd: () -> Unit,
+    modifier: Modifier = Modifier,
+    /** Outlined when the student arrived here looking for this topic. */
+    highlighted: Boolean = false,
+) {
+    val accent = PlannerFlatColors.PrimaryAccent
+    val done = topic.status == TopicStatus.DONE
+    val needsRevision = topic.status == TopicStatus.REVISION_NEEDED
+    val today = todayKey()
+    val plannedDay = topic.plannedDate?.take(10)?.takeIf { it.isNotBlank() }
+    val late = topic.isLate(today)
+    val effective = topic.effectiveSize(chapter)
+    val showSize = topic.size != null || chapter?.difficulty != null
+    val drag = remember(topic.id) { ReorderDragState() }
+    var showRowMenu by remember { mutableStateOf(false) }
+    var showDateMenu by remember { mutableStateOf(false) }
+
+    Box(modifier = modifier.fillMaxWidth().reorderRow(drag)) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(18.dp))
+                .background(MaterialTheme.colorScheme.surface)
+                .then(if (highlighted) Modifier.border(2.dp, accent, RoundedCornerShape(18.dp)) else Modifier)
+                .then(if (editMode) Modifier else Modifier.clickable { showRowMenu = true })
+                .padding(start = 4.dp, end = 8.dp, top = 6.dp, bottom = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (editMode) {
+                SyllabusReorderHandle(drag, topic.id, onMoveUp, onMoveDown, onDragEnd)
+            } else {
+                // Two-way, like Today: a mis-tap must be fixable right here.
+                Checkbox(
+                    checked = done,
+                    onCheckedChange = { checked -> if (checked) onMarkDone() else onMarkNotDone() },
+                    modifier = Modifier.size(48.dp).semantics { contentDescription = topic.name },
+                    colors = CheckboxDefaults.colors(
+                        checkedColor = MaterialTheme.colorScheme.secondary,
+                        uncheckedColor = if (needsRevision) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.outline,
+                    ),
+                )
+            }
+            Spacer(Modifier.width(8.dp))
+            Column(modifier = Modifier.weight(1f).padding(vertical = 6.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = topic.name,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = if (done) PlannerFlatColors.TextMuted else PlannerFlatColors.TextDark,
+                        textDecoration = if (done) TextDecoration.LineThrough else TextDecoration.None,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false),
+                    )
+                    if (showSize) {
+                        Spacer(Modifier.width(6.dp))
+                        TopicEffortBars(size = effective)
+                    }
+                }
+                if (needsRevision) {
+                    Spacer(Modifier.height(2.dp))
+                    Text(stringResource(R.string.planner_to_revise), fontSize = 12.sp, color = MaterialTheme.colorScheme.tertiary)
+                }
+            }
+            if (editMode) {
+                Box {
+                    IconButton(onClick = { showRowMenu = true }) {
+                        Icon(Icons.Default.MoreVert, stringResource(R.string.planner_topic_options), tint = PlannerFlatColors.TextMuted)
+                    }
+                    PlannerOverflowMenu(expanded = showRowMenu, onDismissRequest = { showRowMenu = false }) {
+                        PlannerOverflowMenuItem(stringResource(R.string.planner_warm_move_up)) { showRowMenu = false; onMoveUp(); onDragEnd() }
+                        PlannerOverflowMenuItem(stringResource(R.string.planner_warm_move_down)) { showRowMenu = false; onMoveDown(); onDragEnd() }
+                        PlannerOverflowMenuItem("Rename") { showRowMenu = false; onRename() }
+                        PlannerOverflowMenuItem("Delete", destructive = true) { showRowMenu = false; onDelete() }
+                    }
+                }
+            } else if (!done) {
+                Box {
+                    val chipText = when {
+                        plannedDay == today -> stringResource(R.string.planner_warm_today)
+                        late -> stringResource(R.string.planner_late_on, shortDate(plannedDay))
+                        plannedDay != null -> shortDate(plannedDay)
+                        else -> stringResource(R.string.planner_plan_chip)
+                    }
+                    val chipColor = when {
+                        late -> SyllabusLateColor
+                        plannedDay == today || plannedDay == null -> accent
+                        else -> PlannerFlatColors.TextMuted
+                    }
+                    Box(
+                        modifier = Modifier
+                            .heightIn(min = 48.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .clickable { showDateMenu = true }
+                            .padding(horizontal = 4.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = chipText,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = chipColor,
+                            maxLines = 1,
+                            modifier = Modifier
+                                .border(1.dp, chipColor.copy(alpha = 0.35f), RoundedCornerShape(8.dp))
+                                .padding(horizontal = 8.dp, vertical = 5.dp),
+                        )
+                    }
+                    PlannerOverflowMenu(expanded = showDateMenu, onDismissRequest = { showDateMenu = false }) {
+                        if (plannedDay != today) {
+                            PlannerOverflowMenuItem(stringResource(R.string.planner_study_today)) { showDateMenu = false; onAssignToday() }
+                        }
+                        PlannerOverflowMenuItem(stringResource(R.string.planner_tomorrow)) { showDateMenu = false; onAssignTomorrow() }
+                        PlannerOverflowMenuItem(stringResource(R.string.planner_pick_date)) { showDateMenu = false; onChangeDate() }
+                    }
+                }
+            }
+        }
+        if (!editMode) {
+            // Anchored to the row so it opens where the student tapped.
+            PlannerOverflowMenu(expanded = showRowMenu, onDismissRequest = { showRowMenu = false }) {
+                if (!done) {
+                    PlannerOverflowMenuItem(stringResource(R.string.planner_focus_now)) { showRowMenu = false; onFocus() }
+                }
+                if (done || needsRevision) {
+                    PlannerOverflowMenuItem(stringResource(R.string.planner_to_revise)) { showRowMenu = false; onToRevise() }
+                }
+                if (done) {
+                    PlannerOverflowMenuItem(stringResource(R.string.planner_mark_not_done)) { showRowMenu = false; onMarkNotDone() }
+                } else {
+                    PlannerOverflowMenuItem(stringResource(R.string.planner_mark_done)) { showRowMenu = false; onMarkDone() }
+                }
+            }
+        }
     }
 }
 
@@ -702,339 +864,6 @@ internal fun SyllabusMagazineDifficultyChips(
     }
 }
 
-/**
- * One flat chapter row: name, topic count and completion, a slim inline progress
- * bar, and the Easy/Normal/Tough rating chips underneath — no bordered accordion
- * card. Tap opens the topics sheet; long-press-and-drag still reorders.
- */
-@Composable
-internal fun SyllabusMagazineChapterRow(
-    chapter: StudyChapter,
-    onOpenTopics: () -> Unit,
-    onRename: () -> Unit,
-    onDelete: () -> Unit,
-    onMarkDone: () -> Unit,
-    onRate: (String?) -> Unit,
-    canReorder: Boolean,
-    onMoveUp: () -> Unit,
-    onMoveDown: () -> Unit,
-    onDragEnd: () -> Unit,
-    /** False on a "Same every day" plan, where rating a chapter would break the
-     *  exact-count promise. Defaults true so older plans are unaffected. */
-    showDifficultyChips: Boolean = true,
-    modifier: Modifier = Modifier,
-) {
-    val progress = chapter.progressState()
-    var showMenu by remember { mutableStateOf(false) }
-    var dragOffsetY by remember { mutableFloatStateOf(0f) }
-    var isDragging by remember { mutableStateOf(false) }
-    var itemHeightPx by remember { mutableIntStateOf(0) }
-    val haptic = LocalHapticFeedback.current
-
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(22.dp))
-            .background(MaterialTheme.colorScheme.surface)
-            .padding(horizontal = 12.dp)
-            .zIndex(if (isDragging) 1f else 0f)
-            .onGloballyPositioned { itemHeightPx = it.size.height }
-            .graphicsLayer { translationY = if (isDragging) dragOffsetY else 0f }
-            .then(
-                if (canReorder) {
-                    Modifier.pointerInput(chapter.id) {
-                        detectDragGesturesAfterLongPress(
-                            onDragStart = {
-                                isDragging = true
-                                dragOffsetY = 0f
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            },
-                            onDragEnd = {
-                                isDragging = false
-                                dragOffsetY = 0f
-                                onDragEnd()
-                            },
-                            onDragCancel = {
-                                isDragging = false
-                                dragOffsetY = 0f
-                            },
-                            onDrag = { change, dragAmount ->
-                                change.consume()
-                                dragOffsetY += dragAmount.y
-                                val threshold = itemHeightPx * 0.5f
-                                if (threshold > 0) {
-                                    while (dragOffsetY >= threshold) {
-                                        onMoveDown()
-                                        dragOffsetY -= itemHeightPx
-                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    }
-                                    while (dragOffsetY <= -threshold) {
-                                        onMoveUp()
-                                        dragOffsetY += itemHeightPx
-                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    }
-                                }
-                            },
-                        )
-                    }
-                } else {
-                    Modifier
-                },
-            )
-            .padding(vertical = 16.dp),
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onOpenTopics),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = chapter.name,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = PlannerFlatColors.TextDark,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Spacer(Modifier.height(3.dp))
-                Text(
-                    text = "${progress.stateLabel()} · ${progress.percent}%",
-                    fontSize = 13.sp,
-                    color = PlannerFlatColors.TextMuted,
-                    maxLines = 1,
-                )
-                Spacer(Modifier.height(8.dp))
-                SyllabusNodeProgressRule(progress)
-            }
-
-            Spacer(Modifier.width(8.dp))
-
-            Box {
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
-                        .clickable { showMenu = true },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.MoreVert,
-                        contentDescription = stringResource(R.string.planner_chapter_options),
-                        tint = PlannerFlatColors.TextMuted,
-                        modifier = Modifier.size(16.dp),
-                    )
-                }
-                PlannerOverflowMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-                if (canReorder) {
-                    PlannerOverflowMenuItem(stringResource(R.string.planner_warm_move_up)) { showMenu = false; onMoveUp(); onDragEnd() }
-                    PlannerOverflowMenuItem(stringResource(R.string.planner_warm_move_down)) { showMenu = false; onMoveDown(); onDragEnd() }
-                }
-                    PlannerOverflowMenuItem("Rename") { showMenu = false; onRename() }
-                    PlannerOverflowMenuItem("Mark all done") { showMenu = false; onMarkDone() }
-                    PlannerOverflowMenuItem("Delete", destructive = true) { showMenu = false; onDelete() }
-                }
-            }
-
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = null,
-                tint = PlannerFlatColors.ProgressTrack,
-                modifier = Modifier.size(18.dp),
-            )
-        }
-
-        // Only an effort-planned plan gets rating chips. On a "Same every day"
-        // plan a rating would silently make one day heavier than another, breaking
-        // the exact-count promise the student chose — so the control is absent
-        // rather than present-but-broken.
-        if (showDifficultyChips) {
-            Spacer(Modifier.height(12.dp))
-            SyllabusMagazineDifficultyChips(
-                selected = chapter.difficulty,
-                onSelect = onRate,
-            )
-        }
-    }
-}
-
-/**
- * One flat topic row for the chapter's topics sheet: a tappable status circle,
- * the topic name with its size badge, and a date / "not planned" meta line.
- * Hairlines separate rows — no accordion card, no left accent bar.
- */
-@Composable
-internal fun SyllabusMagazineTopicRow(
-    topic: StudyTopic,
-    chapter: StudyChapter?,
-    onRename: () -> Unit,
-    onDelete: () -> Unit,
-    onAssignToday: () -> Unit,
-    onChangeDate: () -> Unit,
-    onMarkDone: () -> Unit,
-    onToRevise: () -> Unit,
-    canReorder: Boolean,
-    onMoveUp: () -> Unit,
-    onMoveDown: () -> Unit,
-    onDragEnd: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val accent = PlannerFlatColors.PrimaryAccent
-    val done = topic.status == TopicStatus.DONE
-    val needsRevision = topic.status == TopicStatus.REVISION_NEEDED
-    val hasDate = !topic.plannedDate.isNullOrBlank()
-    val effective = topic.effectiveSize(chapter)
-    val showSize = topic.size != null || chapter?.difficulty != null
-    val plannedToday = topic.plannedDate?.take(10) == todayKey()
-
-    var showMenu by remember { mutableStateOf(false) }
-    var dragOffsetY by remember { mutableFloatStateOf(0f) }
-    var isDragging by remember { mutableStateOf(false) }
-    var itemHeightPx by remember { mutableIntStateOf(0) }
-    val haptic = LocalHapticFeedback.current
-
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(22.dp))
-            .background(MaterialTheme.colorScheme.surface)
-            .padding(horizontal = 12.dp)
-            .zIndex(if (isDragging) 1f else 0f)
-            .onGloballyPositioned { itemHeightPx = it.size.height }
-            .graphicsLayer { translationY = if (isDragging) dragOffsetY else 0f }
-            .then(
-                if (canReorder) {
-                    Modifier.pointerInput(topic.id) {
-                        detectDragGesturesAfterLongPress(
-                            onDragStart = {
-                                isDragging = true
-                                dragOffsetY = 0f
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            },
-                            onDragEnd = {
-                                isDragging = false
-                                dragOffsetY = 0f
-                                onDragEnd()
-                            },
-                            onDragCancel = {
-                                isDragging = false
-                                dragOffsetY = 0f
-                            },
-                            onDrag = { change, dragAmount ->
-                                change.consume()
-                                dragOffsetY += dragAmount.y
-                                val threshold = itemHeightPx * 0.5f
-                                if (threshold > 0) {
-                                    while (dragOffsetY >= threshold) {
-                                        onMoveDown()
-                                        dragOffsetY -= itemHeightPx
-                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    }
-                                    while (dragOffsetY <= -threshold) {
-                                        onMoveUp()
-                                        dragOffsetY += itemHeightPx
-                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    }
-                                }
-                            },
-                        )
-                    }
-                } else {
-                    Modifier
-                },
-            )
-            .padding(vertical = 13.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Checkbox(checked = done, enabled = !done, onCheckedChange = { checked -> if (checked && !done) onMarkDone() },
-            modifier = Modifier.size(48.dp).semantics { contentDescription = topic.name },
-            colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.secondary,
-                disabledCheckedColor = MaterialTheme.colorScheme.secondary,
-                uncheckedColor = if (needsRevision) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.outline))
-        Spacer(Modifier.width(12.dp))
-
-        Column(modifier = Modifier.weight(1f)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = topic.name,
-                    fontSize = 13.5.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = if (done) PlannerFlatColors.TextMuted else PlannerFlatColors.TextDark,
-                    textDecoration = if (done) TextDecoration.LineThrough else TextDecoration.None,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false),
-                )
-                if (showSize) {
-                    Spacer(Modifier.width(6.dp))
-                    TopicEffortBars(size = effective)
-                }
-            }
-            Spacer(Modifier.height(3.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = if (hasDate) readableDate(topic.plannedDate) else "Not planned",
-                    fontSize = 13.sp,
-                    color = if (needsRevision) Color(0xFFF97316) else PlannerFlatColors.TextMuted,
-                    maxLines = 1,
-                )
-            }
-        }
-
-        Spacer(Modifier.width(6.dp))
-
-        if (!done && !plannedToday) {
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(7.dp))
-                    .border(1.dp, PlannerFlatColors.BorderSoft, RoundedCornerShape(7.dp))
-                    .clickable(onClick = onAssignToday)
-                    .padding(horizontal = 8.dp, vertical = 5.dp),
-            ) {
-                Text(
-                    text = stringResource(R.string.planner_study_today),
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = accent,
-                    maxLines = 1,
-                )
-            }
-            Spacer(Modifier.width(4.dp))
-        }
-
-        Box {
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .clickable { showMenu = true },
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Default.MoreVert,
-                    contentDescription = stringResource(R.string.planner_topic_options),
-                    tint = PlannerFlatColors.TextMuted,
-                    modifier = Modifier.size(16.dp),
-                )
-            }
-            PlannerOverflowMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-                if (canReorder) {
-                    PlannerOverflowMenuItem(stringResource(R.string.planner_warm_move_up)) { showMenu = false; onMoveUp(); onDragEnd() }
-                    PlannerOverflowMenuItem(stringResource(R.string.planner_warm_move_down)) { showMenu = false; onMoveDown(); onDragEnd() }
-                }
-                PlannerOverflowMenuItem("Rename") { showMenu = false; onRename() }
-                PlannerOverflowMenuItem("Change date") { showMenu = false; onChangeDate() }
-                if (!done) {
-                    PlannerOverflowMenuItem("Mark done") { showMenu = false; onMarkDone() }
-                }
-                PlannerOverflowMenuItem("To revise") { showMenu = false; onToRevise() }
-                PlannerOverflowMenuItem("Delete", destructive = true) { showMenu = false; onDelete() }
-            }
-        }
-    }
-}
-
 /** Quiet one-line empty state, replacing the bordered empty card. */
 @Composable
 internal fun SyllabusMagazineEmptyNote(
@@ -1056,5 +885,66 @@ internal fun SyllabusMagazineEmptyNote(
                 contentDescription = actionLabel ?: "Add",
             )
         }
+    }
+}
+
+/**
+ * One search hit (chapter or topic): its name, where it lives ("Subject ·
+ * Chapter") and, for a topic, its date chip text. Tap opens the chapter.
+ */
+@Composable
+internal fun SyllabusSearchResultRow(
+    title: String,
+    path: String,
+    done: Boolean,
+    trailing: String?,
+    trailingIsLate: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .clickable(onClick = onClick)
+            .heightIn(min = 56.dp)
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(
+                text = title,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = if (done) PlannerFlatColors.TextMuted else PlannerFlatColors.TextDark,
+                textDecoration = if (done) TextDecoration.LineThrough else TextDecoration.None,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(path, fontSize = 12.sp, color = PlannerFlatColors.TextMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+        if (trailing != null) {
+            Spacer(Modifier.width(8.dp))
+            Text(trailing, fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
+                color = if (trailingIsLate) SyllabusLateColor else PlannerFlatColors.TextMuted)
+        }
+        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null,
+            tint = PlannerFlatColors.TextMuted, modifier = Modifier.padding(start = 4.dp).size(20.dp))
+    }
+}
+
+/** "Today", "14 Nov", "Late · 2 Nov" or "+ Plan" — the same wording as the topic row's chip. */
+@Composable
+internal fun syllabusTopicDateLabel(topic: StudyTopic): String? {
+    if (topic.status == TopicStatus.DONE) return null
+    val today = todayKey()
+    val day = topic.plannedDate?.take(10)?.takeIf { it.isNotBlank() }
+    return when {
+        day == today -> stringResource(R.string.planner_warm_today)
+        topic.isLate(today) -> stringResource(R.string.planner_late_on, shortDate(day))
+        day != null -> shortDate(day)
+        else -> stringResource(R.string.planner_plan_chip)
     }
 }

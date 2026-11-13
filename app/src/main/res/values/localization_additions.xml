@@ -95,6 +95,18 @@
     <string name="profile_save_content_description">Save Profile</string>
     <string name="profile_saved_success">Profile saved successfully!</string>
     <string name="profile_photo_updated">Profile photo updated!</string>
+    <string name="avatar_picker_title">Choose Your Avatar</string>
+    <string name="avatar_picker_subtitle">Select from 70 high-craft living characters and animal mascots</string>
+    <string name="avatar_picker_search_placeholder">Search avatars by name…</string>
+    <string name="avatar_picker_category_all">All</string>
+    <string name="avatar_picker_category_characters">Characters</string>
+    <string name="avatar_picker_category_animals">Animals &amp; Mascots</string>
+    <string name="avatar_picker_upload_custom">Upload Custom</string>
+    <string name="avatar_picker_apply">Apply Avatar</string>
+    <string name="avatar_picker_select_prompt">Select an avatar to apply</string>
+    <string name="avatar_picker_empty_title">No avatars found</string>
+    <string name="avatar_picker_empty_desc">Try searching for a different keyword or category.</string>
+    <string name="avatar_picker_loading">Loading avatar library…</string>
     <string name="nav_human_support">Human support</string>
     <string name="settings_title">Settings</string>
     <string name="settings_subtitle">Customize theme, notifications, and permissions</string>
@@ -1061,6 +1073,9 @@ You will automatically enter the chat room once accepted.</string>
     <string name="youtube_focus_shorts">Shorts</string>
     <string name="youtube_focus_channels_allowed">Channels allowed</string>
     <string name="youtube_focus_add_channel_title">Add the channel exactly as YouTube shows it</string>
+    <string name="youtube_focus_channel_handle_placeholder">@handle or channel link</string>
+    <string name="youtube_focus_channel_name_placeholder">Channel name (optional, as shown under videos)</string>
+    <string name="youtube_focus_add_channel_hint">Fill in both for the best match. Easiest way: when a video gets blocked, tap “Add to productive”. That saves both automatically. Shorts stay blocked for every channel.</string>
     <string name="youtube_focus_add_channel">Add channel</string>
     <string name="youtube_focus_no_productive_channels">No productive channels yet</string>
     <string name="youtube_focus_exact_channel_help">Add the exact name or @handle shown by YouTube on this phone.</string>
@@ -1340,7 +1355,7 @@ You will automatically enter the chat room once accepted.</string>
     <string name="planner_make_new_dates">Create new study dates</string>
     <string name="planner_change_order_size">Change order or topic size</string>
     <string name="planner_what_change">What do you want to change?</string>
-    <string name="planner_change_option_body">Choose one option. Your plan won’t change until you save.</string>
+    <string name="planner_change_option_body">Pick what you want to change.</string>
     <string name="planner_change_plan_details">Change plan details</string>
     <string name="common_move_up">Move up</string>
     <string name="common_move_down">Move down</string>

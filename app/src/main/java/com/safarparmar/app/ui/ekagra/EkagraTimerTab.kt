@@ -33,6 +33,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.constrainHeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -159,7 +160,7 @@ internal fun ModeTabs(
             .clip(CircleShape)
             .background(trackBg)
             .border(1.dp, trackBorder, CircleShape)
-            .padding(4.dp),
+            .padding(3.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -180,23 +181,24 @@ internal fun ModeTabs(
                 style = com.composables.ui.components.ButtonStyle.Ghost,
                 shape = CircleShape,
                 contentColor = contentColor,
-                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 7.dp),
+                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 3.dp),
                 modifier = Modifier.weight(1f).heightIn(min = 48.dp).background(pillBg, CircleShape),
             ) {
-                Icon(
-                    imageVector = iconVector,
-                    contentDescription = null,
-                    tint = contentColor,
-                    modifier = Modifier.size(14.dp),
-                )
-                Spacer(Modifier.width(6.dp))
-                com.composables.ui.components.Text(
-                    text = stringResource(mode.labelRes),
-                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                    fontSize = 12.sp,
-                    color = contentColor,
-                    maxLines = 1,
-                )
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Icon(
+                        imageVector = iconVector,
+                        contentDescription = null,
+                        tint = contentColor,
+                        modifier = Modifier.size(14.dp),
+                    )
+                    com.composables.ui.components.Text(
+                        text = stringResource(mode.labelRes),
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                        fontSize = 12.sp,
+                        color = contentColor,
+                        maxLines = 1,
+                    )
+                }
             }
         }
     }
@@ -218,6 +220,7 @@ internal fun TimerFocusTab(
     progress: Float,
     hasProgress: Boolean,
     mottoText: String,
+    plannerTopicTitle: String? = null,
     kavachActive: Boolean = false,
     kavachBlockedCount: Int = 0,
     controlsVisible: Boolean = true,
@@ -243,9 +246,6 @@ internal fun TimerFocusTab(
     myCircles: List<com.safarparmar.app.data.remote.dto.StudyCircleSummaryDto> = emptyList(),
     selectedStudyCircle: com.safarparmar.app.data.remote.dto.StudyCircleSummaryDto? = null,
     onSelectStudyCircle: (com.safarparmar.app.data.remote.dto.StudyCircleSummaryDto) -> Unit = {},
-    showYoutubeBanner: Boolean = false,
-    onDismissYoutubeFocus: () -> Unit = {},
-    onEnableYoutubeFocus: () -> Unit = {},
     summaryContent: (@Composable () -> Unit)? = null,
 ) {
     val scheme = MaterialTheme.colorScheme
@@ -254,16 +254,32 @@ internal fun TimerFocusTab(
     BoxWithConstraints(modifier, contentAlignment = Alignment.TopCenter) {
         val width = minOf(maxWidth, 600.dp)
         val diameter = minOf(width - 72.dp, timerDiameter).coerceAtLeast(160.dp)
-        Column(Modifier.width(width).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        EkagraBalancedTimerLayout(
+            modifier = Modifier.width(width).verticalScroll(rememberScrollState())
+                .heightIn(min = maxHeight).padding(horizontal = 16.dp, vertical = 12.dp),
+            summary = {
+                if (controlsVisible) {
+                    if (summaryContent != null) summaryContent() else com.safarparmar.app.feature.kavachanalytics.ui.KavachSummaryPills(
+                        ink = rememberEkagraInk(false), isDarkTheme = isDarkTheme, themeAccent = scheme.primary,
+                        onOpenAnalytics = onOpenAnalytics, myCircles = myCircles, selectedCircle = selectedStudyCircle,
+                        onSelectCircle = onSelectStudyCircle, onNavigate = onNavigate)
+                }
+            },
+        ) {
             if (controlsVisible) {
-                ModeTabs(selectedDisplayMode, scheme.primary, rememberEkagraInk(false), isDarkTheme, onModeChange, Modifier.fillMaxWidth())
-                if (summaryContent != null) summaryContent() else com.safarparmar.app.feature.kavachanalytics.ui.KavachSummaryPills(
-                    ink = rememberEkagraInk(false), isDarkTheme = isDarkTheme, themeAccent = scheme.primary,
-                    onOpenAnalytics = onOpenAnalytics, myCircles = myCircles, selectedCircle = selectedStudyCircle,
-                    onSelectCircle = onSelectStudyCircle, onNavigate = onNavigate)
+                ModeTabs(selectedDisplayMode, scheme.primary, rememberEkagraInk(false), isDarkTheme, onModeChange,
+                    Modifier.widthIn(max = 300.dp).fillMaxWidth().tutorialTarget("ekagra.mode"))
             }
-            Column(Modifier.fillMaxWidth().ekagraTimerCard(palette).padding(horizontal = 16.dp, vertical = 24.dp),
+            if (!plannerTopicTitle.isNullOrBlank()) {
+                Text(
+                    text = stringResource(R.string.ekagra_exam_planner_topic) + ": " + plannerTopicTitle,
+                    color = scheme.onSurface,
+                    style = MaterialTheme.typography.titleSmall,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(24.dp)) {
                 if (controlsVisible) {
                     if (shieldState.hasUsageStats && shieldState.hasOverlayPermission) {
@@ -282,9 +298,6 @@ internal fun TimerFocusTab(
                                 else -> R.string.ekagra_kavach_off
                             }), fontSize = 12.sp, color = Color.White)
                         }
-                    } else {
-                        com.composables.ui.components.Button(onClick = onOpenAppPicker, style = com.composables.ui.components.ButtonStyle.Ghost,
-                            contentColor = Color.White) { Text(stringResource(R.string.ekagra_apps_to_block), color = Color.White, fontSize = 12.sp) }
                     }
                 }
                 Box(Modifier.size(diameter), contentAlignment = Alignment.Center) {
@@ -308,7 +321,7 @@ internal fun TimerFocusTab(
                         }), fontSize = 12.sp, color = Color.White.copy(alpha = .85f))
                     }
                 }
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (!isBrowsingOtherMode) EkagraTimerSideAction(
                         stringResource(if (timerMode == TimerMode.BREAK) R.string.ekagra_end_break else R.string.common_end),
                         Icons.Default.Stop, onReset, Modifier.tutorialTarget("ekagra.end"))
@@ -328,7 +341,36 @@ internal fun TimerFocusTab(
                 if (controlsVisible && mottoText.isNotBlank()) Text(mottoText, color = Color.White.copy(alpha = .7f),
                     textAlign = TextAlign.Center, fontSize = 10.sp)
             }
-            if (showYoutubeBanner && controlsVisible) EkagraYouTubeStudyBanner(onEnableClick = onEnableYoutubeFocus, onDismiss = onDismissYoutubeFocus)
+            if (controlsVisible) EkagraAppsToBlockButton(onOpenAppPicker)
+        }
+    }
+}
+
+/** Split unused height evenly above and below the timer chunk; short windows scroll normally. */
+@Composable
+private fun EkagraBalancedTimerLayout(
+    modifier: Modifier = Modifier,
+    summary: @Composable () -> Unit,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    val gap = with(LocalDensity.current) { 14.dp.roundToPx() }
+    androidx.compose.ui.layout.Layout(
+        modifier = modifier,
+        content = {
+            Box(Modifier.fillMaxWidth()) { summary() }
+            Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(14.dp), content = content)
+        },
+    ) { measurables, constraints ->
+        val loose = constraints.copy(minHeight = 0)
+        val header = measurables[0].measure(loose)
+        val timer = measurables[1].measure(loose)
+        val contentHeight = header.height + gap + timer.height
+        val height = constraints.constrainHeight(contentHeight)
+        val extraSpace = (height - contentHeight).coerceAtLeast(0)
+        layout(constraints.maxWidth, height) {
+            header.placeRelative(0, 0)
+            timer.placeRelative(0, header.height + gap + extraSpace / 2)
         }
     }
 }
@@ -337,44 +379,33 @@ internal fun TimerFocusTab(
 private fun EkagraTimerSideAction(label: String, icon: ImageVector, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Column(modifier, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
         com.composables.ui.components.IconButton(onClick = onClick, style = com.composables.ui.components.ButtonStyle.Ghost,
-            shape = CircleShape, contentColor = Color.White, modifier = Modifier.size(48.dp).border(1.dp, Color.White.copy(alpha = .6f), CircleShape)) {
+            shape = CircleShape, contentColor = Color.White, modifier = Modifier.size(54.dp).border(1.dp, Color.White.copy(alpha = .6f), CircleShape)) {
             Icon(icon, contentDescription = label, tint = Color.White, modifier = Modifier.size(22.dp))
         }
         Text(label, color = Color.White, fontSize = 11.sp)
     }
 }
 
-// ─── Ekagra YouTube Focus Banner ──────────────────────────────────────────────
+// ─── App blocking shortcut ───────────────────────────────────────────────────
 
 @Composable
-internal fun EkagraYouTubeStudyBanner(
-    onEnableClick: () -> Unit,
-    onDismiss: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Surface(
-        modifier = modifier.widthIn(max = 280.dp),
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+internal fun EkagraAppsToBlockButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val scheme = MaterialTheme.colorScheme
+    val shape = RoundedCornerShape(18.dp)
+    com.composables.ui.components.Button(
+        onClick = onClick,
+        style = com.composables.ui.components.ButtonStyle.Ghost,
+        shape = shape,
+        contentColor = scheme.onSurface,
+        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
+        modifier = modifier.widthIn(max = 280.dp).fillMaxWidth().heightIn(min = 52.dp)
+            .background(scheme.surface, shape)
+            .border(1.dp, scheme.outlineVariant, shape)
+            .tutorialTarget("ekagra.appsToBlock"),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            com.composables.ui.components.Button(style = com.composables.ui.components.ButtonStyle.Ghost,
-                onClick = onEnableClick,
-                modifier = Modifier.weight(1f).heightIn(min = 48.dp).tutorialTarget("ekagra.youtube"),
-            ) {
-                Icon(Icons.Default.PlayArrow, contentDescription = null)
-                Spacer(Modifier.width(8.dp))
-                Text(stringResource(R.string.kavach_youtube_focus), fontWeight = FontWeight.SemiBold)
-            }
-            com.composables.ui.components.IconButton(style = com.composables.ui.components.ButtonStyle.Ghost, onClick = onDismiss) {
-                Icon(
-                    Icons.Default.Close,
-                    contentDescription = stringResource(R.string.ekagra_dismiss_youtube_shortcut),
-                )
-            }
-        }
+        Icon(Icons.Default.Apps, contentDescription = null, tint = scheme.primary, modifier = Modifier.size(20.dp))
+        Text(stringResource(R.string.ekagra_apps_to_block), color = scheme.onSurface, fontWeight = FontWeight.SemiBold)
+        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = scheme.onSurfaceVariant,
+            modifier = Modifier.size(18.dp))
     }
 }
-
-// ─── Bottom navigation ─────────────────────────────────────────────────────────

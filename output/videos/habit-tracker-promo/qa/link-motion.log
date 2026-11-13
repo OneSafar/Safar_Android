@@ -1,0 +1,26 @@
+◆  Capturing 8 frames from habit-tracker-promo
+[hyperframes] browserGpuMode probe → hardware (WebGL renderer vendor="Google Inc. (Apple)" renderer="ANGLE (Apple, ANGLE Metal Renderer: Apple M5, Unspecified Version)")
+
+   Fonts: 2 loaded
+   Sampling 8 frames within 5.1–6.3s
+[hyperframes] snapshot: frame 1/8 at 5.1s
+[hyperframes] snapshot: frame 2/8 at 5.271428571428571s
+[hyperframes] snapshot: frame 3/8 at 5.442857142857142s
+[hyperframes] snapshot: frame 4/8 at 5.614285714285714s
+[hyperframes] snapshot: frame 5/8 at 5.785714285714286s
+[hyperframes] snapshot: frame 6/8 at 5.957142857142857s
+[hyperframes] snapshot: frame 7/8 at 6.128571428571428s
+[hyperframes] snapshot: frame 8/8 at 6.3s
+   Revision: none (inputs-changed)
+   State: /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/.hyperframes/video-state.json
+
+◇  8 snapshots saved to /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/link-motion
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/link-motion/frame-00-at-5.1s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/link-motion/frame-01-at-5.271s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/link-motion/frame-02-at-5.443s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/link-motion/frame-03-at-5.614s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/link-motion/frame-04-at-5.786s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/link-motion/frame-05-at-5.957s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/link-motion/frame-06-at-6.129s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/link-motion/frame-07-at-6.3s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/link-motion/contact-sheet.jpg (grid view for AI review)

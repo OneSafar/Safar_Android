@@ -1,0 +1,460 @@
+{
+  "ok": true,
+  "outputDir": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2",
+  "frames": [
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/beat-01-at-0.3s.png",
+      "time": 0.3,
+      "role": "beat",
+      "label": "goals"
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/beat-02-at-1.25s.png",
+      "time": 1.25,
+      "role": "beat",
+      "label": "goals mid"
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/beat-03-at-2.8s.png",
+      "time": 2.8,
+      "role": "beat",
+      "label": "time"
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/beat-04-at-3.75s.png",
+      "time": 3.75,
+      "role": "beat",
+      "label": "time mid"
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/beat-05-at-5.3s.png",
+      "time": 5.3,
+      "role": "beat",
+      "label": "link"
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/beat-06-at-6.25s.png",
+      "time": 6.25,
+      "role": "beat",
+      "label": "link mid"
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/beat-07-at-7.8s.png",
+      "time": 7.8,
+      "role": "beat",
+      "label": "track"
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/beat-08-at-8.75s.png",
+      "time": 8.75,
+      "role": "beat",
+      "label": "track mid"
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/beat-09-at-10.3s.png",
+      "time": 10.3,
+      "role": "beat",
+      "label": "balance"
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/beat-10-at-11.25s.png",
+      "time": 11.25,
+      "role": "beat",
+      "label": "balance mid"
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/beat-11-at-12.8s.png",
+      "time": 12.8,
+      "role": "beat",
+      "label": "close"
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/beat-12-at-13.75s.png",
+      "time": 13.75,
+      "role": "beat",
+      "label": "close mid"
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-01-1-at-2.3s.png",
+      "time": 2.3,
+      "role": "seam",
+      "label": "cut -0.2"
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-01-2-at-2.4s.png",
+      "time": 2.4,
+      "role": "seam",
+      "label": "-0.1"
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-01-3-at-2.5s.png",
+      "time": 2.5,
+      "role": "seam",
+      "label": "cut goals -> time"
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-01-4-at-2.6s.png",
+      "time": 2.6,
+      "role": "seam",
+      "label": "+0.1"
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-01-5-at-2.7s.png",
+      "time": 2.7,
+      "role": "seam",
+      "label": "+0.2"
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-02-1-at-4.8s.png",
+      "time": 4.8,
+      "role": "seam",
+      "label": "cut -0.2"
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-02-2-at-4.9s.png",
+      "time": 4.9,
+      "role": "seam",
+      "label": "-0.1"
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-02-3-at-5s.png",
+      "time": 5,
+      "role": "seam",
+      "label": "cut time -> link"
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-02-4-at-5.1s.png",
+      "time": 5.1,
+      "role": "seam",
+      "label": "+0.1"
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-02-5-at-5.2s.png",
+      "time": 5.2,
+      "role": "seam",
+      "label": "+0.2"
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-03-1-at-7.3s.png",
+      "time": 7.3,
+      "role": "seam",
+      "label": "cut -0.2"
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-03-2-at-7.4s.png",
+      "time": 7.4,
+      "role": "seam",
+      "label": "-0.1"
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-03-3-at-7.5s.png",
+      "time": 7.5,
+      "role": "seam",
+      "label": "cut link -> track"
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-03-4-at-7.6s.png",
+      "time": 7.6,
+      "role": "seam",
+      "label": "+0.1"
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-03-5-at-7.7s.png",
+      "time": 7.7,
+      "role": "seam",
+      "label": "+0.2"
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-04-1-at-9.8s.png",
+      "time": 9.8,
+      "role": "seam",
+      "label": "cut -0.2"
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-04-2-at-9.9s.png",
+      "time": 9.9,
+      "role": "seam",
+      "label": "-0.1"
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-04-3-at-10s.png",
+      "time": 10,
+      "role": "seam",
+      "label": "cut track -> balance"
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-04-4-at-10.1s.png",
+      "time": 10.1,
+      "role": "seam",
+      "label": "+0.1"
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-04-5-at-10.2s.png",
+      "time": 10.2,
+      "role": "seam",
+      "label": "+0.2"
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-05-1-at-12.3s.png",
+      "time": 12.3,
+      "role": "seam",
+      "label": "cut -0.2"
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-05-2-at-12.4s.png",
+      "time": 12.4,
+      "role": "seam",
+      "label": "-0.1"
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-05-3-at-12.5s.png",
+      "time": 12.5,
+      "role": "seam",
+      "label": "cut balance -> close"
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-05-4-at-12.6s.png",
+      "time": 12.6,
+      "role": "seam",
+      "label": "+0.1"
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-05-5-at-12.7s.png",
+      "time": 12.7,
+      "role": "seam",
+      "label": "+0.2"
+    }
+  ],
+  "contactSheets": [
+    "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/review-beats.jpg",
+    "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/review-seam-01.jpg",
+    "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/review-seam-02.jpg",
+    "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/review-seam-03.jpg",
+    "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/review-seam-04.jpg",
+    "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/review-seam-05.jpg",
+    "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/review-phone.jpg"
+  ],
+  "review": {
+    "window": [
+      0,
+      15
+    ],
+    "scenes": [
+      {
+        "id": "goals",
+        "start": 0,
+        "end": 2.5
+      },
+      {
+        "id": "time",
+        "start": 2.5,
+        "end": 5
+      },
+      {
+        "id": "link",
+        "start": 5,
+        "end": 7.5
+      },
+      {
+        "id": "track",
+        "start": 7.5,
+        "end": 10
+      },
+      {
+        "id": "balance",
+        "start": 10,
+        "end": 12.5
+      },
+      {
+        "id": "close",
+        "start": 12.5,
+        "end": 15
+      }
+    ],
+    "beats": [
+      {
+        "time": 0.3,
+        "label": "goals",
+        "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/beat-01-at-0.3s.png"
+      },
+      {
+        "time": 1.25,
+        "label": "goals mid",
+        "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/beat-02-at-1.25s.png"
+      },
+      {
+        "time": 2.8,
+        "label": "time",
+        "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/beat-03-at-2.8s.png"
+      },
+      {
+        "time": 3.75,
+        "label": "time mid",
+        "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/beat-04-at-3.75s.png"
+      },
+      {
+        "time": 5.3,
+        "label": "link",
+        "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/beat-05-at-5.3s.png"
+      },
+      {
+        "time": 6.25,
+        "label": "link mid",
+        "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/beat-06-at-6.25s.png"
+      },
+      {
+        "time": 7.8,
+        "label": "track",
+        "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/beat-07-at-7.8s.png"
+      },
+      {
+        "time": 8.75,
+        "label": "track mid",
+        "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/beat-08-at-8.75s.png"
+      },
+      {
+        "time": 10.3,
+        "label": "balance",
+        "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/beat-09-at-10.3s.png"
+      },
+      {
+        "time": 11.25,
+        "label": "balance mid",
+        "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/beat-10-at-11.25s.png"
+      },
+      {
+        "time": 12.8,
+        "label": "close",
+        "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/beat-11-at-12.8s.png"
+      },
+      {
+        "time": 13.75,
+        "label": "close mid",
+        "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/beat-12-at-13.75s.png"
+      }
+    ],
+    "seams": [
+      {
+        "time": 2.5,
+        "from": "goals",
+        "to": "time",
+        "times": [
+          2.3,
+          2.4,
+          2.5,
+          2.6,
+          2.7
+        ],
+        "paths": [
+          "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-01-1-at-2.3s.png",
+          "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-01-2-at-2.4s.png",
+          "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-01-3-at-2.5s.png",
+          "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-01-4-at-2.6s.png",
+          "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-01-5-at-2.7s.png"
+        ],
+        "sheet": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/review-seam-01.jpg"
+      },
+      {
+        "time": 5,
+        "from": "time",
+        "to": "link",
+        "times": [
+          4.8,
+          4.9,
+          5,
+          5.1,
+          5.2
+        ],
+        "paths": [
+          "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-02-1-at-4.8s.png",
+          "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-02-2-at-4.9s.png",
+          "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-02-3-at-5s.png",
+          "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-02-4-at-5.1s.png",
+          "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-02-5-at-5.2s.png"
+        ],
+        "sheet": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/review-seam-02.jpg"
+      },
+      {
+        "time": 7.5,
+        "from": "link",
+        "to": "track",
+        "times": [
+          7.3,
+          7.4,
+          7.5,
+          7.6,
+          7.7
+        ],
+        "paths": [
+          "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-03-1-at-7.3s.png",
+          "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-03-2-at-7.4s.png",
+          "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-03-3-at-7.5s.png",
+          "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-03-4-at-7.6s.png",
+          "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-03-5-at-7.7s.png"
+        ],
+        "sheet": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/review-seam-03.jpg"
+      },
+      {
+        "time": 10,
+        "from": "track",
+        "to": "balance",
+        "times": [
+          9.8,
+          9.9,
+          10,
+          10.1,
+          10.2
+        ],
+        "paths": [
+          "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-04-1-at-9.8s.png",
+          "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-04-2-at-9.9s.png",
+          "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-04-3-at-10s.png",
+          "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-04-4-at-10.1s.png",
+          "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-04-5-at-10.2s.png"
+        ],
+        "sheet": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/review-seam-04.jpg"
+      },
+      {
+        "time": 12.5,
+        "from": "balance",
+        "to": "close",
+        "times": [
+          12.3,
+          12.4,
+          12.5,
+          12.6,
+          12.7
+        ],
+        "paths": [
+          "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-05-1-at-12.3s.png",
+          "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-05-2-at-12.4s.png",
+          "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-05-3-at-12.5s.png",
+          "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-05-4-at-12.6s.png",
+          "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-05-5-at-12.7s.png"
+        ],
+        "sheet": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/review-seam-05.jpg"
+      }
+    ],
+    "sheets": {
+      "beats": [
+        "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/review-beats.jpg"
+      ],
+      "seams": [
+        "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/review-seam-01.jpg",
+        "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/review-seam-02.jpg",
+        "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/review-seam-03.jpg",
+        "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/review-seam-04.jpg",
+        "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/review-seam-05.jpg"
+      ],
+      "phone": [
+        "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/review-phone.jpg"
+      ]
+    },
+    "notes": []
+  },
+  "_meta": {
+    "version": "0.9.5",
+    "latestVersion": "0.9.8",
+    "updateAvailable": true
+  }
+}

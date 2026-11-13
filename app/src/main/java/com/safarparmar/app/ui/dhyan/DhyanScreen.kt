@@ -1,5 +1,8 @@
 
 package com.safarparmar.app.ui.dhyan
+
+import com.safarparmar.app.ui.theme.RoyalPurple
+import com.safarparmar.app.ui.theme.RoyalPurpleSoft
 import com.composables.ui.components.ButtonStyle
 import com.composables.ui.components.IconButton as ComposablesIconButton
 
@@ -130,22 +133,22 @@ private enum class DhyanAudioSource {
 
 // musicOptions removed in favor of shared AudioLibrary
 
-// ─── Dhyan brand accents (pink) + hybrid glass/flat helpers ─────────────────
+// ─── Dhyan brand accents (lavender) + hybrid glass/flat helpers ─────────────────
 
 private object DhyanColors {
-    val LightLotus = Color(0xFFFFCDE0)
-    val LightRose = Color(0xFFF49BB7)
-    val LightCalm = Color(0xFFE37A9A)
-    val DarkLotus = Color(0xFFE05282)
-    val DarkRose = Color(0xFFB82D5C)
-    val DarkCalm = Color(0xFF8A133B)
+    val LightLotus = Color(0xFFEEE5FD)
+    val LightRose = Color(0xFFC4AFE8)
+    val LightCalm = Color(0xFF9575CD)
+    val DarkLotus = Color(0xFFB39DDB)
+    val DarkRose = Color(0xFF7954B1)
+    val DarkCalm = Color(0xFF512395)
 
     fun lotus(isDark: Boolean) = if (isDark) DarkLotus else LightLotus
     fun rose(isDark: Boolean) = if (isDark) DarkRose else LightRose
     fun calm(isDark: Boolean) = if (isDark) DarkCalm else LightCalm
-    fun sky(isDark: Boolean) = if (isDark) Color(0xFF7CB9E8) else Color(0xFF5B9BD5)
-    fun accentBlue(isDark: Boolean) = sky(isDark)
-    fun actionPink(isDark: Boolean) = if (isDark) Color(0xFFF472B6) else Color(0xFFBE185D)
+    fun sky(isDark: Boolean) = if (isDark) Color(0xFFD4C4FF) else Color(0xFF7954B1)
+    fun accentBlue(isDark: Boolean) = if (isDark) com.safarparmar.app.ui.theme.RoyalPurpleDark else RoyalPurple
+    fun actionPink(isDark: Boolean) = if (isDark) com.safarparmar.app.ui.theme.RoyalPurpleDark else RoyalPurple
 }
 
 private val DhyanGlassShape = RoundedCornerShape(20.dp)
@@ -181,7 +184,7 @@ private fun Modifier.dhyanMacOSPanel(
         .border(width = 0.5.dp, brush = borderBrush, shape = shape)
 }
 
-/** Pink gradient canvas (plan: keep Dhyan brand atmosphere). */
+/** Lavender gradient canvas (plan: keep Dhyan brand atmosphere). */
 @Composable
 internal fun DhyanMockBackdrop() {
     Box(Modifier.fillMaxSize().background(DhyanFlatColors.CanvasBrush))
@@ -207,7 +210,7 @@ private fun DhyanGlassPill(
     )
 }
 
-/** Pink glass meditation sphere — brand hero tile (visualizer inside untouched). */
+/** Lavender glass meditation sphere — brand hero tile (visualizer inside untouched). */
 @Composable
 internal fun DhyanMeditationOrb(
     isDarkTheme: Boolean,
@@ -309,8 +312,64 @@ internal fun DhyanSessionSlider(
     modifier: Modifier = Modifier,
     valueRange: ClosedFloatingPointRange<Float> = 1f..60f,
 ) {
-    com.composables.ui.components.Slider(value = value, onValueChange = onValueChange,
-        valueRange = valueRange, steps = 58, modifier = modifier.heightIn(min = 48.dp))
+    val density = LocalDensity.current
+    val pink = DhyanColors.actionPink(isDarkTheme)
+    val inactiveColor = pink.copy(alpha = 0.22f)
+    var trackWidthPx by remember { mutableFloatStateOf(1f) }
+    val thumbSizeDp = 22.dp
+    val trackHeightDp = 3.dp
+    val thumbSizePx = with(density) { thumbSizeDp.toPx() }
+    val fraction = ((value - valueRange.start) / (valueRange.endInclusive - valueRange.start)).coerceIn(0f, 1f)
+
+    Box(
+        modifier = modifier
+            .height(thumbSizeDp)
+            .onGloballyPositioned { trackWidthPx = it.size.width.toFloat() }
+            .pointerInput(valueRange) {
+                awaitPointerEventScope {
+                    while (true) {
+                        val event = awaitPointerEvent()
+                        for (change in event.changes) {
+                            if (change.pressed) {
+                                change.consume()
+                                val newFraction = (change.position.x / trackWidthPx).coerceIn(0f, 1f)
+                                onValueChange(
+                                    valueRange.start + newFraction * (valueRange.endInclusive - valueRange.start),
+                                )
+                            }
+                        }
+                    }
+                }
+            },
+        contentAlignment = Alignment.CenterStart,
+    ) {
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(trackHeightDp)
+                .clip(RoundedCornerShape(2.dp))
+                .background(inactiveColor),
+        )
+        if (fraction > 0f) {
+            Box(
+                Modifier
+                    .fillMaxWidth(fraction)
+                    .height(trackHeightDp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(pink),
+            )
+        }
+        val thumbOffsetPx = (trackWidthPx - thumbSizePx) * fraction
+        val thumbOffsetDp = with(density) { thumbOffsetPx.toDp() }
+        Box(
+            Modifier
+                .size(thumbSizeDp)
+                .offset(x = thumbOffsetDp)
+                .clip(CircleShape)
+                .background(pink)
+                .border(0.5.dp, Color.White.copy(alpha = 0.85f), CircleShape),
+        )
+    }
 }
 
 /** Flat filled pink CTA bar. */
@@ -357,12 +416,50 @@ internal fun DhyanControlButton(
     style: DhyanControlStyle,
     contentDescription: String? = null,
 ) {
-    com.composables.ui.components.IconButton(onClick = onClick, style = ButtonStyle.Ghost,
-        shape = CircleShape, modifier = Modifier.size(size)
-            .background(if (style == DhyanControlStyle.Play) Color(0xFFFFCBBE) else Color.White.copy(alpha = .12f), CircleShape)) {
-        com.composables.ui.components.Icon(icon, contentDescription = contentDescription,
-            tint = if (style == DhyanControlStyle.Play) Color(0xFF39132E) else Color(0xFFFFF5F0),
-            modifier = Modifier.size(if (style == DhyanControlStyle.Play) 34.dp else 23.dp))
+    val isLight = !isDarkTheme
+    val pink = DhyanColors.actionPink(isDarkTheme)
+    val controlShape: Shape = when (style) {
+        DhyanControlStyle.Play -> DhyanControlShape
+        DhyanControlStyle.Reset, DhyanControlStyle.Volume -> CircleShape
+    }
+    val playBorder = if (isLight) {
+        Brush.verticalGradient(listOf(Color(0xFFE5E5EA), Color(0xFFD1D1D6)))
+    } else {
+        Brush.verticalGradient(
+            listOf(Color.White.copy(alpha = 0.25f), Color.White.copy(alpha = 0.02f)),
+        )
+    }
+    Box(
+        modifier = Modifier
+            .size(size)
+            .then(
+                when (style) {
+                    DhyanControlStyle.Play -> Modifier
+                        .shadow(
+                            elevation = if (isLight) 4.dp else 12.dp,
+                            shape = controlShape,
+                            spotColor = if (isLight) Color.Black.copy(alpha = 0.12f) else Color.Black.copy(alpha = 0.8f),
+                            ambientColor = if (isLight) Color.Black.copy(alpha = 0.12f) else Color.Black.copy(alpha = 0.8f),
+                        )
+                        .clip(controlShape)
+                        .background(pink)
+                        .border(width = 0.5.dp, brush = playBorder, shape = controlShape)
+                    else -> Modifier.dhyanMacOSPanel(isLight = isLight, shape = controlShape)
+                },
+            )
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            icon,
+            contentDescription = contentDescription,
+            tint = when (style) {
+                DhyanControlStyle.Reset -> DhyanFlatColors.onGlassMuted(isLight)
+                DhyanControlStyle.Play -> Color.White
+                DhyanControlStyle.Volume -> DhyanColors.sky(isDarkTheme)
+            },
+            modifier = Modifier.size(if (style == DhyanControlStyle.Play) 36.dp else 22.dp),
+        )
     }
 }
 
@@ -426,6 +523,7 @@ fun DhyanScreen(
     onNavigate: (String) -> Unit = {},
     onToggleDarkTheme: () -> Unit = {},
 ) {
+    val isLiveCentre = initialTab != DhyanTab.DHYAN
     var selectedTab by rememberSaveable { mutableStateOf(initialTab) }
 
     LaunchedEffect(initialTab) {
@@ -471,15 +569,15 @@ fun DhyanScreen(
     com.safarparmar.app.ui.theme.SafarComposablesTheme {
     Box(Modifier.fillMaxSize()) {
         SafarDrawerScaffold(
-            title = stringResource(R.string.module_dhyan),
+            title = stringResource(if (isLiveCentre) R.string.nav_live_sessions else R.string.module_dhyan),
             subtitle = null,
-            currentRoute      = currentRoute,
+            currentRoute      = if (isLiveCentre) Routes.LIVE_SESSIONS_ROOT else currentRoute,
             isDarkTheme       = isDarkTheme,
             onNavigate        = onNavigate,
             onToggleDarkTheme = onToggleDarkTheme,
             useGlassTopBar    = false,
             useDetachedMenuGlass = false,
-            containerColor    = DhyanFlatColors.Bg,
+            containerColor    = Color.Transparent,
             topBarContentColor = DhyanFlatColors.Text,
             topBarActions = {
                 if (selectedTab == DhyanTab.LIVE) {
@@ -515,8 +613,9 @@ fun DhyanScreen(
                         .padding(bottom = padding.calculateBottomPadding()),
                 ) {
                     // Top Navigation Capsule
-                    DhyanTopNavigation(
+                    if (isLiveCentre) DhyanTopNavigation(
                         selectedTab = selectedTab,
+                        tabs = dhyanTabsFor(initialTab),
                         onTabSelected = { selectedTab = it },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -560,7 +659,7 @@ fun DhyanScreen(
                                     LiveSessionsScreen(
                                         courseId = courseId,
                                         initialView = initialLiveView,
-                                        onBack = { selectedTab = DhyanTab.DHYAN },
+                                        onBack = { selectedTab = DhyanTab.COURSES },
                                         onOpenSession = { sessionId -> onNavigate(Routes.liveSession(sessionId)) },
                                         onOpenCourses = { selectedTab = DhyanTab.COURSES },
                                         showTopBar = false,
@@ -571,7 +670,7 @@ fun DhyanScreen(
                                             onRetry = premiumVm::refreshDhyanAccess,
                                             modifier = Modifier.fillMaxSize(),
                                             isDarkTheme = isDarkTheme,
-                                            onEnrollClick = { onNavigate(Routes.PREMIUM) },
+                                            onEnrollClick = { selectedTab = DhyanTab.COURSES },
                                         )
                                 }
                             }
@@ -788,77 +887,125 @@ private fun BreathingTab(
     )
     val vizSessionId = techniqueSessionId(selectedTechnique)
 
-    // The same state and callbacks drive both compact and tablet arrangements.
-    @Composable
-    fun MeditationStage() {
-        val expanding = phase == DhyanBreathPhase.INHALE || phase == DhyanBreathPhase.HOLD
-        val seconds = if (phase == DhyanBreathPhase.INHALE) vizCycle.inhale else vizCycle.exhale
-        Box(
-            modifier = Modifier.clickable {
-                if (selectedTechnique != null) {
-                    onViewTechniqueAnimation(selectedTechnique)
-                } else {
-                    onBreatheWithMe()
-                }
-            },
-            contentAlignment = Alignment.Center,
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = DhyanContentHorizontal)
+            .padding(top = 2.dp, bottom = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        // Hero cluster (orb + timer) — shares remaining height so lower controls stay compact.
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
         ) {
-            DhyanLotusRing(
-                expanding = expanding,
-                running = isRunning && selectedTechnique != null,
-                durationMillis = seconds * 1000,
-                description = stringResource(R.string.dhyan_meditate),
+            AnimatedContent(
+                targetState = selectedTechnique,
+                transitionSpec = {
+                    (fadeIn(tween(400)) + scaleIn(initialScale = 0.95f))
+                        .togetherWith(fadeOut(tween(280)) + scaleOut(targetScale = 0.97f))
+                },
+                label = "dhyanHero",
+            ) { technique ->
+                if (technique == null) {
+                    DhyanMeditationOrb(isDarkTheme = isDarkTheme) {
+                        Image(
+                            painter = painterResource(R.drawable.dhyan_meditation_lavender),
+                            contentDescription = stringResource(R.string.dhyan_meditate),
+                            modifier = Modifier.fillMaxSize(0.88f),
+                            contentScale = ContentScale.Fit,
+                        )
+                    }
+                } else {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        DhyanMeditationOrb(isDarkTheme = isDarkTheme) {
+                            BreathingVisualizer(
+                                sessionId = vizSessionId,
+                                breathPhase = vizPhase,
+                                isActive = isRunning,
+                                cycle = vizCycle,
+                                modifier = Modifier.fillMaxSize(0.92f),
+                            )
+                        }
+                        AnimatedVisibility(visible = isRunning) {
+                            Text(
+                                stringResource(
+                                    when (phase) {
+                                        DhyanBreathPhase.INHALE -> R.string.dhyan_phase_inhale
+                                        DhyanBreathPhase.HOLD -> R.string.dhyan_phase_hold
+                                        DhyanBreathPhase.EXHALE -> R.string.dhyan_phase_exhale
+                                        DhyanBreathPhase.HOLD_AFTER -> R.string.dhyan_phase_rest
+                                    }
+                                ).uppercase(),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 2.sp,
+                                color = DhyanFlatColors.Muted,
+                            )
+                        }
+                        // Flat technique chip
+                        Box(
+                            modifier = Modifier
+                                .clip(DhyanFlatShape)
+                                .border(1.dp, DhyanColors.rose(isDarkTheme).copy(alpha = 0.55f), DhyanFlatShape)
+                                .padding(horizontal = 14.dp, vertical = 6.dp),
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            ) {
+                                Icon(
+                                    painter = painterResource(id = technique.iconRes),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(14.dp),
+                                    tint = DhyanColors.rose(isDarkTheme),
+                                )
+                                Text(
+                                    stringResource(R.string.dhyan_technique_pattern, stringResource(technique.nameRes), technique.pattern),
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = DhyanFlatColors.Text,
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            Text(
+                "%02d:%02d".format(sessionSecondsLeft / 60, sessionSecondsLeft % 60),
+                fontFamily = LoraFontFamily,
+                fontSize = 52.sp,
+                fontWeight = FontWeight.Normal,
+                letterSpacing = (-2).sp,
+                color = DhyanFlatColors.Text,
             )
         }
-        Text(
-            "%02d:%02d".format(sessionSecondsLeft / 60, sessionSecondsLeft % 60),
-            fontFamily = com.safarparmar.app.ui.theme.PoppinsFontFamily,
-            fontSize = 46.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = Color(0xFFFFF5F0),
-        )
-        if (selectedTechnique != null) {
-            Row(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(Color.White.copy(alpha = 0.15f))
-                    .clickable { onViewTechniqueAnimation(selectedTechnique) }
-                    .padding(horizontal = 14.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                Icon(
-                    Icons.Default.PlayCircleOutline,
-                    contentDescription = null,
-                    tint = Color(0xFFFFF5F0),
-                    modifier = Modifier.size(16.dp),
-                )
-                Text(
-                    text = stringResource(
-                        R.string.dhyan_view_animation_badge,
-                        stringResource(selectedTechnique.nameRes),
-                    ),
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = Color(0xFFFFF5F0),
-                )
-            }
-        }
-    }
-    @Composable
-    fun SessionLength() {
-        Column {
+
+        Spacer(Modifier.height(DhyanSectionGap))
+
+        // Flat hairline session length — structure only (no card).
+        PlanHairline(alpha = 0.7f)
+        Spacer(Modifier.height(12.dp))
         Row(
             Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                stringResource(R.string.dhyan_session_length),
-                fontSize = 17.sp,
-                fontWeight = FontWeight.SemiBold,
-                letterSpacing = 0.sp,
-                color = DhyanFlatColors.Text,
+                stringResource(R.string.dhyan_session_length).uppercase(),
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 2.sp,
+                color = DhyanFlatColors.Muted,
             )
             Text(
                 stringResource(R.string.dhyan_minutes_short, sessionLengthMin),
@@ -879,11 +1026,11 @@ private fun BreathingTab(
             valueRange = 1f..60f,
             modifier = Modifier.fillMaxWidth(),
         )
+        Spacer(Modifier.height(12.dp))
+        PlanHairline(alpha = 0.7f)
 
-        }
-    }
-    @Composable
-    fun PlaybackControls() {
+        Spacer(Modifier.height(DhyanSectionGap))
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(DhyanControlGap, Alignment.CenterHorizontally),
@@ -914,125 +1061,118 @@ private fun BreathingTab(
                 contentDescription = stringResource(if (isSessionAudioMuted) R.string.common_unmute else R.string.common_mute),
             )
         }
-    }
-    @Composable
-    fun Guidance(compact: Boolean = false) {
+
+        Spacer(Modifier.height(22.dp))
+
         DhyanGuidanceSheet(
             isDarkTheme = isDarkTheme,
             technique = selectedTechnique,
             onEdit = onBreatheWithMe,
             onOpenAudioLibrary = onOpenAudioLibrary,
-            onViewAnimation = { onViewTechniqueAnimation(selectedTechnique) },
-            compact = compact,
         )
-    }
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 12.dp),
-        horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Column(Modifier.widthIn(max = 700.dp).fillMaxWidth().clip(RoundedCornerShape(26.dp))
-            .background(Brush.verticalGradient(listOf(Color(0xFF542347), Color(0xFF32132D)))).padding(20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            MeditationStage()
-            PlaybackControls()
-        }
-        Column(Modifier.widthIn(max = 700.dp).fillMaxWidth().clip(RoundedCornerShape(22.dp))
-            .background(DhyanFlatColors.CardBg).padding(18.dp)) {
-            SessionLength()
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(stringResource(R.string.dhyan_minutes_short, 1), fontSize = 12.sp, color = DhyanFlatColors.Muted)
-                Text(stringResource(R.string.dhyan_minutes_short, 60), fontSize = 12.sp, color = DhyanFlatColors.Muted)
-            }
-        }
-        Box(Modifier.widthIn(max = 700.dp).fillMaxWidth()) { Guidance() }
     }
 }
 
+/**
+ * Flat-hairline guidance chrome + glass row for the tappable technique picker.
+ */
 @Composable
 internal fun DhyanGuidanceSheet(
     isDarkTheme: Boolean,
     technique: BreathingTechnique?,
     onEdit: () -> Unit,
     onOpenAudioLibrary: () -> Unit,
-    onViewAnimation: (() -> Unit)? = null,
-    compact: Boolean = false,
 ) {
-    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(DhyanFlatColors.CardBg).padding(18.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        com.composables.ui.components.Text(stringResource(R.string.dhyan_guidance), fontSize = 21.sp,
-            fontWeight = FontWeight.Bold, color = DhyanFlatColors.Text)
-        listOf(true, false).forEach { isTechnique ->
-            val onRowClick = if (isTechnique) onEdit else onOpenAudioLibrary
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(14.dp))
-                    .tutorialTarget(if (isTechnique) "dhyan.guidance" else "dhyan.sound"),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Row(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clickable(onClick = onRowClick)
-                        .padding(vertical = 10.dp, horizontal = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    Box(
-                        Modifier
-                            .size(40.dp)
-                            .background(
-                                if (isTechnique) Color(0xFFFFCBBE) else DhyanFlatColors.PrimaryContainer,
-                                RoundedCornerShape(12.dp),
-                            ),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        com.composables.ui.components.Icon(
-                            if (isTechnique) Icons.Default.Air else Icons.Default.MusicNote,
-                            contentDescription = null,
-                            tint = Color(0xFF542347),
-                            modifier = Modifier.size(22.dp),
-                        )
-                    }
-                    Column(Modifier.weight(1f)) {
-                        com.composables.ui.components.Text(
-                            stringResource(if (isTechnique) R.string.dhyan_breathing_techniques else R.string.dhyan_audio_library),
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = DhyanFlatColors.Text,
-                        )
-                        if (isTechnique && technique != null) {
-                            com.composables.ui.components.Text(
-                                stringResource(R.string.dhyan_technique_pattern, stringResource(technique.nameRes), technique.pattern),
-                                fontSize = 12.sp,
-                                color = DhyanFlatColors.Muted,
-                            )
-                        }
-                    }
-                }
-                if (isTechnique && technique != null && onViewAnimation != null) {
-                    IconButton(
-                        onClick = onViewAnimation,
-                        modifier = Modifier.size(36.dp),
-                    ) {
-                        Icon(
-                            Icons.Default.PlayCircleOutline,
-                            contentDescription = stringResource(R.string.dhyan_view_animation),
-                            tint = DhyanColors.actionPink(isDarkTheme),
-                            modifier = Modifier.size(22.dp),
-                        )
-                    }
-                }
-                IconButton(
-                    onClick = onRowClick,
-                    modifier = Modifier.size(32.dp),
-                ) {
-                    com.composables.ui.components.Icon(
-                        Icons.Default.ChevronRight,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp),
-                        tint = DhyanFlatColors.Muted,
-                    )
-                }
+    val isLight = !isDarkTheme
+    val title = technique?.let {
+        stringResource(R.string.dhyan_technique_pattern, stringResource(it.nameRes), it.pattern)
+    } ?: stringResource(R.string.dhyan_breathing_techniques)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 8.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .align(Alignment.CenterHorizontally)
+                .width(36.dp)
+                .height(3.dp)
+                .clip(CircleShape)
+                .background(DhyanFlatColors.Hairline),
+        )
+        Spacer(Modifier.height(14.dp))
+        PlanHairline(alpha = 0.65f)
+        Spacer(Modifier.height(12.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+                Text(
+                    stringResource(R.string.dhyan_guidance),
+                    fontFamily = LoraFontFamily,
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Normal,
+                    color = DhyanFlatColors.Text,
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    stringResource(R.string.dhyan_choose_breathe),
+                    fontSize = 12.5.sp,
+                    color = DhyanFlatColors.Muted,
+                )
             }
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(DhyanFlatColors.PrimaryContainer)
+                    .border(width = 0.5.dp, color = DhyanFlatColors.BorderHairline, shape = CircleShape)
+                    .tutorialTarget("dhyan.sound").clickable(onClick = onOpenAudioLibrary),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Default.MusicNote,
+                    contentDescription = stringResource(R.string.dhyan_audio_library),
+                    tint = DhyanFlatColors.Primary,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+        }
+        Spacer(Modifier.height(12.dp))
+        PlanHairline(alpha = 0.55f)
+        Spacer(Modifier.height(12.dp))
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .dhyanMacOSPanel(isLight = isLight, shape = DhyanFlatShape)
+                .tutorialTarget("dhyan.guidance").clickable(onClick = onEdit)
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                Icons.Default.Air,
+                contentDescription = null,
+                tint = DhyanColors.actionPink(isDarkTheme),
+                modifier = Modifier.size(20.dp),
+            )
+            Spacer(Modifier.width(14.dp))
+            Text(
+                title,
+                modifier = Modifier.weight(1f),
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = DhyanFlatColors.onGlassText(isLight),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Icon(
+                Icons.Default.Edit,
+                contentDescription = stringResource(R.string.dhyan_choose_guidance),
+                tint = DhyanColors.actionPink(isDarkTheme),
+                modifier = Modifier.size(20.dp),
+            )
         }
     }
 }
@@ -1315,7 +1455,7 @@ private fun BreathingTechniqueOverlayPopup(
                     .clip(RoundedCornerShape(24.dp))
                     .background(
                         Brush.verticalGradient(
-                            listOf(Color(0xFF542347), Color(0xFF32132D))
+                            listOf(RoyalPurple, Color(0xFF32132D))
                         )
                     )
                     .padding(vertical = 20.dp, horizontal = 16.dp),
@@ -1356,7 +1496,7 @@ private fun BreathingTechniqueOverlayPopup(
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 1.sp,
-                            color = Color(0xFFFFF5F0),
+                            color = Color(0xFFFAF8FF),
                         )
                     }
                 }

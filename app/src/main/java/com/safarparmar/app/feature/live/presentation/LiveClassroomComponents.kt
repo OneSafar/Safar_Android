@@ -1,5 +1,9 @@
 package com.safarparmar.app.feature.live.presentation
 
+import com.safarparmar.app.ui.theme.RoyalPurple
+import com.safarparmar.app.ui.theme.RoyalPurpleSoft
+import com.safarparmar.app.ui.theme.RoyalPurpleSoftDark
+
 import com.safarparmar.app.performance.decorativeFloat
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -97,14 +101,14 @@ import java.time.temporal.ChronoUnit
  */
 object LiveThemeColors {
     // Brand Royal Purple Accents
-    val RoyalPurpleLight = Color(0xFF491438)
+    val RoyalPurpleLight = RoyalPurple
     val RoyalPurpleDark = Color(0xFF7B4268)
-    val RoyalPurpleContainerLight = Color(0xFFFFDFD5)
-    val RoyalPurpleContainerDark = Color(0xFF513551)
+    val RoyalPurpleContainerLight = RoyalPurpleSoft
+    val RoyalPurpleContainerDark = RoyalPurpleSoftDark
 
     // Background Canvas
     val ScreenBgDark = Color(0xFF211921)
-    val ScreenBgLight = Color(0xFFFFF5F0)
+    val ScreenBgLight = Color(0xFFFAF8FF)
 
     // Cards & Surfaces
     val CardBgDark = Color(0xFF342735) // Elevated card background in dark mode
@@ -120,17 +124,17 @@ object LiveThemeColors {
 
     // Text & Content Inks
     val TextPrimaryDark = Color(0xFFFFF0F6)
-    val TextPrimaryLight = Color(0xFF39132E)
+    val TextPrimaryLight = Color(0xFF241544)
     val TextSecondaryDark = Color(0xFFCFBECB)
     val TextSecondaryLight = Color(0xFF75616F)
     val TextTertiaryDark = Color(0xFF6A6185)
     val TextTertiaryLight = Color(0xFFCFBECB)
 
     // Teacher Avatar
-    val AvatarBgDark = Color(0xFF513551)
-    val AvatarBgLight = Color(0xFFFFDFD5)
-    val AvatarTextDark = Color(0xFFFFCBBE)
-    val AvatarTextLight = Color(0xFF491438)
+    val AvatarBgDark = RoyalPurpleSoftDark
+    val AvatarBgLight = RoyalPurpleSoft
+    val AvatarTextDark = RoyalPurpleSoft
+    val AvatarTextLight = RoyalPurple
 
     // Live Pulse Badge
     val LiveRed = Color(0xFFEF4444)

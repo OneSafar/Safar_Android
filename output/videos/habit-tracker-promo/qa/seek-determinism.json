@@ -1,0 +1,82 @@
+{
+  "ok": true,
+  "method": "19 complete canvas frames, ascending then descending, exact PNG comparison",
+  "samples": [
+    {
+      "time": 14.99,
+      "pixelIdentical": true
+    },
+    {
+      "time": 13,
+      "pixelIdentical": true
+    },
+    {
+      "time": 12.5,
+      "pixelIdentical": true
+    },
+    {
+      "time": 12.49,
+      "pixelIdentical": true
+    },
+    {
+      "time": 11.1,
+      "pixelIdentical": true
+    },
+    {
+      "time": 10,
+      "pixelIdentical": true
+    },
+    {
+      "time": 9.99,
+      "pixelIdentical": true
+    },
+    {
+      "time": 8.4,
+      "pixelIdentical": true
+    },
+    {
+      "time": 7.5,
+      "pixelIdentical": true
+    },
+    {
+      "time": 7.49,
+      "pixelIdentical": true
+    },
+    {
+      "time": 6.3,
+      "pixelIdentical": true
+    },
+    {
+      "time": 5,
+      "pixelIdentical": true
+    },
+    {
+      "time": 4.99,
+      "pixelIdentical": true
+    },
+    {
+      "time": 3.3,
+      "pixelIdentical": true
+    },
+    {
+      "time": 2.5,
+      "pixelIdentical": true
+    },
+    {
+      "time": 2.49,
+      "pixelIdentical": true
+    },
+    {
+      "time": 1.4,
+      "pixelIdentical": true
+    },
+    {
+      "time": 0.416667,
+      "pixelIdentical": true
+    },
+    {
+      "time": 0,
+      "pixelIdentical": true
+    }
+  ]
+}

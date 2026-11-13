@@ -1,5 +1,7 @@
 package com.safarparmar.app.ui.nishtha
 
+import com.safarparmar.app.ui.theme.RoyalPurple
+
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
@@ -25,8 +27,8 @@ import com.safarparmar.app.ui.nishtha.journal.JournalMockupFont
  * surface beneath the gesture area while keeping every tab safely above it. */
 @Composable
 internal fun AttachedNishthaNavigation(selected: NishthaTab, onSelect: (NishthaTab) -> Unit) {
-    val plum = Color(0xFF542347)
-    val blush = Color(0xFFFFF5F0)
+    val plum = RoyalPurple
+    val blush = Color(0xFFFAF8FF)
     val mint = Color(0xFFC9EFE0)
     val haptic = LocalHapticFeedback.current
     Surface(

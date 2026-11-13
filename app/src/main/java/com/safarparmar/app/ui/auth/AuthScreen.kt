@@ -1,5 +1,9 @@
 package com.safarparmar.app.ui.auth
 
+import com.safarparmar.app.ui.theme.RoyalPurple
+import com.safarparmar.app.ui.theme.RoyalPurpleDark
+import com.safarparmar.app.ui.theme.RoyalPurpleSoft
+
 import com.safarparmar.app.ui.onboarding.editorialCornerArtwork
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
@@ -99,13 +103,13 @@ import com.safarparmar.app.ui.theme.LocalSafarComposablesAccent
 
 private val LocalIsDarkTheme = staticCompositionLocalOf { false }
 
-private val BgCream: Color @Composable get() = if (LocalIsDarkTheme.current) Color(0xFF211921) else Color(0xFFFFF5F0)
+private val BgCream: Color @Composable get() = if (LocalIsDarkTheme.current) Color(0xFF211921) else Color(0xFFFAF8FF)
 private val CardWhite: Color @Composable get() = if (LocalIsDarkTheme.current) Color(0xFF342735) else Color(0xFFFFFDFC)
-private val TextDark: Color @Composable get() = if (LocalIsDarkTheme.current) Color(0xFFFFF0F6) else Color(0xFF39132E)
+private val TextDark: Color @Composable get() = if (LocalIsDarkTheme.current) Color(0xFFFFF0F6) else Color(0xFF241544)
 private val TextMuted: Color @Composable get() = if (LocalIsDarkTheme.current) Color(0xFFCFBECB) else Color(0xFF75616F)
 private val BorderSoft: Color @Composable get() = if (LocalIsDarkTheme.current) Color(0xFF654D66) else Color(0xFFEADFE6)
 private val ShadowSoft: Color @Composable get() = if (LocalIsDarkTheme.current) Color.Black.copy(alpha = 0.2f) else Color(0xFF1E1B4B).copy(alpha = 0.04f)
-private val PrimaryAccent: Color @Composable get() = if (LocalIsDarkTheme.current) Color(0xFFF0BEDC) else Color(0xFF491438)
+private val PrimaryAccent: Color @Composable get() = if (LocalIsDarkTheme.current) RoyalPurpleDark else RoyalPurple
 private val AccentShadow: Color @Composable get() = PrimaryAccent.copy(alpha = 0.3f)
 private val AccentTint: Color @Composable get() = PrimaryAccent.copy(alpha = if (LocalIsDarkTheme.current) 0.15f else 0.12f)
 
@@ -224,7 +228,7 @@ fun AuthScreen(
                         val localBottomInWindow = coordinates.positionInWindow().y + coordinates.size.height
                         artworkBottomCorrection = (rootView.height - navigationBottom - localBottomInWindow).coerceAtLeast(0f)
                     }
-                    .editorialCornerArtwork(artworkBottomCorrection),
+                    .editorialCornerArtwork(artworkBottomCorrection, insetArtwork = true),
                 contentAlignment = Alignment.Center
             ) {
                 AnimatedContent(
@@ -728,7 +732,7 @@ fun ForgotPasswordContent(
         if (uiState.forgotPasswordStep != ForgotPasswordStep.RESET) {
             Icon(Icons.Default.Email, contentDescription = null, tint = Color(0xFFB96E61),
                 modifier = Modifier.padding(vertical = 16.dp).size(64.dp)
-                    .background(Color(0xFFFFCBBE), RoundedCornerShape(16.dp)).padding(12.dp))
+                    .background(RoyalPurpleSoft, RoundedCornerShape(16.dp)).padding(12.dp))
             Text(pageTitle, color = palette.heading, fontWeight = FontWeight.Bold, fontSize = 24.sp,
                 modifier = Modifier.padding(bottom = 10.dp))
         }

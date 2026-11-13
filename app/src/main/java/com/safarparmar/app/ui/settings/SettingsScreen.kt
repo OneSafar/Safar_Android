@@ -1,5 +1,7 @@
 package com.safarparmar.app.ui.settings
 
+import com.safarparmar.app.ui.theme.RoyalPurple
+
 import android.Manifest
 import android.content.Context
 import android.content.Intent
@@ -334,7 +336,7 @@ private fun PremiumStatusSection(
     com.composables.ui.components.Button(
         onClick = onExplorePremium, style = com.composables.ui.components.ButtonStyle.Ghost,
         shape = RoundedCornerShape(22.dp),
-        modifier = Modifier.fillMaxWidth().background(Color(0xFF421735), RoundedCornerShape(22.dp)),
+        modifier = Modifier.fillMaxWidth().background(RoyalPurple, RoundedCornerShape(22.dp)),
         contentPadding = PaddingValues(20.dp), contentColor = Color(0xFFFFF0F6),
     ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {

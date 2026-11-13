@@ -19,6 +19,8 @@ data class YoutubeStudyV2UiState(
     val accessibilityEnabled: Boolean = false,
     val disclosureAccepted: Boolean = false,
     val reference: String = "",
+    // Optional channel name shown under videos. Saved as an alias next to the handle.
+    val channelName: String = "",
     val resolving: Boolean = false,
     val allowed: List<YoutubeV2IdentityEntity> = emptyList(),
     val classifications: Map<String, YoutubeChannelClassification> = emptyMap(),
@@ -102,6 +104,8 @@ class YoutubeStudyV2ViewModel @Inject constructor(
 
     fun setReference(value: String) { local.value = local.value.copy(reference = value, message = null) }
 
+    fun setChannelName(value: String) { local.value = local.value.copy(channelName = value, message = null) }
+
     fun setEnabled(enabled: Boolean) {
         focusShieldRepository.setYoutubeFocusEnabled(enabled)
         refreshPermission()
@@ -129,14 +133,16 @@ class YoutubeStudyV2ViewModel @Inject constructor(
         if (local.value.resolving) return
         val reference = local.value.reference
         if (reference.isBlank()) return
+        val channelName = local.value.channelName
         local.value = local.value.copy(resolving = true, message = null, isError = false)
         viewModelScope.launch {
-            repository.resolveAndAllow(reference)
+            repository.resolveAndAllow(reference, channelName.takeIf { it.isNotBlank() })
                 .onSuccess { resolution ->
                     val channel = resolution.channel
                     local.value = local.value.copy(
                         resolving = false,
                         reference = if (local.value.reference == reference) "" else local.value.reference,
+                        channelName = if (local.value.channelName == channelName) "" else local.value.channelName,
                         message = context.getString(R.string.youtube_channel_productive, channel.displayName),
                         isError = false,
                     )

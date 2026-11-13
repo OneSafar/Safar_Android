@@ -1,5 +1,10 @@
 package com.safarparmar.app.ui.tutorial
 
+import com.safarparmar.app.ui.theme.RoyalPurple
+import com.safarparmar.app.ui.theme.RoyalPurpleDark
+import com.safarparmar.app.ui.theme.RoyalPurpleSoft
+import com.safarparmar.app.ui.theme.RoyalPurpleSoftDark
+
 import com.safarparmar.app.ui.theme.BgDark
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -25,9 +30,9 @@ internal data class TutorialVisualColors(val canvas: Color, val card: Color, val
 
 internal fun tutorialVisualColors(dark: Boolean) = if (dark) TutorialVisualColors(
     BgDark, Color(0xFF342735), Color(0xFFFFF0F6), Color(0xFFCFBECB),
-    Color(0xFFF0BEDC), Color(0xFF3B1230), Color(0xFF684047), Color(0xFF28574D))
-else TutorialVisualColors(Color(0xFFFFF5F0), Color(0xFFFFFDFC), Color(0xFF39132E), Color(0xFF75616F),
-    Color(0xFF542347), Color.White, Color(0xFFFFCBBE), Color(0xFFC9EFE0))
+    RoyalPurpleDark, Color(0xFF3B1230), RoyalPurpleSoftDark, Color(0xFF28574D))
+else TutorialVisualColors(Color(0xFFFAF8FF), Color(0xFFFFFDFC), Color(0xFF241544), Color(0xFF75616F),
+    RoyalPurple, Color.White, RoyalPurpleSoft, Color(0xFFC9EFE0))
 
 /** Scope this only to tutorial chrome, never to the native feature presentation behind a spotlight. */
 @Composable

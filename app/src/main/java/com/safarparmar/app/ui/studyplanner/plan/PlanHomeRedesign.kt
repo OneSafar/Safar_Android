@@ -135,21 +135,35 @@ internal fun PlanHomeHeader(
     onSelectExam: (() -> Unit)? = null,
 ) {
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.65f), modifier = Modifier.weight(1f)) {
-                TextButton(onClick = { onSelectExam?.invoke() }, enabled = onSelectExam != null) {
-                    Text(planTitle, maxLines = 2, overflow = TextOverflow.Ellipsis, color = PlannerFlatColors.TextDark, style = MaterialTheme.typography.titleMedium)
-                }
-            }
-            TextButton(onClick = onSettingsClick) {
-                Icon(Icons.Default.Settings, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp))
-                Text(stringResource(R.string.planner_plan_settings), style = MaterialTheme.typography.labelLarge)
-            }
-        }
+        PlanExamSettingsRow(planTitle, onSettingsClick, onSelectExam = onSelectExam)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Text(stringResource(R.string.planner_warm_today), style = MaterialTheme.typography.headlineMedium, color = PlannerFlatColors.TextDark)
             Text(java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofLocalizedDate(java.time.format.FormatStyle.MEDIUM).withLocale(androidx.compose.ui.platform.LocalLocale.current.platformLocale)),
                 style = MaterialTheme.typography.bodySmall, color = PlannerFlatColors.TextMuted)
+        }
+    }
+}
+
+/**
+ * Exam chip (switch exam) + "⚙ Plan settings". Shared by Today and Syllabus so
+ * plan settings sit in the same place on both tabs.
+ */
+@Composable
+internal fun PlanExamSettingsRow(
+    planTitle: String,
+    onSettingsClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    onSelectExam: (() -> Unit)? = null,
+) {
+    Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.65f), modifier = Modifier.weight(1f)) {
+            TextButton(onClick = { onSelectExam?.invoke() }, enabled = onSelectExam != null) {
+                Text(planTitle, maxLines = 2, overflow = TextOverflow.Ellipsis, color = PlannerFlatColors.TextDark, style = MaterialTheme.typography.titleMedium)
+            }
+        }
+        TextButton(onClick = onSettingsClick) {
+            Icon(Icons.Default.Settings, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp))
+            Text(stringResource(R.string.planner_plan_settings), style = MaterialTheme.typography.labelLarge)
         }
     }
 }
@@ -487,6 +501,8 @@ internal fun PlanHomeTaskRow(
     onRemoveFromToday: (() -> Unit)? = null,
     onEdit: (() -> Unit)? = null,
     onFocus: (() -> Unit)? = null,
+    /** Opens this topic's chapter on the Syllabus tab. */
+    onOpenChapter: (() -> Unit)? = null,
 ) {
     val done = ref.topic.status.isStudied
     val needsRevision = ref.topic.status == TopicStatus.REVISION_NEEDED
@@ -501,7 +517,16 @@ internal fun PlanHomeTaskRow(
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                     Text(ref.topic.name, style = MaterialTheme.typography.titleMedium, color = scheme.onSurface, maxLines = 3, overflow = TextOverflow.Ellipsis,
                         textDecoration = if (done) androidx.compose.ui.text.style.TextDecoration.LineThrough else null)
-                    Text("${ref.subject.name} · ${ref.chapter.name}", style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    val path = "${ref.subject.name} · ${ref.chapter.name}"
+                    if (onOpenChapter != null) {
+                        // Tappable link into the Syllabus map: where this topic sits and what's left around it.
+                        val openLabel = stringResource(R.string.planner_open_in_syllabus, ref.chapter.name)
+                        Text("$path ›", style = MaterialTheme.typography.bodySmall, color = scheme.primary, maxLines = 2, overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.clip(RoundedCornerShape(6.dp)).clickable(onClickLabel = openLabel, onClick = onOpenChapter)
+                                .padding(vertical = 4.dp))
+                    } else {
+                        Text(path, style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    }
                     if (needsRevision) Text(stringResource(R.string.planner_to_revise), style = MaterialTheme.typography.labelMedium, color = scheme.tertiary)
                 }
                 if (onFocus != null && (!done || needsRevision)) Button(onClick = onFocus, modifier = Modifier.heightIn(min = 48.dp),

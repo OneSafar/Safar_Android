@@ -1,0 +1,23 @@
+◆  Capturing 7 frames at [12.5s, 12.917s, 13s, 13.333s, 13.75s, 14.167s, 14.583s] from habit-tracker-promo
+[hyperframes] browserGpuMode probe → hardware (WebGL renderer vendor="Google Inc. (Apple)" renderer="ANGLE (Apple, ANGLE Metal Renderer: Apple M5, Unspecified Version)")
+
+   Fonts: 2 loaded
+[hyperframes] snapshot: frame 1/7 at 12.5s
+[hyperframes] snapshot: frame 2/7 at 12.916667s
+[hyperframes] snapshot: frame 3/7 at 13s
+[hyperframes] snapshot: frame 4/7 at 13.333333s
+[hyperframes] snapshot: frame 5/7 at 13.75s
+[hyperframes] snapshot: frame 6/7 at 14.166667s
+[hyperframes] snapshot: frame 7/7 at 14.583333s
+   Revision: none (inputs-changed)
+   State: /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/.hyperframes/video-state.json
+
+◇  7 snapshots saved to /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/close-final
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/close-final/frame-00-at-12.5s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/close-final/frame-01-at-12.917s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/close-final/frame-02-at-13s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/close-final/frame-03-at-13.333s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/close-final/frame-04-at-13.75s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/close-final/frame-05-at-14.167s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/close-final/frame-06-at-14.583s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/close-final/contact-sheet.jpg (grid view for AI review)

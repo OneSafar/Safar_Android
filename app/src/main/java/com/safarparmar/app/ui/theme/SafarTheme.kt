@@ -33,7 +33,7 @@ val SafarShapes = androidx.compose.material3.Shapes(
 // Expressive Gradients
 val LightExpressiveGradient = Brush.verticalGradient(
     colors = listOf(
-        Color(0xFFE0E7FF), // Indigo100 / PrimaryContainer light
+        RoyalPurpleSoft, // Reference lavender / PrimaryContainer light
         Color(0xFFFDFDFB)  // SafarSurfaceLight
     )
 )

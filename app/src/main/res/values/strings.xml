@@ -69,6 +69,8 @@
     <string name="nav_live_sessions">Dhyan Live</string>
     <string name="courses_live_sessions_description">Join live classes, see upcoming sessions, and revisit scheduled learning.</string>
     <string name="courses_live_sessions_open">Open →</string>
+    <string name="nav_calm_centre">Calm Centre</string>
+    <string name="calm_centre_subtitle">Mindful breathing, diurnal sky, &amp; ambient visualizers</string>
     <string name="nav_study_circle">Study Circle</string>
     <string name="nav_leaderboard">Leaderboard</string>
     <string name="nav_admin_notifications">Admin Notifications</string>
@@ -600,4 +602,5 @@
     <string name="ekagra_presence_no">No</string>
     <string name="youtube_study_mode_control">YouTube Study Mode</string>
     <string name="youtube_study_mode_configure">Configure</string>
+    <string name="ekagra_current_session_first">Your current focus session is still active. End it before focusing on another task.</string>
 </resources>

@@ -1,6 +1,8 @@
 /* Hallmark · pre-emit critique: P5 H5 E4 S5 R5 V4 */
 package com.safarparmar.app.ui.premium
 
+import com.safarparmar.app.ui.theme.RoyalPurple
+
 import androidx.compose.ui.platform.LocalResources
 
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -431,7 +433,7 @@ private fun StartTrialConfirmationDialog(
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
 ) {
-    val buttonBg = if (isDarkTheme) Color(0xFF3B0764) else Color(0xFF581C87)
+    val buttonBg = if (isDarkTheme) Color(0xFF3B0764) else RoyalPurple
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = SafarSemanticColors.plannerBackground(),
@@ -497,7 +499,7 @@ private fun PremiumUnlockedDialog(
     isDarkTheme: Boolean = false,
     onDismiss: () -> Unit,
 ) {
-    val buttonBg = if (isDarkTheme) Color(0xFF3B0764) else Color(0xFF581C87)
+    val buttonBg = if (isDarkTheme) Color(0xFF3B0764) else RoyalPurple
     val dialogExpiry = formatPremiumExpiry(state.status.expiresAt)
     val isTrial = state.status.planType.orEmpty().contains("trial", ignoreCase = true)
     val dialogPlanLabel = premiumPlanLabel(state.status.planType)
@@ -599,7 +601,7 @@ private fun NoActivePlanDialog(
     isDarkTheme: Boolean = false,
     onDismiss: () -> Unit,
 ) {
-    val buttonBg = if (isDarkTheme) Color(0xFF3B0764) else Color(0xFF581C87)
+    val buttonBg = if (isDarkTheme) Color(0xFF3B0764) else RoyalPurple
 
     AlertDialog(
         onDismissRequest = onDismiss,

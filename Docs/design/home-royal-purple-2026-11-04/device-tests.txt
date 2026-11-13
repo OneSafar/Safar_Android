@@ -1,0 +1,8 @@
+
+com.safarparmar.app.ui.home.RoyalPurpleHomeLayoutTest:......
+
+Time: 14.964
+
+OK (6 tests)
+
+

@@ -1,9 +1,0 @@
-{
-  "target": "Safar_Android_v4",
-  "command": "./gradlew :app:assembleProdDebug --console=plain",
-  "exitCode": 0,
-  "testsRun": false,
-  "deviceRuns": false,
-  "apk": "Outputs/apk/prod/debug/app-prod-debug.apk",
-  "sha256": "4d76e3a96d66f5e19102b6551bbcf7df9a67fda8d221e7b1ce6df3ed8ad71898"
-}

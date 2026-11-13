@@ -1,6 +1,7 @@
 package com.safarparmar.app.ui.profile
 
 import android.net.Uri
+import com.safarparmar.app.domain.model.AvatarItem
 
 data class ProfileUiState(
     val isLoading: Boolean = false,
@@ -25,6 +26,12 @@ data class ProfileUiState(
     val deleteAccountError: String? = null,
     val error: String? = null,
     val nameError: String? = null,
+    // Avatar picker state
+    val showAvatarPicker: Boolean = false,
+    val avatarList: List<AvatarItem> = emptyList(),
+    val isAvatarListLoading: Boolean = false,
+    val selectedPresetAvatarUrl: String? = null,
+    val isApplyingAvatar: Boolean = false,
 )
 
 sealed class ProfileEvent {
@@ -42,4 +49,9 @@ sealed class ProfileEvent {
     data class UpdateExamType(val exam: String) : ProfileEvent()
     data class UpdateStage(val stage: String) : ProfileEvent()
     data class UpdateGender(val gender: String) : ProfileEvent()
+    // Avatar picker events
+    object ShowAvatarPicker : ProfileEvent()
+    object DismissAvatarPicker : ProfileEvent()
+    data class SelectPresetAvatar(val avatarUrl: String) : ProfileEvent()
+    object ApplySelectedAvatar : ProfileEvent()
 }

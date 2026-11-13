@@ -1,0 +1,75 @@
+{
+  "method": "Built-in image_gen; one image-generation call per final asset",
+  "palette": {
+    "royal_purple": "#512395",
+    "circle_lavender": "#EEE5FD"
+  },
+  "shared_prompt": "Use case: style-transfer. Asset type: production raster illustration for an Android Home tool button.\nRecreate the subject of the ORIGINAL pre-plum tool image, preserving its recognizable subject and composition. This must look like polished illustrated/3D raster artwork, NOT a flat vector glyph, Material icon, wireframe, or line-art substitute.\nPalette: dominant rich Royal Purple #512395 with related purple shadows and lavender highlights. The circular backing/padding is pale lavender #EEE5FD, the same color and proportions throughout this eight-asset family. No teal, green, blue, orange, gold, peach, or plum.\nComposition: one square 1024x1024 asset. A PERFECT pale-lavender circular disc centered at (512,512), diameter 1024px, touching all four canvas edges, with ZERO outside margin. The illustration is centered within the INNER 700px diameter so there is a generous clearly visible pale lavender ring/padding around all sides. Do not fill the entire backing circle with a scene. Outside the circular disc must be genuinely transparent alpha. The round backing and its padding MUST BE PART OF THE GENERATED PIXELS. No square card, no border, no label, no text, no UI screenshot, no extra buttons, no large cast shadow outside the disc. Use crisp readable silhouettes, soft polished dimensional shading, and simplified scene detail that stays recognizable at a 68dp button size.\nReference roles: image 1 is the original SUBJECT reference. If a second reference is provided it is the approved STYLE / circular padding / palette reference; preserve the subject from image 1, not the subject from image 2.\n\nProduction constraints: the pale-lavender circular disc must fill the entire canvas diameter, touching top/bottom/left/right. Clean smooth circular boundary. Absolutely no scattered pixels or white speckles outside the circle. The subject's dominant material midtone is #512395; avoid neon violet, magenta, blue-purple. Highlights may be lighter lavender. The scene must remain an illustrated raster rendition of the old image, never a flat generic icon. Match the style reference's polished dimensional treatment, but use the original subject reference for its content.",
+  "style_reference": "/Users/shashankkumar/.codex/generated_images/01a1a5b1-39cd-7c42-bcc4-8d4468ef888e/exec-06fe2351-f310-4efe-b547-a4e917f9acf4.png",
+  "assets": [
+    {
+      "id": "ekagra",
+      "source": "tool_ekagra.webp",
+      "subject": "the original flowing infinity-shaped HOURGLASS, with two bulbs and visible sand; preserve that distinctive silhouette, not a lotus or stopwatch",
+      "source_path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/app/src/main/res/drawable/tool_ekagra.webp",
+      "generated_path": null,
+      "output_path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/app/src/main/res/drawable-nodpi/home_royal_ekagra.png"
+    },
+    {
+      "id": "nishtha",
+      "source": "tool_nistha.webp",
+      "subject": "the original ascending staircase toward a radiant sun and clouds, mountain valley, and one small person walking up the stairs; keep that aspirational scene",
+      "source_path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/app/src/main/res/drawable/tool_nistha.webp",
+      "generated_path": null,
+      "output_path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/app/src/main/res/drawable-nodpi/home_royal_nishtha.png"
+    },
+    {
+      "id": "mehfil",
+      "source": "tool_mehfil.webp",
+      "subject": "the original four people standing together in conversation outdoors with a softly lit landscape and leafy canopy; preserve four figures and discussion gestures",
+      "source_path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/app/src/main/res/drawable/tool_mehfil.webp",
+      "generated_path": null,
+      "output_path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/app/src/main/res/drawable-nodpi/home_royal_mehfil.png"
+    },
+    {
+      "id": "planner",
+      "source": "tool_study_planner.webp",
+      "subject": "the original study desk with an open spiral study planner, checked tasks, stacked books, pen, clock, a small potted plant, and distant hills; no readable writing",
+      "source_path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/app/src/main/res/drawable/tool_study_planner.webp",
+      "generated_path": null,
+      "output_path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/app/src/main/res/drawable-nodpi/home_royal_planner.png"
+    },
+    {
+      "id": "dhyan",
+      "source": "tool_dhyan.webp",
+      "subject": "the original seated cross-legged meditating person, subtle concentric halo, peaceful lake, mountains, and sunrise landscape; preserve the meditation pose",
+      "source_path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/app/src/main/res/drawable/tool_dhyan.webp",
+      "generated_path": null,
+      "output_path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/app/src/main/res/drawable-nodpi/home_royal_dhyan.png"
+    },
+    {
+      "id": "circle",
+      "source": "tool_circle.webp",
+      "subject": "the original FOUR students studying and discussing around a ROUND table with open books and a small central plant; preserve the round-table composition",
+      "source_path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/app/src/main/res/drawable/tool_circle.webp",
+      "generated_path": null,
+      "output_path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/app/src/main/res/drawable-nodpi/home_royal_circle.png"
+    },
+    {
+      "id": "kavach",
+      "source": "tool_kavach.webp",
+      "subject": "the original dimensional faceted protective SHIELD with a central PADLOCK and keyhole; preserve the lock, not a checkmark shield",
+      "source_path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/app/src/main/res/drawable/tool_kavach.webp",
+      "generated_path": null,
+      "output_path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/app/src/main/res/drawable-nodpi/home_royal_kavach.png"
+    },
+    {
+      "id": "leaderboard",
+      "source": "tool_leaderboard.webp",
+      "subject": "the original trophy with a central star on the tallest center podium, flanked by shorter second and third podium blocks; preserve the trophy and podium, omit numeric text",
+      "source_path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/app/src/main/res/drawable/tool_leaderboard.webp",
+      "generated_path": null,
+      "output_path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/app/src/main/res/drawable-nodpi/home_royal_leaderboard.png"
+    }
+  ]
+}

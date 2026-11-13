@@ -1,6 +1,7 @@
 package com.safarparmar.app.feature.youtubestudyv2
 
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -108,5 +109,63 @@ class YoutubeStudyV2RepositoryTest {
         val result = repository.evaluate("@veritasium", null)
         assertEquals(YoutubeV2RuntimeDecision.ALLOW, result.decision)
         assertEquals(channelId, result.channelId)
+    }
+
+    @Test fun `allowed handle teaches the paired display name for later name-only reads`() = runTest {
+        val channelId = "accessibility:handle:@ezval789"
+        coEvery { dao.channelIdsForHandle("@ezval789") } returns listOf(channelId)
+        coEvery { dao.channelIdsForDisplay("ezval") } returns emptyList()
+        coEvery { dao.isAllowed(channelId) } returns true
+
+        val result = repository.evaluate("@EZVAL789", "EZVAL")
+
+        assertEquals(YoutubeV2RuntimeDecision.ALLOW, result.decision)
+        coVerify {
+            dao.upsertAliases(listOf(YoutubeV2AliasEntity("display", "ezval", channelId, "EZVAL")))
+        }
+    }
+
+    @Test fun `name-only read matches once the paired name was learned`() = runTest {
+        val channelId = "accessibility:handle:@ezval789"
+        coEvery { dao.channelIdsForDisplay("ezval") } returns listOf(channelId)
+        coEvery { dao.isAllowed(channelId) } returns true
+
+        assertEquals(YoutubeV2RuntimeDecision.ALLOW, repository.evaluate(null, "EZVAL").decision)
+    }
+
+    @Test fun `allowed unique display name teaches the paired handle`() = runTest {
+        val channelId = "accessibility:display:physics wallah - alakh pandey"
+        coEvery { dao.channelIdsForHandle("@physicswallah") } returns emptyList()
+        coEvery { dao.channelIdForHandle("@physicswallah") } returns null
+        coEvery { dao.channelIdsForDisplay("physics wallah - alakh pandey") } returns listOf(channelId)
+        coEvery { dao.isAllowed(channelId) } returns true
+
+        repository.evaluate("@PhysicsWallah", "Physics Wallah - Alakh Pandey")
+
+        coVerify {
+            dao.upsertAliases(listOf(YoutubeV2AliasEntity("handle", "@physicswallah", channelId, "@physicswallah")))
+        }
+    }
+
+    @Test fun `display name already owned by another channel is not learned`() = runTest {
+        val allowed = "accessibility:handle:@ezval789"
+        coEvery { dao.channelIdsForHandle("@ezval789") } returns listOf(allowed)
+        coEvery { dao.channelIdsForDisplay("ezval") } returns listOf("accessibility:handle:@otherezval")
+        coEvery { dao.isAllowed(allowed) } returns true
+
+        repository.evaluate("@EZVAL789", "EZVAL")
+
+        coVerify(exactly = 0) { dao.upsertAliases(any()) }
+    }
+
+    @Test fun `blocked channel teaches nothing`() = runTest {
+        coEvery { dao.channelIdsForHandle("@randomchannel") } returns emptyList()
+        coEvery { dao.channelIdForHandle("@randomchannel") } returns null
+        coEvery { dao.channelIdsForDisplay("random") } returns emptyList()
+
+        val result = repository.evaluate("@randomchannel", "Random")
+
+        assertEquals(YoutubeV2RuntimeDecision.BLOCK, result.decision)
+        coVerify(exactly = 0) { dao.upsertAliases(any()) }
     }
 }

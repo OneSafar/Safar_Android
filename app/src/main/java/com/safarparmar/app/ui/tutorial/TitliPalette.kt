@@ -1,5 +1,8 @@
 package com.safarparmar.app.ui.tutorial
 
+import com.safarparmar.app.ui.theme.RoyalPurple
+import com.safarparmar.app.ui.theme.RoyalPurpleDark
+
 import androidx.compose.ui.graphics.Color
 
 /** Same butterfly geometry, with a readable silhouette on the app's dark surfaces. */
@@ -13,9 +16,9 @@ internal data class TitliPalette(
 
 internal fun titliPalette(dark: Boolean): TitliPalette = if (dark) {
     TitliPalette(
-        wing = Color(0xFF542347),
+        wing = RoyalPurple,
         accent = Color(0xFFFFA8CA),
-        outline = Color(0xFFF0BEDC),
+        outline = RoyalPurpleDark,
         detail = Color(0xFFF5D6EA),
         outlineWidth = 9f,
     )

@@ -1,6 +1,10 @@
 /* Hallmark · pre-emit critique: P5 H5 E4 S5 R5 V4 · approved Compact Profile */
 package com.safarparmar.app.ui.profile
 
+import com.safarparmar.app.ui.theme.RoyalPurple
+import com.safarparmar.app.ui.theme.RoyalPurpleDark
+import com.safarparmar.app.ui.theme.RoyalPurpleSoft
+
 import com.safarparmar.app.ui.theme.BgDark
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -38,15 +42,15 @@ internal data class CompactProfileColors(val canvas: Color, val paper: Color, va
     val peach: Color, val mint: Color, val onMint: Color, val plum: Color, val onPlum: Color,
     val lilac: Color, val sage: Color, val danger: Color, val dangerSurface: Color)
 internal fun compactProfileColors(dark: Boolean) = CompactProfileColors(
-    canvas = if (dark) BgDark else Color(0xFFFFF5F0),
+    canvas = if (dark) BgDark else Color(0xFFFAF8FF),
     paper = if (dark) Color(0xFF1E1E24) else Color(0xFFFFFDFC),
-    ink = if (dark) Color(0xFFFFF0F6) else Color(0xFF39132E),
+    ink = if (dark) Color(0xFFFFF0F6) else Color(0xFF241544),
     muted = if (dark) Color(0xFFCFBECB) else Color(0xFF75616F),
-    action = if (dark) Color(0xFFF0BEDC) else Color(0xFF542347),
-    onAction = if (dark) Color(0xFF39132E) else Color.White,
+    action = if (dark) RoyalPurpleDark else RoyalPurple,
+    onAction = if (dark) Color(0xFF241544) else Color.White,
     border = if (dark) Color(0xFF654D66) else Color(0xFFE8DEE5),
-    peach = Color(0xFFFFCBBE), mint = Color(0xFFC9EFE0), onMint = Color(0xFF174E40),
-    plum = Color(0xFF542347), onPlum = Color(0xFFFFF5FA), lilac = Color(0xFFCDBBE9),
+    peach = RoyalPurpleSoft, mint = Color(0xFFC9EFE0), onMint = Color(0xFF174E40),
+    plum = RoyalPurple, onPlum = Color(0xFFFFF5FA), lilac = Color(0xFFCDBBE9),
     sage = Color(0xFF8EAD7C), danger = if (dark) Color(0xFFFFB4AB) else Color(0xFFB3261E),
     dangerSurface = if (dark) Color(0xFF43282E) else Color(0xFFFFF0EF))
 internal val LocalCompactProfileColors = staticCompositionLocalOf { compactProfileColors(false) }

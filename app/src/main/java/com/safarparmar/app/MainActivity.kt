@@ -152,36 +152,38 @@ class MainActivity : AppCompatActivity(), PaymentResultWithDataListener {
             }
 
             CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides customDensity) {
-                SafarTheme(darkTheme = isDarkTheme) {
-                    com.safarparmar.app.ui.adaptive.ProvideSafarAdaptive {
-                        Surface(
-                            modifier = Modifier.fillMaxSize().imePadding(),
-                        ) {
-                            com.safarparmar.app.ui.components.popups.SafarPopupViewport {
-                                androidx.compose.animation.AnimatedContent(
-                                    targetState = maintenanceInfo?.takeIf { it.inMaintenance },
-                                    transitionSpec = {
-                                        androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(300)) togetherWith
-                                        androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(250))
-                                    },
-                                    label = "maintenance_switch",
-                                ) { activeMaintenance ->
-                                    if (requiredUpdate != null) {
-                                        com.safarparmar.app.ui.update.ForceUpdateScreen(info = requiredUpdate!!)
-                                    } else if (activeMaintenance != null) {
-                                        com.safarparmar.app.ui.maintenance.MaintenanceScreen(
-                                            info = activeMaintenance,
-                                            isChecking = isCheckingMaintenance,
-                                            onCheckStatus = { maintenanceStateManager.checkStatusManually() },
-                                        )
-                                    } else {
-                                        CompositionLocalProvider(LocalTimerService provides timerService) {
-                                            SafarNavGraph(
-                                                dataStore = dataStore,
-                                                isDarkTheme = isDarkTheme,
-                                                onToggleDarkTheme = { themeViewModel.toggleDarkTheme() },
+                com.safarparmar.app.ui.theme.RadialThemeReveal(themeViewModel) {
+                    SafarTheme(darkTheme = isDarkTheme) {
+                        com.safarparmar.app.ui.adaptive.ProvideSafarAdaptive {
+                            Surface(
+                                modifier = Modifier.fillMaxSize().imePadding(),
+                            ) {
+                                com.safarparmar.app.ui.components.popups.SafarPopupViewport {
+                                    androidx.compose.animation.AnimatedContent(
+                                        targetState = maintenanceInfo?.takeIf { it.inMaintenance },
+                                        transitionSpec = {
+                                            androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(300)) togetherWith
+                                            androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(250))
+                                        },
+                                        label = "maintenance_switch",
+                                    ) { activeMaintenance ->
+                                        if (requiredUpdate != null) {
+                                            com.safarparmar.app.ui.update.ForceUpdateScreen(info = requiredUpdate!!)
+                                        } else if (activeMaintenance != null) {
+                                            com.safarparmar.app.ui.maintenance.MaintenanceScreen(
+                                                info = activeMaintenance,
+                                                isChecking = isCheckingMaintenance,
+                                                onCheckStatus = { maintenanceStateManager.checkStatusManually() },
                                             )
-                                            EkagraPresencePrompt(timerService)
+                                        } else {
+                                            CompositionLocalProvider(LocalTimerService provides timerService) {
+                                                SafarNavGraph(
+                                                    dataStore = dataStore,
+                                                    isDarkTheme = isDarkTheme,
+                                                    onToggleDarkTheme = { themeViewModel.toggleDarkTheme() },
+                                                )
+                                                EkagraPresencePrompt(timerService)
+                                            }
                                         }
                                     }
                                 }

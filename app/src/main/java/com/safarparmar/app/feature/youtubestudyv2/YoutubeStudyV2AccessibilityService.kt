@@ -55,7 +55,7 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
     @Volatile private var evaluationGeneration = 0L
     private var returningHome = false
     private val blockDismissal = YoutubeBlockDismissal()
-    private var verifiedVideoTitle: String? = null
+    private var verifiedVideo: YoutubeVerifiedVideo? = null
     private val fullscreenTransition = YoutubeFullscreenTransition()
     private var fullscreenMissingSinceMs: Long? = null
     private var fullscreenHudRevealAtMs = 0L
@@ -64,6 +64,15 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
     private var fullscreenSidePanelDismissAtMs = 0L
     private var fullscreenSidePanelDismissAttempts = 0
     private var fullscreenSidePanelDismissInFlight = false
+    // Next was tapped inside fullscreen while a productive video was verified.
+    private var fullscreenCarryFromNextTap = false
+    // One exit-fullscreen attempt per unidentified fullscreen episode.
+    private var fullscreenExitAttempted = false
+    // Owner seen on the watch page but not yet evaluated. Lets a floating
+    // player that appears in the meantime wait for the result.
+    private var floatingCandidate: YoutubeV2Observation? = null
+    private var floatingCandidateAtMs = 0L
+    private var floatingEvaluationJob: Job? = null
     private var ignoreHudRevealClickUntilMs = 0L
     private var pausedForFullscreenIdentity = false
     private var homeNavigationGeneration = 0L
@@ -188,7 +197,7 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
                 }
                 lastWatchedClassification = currentClassification
                 if (currentClassification != YoutubeChannelClassification.PRODUCTIVE) {
-                    verifiedVideoTitle = null
+                    verifiedVideo = null
                 }
                 // Invalidate both cached and in-flight decisions after a saved rule
                 // change. The next stable read uses the updated local allowlist.
@@ -272,7 +281,11 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
             } else if (isVideoCardClick(event) ||
                 isFullscreenPlaybackChangeControl(sourceId, sourceLabel)
             ) {
+                val carryProductive = isFullscreenPlaybackChangeControl(sourceId, sourceLabel) &&
+                    lastWatchedClassification == YoutubeChannelClassification.PRODUCTIVE &&
+                    verifiedVideo != null
                 beginVideoTap(clickAtMs)
+                fullscreenCarryFromNextTap = carryProductive
                 scheduleRead(CLICK_TRANSITION_MS)
             } else {
                 // YouTube does not consistently label video-card clicks across
@@ -359,7 +372,7 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
         ownerMissingSinceMs = null
         pendingYoutubeClickAtMs = null
         fullscreenTransition.clear()
-        verifiedVideoTitle = null
+        verifiedVideo = null
         lastWatchedChannelId = null
         lastWatchedDisplayName = null
         lastWatchedExactHandle = null
@@ -373,6 +386,9 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
         fullscreenSidePanelDismissInFlight = false
         pausedForFullscreenIdentity = false
         savingAllowlistEntry = false
+        fullscreenCarryFromNextTap = false
+        fullscreenExitAttempted = false
+        clearFloatingCandidate()
         blockOverlayVisible = false
         session.onBrowsing()
         overlay.dismiss()
@@ -414,12 +430,15 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
             return
         }
         if (observation.fullscreen && !observation.hasOwnerEvidence &&
-            canRetainFullscreenPermission(verifiedVideoTitle, observation.title, lastWatchedClassification)) {
+            canRetainFullscreenPermission(verifiedVideo?.title, observation.title, lastWatchedClassification)) {
             heartbeatAnalytics()
             return
         }
+        val carryOver = canCarryFullscreenPermission(
+            observation, verifiedVideo, lastWatchedClassification, fullscreenCarryFromNextTap,
+        )
         if (observation.kind == YoutubeV2ContentKind.VIDEO && !observation.adPlaying &&
-            !observation.hasOwnerEvidence && recoverHiddenOwner(observation)) return
+            !observation.hasOwnerEvidence && recoverHiddenOwner(observation, keepPlaying = carryOver)) return
         if (observation.hasOwnerEvidence) ownerRecoveryAttempts = 0
         if (observation.fullscreen && !observation.hasOwnerEvidence) {
             val now = SystemClock.elapsedRealtime()
@@ -431,7 +450,9 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
                 scheduleRead(150L)
                 return
             }
-            if (!pausedForFullscreenIdentity) {
+            // A video that follows a verified productive one keeps playing
+            // while it is identified. Anything else waits paused.
+            if (!carryOver && !pausedForFullscreenIdentity) {
                 pauseMedia()
                 pausedForFullscreenIdentity = true
             }
@@ -454,8 +475,12 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
                 fullscreenHudRevealAttempts >= MAX_FULLSCREEN_HUD_REVEALS &&
                 !fullscreenHudRevealInFlight
             ) {
+                // Leaving fullscreen shows the portrait owner row. That gets a
+                // normal evaluation, and a block from there has an Allow button.
+                if (!fullscreenExitAttempted && exitFullscreenToIdentify()) return
                 lastWatchedClassification = null
-                verifiedVideoTitle = null
+                verifiedVideo = null
+                fullscreenCarryFromNextTap = false
                 block("This channel")
                 return
             }
@@ -468,7 +493,11 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
         fullscreenSidePanelDismissAtMs = 0L
         fullscreenSidePanelDismissAttempts = 0
         fullscreenSidePanelDismissInFlight = false
-        if (observation.watchScreenConfirmed && lastEvaluatedKey != observation.stableKey) {
+        fullscreenExitAttempted = false
+        fullscreenCarryFromNextTap = false
+        if (observation.watchScreenConfirmed && lastEvaluatedKey != observation.stableKey &&
+            !retainsVerifiedPermission(verifiedVideo, observation, lastWatchedClassification)
+        ) {
             // Autoplay can change the video without a tap. Until the new owner
             // is evaluated, do not carry a productive decision into PiP.
             lastWatchedClassification = null
@@ -516,6 +545,26 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
             scheduleRead(OWNER_EVIDENCE_RETRY_MS)
             return
         }
+        if (retainsVerifiedPermission(verifiedVideo, observation, lastWatchedClassification)) {
+            // Same allowed video. Only part of its owner evidence is visible
+            // now (scrolling, header re-render). Keep the decision instead of
+            // re-checking with weaker evidence.
+            verifiedVideo = verifiedVideo?.mergedWith(observation)
+            confirmation?.let(handler::removeCallbacks)
+            confirmation = null
+            confirmationKey = null
+            ownerMissingSinceMs = null
+            firstStableRead = null
+            lastEvaluatedKey = observation.stableKey
+            if (pausedForFullscreenIdentity) {
+                resumeMedia()
+                pausedForFullscreenIdentity = false
+            }
+            if (!analyticsOpen) {
+                recordAnalytics(lastWatchedChannelId, YoutubeInsightsRepository.CATEGORY_PRODUCTIVE, false)
+            }
+            return
+        }
         if (observation.kind == YoutubeV2ContentKind.VIDEO && !observation.hasOwnerEvidence) {
             val now = SystemClock.elapsedRealtime()
             val missingSince = ownerMissingSinceMs ?: now.also { ownerMissingSinceMs = it }
@@ -531,6 +580,12 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
 
         // Fast-path evaluation: owner evidence is confirmed
         firstStableRead = observation
+        if (observation.kind == YoutubeV2ContentKind.VIDEO && observation.hasOwnerEvidence &&
+            !observation.adPlaying && lastEvaluatedKey != observation.stableKey
+        ) {
+            if (floatingCandidate?.stableKey != observation.stableKey) floatingCandidateAtMs = now
+            floatingCandidate = observation
+        }
         val generation = evaluationGeneration
         val candidateKey = "$generation:${observation.stableKey}"
         if (confirmationKey == candidateKey) return
@@ -593,11 +648,13 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
                     if (!preferences.enabled.value || !isYoutubeVisible() || returningHome ||
                         generation != evaluationGeneration || readObservation().stableKey != observation.stableKey) return@withContext
                     applied = true
+                    clearFloatingCandidate()
                     lastWatchedChannelId = evaluation.channelId
                     lastWatchedDisplayName = displayName
                     lastWatchedExactHandle = handle
                     lastWatchedClassification = evaluation.classification
-                    verifiedVideoTitle = observation.title.takeIf { evaluation.decision == YoutubeV2RuntimeDecision.ALLOW }
+                    verifiedVideo = YoutubeVerifiedVideo.from(observation)
+                        .takeIf { evaluation.decision == YoutubeV2RuntimeDecision.ALLOW }
                     lastEvaluatedKey = observation.stableKey
                     if (evaluation.decision == YoutubeV2RuntimeDecision.ALLOW) {
                         fullscreenTransition.markVerified(observation)
@@ -756,7 +813,7 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
                 blockOverlayVisible = false
                 overlay.dismiss()
                 if (isYoutubeVisible() && expectedVideoKey != null && current.stableKey == expectedVideoKey) {
-                    verifiedVideoTitle = current.title
+                    verifiedVideo = YoutubeVerifiedVideo.from(current)
                     fullscreenTransition.markVerified(current)
                     val now = SystemClock.elapsedRealtime()
                     session.onVideoTap(now)
@@ -776,6 +833,40 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
         val manager = getSystemService(Context.AUDIO_SERVICE) as? AudioManager ?: return
         manager.dispatchMediaKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_MEDIA_PLAY))
         manager.dispatchMediaKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_MEDIA_PLAY))
+    }
+
+    /**
+     * Leave fullscreen so the portrait owner row can identify the channel.
+     * Uses YouTube's own exit control when one is exposed, otherwise Back,
+     * which YouTube handles as "exit fullscreen". Runs once per episode.
+     */
+    private fun exitFullscreenToIdentify(): Boolean {
+        fullscreenExitAttempted = true
+        val root = youtubeWindowRoot() ?: return false
+        val queue = ArrayDeque<AccessibilityNodeInfo>()
+        queue.add(root)
+        var inspected = 0
+        var exitControl: AccessibilityNodeInfo? = null
+        while (queue.isNotEmpty() && inspected++ < MAX_NODES && exitControl == null) {
+            val node = queue.removeFirst()
+            val label = (node.contentDescription ?: node.text)?.toString()?.trim()?.lowercase().orEmpty()
+            if (node.isVisibleToUser && node.isClickable && label in setOf("exit fullscreen", "exit full screen")) {
+                exitControl = node
+            }
+            for (index in 0 until node.childCount) node.getChild(index)?.let(queue::addLast)
+        }
+        val now = SystemClock.elapsedRealtime()
+        ignoreHudRevealClickUntilMs = now + HUD_REVEAL_CLICK_GUARD_MS
+        val accepted = exitControl?.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+            ?: performGlobalAction(GLOBAL_ACTION_BACK)
+        trace("ACTION exit_fullscreen_to_identify control=${exitControl != null} accepted=$accepted")
+        if (!accepted) return false
+        fullscreenTransition.beginLayoutTransition(now)
+        fullscreenMissingSinceMs = null
+        ownerMissingSinceMs = null
+        firstStableRead = null
+        scheduleRead(CLICK_TRANSITION_MS)
+        return true
     }
 
     private fun revealFullscreenHud() {
@@ -817,7 +908,7 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
     /** Reveal the real watch header before showing an unidentified-channel sheet.
      * Use only semantic controls; never infer a channel from the covering panel.
      */
-    private fun recoverHiddenOwner(observation: YoutubeV2Observation): Boolean {
+    private fun recoverHiddenOwner(observation: YoutubeV2Observation, keepPlaying: Boolean = false): Boolean {
         if (ownerRecoveryAttempts >= 3) return false
         val root = youtubeWindowRoot() ?: return false
         val queue = ArrayDeque<AccessibilityNodeInfo>()
@@ -850,8 +941,9 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
         } else null
         val target = close ?: exit ?: watchList ?: return false
         ownerRecoveryAttempts++
+        if (target === exit) fullscreenExitAttempted = true
         ignoreHudRevealClickUntilMs = SystemClock.elapsedRealtime() + HUD_REVEAL_CLICK_GUARD_MS
-        if (!pausedForFullscreenIdentity) {
+        if (!keepPlaying && !pausedForFullscreenIdentity) {
             pauseMedia()
             pausedForFullscreenIdentity = true
         }
@@ -1116,6 +1208,7 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
         }
         if (miniNodes.isEmpty()) return false
         val classification = floatingPlaybackClassification()
+        if (awaitFloatingIdentity(classification)) return true
         if (!(analyticsShorts && isShortsQuickUnlockActive()) && shouldBlockYoutubePip(false, classification)) {
             stopAnalytics()
             pauseMedia()
@@ -1168,11 +1261,56 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
         }
     }
 
+    /**
+     * True while a floating player should keep playing because its owner,
+     * seen just before minimising, is still being evaluated.
+     */
+    private fun awaitFloatingIdentity(classification: YoutubeChannelClassification?): Boolean {
+        val candidate = floatingCandidate ?: return false
+        val ageMs = SystemClock.elapsedRealtime() - floatingCandidateAtMs
+        if (floatingPlaybackDecision(classification, ageMs) != FloatingPlaybackDecision.WAIT) return false
+        evaluateFloatingCandidate(candidate)
+        // PiP is polled by pipMonitor. The in-app mini-player needs a read once the grace ends.
+        scheduleRead((FLOATING_IDENTITY_GRACE_MS - ageMs).coerceAtLeast(0L) + DEBOUNCE_MS)
+        return true
+    }
+
+    /** Evaluates the owner seen on the watch page. No second watch-page read is possible once minimised. */
+    private fun evaluateFloatingCandidate(candidate: YoutubeV2Observation) {
+        if (floatingEvaluationJob?.isActive == true) return
+        val generation = evaluationGeneration
+        floatingEvaluationJob = scope.launch {
+            val evaluation = repository.evaluate(candidate.exactHandle, candidate.displayName, candidate.exactChannelId)
+            withContext(Dispatchers.Main) {
+                if (generation != evaluationGeneration || floatingCandidate !== candidate ||
+                    lastWatchedClassification != null
+                ) return@withContext
+                clearFloatingCandidate()
+                lastWatchedChannelId = evaluation.channelId
+                lastWatchedDisplayName = candidate.displayName ?: candidate.exactHandle ?: "This channel"
+                lastWatchedExactHandle = candidate.exactHandle
+                lastWatchedClassification = evaluation.classification
+                if (evaluation.decision == YoutubeV2RuntimeDecision.ALLOW) {
+                    verifiedVideo = YoutubeVerifiedVideo.from(candidate)
+                    lastEvaluatedKey = candidate.stableKey
+                }
+                trace("FLOATING_EVALUATION result=${evaluation.classification}")
+                if (preferences.enabled.value && !returningHome && !blockOverlayVisible) scheduleRead(0L)
+            }
+        }
+    }
+
+    private fun clearFloatingCandidate() {
+        floatingCandidate = null
+        floatingCandidateAtMs = 0L
+    }
+
     /** Returns true while PiP owns playback, so the normal watch parser stays idle. */
     private fun enforceYoutubePip(): Boolean {
         if (!screenIsInteractive()) return false
         val pip = youtubePipWindow() ?: return false
         val classification = floatingPlaybackClassification()
+        if (awaitFloatingIdentity(classification)) return true
         if (!(analyticsShorts && isShortsQuickUnlockActive()) && shouldBlockYoutubePip(false, classification)) {
             stopAnalytics()
             pauseMedia()
@@ -1535,8 +1673,11 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
         fullscreenSidePanelDismissAttempts = 0
         fullscreenSidePanelDismissInFlight = false
         pausedForFullscreenIdentity = false
+        fullscreenCarryFromNextTap = false
+        fullscreenExitAttempted = false
+        clearFloatingCandidate()
         blockDismissal.onVideoEntered()
-        verifiedVideoTitle = null
+        verifiedVideo = null
         // An earlier productive video cannot authorize a new, unidentified PiP.
         lastWatchedChannelId = null
         lastWatchedDisplayName = null

@@ -1,0 +1,161 @@
+{
+  "ok": true,
+  "outputDir": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final",
+  "frames": [
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-00-at-0s.png",
+      "time": 0
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-01-at-0.417s.png",
+      "time": 0.417
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-02-at-0.833s.png",
+      "time": 0.833
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-03-at-1.25s.png",
+      "time": 1.25
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-04-at-1.667s.png",
+      "time": 1.667
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-05-at-2.083s.png",
+      "time": 2.083
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-06-at-2.5s.png",
+      "time": 2.5
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-07-at-2.917s.png",
+      "time": 2.917
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-08-at-3.333s.png",
+      "time": 3.333
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-09-at-3.75s.png",
+      "time": 3.75
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-10-at-4.167s.png",
+      "time": 4.167
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-11-at-4.583s.png",
+      "time": 4.583
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-12-at-5s.png",
+      "time": 5
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-13-at-5.417s.png",
+      "time": 5.417
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-14-at-5.833s.png",
+      "time": 5.833
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-15-at-6.25s.png",
+      "time": 6.25
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-16-at-6.667s.png",
+      "time": 6.667
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-17-at-7.083s.png",
+      "time": 7.083
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-18-at-7.5s.png",
+      "time": 7.5
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-19-at-7.917s.png",
+      "time": 7.917
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-20-at-8.333s.png",
+      "time": 8.333
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-21-at-8.75s.png",
+      "time": 8.75
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-22-at-9.167s.png",
+      "time": 9.167
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-23-at-9.583s.png",
+      "time": 9.583
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-24-at-10s.png",
+      "time": 10
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-25-at-10.417s.png",
+      "time": 10.417
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-26-at-10.833s.png",
+      "time": 10.833
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-27-at-11.25s.png",
+      "time": 11.25
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-28-at-11.667s.png",
+      "time": 11.667
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-29-at-12.083s.png",
+      "time": 12.083
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-30-at-12.5s.png",
+      "time": 12.5
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-31-at-12.917s.png",
+      "time": 12.917
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-32-at-13.333s.png",
+      "time": 13.333
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-33-at-13.75s.png",
+      "time": 13.75
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-34-at-14.167s.png",
+      "time": 14.167
+    },
+    {
+      "path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-35-at-14.583s.png",
+      "time": 14.583
+    }
+  ],
+  "contactSheets": [
+    "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/contact-sheet-1.jpg",
+    "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/contact-sheet-2.jpg",
+    "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/contact-sheet-3.jpg",
+    "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/contact-sheet-4.jpg"
+  ],
+  "_meta": {
+    "version": "0.9.5",
+    "latestVersion": "0.9.8",
+    "updateAvailable": true
+  }
+}

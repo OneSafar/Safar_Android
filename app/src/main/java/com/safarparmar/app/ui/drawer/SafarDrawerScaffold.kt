@@ -248,7 +248,7 @@ fun SafarDrawerScaffold(
                             val overlap = 18.dp.toPx()
                             val left = if (layoutDirection == LayoutDirection.Ltr) size.width - overlap else -extra
                             drawRect(
-                                color = if (liveDark) BgDark else Color(0xFFFFF5F0),
+                                color = if (liveDark) BgDark else Color(0xFFFAF8FF),
                                 topLeft = Offset(left, 0f),
                                 size = Size(extra + overlap, size.height),
                             )

@@ -130,6 +130,18 @@ interface YoutubeStudyV2Dao {
     @Query("SELECT EXISTS(SELECT 1 FROM youtube_v2_allowlist WHERE channelId = :channelId)")
     suspend fun isAllowed(channelId: String): Boolean
 
+    @Query("SELECT * FROM youtube_v2_identity")
+    suspend fun allIdentities(): List<YoutubeV2IdentityEntity>
+
+    @Query("SELECT * FROM youtube_v2_classification")
+    suspend fun allClassifications(): List<YoutubeV2ClassificationEntity>
+
+    @Query("SELECT * FROM youtube_v2_allowlist")
+    suspend fun allAllowed(): List<YoutubeV2AllowlistEntity>
+
+    @Query("SELECT * FROM youtube_v2_alias")
+    suspend fun allAliases(): List<YoutubeV2AliasEntity>
+
 }
 
 @Database(
@@ -172,7 +184,9 @@ data class YoutubeV2RuntimeEvaluation(
 class YoutubeStudyV2Repository(
     private val database: YoutubeStudyV2Database,
     private val dao: YoutubeStudyV2Dao,
+    private val backup: YoutubeAllowlistBackupStore? = null,
 ) {
+
     val allowedChannels: Flow<List<YoutubeV2IdentityEntity>> = dao.observeAllowed()
     val visitedChannels: Flow<List<YoutubeV2IdentityEntity>> = dao.observeIdentities()
     val classifications: Flow<List<YoutubeV2ClassificationEntity>> = dao.observeClassifications()
@@ -181,12 +195,13 @@ class YoutubeStudyV2Repository(
         reference: String,
         pairedDisplayName: String? = null,
     ): Result<YoutubeV2Resolution> = runCatching {
-        val entered = reference.trim().replace(Regex("\\s+"), " ")
+        val entered = YoutubeChannelReference.canonical(reference)
         require(entered.length in 2..120) { "Enter the channel name or @handle shown by YouTube." }
+        val paired = pairedDisplayName?.let(YoutubeChannelReference::clean)?.takeIf { it.isNotBlank() }
         val handle = entered.takeIf { it.startsWith('@') }?.let(::normalizeHandle)
-            ?: pairedDisplayName?.takeIf { it.startsWith('@') }?.let(::normalizeHandle)
+            ?: paired?.takeIf { it.startsWith('@') }?.let(::normalizeHandle)
             ?: (if (HANDLE.matches("@$entered")) normalizeHandle("@$entered") else null)
-        val display = pairedDisplayName?.takeUnless { it.startsWith('@') }?.trim()
+        val display = paired?.takeUnless { it.startsWith('@') }
             ?: entered.removePrefix("@").trim()
         val normalized = handle ?: normalizeDisplay(display)
         val entity = YoutubeV2IdentityEntity(
@@ -240,6 +255,7 @@ class YoutubeStudyV2Repository(
                 dao.removeAllowed(channelId)
             }
         }
+        backupNow()
     }
 
     suspend fun deleteChannel(channelId: String) {
@@ -249,6 +265,7 @@ class YoutubeStudyV2Repository(
             dao.deleteAliases(channelId)
             dao.deleteIdentity(channelId)
         }
+        backupNow()
     }
 
     private suspend fun saveIdentity(
@@ -341,6 +358,9 @@ class YoutubeStudyV2Repository(
 
         val matchedIds = (listOfNotNull(exactChannelId) + handleIds + displayIds).distinct()
         val allowedId = matchedIds.firstOrNull { dao.isAllowed(it) }
+        if (allowedId != null) {
+            learnPairedAliases(allowedId, normHandle, normDisplay, exactDisplayName, exactChannelId)
+        }
         var classifiedMatch: Pair<String, YoutubeChannelClassification>? = null
         if (allowedId == null) {
             for (channelId in matchedIds) {
@@ -366,6 +386,72 @@ class YoutubeStudyV2Repository(
         )
     }
 
+    /**
+     * A watch page can show the uploader's @handle and display name together.
+     * When one of them identifies an allowed channel, remember the other one,
+     * so a later read that only shows the other value still matches.
+     * Example: "@EZVAL789" is allowed and the owner row says "EZVAL".
+     * Only exact runtime values are learned, never derived candidates. A value
+     * is learned only when no other channel already claims it.
+     */
+    private suspend fun learnPairedAliases(
+        allowedId: String,
+        normHandle: String?,
+        normDisplay: String?,
+        rawDisplay: String?,
+        exactChannelId: String?,
+    ) {
+        if (normHandle == null || normDisplay == null) return
+        try {
+            val exactHandleIds = dao.channelIdsForHandle(normHandle)
+                .ifEmpty { listOfNotNull(dao.channelIdForHandle(normHandle)) }
+                .distinct()
+            val exactDisplayIds = dao.channelIdsForDisplay(normDisplay).distinct()
+            val strongMatch = exactChannelId == allowedId || allowedId in exactHandleIds
+            val learned = buildList {
+                if (strongMatch && exactDisplayIds.isEmpty()) {
+                    add(
+                        YoutubeV2AliasEntity(
+                            "display",
+                            normDisplay,
+                            allowedId,
+                            rawDisplay?.trim()?.replace(Regex("\\s+"), " ").orEmpty().ifBlank { normDisplay },
+                        ),
+                    )
+                }
+                if (exactHandleIds.isEmpty() && exactDisplayIds == listOf(allowedId)) {
+                    add(YoutubeV2AliasEntity("handle", normHandle, allowedId, normHandle))
+                }
+            }
+            if (learned.isNotEmpty()) {
+                dao.upsertAliases(learned)
+                backupNow()
+            }
+        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            // Learning is best effort. It never changes the current decision.
+        }
+    }
+
+    /** Copies every channel decision to the backup file. Best effort; never fails a change. */
+    private suspend fun backupNow() {
+        val store = backup ?: return
+        try {
+            val snapshot = YoutubeAllowlistSnapshot.from(
+                dao.allIdentities(),
+                dao.allClassifications(),
+                dao.allAllowed(),
+                dao.allAliases(),
+            )
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { store.save(snapshot) }
+        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            // A failed backup leaves the previous copy in place.
+        }
+    }
+
     suspend fun evaluateChannelId(channelId: String?): YoutubeV2RuntimeEvaluation {
         val verifiedId = channelId
         val classification = verifiedId
@@ -383,7 +469,8 @@ class YoutubeStudyV2Repository(
     companion object {
         private val CHANNEL_ID = Regex("^UC[A-Za-z0-9_-]{22}$")
         private val HANDLE = Regex("^@[\\p{L}\\p{N}_.-]{3,30}$")
-        fun normalizeHandle(value: String): String = "@" + value.trim().removePrefix("@").lowercase()
-        fun normalizeDisplay(value: String): String = value.trim().replace(Regex("\\s+"), " ").lowercase()
+        fun normalizeHandle(value: String): String =
+            "@" + YoutubeChannelReference.clean(value).removePrefix("@").lowercase()
+        fun normalizeDisplay(value: String): String = YoutubeChannelReference.clean(value).lowercase()
     }
 }

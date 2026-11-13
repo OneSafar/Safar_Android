@@ -46,7 +46,7 @@ class TimetableReminderWorker(context: Context, params: WorkerParameters) : Coro
             val pending = PendingIntent.getActivity(applicationContext, id.hashCode(), intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
             manager.notify(id.hashCode(), NotificationCompat.Builder(applicationContext, "timetable")
                 .setSmallIcon(R.drawable.ic_safar_notification_sparkle).setContentTitle(session.title)
-                .setContentText("${session.subject} · ${sessionTime(session.startMinute)}")
+                .setContentText("${session.subject} · ${sessionTimeRange(session)}")
                 .setContentIntent(pending).setAutoCancel(true).build())
         }
         schedule(applicationContext, owner, session, maxOf(date.plusDays(1), now.toLocalDate()), append = true)

@@ -291,6 +291,9 @@
     <string name="youtube_focus_permissions_required">Permissions chahiye — guide ke liye tap karein</string>
     <string name="youtube_focus_back_permissions">← Permissions par wapas jaayein</string>
     <string name="youtube_focus_add_channel_title">Channel ko theek vaise jodein jaise YouTube dikhaata hai</string>
+    <string name="youtube_focus_channel_handle_placeholder">@handle ya channel link</string>
+    <string name="youtube_focus_channel_name_placeholder">Channel name (optional, jaisa videos ke neeche dikhta hai)</string>
+    <string name="youtube_focus_add_channel_hint">Best match ke liye dono bharein. Sabse aasaan tareeka: jab koi video block ho, “Productive mein jodein” dabaayein, dono apne-aap save ho jaate hain. Shorts har channel ke liye blocked rehte hain.</string>
     <string name="youtube_focus_exact_channel_help">is phone par YouTube jo exact name ya @handle dikhaata hai, vahi jodein.</string>
     <string name="youtube_focus_remove_channel">Channel hataayein</string>
     <string name="youtube_focus_protection_stopping">Protection baar-baar band ho rahi hai?</string>

@@ -195,6 +195,33 @@ internal class EkagraSessionJournal internal constructor(
         if (platformEffects && uploadRetainedProgress) EkagraSessionSaveWorker.enqueue(context)
     }
 
+    /**
+     * The student tapped Discard. Unlike [closeEmptySession], durable progress is
+     * deliberately dropped: the row becomes a "synced" tombstone, so neither the
+     * upload worker nor process recovery sends it, and a late [enqueue] or
+     * [checkpoint] for the same id is ignored. A row already handed to the
+     * uploader (pending/acknowledged) is left alone — it may be on the server.
+     */
+    fun discardSession(id: String, account: String): Deferred<Unit> = ordered(retryable = true) {
+        if (account.isBlank() || id.isBlank()) return@ordered
+        initialize(account)
+        database.withTransaction {
+            val old = dao.row(account, id)
+            if (old != null && old.state != "active") return@withTransaction
+            val now = Instant.now().toString()
+            val terminal = old?.let(::decode)?.copy(recovery = null, endReason = "discarded")
+                ?: PendingEkagraSessionSave(
+                    clientSessionId = id, mode = TimerMode.FOCUS.toApiMode(),
+                    startedAt = now, endedAt = now,
+                    plannedDurationMinutes = 0, actualDurationMinutes = 0, actualDurationSeconds = 0,
+                    goalId = null, goalTitle = null, taskTitle = "Untitled", shieldEnabled = false,
+                    ownerId = account, endReason = "discarded",
+                )
+            dao.put(JournalSession(account, id, gson.toJson(terminal), "synced",
+                System.currentTimeMillis(), runtime, old?.serverId))
+        }
+    }
+
     fun enqueue(session: PendingEkagraSessionSave, account: String? = null): Deferred<Unit> {
         var boundAccount = account
         return ordered(retryable = true) {

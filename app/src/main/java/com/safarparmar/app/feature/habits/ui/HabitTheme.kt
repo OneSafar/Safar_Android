@@ -1,6 +1,12 @@
 /* Hallmark · pre-emit critique: P5 H4 E4 S5 R4 V4 */
 package com.safarparmar.app.feature.habits.ui
 
+import com.safarparmar.app.ui.theme.RoyalPurpleMid
+import com.safarparmar.app.ui.theme.RoyalPurple as BrandRoyalPurple
+import com.safarparmar.app.ui.theme.RoyalPurpleDark
+import com.safarparmar.app.ui.theme.RoyalPurpleSoft
+import com.safarparmar.app.ui.theme.RoyalPurpleSoftDark
+
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.graphics.Color
@@ -11,28 +17,28 @@ val LocalHabitDarkTheme = compositionLocalOf { false }
  * Token names are retained for existing components; only color roles change. */
 object HabitColors {
     // Light palette — blush paper and plum ink
-    val LightBackground = Color(0xFFFFF5F0)
+    val LightBackground = Color(0xFFFAF8FF)
     val LightParchment = Color(0xFFFFF0F6)
     val LightSurface = Color(0xFFFFFDFC)
-    val LightTextPrimary = Color(0xFF39132E)
+    val LightTextPrimary = Color(0xFF241544)
     val LightTextSecondary = Color(0xFF75616F)
     val LightTextTertiary = Color(0xFF8C7885)
     val LightOutline = Color(0xFFE8DEE5)
     val LightOutlineStrong = Color(0xFFCEB9C9)
-    val LightFocusRing = Color(0xFF542347)
+    val LightFocusRing = BrandRoyalPurple
 
     // Primary plum action and lilac selection roles
-    val LightRoyalPurple = Color(0xFF542347)
-    val LightRoyalPurple2 = Color(0xFF793D67)
-    val LightRoyalPurpleBg = Color(0xFFEDE0F4)
+    val LightRoyalPurple = BrandRoyalPurple
+    val LightRoyalPurple2 = RoyalPurpleMid
+    val LightRoyalPurpleBg = RoyalPurpleSoft
     val LightOnRoyalPurple = Color(0xFFFFFFFF)
 
     // Secondary analytic accent: reserved for streaks, trend lines, and callouts.
     val LightDeepOrange = Color(0xFF9A4E25)
-    val LightDeepOrangeBg = Color(0xFFFFCBBE)
+    val LightDeepOrangeBg = RoyalPurpleSoft
 
     // Completion uses the shared action color and mint wash
-    val LightCheckDone = Color(0xFF542347)
+    val LightCheckDone = BrandRoyalPurple
     val LightCheckDoneBg = Color(0xFFC9EFE0)
     val LightCheckDoneOn = Color(0xFFFFFFFF)
 
@@ -49,19 +55,19 @@ object HabitColors {
     val DarkTextTertiary = Color(0xFFAF98A8)
     val DarkOutline = Color(0xFF654D66)
     val DarkOutlineStrong = Color(0xFF876B82)
-    val DarkFocusRing = Color(0xFFF0BEDC)
+    val DarkFocusRing = RoyalPurpleDark
 
-    val DarkRoyalPurple = Color(0xFFF0BEDC)
+    val DarkRoyalPurple = RoyalPurpleDark
     val DarkRoyalPurple2 = Color(0xFFCDBBE9)
-    val DarkRoyalPurpleBg = Color(0xFF513551)
-    val DarkOnRoyalPurple = Color(0xFF39132E)
+    val DarkRoyalPurpleBg = RoyalPurpleSoftDark
+    val DarkOnRoyalPurple = Color(0xFF241544)
 
     val DarkDeepOrange = Color(0xFFFFB08A)
-    val DarkDeepOrangeBg = Color(0xFF684047)
+    val DarkDeepOrangeBg = RoyalPurpleSoftDark
 
-    val DarkCheckDone = Color(0xFFF0BEDC)
+    val DarkCheckDone = RoyalPurpleDark
     val DarkCheckDoneBg = Color(0xFF28574D)
-    val DarkCheckDoneOn = Color(0xFF39132E)
+    val DarkCheckDoneOn = Color(0xFF241544)
 
     val DarkError = Color(0xFFFFB4AB)
     val DarkErrorBg = Color(0xFF43282E)
@@ -132,15 +138,15 @@ object HabitColors {
         @Composable get() = TextPrimary
 
     // Plum/lilac density ramp for progress and heatmaps
-    val InkDensity100 = Color(0xFF542347)
-    val InkDensity75 = Color(0xFFA97998)
+    val InkDensity100 = BrandRoyalPurple
+    val InkDensity75 = Color(0xFF9471C0)
     val InkDensity50 = Color(0xFFCDBBE9)
-    val InkDensity25 = Color(0xFFEDE0F4)
+    val InkDensity25 = RoyalPurpleSoft
 
-    val DarkInkDensity100 = Color(0xFFF0BEDC)
-    val DarkInkDensity75 = Color(0xFFAF7D9C)
-    val DarkInkDensity50 = Color(0xFF79546E)
-    val DarkInkDensity25 = Color(0xFF483149)
+    val DarkInkDensity100 = RoyalPurpleDark
+    val DarkInkDensity75 = Color(0xFFB89CDE)
+    val DarkInkDensity50 = RoyalPurpleMid
+    val DarkInkDensity25 = RoyalPurpleSoftDark
 
     @Composable
     fun getInkDensityColor(ratio: Float): Color {

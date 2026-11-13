@@ -1,0 +1,492 @@
+[
+  {
+    "id": "char-1",
+    "name": "The Thinker",
+    "category": "characters",
+    "webpUrl": "/avatars/webp/The_Thinker.webp",
+    "svgUrl": "/avatars/svg/The_Thinker.svg"
+  },
+  {
+    "id": "char-2",
+    "name": "Retro Glasses",
+    "category": "characters",
+    "webpUrl": "/avatars/webp/Retro_Glasses.webp",
+    "svgUrl": "/avatars/svg/Retro_Glasses.svg"
+  },
+  {
+    "id": "char-3",
+    "name": "The Academic",
+    "category": "characters",
+    "webpUrl": "/avatars/webp/The_Academic.webp",
+    "svgUrl": "/avatars/svg/The_Academic.svg"
+  },
+  {
+    "id": "char-4",
+    "name": "Golden Beard",
+    "category": "characters",
+    "webpUrl": "/avatars/webp/Golden_Beard.webp",
+    "svgUrl": "/avatars/svg/Golden_Beard.svg"
+  },
+  {
+    "id": "char-5",
+    "name": "The Engineer",
+    "category": "characters",
+    "webpUrl": "/avatars/webp/The_Engineer.webp",
+    "svgUrl": "/avatars/svg/The_Engineer.svg"
+  },
+  {
+    "id": "char-6",
+    "name": "The Creative",
+    "category": "characters",
+    "webpUrl": "/avatars/webp/The_Creative.webp",
+    "svgUrl": "/avatars/svg/The_Creative.svg"
+  },
+  {
+    "id": "char-7",
+    "name": "Retro Future",
+    "category": "characters",
+    "webpUrl": "/avatars/webp/Retro_Future.webp",
+    "svgUrl": "/avatars/svg/Retro_Future.svg"
+  },
+  {
+    "id": "char-8",
+    "name": "Pink Bun",
+    "category": "characters",
+    "webpUrl": "/avatars/webp/Pink_Bun.webp",
+    "svgUrl": "/avatars/svg/Pink_Bun.svg"
+  },
+  {
+    "id": "char-9",
+    "name": "Natural Wave",
+    "category": "characters",
+    "webpUrl": "/avatars/webp/Natural_Wave.webp",
+    "svgUrl": "/avatars/svg/Natural_Wave.svg"
+  },
+  {
+    "id": "char-10",
+    "name": "The Gamer",
+    "category": "characters",
+    "webpUrl": "/avatars/webp/The_Gamer.webp",
+    "svgUrl": "/avatars/svg/The_Gamer.svg"
+  },
+  {
+    "id": "char-11",
+    "name": "The Master Chef",
+    "category": "characters",
+    "webpUrl": "/avatars/webp/The_Master_Chef.webp",
+    "svgUrl": "/avatars/svg/The_Master_Chef.svg"
+  },
+  {
+    "id": "char-12",
+    "name": "Cyber Hacker",
+    "category": "characters",
+    "webpUrl": "/avatars/webp/Cyber_Hacker.webp",
+    "svgUrl": "/avatars/svg/Cyber_Hacker.svg"
+  },
+  {
+    "id": "char-13",
+    "name": "The Astronaut",
+    "category": "characters",
+    "webpUrl": "/avatars/webp/The_Astronaut.webp",
+    "svgUrl": "/avatars/svg/The_Astronaut.svg"
+  },
+  {
+    "id": "char-14",
+    "name": "Mysterious Detective",
+    "category": "characters",
+    "webpUrl": "/avatars/webp/Mysterious_Detective.webp",
+    "svgUrl": "/avatars/svg/Mysterious_Detective.svg"
+  },
+  {
+    "id": "char-15",
+    "name": "The Artist",
+    "category": "characters",
+    "webpUrl": "/avatars/webp/The_Artist.webp",
+    "svgUrl": "/avatars/svg/The_Artist.svg"
+  },
+  {
+    "id": "char-16",
+    "name": "The Doctor",
+    "category": "characters",
+    "webpUrl": "/avatars/webp/The_Doctor.webp",
+    "svgUrl": "/avatars/svg/The_Doctor.svg"
+  },
+  {
+    "id": "char-17",
+    "name": "The Explorer",
+    "category": "characters",
+    "webpUrl": "/avatars/webp/The_Explorer.webp",
+    "svgUrl": "/avatars/svg/The_Explorer.svg"
+  },
+  {
+    "id": "char-18",
+    "name": "Neon Cyberpunk",
+    "category": "characters",
+    "webpUrl": "/avatars/webp/Neon_Cyberpunk.webp",
+    "svgUrl": "/avatars/svg/Neon_Cyberpunk.svg"
+  },
+  {
+    "id": "char-19",
+    "name": "The Retro Diva",
+    "category": "characters",
+    "webpUrl": "/avatars/webp/The_Retro_Diva.webp",
+    "svgUrl": "/avatars/svg/The_Retro_Diva.svg"
+  },
+  {
+    "id": "char-20",
+    "name": "The Musician",
+    "category": "characters",
+    "webpUrl": "/avatars/webp/The_Musician.webp",
+    "svgUrl": "/avatars/svg/The_Musician.svg"
+  },
+  {
+    "id": "char-21",
+    "name": "The Ninja",
+    "category": "characters",
+    "webpUrl": "/avatars/webp/The_Ninja.webp",
+    "svgUrl": "/avatars/svg/The_Ninja.svg"
+  },
+  {
+    "id": "char-22",
+    "name": "The Pirate",
+    "category": "characters",
+    "webpUrl": "/avatars/webp/The_Pirate.webp",
+    "svgUrl": "/avatars/svg/The_Pirate.svg"
+  },
+  {
+    "id": "char-23",
+    "name": "The Pilot",
+    "category": "characters",
+    "webpUrl": "/avatars/webp/The_Pilot.webp",
+    "svgUrl": "/avatars/svg/The_Pilot.svg"
+  },
+  {
+    "id": "char-24",
+    "name": "The Viking",
+    "category": "characters",
+    "webpUrl": "/avatars/webp/The_Viking.webp",
+    "svgUrl": "/avatars/svg/The_Viking.svg"
+  },
+  {
+    "id": "char-25",
+    "name": "The Samurai",
+    "category": "characters",
+    "webpUrl": "/avatars/webp/The_Samurai.webp",
+    "svgUrl": "/avatars/svg/The_Samurai.svg"
+  },
+  {
+    "id": "char-26",
+    "name": "The Diver",
+    "category": "characters",
+    "webpUrl": "/avatars/webp/The_Diver.webp",
+    "svgUrl": "/avatars/svg/The_Diver.svg"
+  },
+  {
+    "id": "char-27",
+    "name": "The Knight",
+    "category": "characters",
+    "webpUrl": "/avatars/webp/The_Knight.webp",
+    "svgUrl": "/avatars/svg/The_Knight.svg"
+  },
+  {
+    "id": "char-28",
+    "name": "The Wizard",
+    "category": "characters",
+    "webpUrl": "/avatars/webp/The_Wizard.webp",
+    "svgUrl": "/avatars/svg/The_Wizard.svg"
+  },
+  {
+    "id": "char-29",
+    "name": "The Alien",
+    "category": "characters",
+    "webpUrl": "/avatars/webp/The_Alien.webp",
+    "svgUrl": "/avatars/svg/The_Alien.svg"
+  },
+  {
+    "id": "char-30",
+    "name": "The Vampire",
+    "category": "characters",
+    "webpUrl": "/avatars/webp/The_Vampire.webp",
+    "svgUrl": "/avatars/svg/The_Vampire.svg"
+  },
+  {
+    "id": "char-31",
+    "name": "The Pharaoh",
+    "category": "characters",
+    "webpUrl": "/avatars/webp/The_Pharaoh.webp",
+    "svgUrl": "/avatars/svg/The_Pharaoh.svg"
+  },
+  {
+    "id": "char-32",
+    "name": "The Cowboy",
+    "category": "characters",
+    "webpUrl": "/avatars/webp/The_Cowboy.webp",
+    "svgUrl": "/avatars/svg/The_Cowboy.svg"
+  },
+  {
+    "id": "char-33",
+    "name": "The Superhero",
+    "category": "characters",
+    "webpUrl": "/avatars/webp/The_Superhero.webp",
+    "svgUrl": "/avatars/svg/The_Superhero.svg"
+  },
+  {
+    "id": "char-34",
+    "name": "The Elf",
+    "category": "characters",
+    "webpUrl": "/avatars/webp/The_Elf.webp",
+    "svgUrl": "/avatars/svg/The_Elf.svg"
+  },
+  {
+    "id": "char-35",
+    "name": "Mad Scientist",
+    "category": "characters",
+    "webpUrl": "/avatars/webp/Mad_Scientist.webp",
+    "svgUrl": "/avatars/svg/Mad_Scientist.svg"
+  },
+  {
+    "id": "anim-1",
+    "name": "Retro Robot",
+    "category": "animals",
+    "webpUrl": "/avatars/webp/Retro_Robot.webp",
+    "svgUrl": "/avatars/svg/Retro_Robot.svg"
+  },
+  {
+    "id": "anim-2",
+    "name": "The Gentleman Cat",
+    "category": "animals",
+    "webpUrl": "/avatars/webp/The_Gentleman_Cat.webp",
+    "svgUrl": "/avatars/svg/The_Gentleman_Cat.svg"
+  },
+  {
+    "id": "anim-3",
+    "name": "Happy Panda",
+    "category": "animals",
+    "webpUrl": "/avatars/webp/Happy_Panda.webp",
+    "svgUrl": "/avatars/svg/Happy_Panda.svg"
+  },
+  {
+    "id": "anim-4",
+    "name": "The Astro Dog",
+    "category": "animals",
+    "webpUrl": "/avatars/webp/The_Astro_Dog.webp",
+    "svgUrl": "/avatars/svg/The_Astro_Dog.svg"
+  },
+  {
+    "id": "anim-5",
+    "name": "Cute Ghost",
+    "category": "animals",
+    "webpUrl": "/avatars/webp/Cute_Ghost.webp",
+    "svgUrl": "/avatars/svg/Cute_Ghost.svg"
+  },
+  {
+    "id": "anim-6",
+    "name": "The Cyber Fox",
+    "category": "animals",
+    "webpUrl": "/avatars/webp/The_Cyber_Fox.webp",
+    "svgUrl": "/avatars/svg/The_Cyber_Fox.svg"
+  },
+  {
+    "id": "anim-7",
+    "name": "The Cozy Koala",
+    "category": "animals",
+    "webpUrl": "/avatars/webp/The_Cozy_Koala.webp",
+    "svgUrl": "/avatars/svg/The_Cozy_Koala.svg"
+  },
+  {
+    "id": "anim-8",
+    "name": "Playful Penguin",
+    "category": "animals",
+    "webpUrl": "/avatars/webp/Playful_Penguin.webp",
+    "svgUrl": "/avatars/svg/Playful_Penguin.svg"
+  },
+  {
+    "id": "anim-9",
+    "name": "Cute Bear",
+    "category": "animals",
+    "webpUrl": "/avatars/webp/Cute_Bear.webp",
+    "svgUrl": "/avatars/svg/Cute_Bear.svg"
+  },
+  {
+    "id": "anim-10",
+    "name": "The Cyber Alien",
+    "category": "animals",
+    "webpUrl": "/avatars/webp/The_Cyber_Alien.webp",
+    "svgUrl": "/avatars/svg/The_Cyber_Alien.svg"
+  },
+  {
+    "id": "anim-11",
+    "name": "Wise Horned Owl",
+    "category": "animals",
+    "webpUrl": "/avatars/webp/Wise_Horned_Owl.webp",
+    "svgUrl": "/avatars/svg/Wise_Horned_Owl.svg"
+  },
+  {
+    "id": "anim-12",
+    "name": "Sleepy Sloth",
+    "category": "animals",
+    "webpUrl": "/avatars/webp/Sleepy_Sloth.webp",
+    "svgUrl": "/avatars/svg/Sleepy_Sloth.svg"
+  },
+  {
+    "id": "anim-13",
+    "name": "Mighty Lion",
+    "category": "animals",
+    "webpUrl": "/avatars/webp/Mighty_Lion.webp",
+    "svgUrl": "/avatars/svg/Mighty_Lion.svg"
+  },
+  {
+    "id": "anim-14",
+    "name": "Playful Shiba",
+    "category": "animals",
+    "webpUrl": "/avatars/webp/Playful_Shiba.webp",
+    "svgUrl": "/avatars/svg/Playful_Shiba.svg"
+  },
+  {
+    "id": "anim-15",
+    "name": "Mystic Dragon",
+    "category": "animals",
+    "webpUrl": "/avatars/webp/Mystic_Dragon.webp",
+    "svgUrl": "/avatars/svg/Mystic_Dragon.svg"
+  },
+  {
+    "id": "anim-16",
+    "name": "Little Racoon",
+    "category": "animals",
+    "webpUrl": "/avatars/webp/Little_Racoon.webp",
+    "svgUrl": "/avatars/svg/Little_Racoon.svg"
+  },
+  {
+    "id": "anim-17",
+    "name": "Space Hamster",
+    "category": "animals",
+    "webpUrl": "/avatars/webp/Space_Hamster.webp",
+    "svgUrl": "/avatars/svg/Space_Hamster.svg"
+  },
+  {
+    "id": "anim-18",
+    "name": "Royal Frog",
+    "category": "animals",
+    "webpUrl": "/avatars/webp/Royal_Frog.webp",
+    "svgUrl": "/avatars/svg/Royal_Frog.svg"
+  },
+  {
+    "id": "anim-19",
+    "name": "Magic Unicorn",
+    "category": "animals",
+    "webpUrl": "/avatars/webp/Magic_Unicorn.webp",
+    "svgUrl": "/avatars/svg/Magic_Unicorn.svg"
+  },
+  {
+    "id": "anim-20",
+    "name": "Wise Turtle",
+    "category": "animals",
+    "webpUrl": "/avatars/webp/Wise_Turtle.webp",
+    "svgUrl": "/avatars/svg/Wise_Turtle.svg"
+  },
+  {
+    "id": "anim-21",
+    "name": "Majestic Eagle",
+    "category": "animals",
+    "webpUrl": "/avatars/webp/Majestic_Eagle.webp",
+    "svgUrl": "/avatars/svg/Majestic_Eagle.svg"
+  },
+  {
+    "id": "anim-22",
+    "name": "Sneaky Snake",
+    "category": "animals",
+    "webpUrl": "/avatars/webp/Sneaky_Snake.webp",
+    "svgUrl": "/avatars/svg/Sneaky_Snake.svg"
+  },
+  {
+    "id": "anim-23",
+    "name": "Cute Bunny",
+    "category": "animals",
+    "webpUrl": "/avatars/webp/Cute_Bunny.webp",
+    "svgUrl": "/avatars/svg/Cute_Bunny.svg"
+  },
+  {
+    "id": "anim-24",
+    "name": "Fierce Tiger",
+    "category": "animals",
+    "webpUrl": "/avatars/webp/Fierce_Tiger.webp",
+    "svgUrl": "/avatars/svg/Fierce_Tiger.svg"
+  },
+  {
+    "id": "anim-25",
+    "name": "Gentle Elephant",
+    "category": "animals",
+    "webpUrl": "/avatars/webp/Gentle_Elephant.webp",
+    "svgUrl": "/avatars/svg/Gentle_Elephant.svg"
+  },
+  {
+    "id": "anim-26",
+    "name": "Playful Monkey",
+    "category": "animals",
+    "webpUrl": "/avatars/webp/Playful_Monkey.webp",
+    "svgUrl": "/avatars/svg/Playful_Monkey.svg"
+  },
+  {
+    "id": "anim-27",
+    "name": "Sleepy Sheep",
+    "category": "animals",
+    "webpUrl": "/avatars/webp/Sleepy_Sheep.webp",
+    "svgUrl": "/avatars/svg/Sleepy_Sheep.svg"
+  },
+  {
+    "id": "anim-28",
+    "name": "Noble Horse",
+    "category": "animals",
+    "webpUrl": "/avatars/webp/Noble_Horse.webp",
+    "svgUrl": "/avatars/svg/Noble_Horse.svg"
+  },
+  {
+    "id": "anim-29",
+    "name": "Cheerful Dolphin",
+    "category": "animals",
+    "webpUrl": "/avatars/webp/Cheerful_Dolphin.webp",
+    "svgUrl": "/avatars/svg/Cheerful_Dolphin.svg"
+  },
+  {
+    "id": "anim-30",
+    "name": "Wise Walrus",
+    "category": "animals",
+    "webpUrl": "/avatars/webp/Wise_Walrus.webp",
+    "svgUrl": "/avatars/svg/Wise_Walrus.svg"
+  },
+  {
+    "id": "anim-31",
+    "name": "Quirky Chameleon",
+    "category": "animals",
+    "webpUrl": "/avatars/webp/Quirky_Chameleon.webp",
+    "svgUrl": "/avatars/svg/Quirky_Chameleon.svg"
+  },
+  {
+    "id": "anim-32",
+    "name": "Busy Beaver",
+    "category": "animals",
+    "webpUrl": "/avatars/webp/Busy_Beaver.webp",
+    "svgUrl": "/avatars/svg/Busy_Beaver.svg"
+  },
+  {
+    "id": "anim-33",
+    "name": "Spooky Bat",
+    "category": "animals",
+    "webpUrl": "/avatars/webp/Spooky_Bat.webp",
+    "svgUrl": "/avatars/svg/Spooky_Bat.svg"
+  },
+  {
+    "id": "anim-34",
+    "name": "Friendly Cow",
+    "category": "animals",
+    "webpUrl": "/avatars/webp/Friendly_Cow.webp",
+    "svgUrl": "/avatars/svg/Friendly_Cow.svg"
+  },
+  {
+    "id": "anim-35",
+    "name": "Desert Camel",
+    "category": "animals",
+    "webpUrl": "/avatars/webp/Desert_Camel.webp",
+    "svgUrl": "/avatars/svg/Desert_Camel.svg"
+  }
+]

@@ -1,5 +1,0 @@
-request={"mutations":[{"mutationId":"test-mutation","habitId":"test-habit","type":"create","name":"Read","reminderTime":null}]}
-requestKeyPreserved=true
-responseVersion=3
-responseAcknowledged=[test-mutation]
-contract=PASS

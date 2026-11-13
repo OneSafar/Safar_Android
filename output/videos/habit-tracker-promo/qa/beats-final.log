@@ -1,0 +1,84 @@
+◆  Capturing 36 frames at [0s, 0.417s, 0.833s, 1.25s, 1.667s, 2.083s, 2.5s, 2.917s, 3.333s, 3.75s, 4.167s, 4.583s, 5s, 5.417s, 5.833s, 6.25s, 6.667s, 7.083s, 7.5s, 7.917s, 8.333s, 8.75s, 9.167s, 9.583s, 10s, 10.417s, 10.833s, 11.25s, 11.667s, 12.083s, 12.5s, 12.917s, 13.333s, 13.75s, 14.167s, 14.583s] from habit-tracker-promo
+[hyperframes] browserGpuMode probe → hardware (WebGL renderer vendor="Google Inc. (Apple)" renderer="ANGLE (Apple, ANGLE Metal Renderer: Apple M5, Unspecified Version)")
+
+   Fonts: 2 loaded
+[hyperframes] snapshot: frame 1/36 at 0s
+[hyperframes] snapshot: frame 2/36 at 0.416667s
+[hyperframes] snapshot: frame 3/36 at 0.833333s
+[hyperframes] snapshot: frame 4/36 at 1.25s
+[hyperframes] snapshot: frame 5/36 at 1.666667s
+[hyperframes] snapshot: frame 6/36 at 2.083333s
+[hyperframes] snapshot: frame 7/36 at 2.5s
+[hyperframes] snapshot: frame 8/36 at 2.916667s
+[hyperframes] snapshot: frame 9/36 at 3.333333s
+[hyperframes] snapshot: frame 10/36 at 3.75s
+[hyperframes] snapshot: frame 11/36 at 4.166667s
+[hyperframes] snapshot: frame 12/36 at 4.583333s
+[hyperframes] snapshot: frame 13/36 at 5s
+[hyperframes] snapshot: frame 14/36 at 5.416667s
+[hyperframes] snapshot: frame 15/36 at 5.833333s
+[hyperframes] snapshot: frame 16/36 at 6.25s
+[hyperframes] snapshot: frame 17/36 at 6.666667s
+[hyperframes] snapshot: frame 18/36 at 7.083333s
+[hyperframes] snapshot: frame 19/36 at 7.5s
+[hyperframes] snapshot: frame 20/36 at 7.916667s
+[hyperframes] snapshot: frame 21/36 at 8.333333s
+[hyperframes] snapshot: frame 22/36 at 8.75s
+[hyperframes] snapshot: frame 23/36 at 9.166667s
+[hyperframes] snapshot: frame 24/36 at 9.583333s
+[hyperframes] snapshot: frame 25/36 at 10s
+[hyperframes] snapshot: frame 26/36 at 10.416667s
+[hyperframes] snapshot: frame 27/36 at 10.833333s
+[hyperframes] snapshot: frame 28/36 at 11.25s
+[hyperframes] snapshot: frame 29/36 at 11.666667s
+[hyperframes] snapshot: frame 30/36 at 12.083333s
+[hyperframes] snapshot: frame 31/36 at 12.5s
+[hyperframes] snapshot: frame 32/36 at 12.916667s
+[hyperframes] snapshot: frame 33/36 at 13.333333s
+[hyperframes] snapshot: frame 34/36 at 13.75s
+[hyperframes] snapshot: frame 35/36 at 14.166667s
+[hyperframes] snapshot: frame 36/36 at 14.583333s
+   Revision: none (inputs-changed)
+   State: /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/.hyperframes/video-state.json
+
+◇  36 snapshots saved to /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-00-at-0s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-01-at-0.417s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-02-at-0.833s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-03-at-1.25s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-04-at-1.667s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-05-at-2.083s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-06-at-2.5s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-07-at-2.917s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-08-at-3.333s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-09-at-3.75s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-10-at-4.167s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-11-at-4.583s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-12-at-5s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-13-at-5.417s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-14-at-5.833s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-15-at-6.25s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-16-at-6.667s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-17-at-7.083s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-18-at-7.5s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-19-at-7.917s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-20-at-8.333s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-21-at-8.75s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-22-at-9.167s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-23-at-9.583s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-24-at-10s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-25-at-10.417s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-26-at-10.833s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-27-at-11.25s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-28-at-11.667s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-29-at-12.083s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-30-at-12.5s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-31-at-12.917s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-32-at-13.333s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-33-at-13.75s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-34-at-14.167s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/frame-35-at-14.583s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/contact-sheet-1.jpg (grid view for AI review)
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/contact-sheet-2.jpg (grid view for AI review)
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/contact-sheet-3.jpg (grid view for AI review)
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/beats-final/contact-sheet-4.jpg (grid view for AI review)

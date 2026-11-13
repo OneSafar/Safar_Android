@@ -1,5 +1,8 @@
 package com.safarparmar.app.ui.ekagra.focusshield
 
+import com.safarparmar.app.ui.theme.RoyalPurpleSoft
+import com.safarparmar.app.ui.theme.RoyalPurpleSoftDark
+
 import com.safarparmar.app.ui.theme.BgDark
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -27,7 +30,7 @@ internal object KavachCommandWorkspaceColors {
     val TextDark @Composable get() = if (isPlannerDark) Color(0xFFFFF0F6) else Color(0xFF39132E)
     val TextMuted @Composable get() = if (isPlannerDark) Color(0xFFCFBECB) else Color(0xFF75616F)
     val BorderSoft @Composable get() = if (isPlannerDark) Color(0xFF654D66) else Color(0xFFE8DEE5)
-    val Peach @Composable get() = if (isPlannerDark) Color(0xFF684047) else Color(0xFFFFE3D8)
+    val Peach @Composable get() = if (isPlannerDark) RoyalPurpleSoftDark else RoyalPurpleSoft
 }
 
 @Composable

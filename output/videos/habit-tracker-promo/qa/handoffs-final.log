@@ -1,0 +1,25 @@
+◆  Capturing 8 frames at [4.8s, 4.9s, 4.967s, 5s, 12.3s, 12.4s, 12.467s, 12.5s] from habit-tracker-promo
+[hyperframes] browserGpuMode probe → hardware (WebGL renderer vendor="Google Inc. (Apple)" renderer="ANGLE (Apple, ANGLE Metal Renderer: Apple M5, Unspecified Version)")
+
+   Fonts: 2 loaded
+[hyperframes] snapshot: frame 1/8 at 4.8s
+[hyperframes] snapshot: frame 2/8 at 4.9s
+[hyperframes] snapshot: frame 3/8 at 4.967s
+[hyperframes] snapshot: frame 4/8 at 5s
+[hyperframes] snapshot: frame 5/8 at 12.3s
+[hyperframes] snapshot: frame 6/8 at 12.4s
+[hyperframes] snapshot: frame 7/8 at 12.467s
+[hyperframes] snapshot: frame 8/8 at 12.5s
+   Revision: none (inputs-changed)
+   State: /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/.hyperframes/video-state.json
+
+◇  8 snapshots saved to /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/handoffs-final
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/handoffs-final/frame-00-at-4.8s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/handoffs-final/frame-01-at-4.9s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/handoffs-final/frame-02-at-4.967s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/handoffs-final/frame-03-at-5s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/handoffs-final/frame-04-at-12.3s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/handoffs-final/frame-05-at-12.4s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/handoffs-final/frame-06-at-12.467s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/handoffs-final/frame-07-at-12.5s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/handoffs-final/contact-sheet.jpg (grid view for AI review)

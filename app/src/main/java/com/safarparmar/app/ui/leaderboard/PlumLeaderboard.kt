@@ -1,5 +1,10 @@
 package com.safarparmar.app.ui.leaderboard
 
+import com.safarparmar.app.ui.theme.RoyalPurple
+import com.safarparmar.app.ui.theme.RoyalPurpleDark
+import com.safarparmar.app.ui.theme.RoyalPurpleSoft
+import com.safarparmar.app.ui.theme.RoyalPurpleSoftDark
+
 import com.safarparmar.app.ui.theme.BgDark
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -50,14 +55,14 @@ internal data class LeaderboardColors(val canvas: Color, val paper: Color, val i
     val muted: Color, val line: Color, val peach: Color, val lavender: Color, val accent: Color)
 @Composable
 internal fun leaderboardColors(dark: Boolean) = LeaderboardColors(
-    if (dark) BgDark else Color(0xFFFFF5F0),
+    if (dark) BgDark else Color(0xFFFAF8FF),
     if (dark) Color(0xFF342735) else Color(0xFFFFFDFC),
-    if (dark) Color(0xFFFFF0F6) else Color(0xFF39132E),
+    if (dark) Color(0xFFFFF0F6) else Color(0xFF241544),
     if (dark) Color(0xFFCFBECB) else Color(0xFF75616F),
     if (dark) Color(0xFF654D66) else Color(0xFFE8DEE5),
-    if (dark) Color(0xFF684047) else Color(0xFFFFCBBE),
-    if (dark) Color(0xFF513551) else Color(0xFFEDE0F4),
-    if (dark) Color(0xFFF0BEDC) else Color(0xFF542347),
+    if (dark) RoyalPurpleSoftDark else RoyalPurpleSoft,
+    if (dark) RoyalPurpleSoftDark else RoyalPurpleSoft,
+    if (dark) RoyalPurpleDark else RoyalPurple,
 )
 
 @Composable
@@ -115,7 +120,7 @@ internal fun PlumLeaderboard(data: WeeklyLeaderboardResponseDto, page: Int, curr
 
 @Composable
 private fun PlumPodium(data: WeeklyLeaderboardResponseDto, c: LeaderboardColors) {
-    val stage = Color(0xFF421735)
+    val stage = RoyalPurple
     Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(stage).drawBehind {
         val arch = Path().apply {
             moveTo(size.width * .35f, size.height)
@@ -142,7 +147,7 @@ private fun PlumPodium(data: WeeklyLeaderboardResponseDto, c: LeaderboardColors)
                             tint = Color(0xFFF4C95D), modifier = Modifier.size(30.dp))
                         Spacer(Modifier.height(4.dp))
                     }
-                    LeaderboardAvatar(entry, if (rank == 1) 72 else 56, Color(0xFFFFF5F0), c)
+                    LeaderboardAvatar(entry, if (rank == 1) 72 else 56, Color(0xFFFAF8FF), c)
                     Spacer(Modifier.height(8.dp))
                     Text(entry?.name?.takeIf { it.isNotBlank() } ?: "—", color = Color.White, fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center,
@@ -152,9 +157,9 @@ private fun PlumPodium(data: WeeklyLeaderboardResponseDto, c: LeaderboardColors)
                     Spacer(Modifier.height(10.dp))
                     Box(Modifier.fillMaxWidth().height(if (rank == 1) 88.dp else if (rank == 2) 68.dp else 58.dp)
                         .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
-                        .background(if (rank == 2) Color(0xFFE1D5F0) else Color(0xFFFFCBBE)), contentAlignment = Alignment.TopCenter) {
+                        .background(if (rank == 2) Color(0xFFE1D5F0) else RoyalPurpleSoft), contentAlignment = Alignment.TopCenter) {
                         Text(rank.toString(), Modifier.padding(top = 12.dp).border(1.dp, Color(0xFF9B6886), RoundedCornerShape(10.dp))
-                            .padding(horizontal = 12.dp, vertical = 4.dp), color = Color(0xFF542347), fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                            .padding(horizontal = 12.dp, vertical = 4.dp), color = RoyalPurple, fontSize = 22.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }

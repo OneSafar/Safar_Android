@@ -16,11 +16,31 @@ import javax.inject.Singleton
 object YoutubeStudyV2Module {
     @Provides
     @Singleton
-    fun database(@ApplicationContext context: Context): YoutubeStudyV2Database = Room
+    fun backupStore(@ApplicationContext context: Context): YoutubeAllowlistBackupStore =
+        YoutubeAllowlistBackupStore(java.io.File(context.filesDir, YoutubeAllowlistBackupStore.FILE_NAME))
+
+    @Provides
+    @Singleton
+    fun database(
+        @ApplicationContext context: Context,
+        backupStore: YoutubeAllowlistBackupStore,
+    ): YoutubeStudyV2Database = Room
         .databaseBuilder(context, YoutubeStudyV2Database::class.java, YoutubeStudyV2Database.NAME)
-        .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
-        .fallbackToDestructiveMigration()
+        .addMigrations(*ALL_MIGRATIONS)
+        // Every upgrade path has an explicit migration, so a missing one fails
+        // loudly in tests instead of silently wiping saved channels. Only a
+        // downgrade (installing an older APK) may recreate the database, and
+        // the restore callback then copies the channels back.
+        .fallbackToDestructiveMigrationOnDowngrade(dropAllTables = true)
+        .addCallback(YoutubeAllowlistRestoreCallback(backupStore))
         .build()
+
+    /** Upgrade path 1 -> current. A getter, so it never sees uninitialised properties. */
+    internal val ALL_MIGRATIONS: Array<Migration>
+        get() = arrayOf(
+            MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5,
+            MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9,
+        )
 
     private val MIGRATION_1_2 = object : Migration(1, 2) {
         override fun migrate(db: SupportSQLiteDatabase) {
@@ -133,5 +153,6 @@ object YoutubeStudyV2Module {
     fun repository(
         database: YoutubeStudyV2Database,
         dao: YoutubeStudyV2Dao,
-    ): YoutubeStudyV2Repository = YoutubeStudyV2Repository(database, dao)
+        backupStore: YoutubeAllowlistBackupStore,
+    ): YoutubeStudyV2Repository = YoutubeStudyV2Repository(database, dao, backupStore)
 }

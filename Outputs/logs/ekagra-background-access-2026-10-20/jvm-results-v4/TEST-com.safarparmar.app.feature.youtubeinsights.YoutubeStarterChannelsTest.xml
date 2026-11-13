@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.safarparmar.app.feature.youtubeinsights.YoutubeStarterChannelsTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-20T05:52:06.478Z" hostname="Shashanks-MacBook-Air.local" time="0.001">
-  <properties/>
-  <testcase name="starter list contains the six approved channels with unique normalized keys" classname="com.safarparmar.app.feature.youtubeinsights.YoutubeStarterChannelsTest" time="0.001"/>
-  <system-out><![CDATA[]]></system-out>
-  <system-err><![CDATA[]]></system-err>
-</testsuite>

@@ -1,5 +1,8 @@
 package com.safarparmar.app.ui.drawer
 
+import com.safarparmar.app.ui.theme.RoyalPurpleSoft
+import com.safarparmar.app.ui.theme.RoyalPurpleSoftDark
+
 import com.safarparmar.app.ui.theme.BgDark
 import androidx.compose.foundation.border
 import com.safarparmar.app.ui.components.LanguageSelectionDialog
@@ -87,7 +90,7 @@ internal fun sidebarAreas(): List<SidebarArea> {
         SidebarArea(Routes.STUDY_HUB, R.string.rail_study, R.string.sidebar_study_hint, Icons.AutoMirrored.Filled.MenuBook,
             study.filterNot { it.route == Routes.LEADERBOARD }),
         SidebarArea(Routes.WELLBEING_HUB, R.string.sidebar_section_wellbeing, R.string.sidebar_wellbeing_hint, Icons.Default.Spa,
-            other.filter { it.route in setOf(Routes.NISHTHA, Routes.DHYAN, Routes.LIVE_SESSIONS_ROOT) }),
+            other.filter { it.route in setOf(Routes.NISHTHA, Routes.DHYAN, Routes.CALM_CENTRE, Routes.LIVE_SESSIONS_ROOT) }),
         SidebarArea(Routes.COMMUNITY_HUB, R.string.rail_community, R.string.sidebar_community_hint, Icons.Default.Groups,
             other.filter { it.route in setOf(Routes.MEHFIL, Routes.STUDY_CIRCLES) } + study.filter { it.route == Routes.LEADERBOARD }),
         SidebarArea(Routes.PROGRESS_HUB, R.string.sidebar_progress, R.string.sidebar_progress_hint, Icons.Default.BarChart,
@@ -105,8 +108,8 @@ internal fun selectedSidebarArea(route: String): String? {
 }
 
 private data class SidebarColors(val canvas: Color, val paper: Color, val ink: Color, val muted: Color, val peach: Color, val selection: Color, val line: Color)
-private fun sidebarColors(dark: Boolean) = if (dark) SidebarColors(BgDark, Color(0xFF342735), Color(0xFFFFF0F6), Color(0xFFCFBECB), Color(0xFF684047), Color(0xFF513551), Color(0xFF654D66))
-else SidebarColors(Color(0xFFFFF5F0), Color(0xFFFFFDFC), Color(0xFF39132E), Color(0xFF75616F), Color(0xFFFFCBBE), Color(0xFFEDE0F4), Color(0xFFE8DEE5))
+private fun sidebarColors(dark: Boolean) = if (dark) SidebarColors(BgDark, Color(0xFF342735), Color(0xFFFFF0F6), Color(0xFFCFBECB), RoyalPurpleSoftDark, RoyalPurpleSoftDark, Color(0xFF654D66))
+else SidebarColors(Color(0xFFFAF8FF), Color(0xFFFFFDFC), Color(0xFF241544), Color(0xFF75616F), RoyalPurpleSoft, RoyalPurpleSoft, Color(0xFFE8DEE5))
 
 @Composable
 fun SafarDrawer(currentRoute: String, isDarkTheme: Boolean, isAdmin: Boolean, isPremiumActive: Boolean,

@@ -1,4 +1,7 @@
 package com.safarparmar.app.ui.ekagra.focusshield
+
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import com.safarparmar.app.ui.ekagra.focusshield.KavachCommandButton as Button
 import com.safarparmar.app.ui.ekagra.focusshield.KavachCommandOutlineButton as OutlinedButton
 import com.safarparmar.app.ui.ekagra.focusshield.KavachCommandTextButton as TextButton
@@ -755,28 +758,39 @@ internal fun FocusProtectionSwitchCard(
     onOpenSetup: (() -> Unit)? = null,
 ) {
     val hero = icon == Icons.Default.Shield
-    val surface = if (hero) KavachDesign.PrimaryDark else MaterialTheme.colorScheme.surface
-    val ink = if (hero) Color.White else KavachDesign.TextMain
+    val surface = if (hero) com.safarparmar.app.ui.theme.RoyalPurple else com.safarparmar.app.ui.theme.RoyalPurpleSoft
+    val ink = if (hero) Color.White else com.safarparmar.app.ui.theme.RoyalPurpleInk
     Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(containerColor = surface),
-        border = BorderStroke(1.dp, KavachDesign.Border)) {
+        border = BorderStroke(1.dp, com.safarparmar.app.ui.theme.RoyalPurple.copy(alpha = .18f))) {
         Row(Modifier.fillMaxWidth().padding(18.dp), verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-            Box(Modifier.size(46.dp).background(if (hero) Color(0xFFFFCBBE) else MaterialTheme.colorScheme.primaryContainer,
+            Box(Modifier.size(46.dp).background(if (hero) com.safarparmar.app.ui.theme.RoyalPurpleSoft else Color.White,
                 RoundedCornerShape(14.dp)), contentAlignment = Alignment.Center) {
-                Icon(icon, contentDescription = null, tint = KavachDesign.PrimaryDark, modifier = Modifier.size(26.dp))
+                Icon(icon, contentDescription = null, tint = com.safarparmar.app.ui.theme.RoyalPurple, modifier = Modifier.size(26.dp))
             }
             Column(Modifier.weight(1f).then(if (onOpenSetup != null) Modifier.clickable(onClick = onOpenSetup) else Modifier)) {
                 Text(title, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = ink)
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                    Box(Modifier.size(6.dp).background(if (checked) Color(0xFF8EAD7C) else ink.copy(alpha = .45f), CircleShape))
+                    Box(Modifier.size(6.dp).background(if (checked) com.safarparmar.app.ui.theme.RoyalPurpleDark else ink.copy(alpha = .45f), CircleShape))
                     Text(stringResource(if (checked) R.string.common_on else R.string.common_off),
                         fontSize = 12.sp, color = ink.copy(alpha = .8f))
                 }
                 if (onOpenSetup != null) Text(stringResource(R.string.youtube_study_mode_configure),
-                    fontSize = 12.sp, color = KavachDesign.Primary)
+                    fontSize = 12.sp, color = com.safarparmar.app.ui.theme.RoyalPurple)
             }
-            com.composables.ui.components.Switch(checked = checked, onCheckedChange = onToggle, accessibilityLabel = title)
+            Switch(
+                checked = checked, onCheckedChange = onToggle,
+                modifier = Modifier.semantics { contentDescription = title },
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = Color.White,
+                    checkedTrackColor = if (hero) com.safarparmar.app.ui.theme.RoyalPurpleDark else com.safarparmar.app.ui.theme.RoyalPurple,
+                    checkedBorderColor = Color.Transparent,
+                    uncheckedThumbColor = com.safarparmar.app.ui.theme.RoyalPurple,
+                    uncheckedTrackColor = com.safarparmar.app.ui.theme.RoyalPurpleSoft,
+                    uncheckedBorderColor = com.safarparmar.app.ui.theme.RoyalPurple.copy(alpha = .35f),
+                ),
+            )
         }
     }
 }

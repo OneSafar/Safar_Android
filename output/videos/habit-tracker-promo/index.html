@@ -1,0 +1,18 @@
+<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=1920,height=1080"><title>Habit Tracker — Your day. In sync.</title>
+<script src="lib/gsap.min.js"></script><style>
+@font-face{font-family:CampaignDisplay;src:url('assets/fonts/Anton-Regular.ttf')}
+@font-face{font-family:WorkUI;src:url('assets/fonts/WorkSans-Regular.ttf')}
+*{margin:0;box-sizing:border-box}html,body{width:1920px;height:1080px;overflow:hidden;background:#F6F2E8}#root{position:relative;width:100%;height:100%}.clip{position:absolute;inset:0;width:100%;height:100%}
+</style><script src="lib/motion.js"></script></head><body>
+<div data-hf-id="hf-zopc" id="root" data-composition-id="main" data-start="0" data-duration="15" data-width="1920" data-height="1080" data-fps="30"><div data-hf-id="hf-ur89" id="goals" class="clip" data-composition-id="goals" data-composition-src="compositions/goals.html" data-start="0.0" data-duration="2.5" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+<div data-hf-id="hf-o9mb" id="time" class="clip" data-composition-id="time" data-composition-src="compositions/time.html" data-start="2.5" data-duration="2.5" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+<div data-hf-id="hf-6or0" id="link" class="clip" data-composition-id="link" data-composition-src="compositions/link.html" data-start="5.0" data-duration="2.5" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+<div data-hf-id="hf-vxp2" id="track" class="clip" data-composition-id="track" data-composition-src="compositions/track.html" data-start="7.5" data-duration="2.5" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+<div data-hf-id="hf-k0z6" id="balance" class="clip" data-composition-id="balance" data-composition-src="compositions/balance.html" data-start="10.0" data-duration="2.5" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+<div data-hf-id="hf-daxr" id="close" class="clip" data-composition-id="close" data-composition-src="compositions/close.html" data-start="12.5" data-duration="2.5" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+<audio data-hf-id="hf-vnqj" id="music-score" class="clip" src="assets/audio/score.wav" data-start="0" data-duration="15" data-track-index="2" data-timeline-role="music" data-volume="1"></audio>
+</div><script>
+window.__timelines=window.__timelines||{};window.__timelines.main=gsap.timeline({paused:true});
+window.__hf=window.__hf||{};window.__hf.buildReady=window.__hf.buildReady||{};
+window.__hf.buildReady.assets=Promise.all([window.HabitAssetsReady,document.fonts.load('400 200px CampaignDisplay'),document.fonts.load('400 64px WorkUI')]).then(()=>window.seek(0));
+</script></body></html>

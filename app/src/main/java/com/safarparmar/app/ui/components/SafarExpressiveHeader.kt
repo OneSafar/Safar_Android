@@ -1,5 +1,7 @@
 package com.safarparmar.app.ui.components
 
+import com.safarparmar.app.ui.theme.RoyalPurple
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -27,7 +29,7 @@ fun SafarExpressiveHeader(
     onBackClick: (() -> Unit)? = null
 ) {
     val isDark = isSystemInDarkTheme()
-    val bgColor = if (isDark) Color(0xFF3B0764) else Color(0xFF581C87)
+    val bgColor = if (isDark) Color(0xFF3B0764) else RoyalPurple
 
     Column(
         modifier = modifier

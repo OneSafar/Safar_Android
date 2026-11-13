@@ -1,5 +1,10 @@
 package com.safarparmar.app.ui.nishtha
 
+import com.safarparmar.app.ui.theme.RoyalPurple
+import com.safarparmar.app.ui.theme.RoyalPurpleDark
+import com.safarparmar.app.ui.theme.RoyalPurpleSoft
+import com.safarparmar.app.ui.theme.RoyalPurpleSoftDark
+
 import com.safarparmar.app.ui.theme.BgDark
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -25,10 +30,10 @@ internal data class NishthaWarmColors(val canvas: Color, val paper: Color, val i
     val calendarCell: Color get() = if (canvas == BgDark) Color(0xFF211921) else canvas
 }
 internal fun nishthaWarmColors(light: Boolean) = if (light) NishthaWarmColors(
-    Color(0xFFFFF5F0), Color(0xFFFFFDFC), Color(0xFF39132E), Color(0xFF75616F),
-    Color(0xFF542347), Color.White, Color(0xFFFFCBBE), Color(0xFFEDE0F4), Color(0xFFC9EFE0), Color(0xFFE8DEE5))
+    Color(0xFFFAF8FF), Color(0xFFFFFDFC), Color(0xFF241544), Color(0xFF75616F),
+    RoyalPurple, Color.White, RoyalPurpleSoft, RoyalPurpleSoft, Color(0xFFC9EFE0), Color(0xFFE8DEE5))
 else NishthaWarmColors(BgDark, Color(0xFF342735), Color(0xFFFFF0F6), Color(0xFFCFBECB),
-    Color(0xFFF0BEDC), Color(0xFF39132E), Color(0xFF684047), Color(0xFF513551), Color(0xFF28574D), Color(0xFF654D66))
+    RoyalPurpleDark, Color(0xFF241544), RoyalPurpleSoftDark, RoyalPurpleSoftDark, Color(0xFF28574D), Color(0xFF654D66))
 
 @Composable
 internal fun NishthaWarmTheme(light: Boolean, content: @Composable () -> Unit) {

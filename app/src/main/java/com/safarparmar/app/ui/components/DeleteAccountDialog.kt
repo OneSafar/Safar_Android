@@ -140,6 +140,8 @@ fun DeleteAccountDialog(
                         },
                         shape = RoundedCornerShape(10.dp),
                         colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = PlannerFlatColors.TextDark,
+                            unfocusedTextColor = PlannerFlatColors.TextDark,
                             focusedBorderColor = DestructiveRed,
                             unfocusedBorderColor = PlannerFlatColors.BorderSoft,
                             cursorColor = DestructiveRed,

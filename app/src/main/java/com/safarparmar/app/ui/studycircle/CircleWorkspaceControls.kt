@@ -1,5 +1,9 @@
 package com.safarparmar.app.ui.studycircle
 
+import com.safarparmar.app.ui.theme.RoyalPurple
+import com.safarparmar.app.ui.theme.RoyalPurpleSoft
+import com.safarparmar.app.ui.theme.RoyalPurpleSoftDark
+
 import com.safarparmar.app.ui.theme.BgDark
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -22,19 +26,19 @@ import com.safarparmar.app.ui.theme.LocalSafarComposablesAccent
 import androidx.compose.runtime.CompositionLocalProvider
 
 internal object CircleWorkspaceColors {
-    val BgCream @Composable get() = if (isPlannerDark) BgDark else Color(0xFFFFF5F0)
+    val BgCream @Composable get() = if (isPlannerDark) BgDark else Color(0xFFFAF8FF)
     // Preserve component fills independently of the screen canvas.
-    val ComponentBackground @Composable get() = if (isPlannerDark) Color(0xFF211921) else Color(0xFFFFF5F0)
+    val ComponentBackground @Composable get() = if (isPlannerDark) Color(0xFF211921) else Color(0xFFFAF8FF)
     val CardWhite @Composable get() = if (isPlannerDark) Color(0xFF342735) else Color(0xFFFFFDFC)
-    val TextDark @Composable get() = if (isPlannerDark) Color(0xFFFFF0F6) else Color(0xFF39132E)
+    val TextDark @Composable get() = if (isPlannerDark) Color(0xFFFFF0F6) else Color(0xFF241544)
     val TextMuted @Composable get() = if (isPlannerDark) Color(0xFFCFBECB) else Color(0xFF75616F)
     val BorderSoft @Composable get() = if (isPlannerDark) Color(0xFF654D66) else Color(0xFFE8DEE5)
-    val Peach @Composable get() = if (isPlannerDark) Color(0xFF684047) else Color(0xFFFFE3D8)
+    val Peach @Composable get() = if (isPlannerDark) RoyalPurpleSoftDark else RoyalPurpleSoft
 }
 
 @Composable
 internal fun CircleButton(onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true,
-    shape: Shape = RoundedCornerShape(14.dp), colors: ButtonColors = ButtonDefaults.buttonColors(containerColor = Color(0xFF542347), contentColor = Color.White),
+    shape: Shape = RoundedCornerShape(14.dp), colors: ButtonColors = ButtonDefaults.buttonColors(containerColor = RoyalPurple, contentColor = Color.White),
     contentPadding: PaddingValues = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
     border: BorderStroke? = null, content: @Composable RowScope.() -> Unit) {
     CircleControl(onClick, modifier, enabled, shape, colors, contentPadding, ButtonStyle.Primary, content)
@@ -55,7 +59,7 @@ internal fun CircleTextButton(onClick: () -> Unit, modifier: Modifier = Modifier
 @Composable
 private fun CircleControl(onClick: () -> Unit, modifier: Modifier, enabled: Boolean, shape: Shape,
     colors: ButtonColors, padding: PaddingValues, style: ButtonStyle, content: @Composable RowScope.() -> Unit) {
-    CompositionLocalProvider(LocalSafarComposablesAccent provides Color(0xFF542347)) {
+    CompositionLocalProvider(LocalSafarComposablesAccent provides RoyalPurple) {
         SafarComposablesTheme {
             Button(onClick = onClick, enabled = enabled, style = if (style == ButtonStyle.Primary) ButtonStyle.Ghost else style, shape = shape,
                 modifier = modifier.heightIn(min = 48.dp).then(if (style == ButtonStyle.Primary) Modifier.background(
@@ -81,7 +85,7 @@ internal fun CircleAlert(onDismissRequest: () -> Unit, confirmButton: @Composabl
 
 @Composable
 internal fun CircleTheme(content: @Composable () -> Unit) {
-    CompositionLocalProvider(LocalSafarComposablesAccent provides Color(0xFF542347)) {
+    CompositionLocalProvider(LocalSafarComposablesAccent provides RoyalPurple) {
         SafarComposablesTheme { content() }
     }
 }

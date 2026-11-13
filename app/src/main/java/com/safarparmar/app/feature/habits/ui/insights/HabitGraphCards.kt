@@ -1,5 +1,8 @@
 package com.safarparmar.app.feature.habits.ui.insights
 
+import com.safarparmar.app.ui.theme.RoyalPurpleMid
+import com.safarparmar.app.ui.theme.RoyalPurple
+
 import androidx.compose.ui.platform.LocalLocale
 
 import androidx.compose.foundation.background
@@ -44,7 +47,7 @@ fun HabitBarHistogramCard(
     dailyStats: List<DailyHabitStats>,
     today: LocalDate = LocalDate.now(),
     icon: ImageVector = Icons.AutoMirrored.Rounded.MenuBook,
-    cardColor: Color = Color(0xFF542347), // Shared plum accent
+    cardColor: Color = RoyalPurple, // Shared plum accent
     onEditClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
@@ -201,7 +204,7 @@ fun HabitLineSparklineCard(
     dailyStats: List<DailyHabitStats>,
     today: LocalDate = LocalDate.now(),
     icon: ImageVector = Icons.Rounded.WaterDrop,
-    cardColor: Color = Color(0xFF793D67),
+    cardColor: Color = RoyalPurpleMid,
     onEditClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
@@ -235,7 +238,7 @@ fun HabitWeeklyRhythmCard(
     dailyStats: List<DailyHabitStats>,
     today: LocalDate = LocalDate.now(),
     title: String = "Weekly Rhythm",
-    cardColor: Color = Color(0xFF542347),
+    cardColor: Color = RoyalPurple,
     onEditClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {

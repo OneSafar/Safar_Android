@@ -69,3 +69,11 @@ data class GoogleLoginRequest(
     val utmMedium: String? = null,
     val utmCampaign: String? = null
 )
+
+data class AvatarDto(
+    @SerializedName("id") val id: String = "",
+    @SerializedName("name") val name: String = "",
+    @SerializedName("category") val category: String = "",
+    @SerializedName("webpUrl") val webpUrl: String = "",
+    @SerializedName("svgUrl") val svgUrl: String? = null,
+)

@@ -1,5 +1,8 @@
 package com.safarparmar.app.ui.onboarding
 
+import com.safarparmar.app.ui.theme.RoyalPurple
+import com.safarparmar.app.ui.theme.RoyalPurpleSoft
+
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -31,7 +34,7 @@ import com.composables.ui.components.Text
 import com.safarparmar.app.R
 import com.safarparmar.app.ui.theme.PoppinsFontFamily
 
-internal val EditorialPlum = Color(0xFF421735)
+internal val EditorialPlum = RoyalPurple
 
 /** Header shared only by the redesigned signup, recovery, and questionnaire states. */
 @Composable
@@ -65,10 +68,10 @@ internal fun EditorialHeader(title: String, modifier: Modifier = Modifier, onBac
 }
 
 /** Tutorial-style geometry, cached and static, with no bitmap or interaction surface. */
-internal fun Modifier.editorialCornerArtwork(bottomCorrectionPx: Float = 0f): Modifier = drawWithCache {
+internal fun Modifier.editorialCornerArtwork(bottomCorrectionPx: Float = 0f, insetArtwork: Boolean = false): Modifier = drawWithCache {
     // The app-level IME padding can shrink this layer. Keep the artwork at the
     // physical window bottom, where the keyboard naturally occludes it.
-    val bottom = size.height + bottomCorrectionPx.coerceAtLeast(0f)
+    val bottom = if (insetArtwork) size.height - 16.dp.toPx() else size.height + bottomCorrectionPx.coerceAtLeast(0f)
     val leaf = Path().apply {
         moveTo(45.dp.toPx(), bottom)
         quadraticTo(6.dp.toPx(), bottom - 46.dp.toPx(), 17.dp.toPx(), bottom - 64.dp.toPx())
@@ -78,7 +81,7 @@ internal fun Modifier.editorialCornerArtwork(bottomCorrectionPx: Float = 0f): Mo
         quadraticTo(72.dp.toPx(), bottom - 7.dp.toPx(), 45.dp.toPx(), bottom)
     }
     onDrawBehind {
-        drawCircle(Color(0xFFFFCBBE), 64.dp.toPx(), Offset(-28.dp.toPx(), bottom + 8.dp.toPx()))
+        drawCircle(RoyalPurpleSoft, 64.dp.toPx(), Offset(-28.dp.toPx(), bottom + 8.dp.toPx()))
         drawCircle(EditorialPlum, 76.dp.toPx(), Offset(-28.dp.toPx(), bottom + 8.dp.toPx()), style = Stroke(1.dp.toPx()))
         drawPath(leaf, Color(0xFF8EAD7C))
     }
@@ -87,6 +90,10 @@ internal fun Modifier.editorialCornerArtwork(bottomCorrectionPx: Float = 0f): Mo
 @Composable
 internal fun EditorialAuthPage(title: String, onBack: (() -> Unit)? = null, showLogo: Boolean = false,
     content: @Composable ColumnScope.() -> Unit) {
+    if (showLogo && onBack == null) {
+        EditorialLoginPage(title, content)
+        return
+    }
     Column(Modifier.widthIn(max = 600.dp).fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
         // Fixed chrome: scrolling and focused-field relocation apply only to the form below.
         EditorialHeader(title, onBack = onBack, showLogo = showLogo)
@@ -95,6 +102,57 @@ internal fun EditorialAuthPage(title: String, onBack: (() -> Unit)? = null, show
             Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 22.dp),
                 horizontalAlignment = Alignment.CenterHorizontally, content = content)
             Spacer(Modifier.height(76.dp))
+        }
+    }
+}
+
+/** Approved sign-in composition: a centered brand hero followed by a real, scrollable form. */
+@Composable
+private fun EditorialLoginPage(title: String, content: @Composable ColumnScope.() -> Unit) {
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val heroHeight = (maxHeight * .43f).coerceIn(240.dp, 360.dp)
+        Column(Modifier.fillMaxSize().imePadding().verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally) {
+            Column(
+                Modifier.fillMaxWidth().height(heroHeight)
+                    .clip(GenericShape { size, _ ->
+                        moveTo(0f, 0f); lineTo(size.width, 0f)
+                        lineTo(size.width, size.height * .92f)
+                        cubicTo(size.width * .7f, size.height * .86f,
+                            size.width * .4f, size.height * 1.08f, 0f, size.height * .92f)
+                        close()
+                    })
+                    .background(EditorialPlum)
+                    .drawWithCache {
+                        val leaf = Path().apply {
+                            moveTo(size.width, size.height * .82f)
+                            quadraticTo(size.width - 66.dp.toPx(), size.height * .61f,
+                                size.width - 44.dp.toPx(), size.height * .37f)
+                            quadraticTo(size.width - 12.dp.toPx(), size.height * .48f,
+                                size.width, size.height * .82f)
+                        }
+                        onDrawBehind {
+                            drawOval(RoyalPurpleSoft.copy(alpha = .8f),
+                                Offset(size.width - 28.dp.toPx(), size.height * .46f),
+                                Size(52.dp.toPx(), size.height * .34f))
+                            drawPath(leaf, Color(0xFF8EAD7C))
+                        }
+                    }.padding(horizontal = 24.dp, vertical = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+            ) {
+                Text(title, color = Color.White, fontFamily = PoppinsFontFamily,
+                    fontWeight = FontWeight.SemiBold, fontSize = 28.sp,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                Spacer(Modifier.height(20.dp))
+                Image(painterResource(R.drawable.ic_safar_logo_brand_dark),
+                    contentDescription = stringResource(R.string.app_name),
+                    modifier = Modifier.size((heroHeight * .5f).coerceAtMost(172.dp)))
+            }
+            Column(Modifier.widthIn(max = 480.dp).fillMaxWidth()
+                .padding(horizontal = 24.dp).padding(top = 22.dp),
+                horizontalAlignment = Alignment.CenterHorizontally, content = content)
+            Spacer(Modifier.height(96.dp))
         }
     }
 }

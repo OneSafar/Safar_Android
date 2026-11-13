@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="royal_home_headline">A calmer mind\nbrighter days</string>
+    <string name="royal_home_subtitle">Small steps. A kinder you.</string>
+    <string name="royal_home_see_all">See all</string>
+    <string name="royal_home_dashboard">Go to Dashboard</string>
+    <string name="royal_home_plan">Plan\nMy Day</string>
+    <string name="royal_home_habits">Habit\nTracker</string>
+    <string name="royal_home_focus">Focus\nMode</string>
+    <string name="royal_home_progress">Track\nMy Progress</string>
+    <string name="royal_home_self_care">Self-Care\nCorner</string>
+    <string name="royal_home_kavach">Kavach</string>
+    <string name="royal_home_community">Community\n&amp; Support</string>
+    <string name="royal_home_study">Study with me</string>
+    <string name="royal_home_nav_plan">Plan</string>
+    <string name="royal_home_nav_focus">Focus</string>
+    <string name="royal_home_nav_journal">Journal</string>
+    <string name="royal_home_nav_you">You</string>
+</resources>

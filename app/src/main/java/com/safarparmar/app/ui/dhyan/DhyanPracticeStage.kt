@@ -23,10 +23,9 @@ internal fun DhyanPracticeStage(scene: PracticeScene, dark: Boolean) {
     Box(Modifier.fillMaxSize()) {
         DhyanMockBackdrop()
         Column(Modifier.fillMaxSize()) {
-            DhyanTopNavigation(DhyanTab.DHYAN, {}, Modifier.fillMaxWidth().padding(16.dp))
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 DhyanMeditationOrb(dark) {
-                    Image(painterResource(R.drawable.meditation_transparent_background), stringResource(R.string.dhyan_meditate), Modifier.fillMaxSize(.88f))
+                    Image(painterResource(R.drawable.dhyan_meditation_lavender), stringResource(R.string.dhyan_meditate), Modifier.fillMaxSize(.88f))
                 }
                 Text(if (scene == PracticeScene.DHYAN_PAUSE || scene == PracticeScene.DHYAN_RESET) "04:30" else "05:00", fontSize = 52.sp, color = DhyanFlatColors.Text)
                 Spacer(Modifier.height(20.dp))

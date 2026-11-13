@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="royal_home_headline">शांत मन\nउजले दिन</string>
+    <string name="royal_home_subtitle">छोटे कदम। खुद से प्यार।</string>
+    <string name="royal_home_see_all">सभी देखें</string>
+    <string name="royal_home_dashboard">डैशबोर्ड पर जाएँ</string>
+    <string name="royal_home_plan">दिन की\nयोजना</string>
+    <string name="royal_home_habits">आदत\nट्रैकर</string>
+    <string name="royal_home_focus">फ़ोकस\nमोड</string>
+    <string name="royal_home_progress">अपनी प्रगति\nदेखें</string>
+    <string name="royal_home_self_care">खुद की\nदेखभाल</string>
+    <string name="royal_home_kavach">कवच</string>
+    <string name="royal_home_community">समुदाय\nऔर सहयोग</string>
+    <string name="royal_home_study">मेरे साथ पढ़ें</string>
+    <string name="royal_home_nav_plan">योजना</string>
+    <string name="royal_home_nav_focus">फ़ोकस</string>
+    <string name="royal_home_nav_journal">डायरी</string>
+    <string name="royal_home_nav_you">आप</string>
+</resources>

@@ -1,5 +1,7 @@
 package com.safarparmar.app.ui.dhyan
 
+import com.safarparmar.app.ui.theme.RoyalPurpleSoft
+
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
@@ -28,7 +30,7 @@ internal fun DhyanLotusRing(expanding: Boolean, running: Boolean, durationMillis
     Canvas(Modifier.widthIn(max = 240.dp).fillMaxWidth().aspectRatio(1f)
         .semantics { contentDescription = description }.graphicsLayer { scaleX = scale.value; scaleY = scale.value }) {
         val radius = size.minDimension * .43f
-        drawCircle(Brush.sweepGradient(listOf(Color(0xFFEDE0F4), Color(0xFFFFCBBE), Color(0xFFEDE0F4))),
+        drawCircle(Brush.sweepGradient(listOf(RoyalPurpleSoft, RoyalPurpleSoft, RoyalPurpleSoft)),
             radius = radius, style = Stroke(width = size.minDimension * .035f))
         val unit = size.minDimension / 220f
         translate(center.x, center.y + 10f * unit) {
@@ -41,17 +43,17 @@ internal fun DhyanLotusRing(expanding: Boolean, running: Boolean, durationMillis
                 }
                 drawPath(path, color)
             }
-            petal(-62f, -7f, -56f, Color(0xFFEDE0F4))
-            petal(62f, -7f, 56f, Color(0xFFEDE0F4))
-            petal(-35f, -40f, -48f, Color(0xFFFFCBBE))
-            petal(35f, -40f, 48f, Color(0xFFFFCBBE))
+            petal(-62f, -7f, -56f, RoyalPurpleSoft)
+            petal(62f, -7f, 56f, RoyalPurpleSoft)
+            petal(-35f, -40f, -48f, RoyalPurpleSoft)
+            petal(35f, -40f, 48f, RoyalPurpleSoft)
             val middle = Path().apply {
                 moveTo(0f, 32f * unit)
                 cubicTo(-30f * unit, 5f * unit, -20f * unit, -30f * unit, 0f, -55f * unit)
                 cubicTo(20f * unit, -30f * unit, 30f * unit, 5f * unit, 0f, 32f * unit)
                 close()
             }
-            drawPath(middle, Color(0xFFFFF5F0))
+            drawPath(middle, Color(0xFFFAF8FF))
         }
     }
 }

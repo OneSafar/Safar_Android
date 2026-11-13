@@ -1,4 +1,6 @@
 package com.safarparmar.app.ui.dashboard
+
+import com.safarparmar.app.ui.theme.RoyalPurple
 import com.composables.ui.components.ButtonStyle
 import com.composables.ui.components.Button as ComposablesButton
 
@@ -1190,8 +1192,8 @@ private fun WeeklyMoodChart(moods: List<Mood>, isDark: Boolean, modifier: Modifi
 
 @Composable
 private fun DashboardWelcomeOverlay(userName: String, isDark: Boolean, onDismiss: () -> Unit) {
-    val accent = if (isDark) Color(0xFFC084FC) else Color(0xFF581C87)
-    val buttonBg = if (isDark) Color(0xFF3B0764) else Color(0xFF581C87)
+    val accent = if (isDark) Color(0xFFC084FC) else RoyalPurple
+    val buttonBg = if (isDark) Color(0xFF3B0764) else RoyalPurple
     val titleColor = if (isDark) Color(0xFFF9FAFB) else Color(0xFF1F2937)
     val subtitleColor = if (isDark) Color(0xFF9CA3AF) else Color(0xFF4B5563)
 
@@ -1385,7 +1387,7 @@ private fun CelebrationDialog(
     isDark: Boolean,
     onDismiss: () -> Unit,
 ) {
-    val buttonBg = if (isDark) Color(0xFF3B0764) else Color(0xFF581C87)
+    val buttonBg = if (isDark) Color(0xFF3B0764) else RoyalPurple
     val titleColor = if (isDark) Color(0xFFF9FAFB) else Color(0xFF1F2937)
     val subtitleColor = if (isDark) Color(0xFF9CA3AF) else Color(0xFF4B5563)
 

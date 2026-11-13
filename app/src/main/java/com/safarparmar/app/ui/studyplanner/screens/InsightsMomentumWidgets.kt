@@ -1,5 +1,6 @@
 package com.safarparmar.app.ui.studyplanner.screens
 
+import com.safarparmar.app.ui.theme.RoyalPurpleSoft
 import androidx.compose.ui.res.stringResource
 import com.safarparmar.app.R
 import com.safarparmar.app.performance.decorativeFloat
@@ -109,7 +110,7 @@ private fun subjectLegendLabel(fullName: String): String =
     subjectDisplayName(fullName).lowercase(Locale.getDefault())
 
 private val ExamRingPurple = Color(0xFFB39DDB)
-private val StreakPeach = Color(0xFFE8A88A)
+private val StreakPeach = RoyalPurpleSoft
 private val GaugeOrange = Color(0xFFFF8A65)
 private val GaugeAmber = Color(0xFFFFB300)
 private val GaugeGreen = Color(0xFF66BB6A)
@@ -452,7 +453,7 @@ private fun TappableWeekStreak(
                         Icon(
                             imageVector = Icons.Default.Check,
                             contentDescription = stringResource(R.string.planner_studied),
-                            tint = Color(0xFF39132E),
+                            tint = Color(0xFF241544),
                             modifier = Modifier.size(14.dp),
                         )
                     }

@@ -1,15 +1,17 @@
 package com.safarparmar.app.ui.dhyan
 
-import com.safarparmar.app.ui.theme.BgDark
+import com.safarparmar.app.ui.theme.RoyalPurple
+import com.safarparmar.app.ui.theme.RoyalPurpleDark
+import com.safarparmar.app.ui.theme.RoyalPurpleSoft
+import com.safarparmar.app.ui.theme.RoyalPurpleSoftDark
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
 import com.safarparmar.app.ui.theme.isLightBackground
 
 /**
- * Dhyan flat-hairline + pink accent palette.
+ * Dhyan flat-hairline + lavender accent palette.
  * Surfaces/ink key off Material background luminance (same signal as glass tiles).
  */
 object DhyanFlatColors {
@@ -19,47 +21,62 @@ object DhyanFlatColors {
     private val isDark: Boolean
         @Composable get() = !isLight
 
-    val Bg @Composable get() = if (isDark) BgDark else Color(0xFFFFF5F0)
-    // Preserve component fills independently of the screen canvas.
-    val ComponentBackground @Composable get() = if (isDark) Color(0xFF211921) else Color(0xFFFFF5F0)
-    val Text @Composable get() = if (isDark) Color(0xFFF8FAFC) else Color(0xFF39132E)
-    val Muted @Composable get() = if (isDark) Color(0xFFCFBECB) else Color(0xFF75616F)
-    val Hairline @Composable get() = if (isDark) Color(0xFF3F3F46) else Color(0xFFE8DEE5)
+    val Bg @Composable get() = if (isDark) Color(0xFF131316) else Color(0xFFFAF7FF)
+    val ComponentBackground @Composable get() = CardBg
+    val Text @Composable get() = if (isDark) Color(0xFFF8FAFC) else Color(0xFF1E1B4B)
+    val Muted @Composable get() = if (isDark) Color(0xFFCBD5E1) else Color(0xFF64748B)
+    val Hairline @Composable get() = if (isDark) Color(0xFF3F3F46) else Color(0xFFE2DDF0)
 
     val OnGlassText @Composable get() = if (isDark) Color(0xFFF5F5F7) else Color(0xFF1C1C1E)
     val OnGlassMuted @Composable get() = if (isDark) Color(0xFFD1D1D6) else Color(0xFF3A3A3C)
 
-    /** Primary Dhyan accent — exact web Deep Pink (#BE185D light, #F472B6 dark) */
-    val Primary @Composable get() = if (isDark) Color(0xFFF0BEDC) else Color(0xFF542347)
-    val PrimaryDeep = Color(0xFF421735)
-    val PrimarySoft @Composable get() = if (isDark) Color(0xFFF0BEDC).copy(alpha = 0.20f) else Color(0xFF542347).copy(alpha = 0.12f)
-    val PrimaryContainer @Composable get() = if (isDark) Color(0xFF513551) else Color(0xFFEDE0F4)
-    val BorderHairline @Composable get() = if (isDark) Color(0xFFF0BEDC).copy(alpha = 0.20f) else Color(0xFF542347).copy(alpha = 0.15f)
+    /** Royal purple and lavender accents on the lavender Dhyan canvas */
+    val Primary @Composable get() = if (isDark) RoyalPurpleDark else RoyalPurple
+    val PrimaryDeep = RoyalPurple
+    val PrimarySoft @Composable get() = if (isDark) RoyalPurpleDark.copy(alpha = 0.20f) else RoyalPurple.copy(alpha = 0.12f)
+    val PrimaryContainer @Composable get() = if (isDark) RoyalPurpleSoftDark else RoyalPurpleSoft
+    val BorderHairline @Composable get() = if (isDark) RoyalPurpleDark.copy(alpha = 0.20f) else RoyalPurple.copy(alpha = 0.15f)
 
     /** Card surfaces & borders */
-    val CardBg @Composable get() = if (isDark) Color(0xFF342735) else Color(0xFFFFFDFC)
-    val CardBorder @Composable get() = if (isDark) Color(0xFF3A2831) else Color(0xFFF1D8E3)
+    val CardBg @Composable get() = if (isDark) Color(0xFF241B33) else Color(0xFFFFFFFF)
+    val CardBorder @Composable get() = if (isDark) Color(0xFF423052) else Color(0xFFE1D4F3)
 
     /** Badges & status */
     val Emerald @Composable get() = if (isDark) Color(0xFF34D399) else Color(0xFF059669)
     val EmeraldBg @Composable get() = if (isDark) Color(0xFF064E3B).copy(alpha = 0.35f) else Color(0xFFECFDF5)
     val EmeraldBorder @Composable get() = if (isDark) Color(0xFF34D399).copy(alpha = 0.35f) else Color(0xFF059669).copy(alpha = 0.25f)
 
-    val Rose @Composable get() = if (isDark) Color(0xFFF0BEDC) else Color(0xFF542347)
-    val Lotus @Composable get() = if (isDark) Color(0xFFE05282) else Color(0xFFFFCDE0)
-    val Calm @Composable get() = if (isDark) Color(0xFF8A133B) else Color(0xFFE37A9A)
-    val Sky @Composable get() = if (isDark) Color(0xFF7CB9E8) else Color(0xFF5B9BD5)
+    val Rose @Composable get() = if (isDark) RoyalPurpleDark else RoyalPurple
+    val Lotus @Composable get() = if (isDark) Color(0xFFB39DDB) else Color(0xFFEEE5FD)
+    val Calm @Composable get() = if (isDark) Color(0xFF512395) else Color(0xFF9575CD)
+    val Sky @Composable get() = if (isDark) Color(0xFFD4C4FF) else Color(0xFF7954B1)
 
-    /** Pink gradient canvas behind the session screen in light mode; canonical ground zero in dark. */
-    val CanvasBrush @Composable get() = SolidColor(Bg)
+    /** Lavender gradient canvas behind the session screen. */
+    val CanvasBrush @Composable get() = if (isDark) {
+        Brush.verticalGradient(
+            listOf(
+                Color(0xFF181222),
+                Color(0xFF2C203E),
+                Color(0xFF181222),
+            ),
+        )
+    } else {
+        Brush.verticalGradient(
+            listOf(
+                Color(0xFFFAF7FF),
+                Color(0xFFEEE5FD),
+                Color(0xFFDDD0F1),
+            ),
+        )
+    }
 
     fun glassBody(isLight: Boolean): Color =
-        if (isLight) Color(0xFFFFFDFC) else Color(0xFF342735)
+        if (isLight) Color(0xFFFFFFFF) else Color(0xFF241B33)
 
     fun onGlassText(isLight: Boolean): Color =
         if (isLight) Color(0xFF1C1C1E) else Color(0xFFF5F5F7)
 
     fun onGlassMuted(isLight: Boolean): Color =
-        if (isLight) Color(0xFF75616F) else Color(0xFFCFBECB)
+        if (isLight) Color(0xFF64748B) else Color(0xFFCBD5E1)
 }
 

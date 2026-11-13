@@ -1,5 +1,8 @@
 package com.safarparmar.app.feature.kavachanalytics.ui
 
+import com.safarparmar.app.ui.theme.RoyalPurple
+import com.safarparmar.app.ui.theme.RoyalPurpleSoftDark
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -102,7 +105,7 @@ fun AppCategoryEditorScreen(
                         .padding(start = 8.dp, end = 12.dp)
                         .size(38.dp)
                         .clip(androidx.compose.foundation.shape.CircleShape)
-                        .background(if (!isLight) Color(0xFF684047) else Color(0xFF542347))
+                        .background(if (!isLight) RoyalPurpleSoftDark else RoyalPurple)
                         .clickable(onClick = onBack),
                     contentAlignment = Alignment.Center,
                 ) {

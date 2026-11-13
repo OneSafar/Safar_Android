@@ -278,6 +278,7 @@ fun PlanTabScreen(
             },
             focusDailyGoal = focusDailyGoalInSettings,
             focusExamDate = focusExamDateInSettings,
+            preferredStrategy = preferredStudyStrategy,
         )
     }
 
@@ -650,6 +651,7 @@ fun PlanTabScreen(
                                 onRemoveFromToday = { removeFromTodayConfirmTopic = ref },
                                 onEdit = { editTopicRef = ref },
                                 onFocus = { onNavigate(Routes.ekagraForTopic(ref.topic.id, ref.topic.name, plan.id)) },
+                                onOpenChapter = { actions.openChapterInSyllabus(ref.subject.id, ref.chapter.id, ref.topic.id) },
                             )
                         }
 
@@ -681,6 +683,7 @@ fun PlanTabScreen(
                                         onDoneChange = { done -> handleTopicDoneCheck(ref, done) },
                                         onEdit = { editTopicRef = ref },
                                         onFocus = { onNavigate(Routes.ekagraForTopic(ref.topic.id, ref.topic.name, plan.id)) },
+                                        onOpenChapter = { actions.openChapterInSyllabus(ref.subject.id, ref.chapter.id, ref.topic.id) },
                                         // No Replace / Remove-from-today here: a bonus
                                         // topic isn't on today's list, so neither applies.
                                     )
@@ -735,6 +738,7 @@ fun PlanTabScreen(
                                 // already hides Focus and Remove-from-today once a
                                 // topic is done, and Replace is meaningless here.
                                 onEdit = { editTopicRef = ref },
+                                onOpenChapter = { actions.openChapterInSyllabus(ref.subject.id, ref.chapter.id, ref.topic.id) },
                             )
                         }
                     }

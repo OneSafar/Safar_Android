@@ -1,9 +1,0 @@
-{
-  "root": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v5/Outputs/logs/habit-save-2026-10-22",
-  "jdk": "/Applications/Android Studio.app/Contents/jbr/Contents/Home",
-  "r8": "/Users/shashankkumar/Library/Android/sdk/cmdline-tools/latest/lib/r8.jar",
-  "gson": "/Users/shashankkumar/.gradle/caches/modules-2/files-2.1/com.google.code.gson/gson/2.11.0/527175ca6d81050b53bdd4c457a6d6e017626b0e/gson-2.11.0.jar",
-  "kotlin": "/Users/shashankkumar/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.4.0/4e9f4b531dce5c7dee58ed2de9a8b9a763c8dc6c/kotlin-stdlib-2.4.0.jar",
-  "annotation": "/Users/shashankkumar/.gradle/caches/modules-2/files-2.1/androidx.annotation/annotation-jvm/1.9.1/b17951747e38bf3986a24431b9ba0d039958aa5f/annotation-jvm-1.9.1.jar",
-  "jetbrains": "/Users/shashankkumar/.gradle/caches/modules-2/files-2.1/org.jetbrains/annotations/23.0.0/8cc20c07506ec18e0834947b84a864bfc094484e/annotations-23.0.0.jar"
-}

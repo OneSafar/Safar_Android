@@ -1,5 +1,9 @@
 package com.safarparmar.app.ui.home
 
+import com.safarparmar.app.ui.theme.RoyalPurple
+import com.safarparmar.app.ui.theme.RoyalPurpleSoft
+import com.safarparmar.app.ui.theme.RoyalPurpleSoftDark
+
 import android.content.Intent
 import android.media.AudioAttributes
 import android.media.MediaPlayer
@@ -95,8 +99,8 @@ private val NotificationFont = FontFamily(
     Font(R.font.poppins_semibold, FontWeight.SemiBold),
     Font(R.font.poppins_bold, FontWeight.Bold),
 )
-private val NotificationPlum = Color(0xFF421735)
-private val NotificationPeach = Color(0xFFFFCBBE)
+private val NotificationPlum = RoyalPurple
+private val NotificationPeach = RoyalPurpleSoft
 private val NotificationMint = Color(0xFFC9EFE0)
 
 /** Scoped palette: never changes the Home content under the sheet. */
@@ -105,11 +109,11 @@ private fun NotificationSheetTheme(content: @Composable () -> Unit) {
     val base = MaterialTheme.colorScheme
     val dark = (base.surface.red * .299f + base.surface.green * .587f + base.surface.blue * .114f) < .5f
     val colors = base.copy(
-        surface = if (dark) Color(0xFF171217) else Color(0xFFFFF5F0),
-        background = if (dark) Color.Black else Color(0xFFFFF5F0),
-        onSurface = if (dark) Color(0xFFFFF0F6) else Color(0xFF39132E),
+        surface = if (dark) Color(0xFF171217) else Color(0xFFFAF8FF),
+        background = if (dark) Color.Black else Color(0xFFFAF8FF),
+        onSurface = if (dark) Color(0xFFFFF0F6) else Color(0xFF241544),
         onSurfaceVariant = if (dark) Color(0xFFCFBECB) else Color(0xFF75616F),
-        primary = if (dark) Color(0xFFCDBBE9) else Color(0xFF542347),
+        primary = if (dark) Color(0xFFCDBBE9) else RoyalPurple,
         outlineVariant = if (dark) Color(0xFF51414F) else Color(0xFFE8DEE5),
     )
     val t = MaterialTheme.typography
@@ -542,7 +546,7 @@ private fun AnnouncementRow(
     ) {
         Row(Modifier.fillMaxWidth().padding(vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Box(Modifier.padding(top = 4.dp).size(42.dp).clip(CircleShape)
-                .background(if (isDarkTheme) Color(0xFF684047) else NotificationPeach.copy(alpha = .55f)),
+                .background(if (isDarkTheme) RoyalPurpleSoftDark else NotificationPeach.copy(alpha = .55f)),
                 contentAlignment = Alignment.Center) {
                 Icon(when (item.type) {
                     AnnouncementType.MAINTENANCE -> Icons.Outlined.WarningAmber
@@ -700,7 +704,7 @@ private fun AnnouncementTypePill(
         AnnouncementType.GENERAL -> Triple(
             stringResource(R.string.announcements_type_announcement),
             Icons.Outlined.Campaign,
-            if (isDarkTheme) Color(0xFFC084FC) else Color(0xFF542347),
+            if (isDarkTheme) Color(0xFFC084FC) else RoyalPurple,
         )
     }
 

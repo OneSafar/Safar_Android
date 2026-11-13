@@ -1,5 +1,6 @@
 package com.safarparmar.app.ui.nishtha.journal
 
+import com.safarparmar.app.ui.theme.RoyalPurpleSoft
 import androidx.compose.runtime.rememberUpdatedState
 
 import androidx.compose.ui.platform.LocalResources
@@ -820,7 +821,7 @@ private fun WarmJournalBody(
                     }
                 }
                 item {
-                    val promptSurface = if (isLight) Color(0xFFFFDED5) else c.peach
+                    val promptSurface = if (isLight) RoyalPurpleSoft else c.peach
                     Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(promptSurface).padding(14.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {

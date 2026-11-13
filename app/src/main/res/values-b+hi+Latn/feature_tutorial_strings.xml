@@ -77,8 +77,8 @@
     <string name="ekagra_tutorial_kavach_apps_body">Jin apps ko block karna hai unke switches chalu karein, phir Save apps dabayein. Lambi list mein search aur selection buttons madad karte hain. Yeh sirf sample apps hain.</string>
     <string name="ekagra_tutorial_kavach_active_title">Protection status dekhein</string>
     <string name="ekagra_tutorial_kavach_active_body">Ready ka matlab setup ready hai. Active ka matlab protection chal raha hai. Always On session ke baahar bhi protect kar sakta hai; unavailable ho toh setup check karein.</string>
-    <string name="ekagra_tutorial_youtube_title">YouTube Focus se padhein</string>
-    <string name="ekagra_tutorial_youtube_body">Yeh shortcut YouTube Focus setup kholta hai. Wahan permission guide follow karke study content chunein. Practice shortcut tutorial ke andar rahega.</string>
+    <string name="ekagra_tutorial_apps_to_block_title">Block karne wale apps chunein</string>
+    <string name="ekagra_tutorial_apps_to_block_body">Apps to Block kholkar woh apps chunein jinhe focus ke dauran Kavach block kare. Practice shortcut tutorial ke andar rahega.</string>
     <string name="ekagra_tutorial_music_title">Focus audio chunein</string>
     <string name="ekagra_tutorial_music_body">Music se audio library kholein. Categories browse karke track chunein. Normal use mein preview audio bajata hai; practice silent rahegi.</string>
     <string name="ekagra_tutorial_theme_title">Backdrop chunein</string>
@@ -130,7 +130,7 @@
     <string name="ekagra_tutorial_kavach_ready_instruction">Focus se pehle Kavach enable karein.</string>
     <string name="ekagra_tutorial_kavach_apps_instruction">Apps chunein, phir Save apps dabayein.</string>
     <string name="ekagra_tutorial_kavach_active_instruction">Check karein ki Kavach Active dikhaye.</string>
-    <string name="ekagra_tutorial_youtube_instruction">Study setup ke liye YouTube Focus kholein.</string>
+    <string name="ekagra_tutorial_apps_to_block_instruction">Distracting apps chunne ke liye Apps to Block dabayein.</string>
     <string name="ekagra_tutorial_music_instruction">Audio library se track chunein.</string>
     <string name="ekagra_tutorial_theme_instruction">Apne timer ka backdrop chunein.</string>
     <string name="ekagra_tutorial_muted_instruction">Mute ya unmute karne ke liye Audio use karein.</string>

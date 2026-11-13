@@ -1,0 +1,91 @@
+◆  Capturing review frames (beats, seams, phone) from habit-tracker-promo
+[hyperframes] browserGpuMode probe → hardware (WebGL renderer vendor="Google Inc. (Apple)" renderer="ANGLE (Apple, ANGLE Metal Renderer: Apple M5, Unspecified Version)")
+
+   Fonts: 2 loaded
+   Review: 12 beat(s) and 5 seam(s) within 0–15s
+[hyperframes] snapshot: frame 1/37 at 0.3s
+[hyperframes] snapshot: frame 2/37 at 1.25s
+[hyperframes] snapshot: frame 3/37 at 2.8s
+[hyperframes] snapshot: frame 4/37 at 3.75s
+[hyperframes] snapshot: frame 5/37 at 5.3s
+[hyperframes] snapshot: frame 6/37 at 6.25s
+[hyperframes] snapshot: frame 7/37 at 7.8s
+[hyperframes] snapshot: frame 8/37 at 8.75s
+[hyperframes] snapshot: frame 9/37 at 10.3s
+[hyperframes] snapshot: frame 10/37 at 11.25s
+[hyperframes] snapshot: frame 11/37 at 12.8s
+[hyperframes] snapshot: frame 12/37 at 13.75s
+[hyperframes] snapshot: frame 13/37 at 2.3s
+[hyperframes] snapshot: frame 14/37 at 2.4s
+[hyperframes] snapshot: frame 15/37 at 2.5s
+[hyperframes] snapshot: frame 16/37 at 2.6s
+[hyperframes] snapshot: frame 17/37 at 2.7s
+[hyperframes] snapshot: frame 18/37 at 4.8s
+[hyperframes] snapshot: frame 19/37 at 4.9s
+[hyperframes] snapshot: frame 20/37 at 5s
+[hyperframes] snapshot: frame 21/37 at 5.1s
+[hyperframes] snapshot: frame 22/37 at 5.2s
+[hyperframes] snapshot: frame 23/37 at 7.3s
+[hyperframes] snapshot: frame 24/37 at 7.4s
+[hyperframes] snapshot: frame 25/37 at 7.5s
+[hyperframes] snapshot: frame 26/37 at 7.6s
+[hyperframes] snapshot: frame 27/37 at 7.7s
+[hyperframes] snapshot: frame 28/37 at 9.8s
+[hyperframes] snapshot: frame 29/37 at 9.9s
+[hyperframes] snapshot: frame 30/37 at 10s
+[hyperframes] snapshot: frame 31/37 at 10.1s
+[hyperframes] snapshot: frame 32/37 at 10.2s
+[hyperframes] snapshot: frame 33/37 at 12.3s
+[hyperframes] snapshot: frame 34/37 at 12.4s
+[hyperframes] snapshot: frame 35/37 at 12.5s
+[hyperframes] snapshot: frame 36/37 at 12.6s
+[hyperframes] snapshot: frame 37/37 at 12.7s
+   Revision: none (inputs-changed)
+   State: /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/.hyperframes/video-state.json
+
+◇  37 snapshots saved to /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/beat-01-at-0.3s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/beat-02-at-1.25s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/beat-03-at-2.8s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/beat-04-at-3.75s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/beat-05-at-5.3s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/beat-06-at-6.25s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/beat-07-at-7.8s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/beat-08-at-8.75s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/beat-09-at-10.3s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/beat-10-at-11.25s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/beat-11-at-12.8s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/beat-12-at-13.75s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-01-1-at-2.3s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-01-2-at-2.4s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-01-3-at-2.5s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-01-4-at-2.6s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-01-5-at-2.7s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-02-1-at-4.8s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-02-2-at-4.9s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-02-3-at-5s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-02-4-at-5.1s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-02-5-at-5.2s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-03-1-at-7.3s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-03-2-at-7.4s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-03-3-at-7.5s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-03-4-at-7.6s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-03-5-at-7.7s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-04-1-at-9.8s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-04-2-at-9.9s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-04-3-at-10s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-04-4-at-10.1s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-04-5-at-10.2s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-05-1-at-12.3s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-05-2-at-12.4s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-05-3-at-12.5s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-05-4-at-12.6s.png
+   /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/seam-05-5-at-12.7s.png
+   Beat sheet (settled frame per scene): /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/review-beats.jpg
+     0.3s goals · 1.25s goals mid · 2.8s time · 3.75s time mid · 5.3s link · 6.25s link mid · 7.8s track · 8.75s track mid · 10.3s balance · 11.25s balance mid · 12.8s close · 13.75s close mid
+   Seam 1 at 2.5s (goals -> time): /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/review-seam-01.jpg
+   Seam 2 at 5s (time -> link): /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/review-seam-02.jpg
+   Seam 3 at 7.5s (link -> track): /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/review-seam-03.jpg
+   Seam 4 at 10s (track -> balance): /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/review-seam-04.jpg
+   Seam 5 at 12.5s (balance -> close): /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/review-seam-05.jpg
+   Phone sheet (beats at 360 px wide): /Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo/qa/review-v2/review-phone.jpg

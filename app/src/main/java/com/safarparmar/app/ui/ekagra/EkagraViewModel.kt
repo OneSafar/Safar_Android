@@ -817,6 +817,7 @@ class EkagraViewModel @Inject constructor(
                 topicTitle = pending.topicTitle,
                 taskTitle = pending.topicTitle ?: "Study from Exam Planner",
                 shieldEnabled = shieldWasActive,
+                endReason = "user-ended",
             ),
         )
         EkagraSessionSaveWorker.enqueue(appContext)

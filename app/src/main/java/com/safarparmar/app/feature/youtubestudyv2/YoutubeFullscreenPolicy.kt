@@ -46,3 +46,19 @@ internal fun isCurrentWatchPageInteraction(viewId: String?, label: String?): Boo
             .any { value == it || value.startsWith("$it ") } ||
         value in setOf("live chat", "top chat", "hide chat", "show chat", "top", "newest", "close", "share", "download", "save", "subscribe", "subscribed")
 }
+
+/**
+ * Fullscreen hides the owner row. When the previous video was a verified
+ * productive channel and YouTube moved on (autoplay, or Next inside
+ * fullscreen), playback may continue while identification runs. Usually the
+ * next video is from the same channel or playlist. Identification still
+ * happens: a revealed HUD handle, or leaving fullscreen, gets a normal
+ * evaluation. A non-productive result blocks.
+ */
+internal fun canCarryFullscreenPermission(
+    observation: YoutubeV2Observation,
+    verified: YoutubeVerifiedVideo?,
+    classification: YoutubeChannelClassification?,
+    carriedFromNextTap: Boolean,
+): Boolean = observation.fullscreen && !observation.hasOwnerEvidence && !observation.adPlaying &&
+    ((classification == YoutubeChannelClassification.PRODUCTIVE && verified != null) || carriedFromNextTap)

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="royal_home_headline">Shaant mann\nbehtar din</string>
+    <string name="royal_home_subtitle">Chhote kadam. Khud se pyaar.</string>
+    <string name="royal_home_see_all">Sab dekhein</string>
+    <string name="royal_home_dashboard">Dashboard par jaayein</string>
+    <string name="royal_home_plan">Din ka\nplan</string>
+    <string name="royal_home_habits">Habit\nTracker</string>
+    <string name="royal_home_focus">Focus\nMode</string>
+    <string name="royal_home_progress">Apni progress\ndekhein</string>
+    <string name="royal_home_self_care">Khud ki\ndekhbaal</string>
+    <string name="royal_home_kavach">Kavach</string>
+    <string name="royal_home_community">Community\naur support</string>
+    <string name="royal_home_study">Mere saath padhein</string>
+    <string name="royal_home_nav_plan">Plan</string>
+    <string name="royal_home_nav_focus">Focus</string>
+    <string name="royal_home_nav_journal">Journal</string>
+    <string name="royal_home_nav_you">Aap</string>
+</resources>

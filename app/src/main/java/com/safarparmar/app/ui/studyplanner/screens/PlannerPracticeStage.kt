@@ -67,7 +67,9 @@ private fun PlannerPracticeContent(scene: PracticeScene, dark: Boolean) {
                     }
                 }
                 PracticeScene.PLANNER_SYLLABUS -> {
-                    SyllabusMagazineHeader(plan.title, 25, 1, 1, 4, 30, 1, {})
+                    com.safarparmar.app.ui.studyplanner.plan.PlanExamSettingsRow(plan.title, {}, onSelectExam = {})
+                    SyllabusReadinessCard(25, 1, 4, 30,
+                        com.safarparmar.app.ui.studyplanner.logic.SyllabusReadinessStatus.OnTrack(null), false, SyllabusReadinessActions())
                     Column(Modifier.tutorialTarget(scene.target)) {
                         SyllabusMagazineListHeader(stringResource(R.string.practice_next_sample_subject), {})
                         SyllabusMagazineSubjectRow(subject, {}, {}, {}, {}, {}, false, {}, {}, {})

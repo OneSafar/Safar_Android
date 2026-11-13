@@ -117,12 +117,14 @@ fun SafarNavGraph(
         Routes.MEHFIL,
         Routes.STUDY_CIRCLES,
         Routes.DHYAN,
+        Routes.CALM_CENTRE,
         Routes.COURSES,
         Routes.LEADERBOARD,
         Routes.PROFILE,
         Routes.SETTINGS,
         Routes.ADMIN_NOTIFICATIONS,
         Routes.HABIT_TRACKER,
+        Routes.TIMETABLE,
     )
 
     fun navigate(route: String) {
@@ -602,6 +604,16 @@ fun SafarNavGraph(
             )
         }
 
+        composable(Routes.TIMETABLE) {
+            HabitScreen(
+                currentRoute = Routes.HABIT_TRACKER,
+                isDarkTheme = isDarkTheme,
+                onNavigate = ::navigate,
+                onToggleDarkTheme = onToggleDarkTheme,
+                openTimetable = true,
+            )
+        }
+
         composable(Routes.HABIT_TRACKER) {
             HabitScreen(
                 currentRoute = Routes.HABIT_TRACKER,
@@ -718,6 +730,19 @@ fun SafarNavGraph(
                 currentRoute = currentRoute,
                 isDarkTheme = isDarkTheme,
                 onNavigate = ::navigate,
+                onToggleDarkTheme = onToggleDarkTheme,
+            )
+        }
+
+        composable(
+            route = Routes.CALM_CENTRE,
+            deepLinks = listOf(navDeepLink { uriPattern = "$DEEP_LINK_BASE/calm_centre" }),
+        ) {
+            com.safarparmar.app.ui.calmcentre.CalmCentreScreen(
+                currentRoute = currentRoute,
+                isDarkTheme = isDarkTheme,
+                onNavigate = ::navigate,
+                onBack = ::safeBack,
                 onToggleDarkTheme = onToggleDarkTheme,
             )
         }

@@ -1,0 +1,12 @@
+┌  hyperframes preview
+
+  Project   habit-tracker-promo
+  Studio    http://localhost:3002/#project/habit-tracker-promo
+  Server    http://localhost:3002
+  Desktop   Keep editing by chatting with Framey in the HyperFrames desktop app → https://hyperframes.studio/studio/download?src=cli
+
+  Running in the background. Log: /Users/shashankkumar/.local/state/hyperframes/previews/06361a74e31f0754.log
+  Changes reload automatically in the studio.
+
+  Stop with: hyperframes preview "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/output/videos/habit-tracker-promo" --stop
+

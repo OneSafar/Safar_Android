@@ -1,6 +1,12 @@
 /* Hallmark · pre-emit critique: P5 H5 E4 S5 R5 V4 · approved Plum Membership */
 package com.safarparmar.app.ui.premium
 
+import com.safarparmar.app.ui.theme.RoyalPurpleMid
+import com.safarparmar.app.ui.theme.RoyalPurpleDeep
+import com.safarparmar.app.ui.theme.RoyalPurple
+import com.safarparmar.app.ui.theme.RoyalPurpleDark
+import com.safarparmar.app.ui.theme.RoyalPurpleSoft
+
 import com.safarparmar.app.ui.theme.BgDark
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
@@ -46,19 +52,19 @@ internal data class PremiumMembershipColors(
     val badge: Color, val onBadge: Color,
 )
 internal fun premiumMembershipColors(dark: Boolean) = PremiumMembershipColors(
-    canvas = if (dark) BgDark else Color(0xFFFFF5F0),
+    canvas = if (dark) BgDark else Color(0xFFFAF8FF),
     paper = if (dark) Color(0xFF342735) else Color(0xFFFFFDFC),
-    ink = if (dark) Color(0xFFFFF0F6) else Color(0xFF39132E),
+    ink = if (dark) Color(0xFFFFF0F6) else Color(0xFF241544),
     muted = if (dark) Color(0xFFCFBECB) else Color(0xFF75616F),
-    action = if (dark) Color(0xFFF0BEDC) else Color(0xFF542347),
-    onAction = if (dark) Color(0xFF39132E) else Color.White,
+    action = if (dark) RoyalPurpleDark else RoyalPurple,
+    onAction = if (dark) Color(0xFF241544) else Color.White,
     border = if (dark) Color(0xFF654D66) else Color(0xFFE6DCEC),
     selected = if (dark) Color(0xFF483149) else Color(0xFFF4ECF6),
-    hero = Color(0xFF421735), heroWave = Color(0xFF572342), heroWaveLight = Color(0xFF793D67),
+    hero = RoyalPurple, heroWave = RoyalPurpleDeep, heroWaveLight = RoyalPurpleMid,
     onHero = Color(0xFFFFFAFD), heroMuted = Color(0xFFEDD8E5),
-    peach = Color(0xFFFFCBBE), coral = Color(0xFFED8A7D), lilac = Color(0xFFCDBBE9),
+    peach = RoyalPurpleSoft, coral = Color(0xFFED8A7D), lilac = Color(0xFFCDBBE9),
     sage = Color(0xFF8EAD7C), mint = Color(0xFFC9EFE0), onMint = Color(0xFF174E40),
-    badge = Color(0xFFFFA014), onBadge = Color(0xFF39132E),
+    badge = Color(0xFFFFA014), onBadge = Color(0xFF241544),
 )
 internal val LocalPremiumMembershipColors = staticCompositionLocalOf { premiumMembershipColors(false) }
 

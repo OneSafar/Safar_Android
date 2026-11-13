@@ -47,6 +47,7 @@ internal fun TimetableSessionEditor(
     initial: TimetableSession,
     isNew: Boolean,
     subjects: List<String>,
+    sessions: List<TimetableSession> = emptyList(),
     onDismiss: () -> Unit,
     onSave: suspend (TimetableSession) -> Unit,
     onDelete: suspend (String) -> Unit
@@ -88,6 +89,7 @@ internal fun TimetableSessionEditor(
             finally { busy = false }
         }
     }
+    val conflicts = timetableConflicts(initial.copy(id = id, date = date, startMinute = start, endMinute = end, repeat = SessionRepeat.entries[repeat]), sessions)
     val fieldColors = OutlinedTextFieldDefaults.colors(focusedBorderColor = HabitColors.RoyalPurple, unfocusedBorderColor = HabitColors.Outline,
         focusedTextColor = HabitColors.TextPrimary, unfocusedTextColor = HabitColors.TextPrimary, cursorColor = HabitColors.RoyalPurple,
         focusedContainerColor = HabitColors.Background, unfocusedContainerColor = HabitColors.Background)
@@ -137,6 +139,11 @@ internal fun TimetableSessionEditor(
                     } }
                 }
             }
+            if (conflicts.isNotEmpty()) Text(
+                "Another goal is already scheduled during this time: ${conflicts.joinToString { it.title }}",
+                color = HabitColors.Error, fontSize = 13.sp,
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
+            )
             EditorField("Repeat") {
                 Box {
                     EditorPicker(SessionRepeat.entries[repeat].label, !busy) { repeatMenu = true }

@@ -1,4 +1,6 @@
 package com.safarparmar.app.ui.drawer
+
+import com.safarparmar.app.ui.theme.RoyalPurple
 import com.composables.ui.components.HorizontalSeparator as HorizontalDivider
 
 import androidx.compose.animation.AnimatedVisibility
@@ -126,6 +128,7 @@ val drawerSections = listOf(
         items = listOf(
             DrawerItem(R.string.module_nishtha, Icons.Default.SelfImprovement, Routes.NISHTHA),
             DrawerItem(R.string.module_dhyan, Icons.Default.Spa, Routes.DHYAN),
+            DrawerItem(R.string.nav_calm_centre, Icons.Default.Air, Routes.CALM_CENTRE),
             DrawerItem(R.string.nav_live_sessions, Icons.Default.LiveTv, Routes.LIVE_SESSIONS_ROOT),
             DrawerItem(R.string.module_mehfil, Icons.Default.Groups, Routes.MEHFIL),
             DrawerItem(R.string.nav_study_circle, Icons.Default.GroupWork, Routes.STUDY_CIRCLES),
@@ -177,10 +180,10 @@ private object LightFlat {
     val cardBg        = Color(0xFFF3EDF7)
     val textPrimary   = Color(0xFF1D1B20)
     val textSecondary = Color(0xFF49454F)
-    val iconIndigo    = Color(0xFF581C87)
+    val iconIndigo    = RoyalPurple
     val selBg         = Color(0xFFE8DEF8) // M3 Light Purple Container
     val selText       = Color(0xFF1D192B)
-    val selIcon       = Color(0xFF581C87)
+    val selIcon       = RoyalPurple
     val border        = Color(0xFFE7E0EC)
     val chipBg        = Color(0xFFE8F5E9)
     val chipBorder    = Color(0xFFA5D6A7)

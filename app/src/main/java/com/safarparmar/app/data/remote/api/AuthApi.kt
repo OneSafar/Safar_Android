@@ -23,4 +23,7 @@ interface AuthApi {
         @Query("page") page: Int = 1,
         @Query("limit") limit: Int = 30,
     ): Response<List<LoginHistoryItemDto>>
+
+    @GET("avatars")
+    suspend fun getAvatars(): Response<List<AvatarDto>>
 }

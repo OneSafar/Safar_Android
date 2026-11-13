@@ -1,0 +1,20 @@
+{
+  "scale": "Subjective creative review, 1\u201310. Sound synchronization is measured; no human listening pass.",
+  "initial": {
+    "hook": 8,
+    "phone_readability": 7,
+    "motion_quality": 7,
+    "variety": 6,
+    "brand_accuracy": 9,
+    "sound_sync": 8
+  },
+  "final": {
+    "hook": 8,
+    "phone_readability": 8,
+    "motion_quality": 8,
+    "variety": 8,
+    "brand_accuracy": 9,
+    "sound_sync": 9
+  },
+  "gate": "Every final category >= 8 before full render."
+}

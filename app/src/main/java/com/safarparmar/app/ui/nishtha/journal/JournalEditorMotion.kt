@@ -1,5 +1,7 @@
 package com.safarparmar.app.ui.nishtha.journal
 
+import com.safarparmar.app.ui.theme.RoyalPurple
+
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.FastOutLinearInEasing
@@ -126,7 +128,7 @@ internal fun JournalComposeFab(editorOpen: Boolean, onClick: () -> Unit, modifie
             }
         },
         modifier = modifier.size(56.dp).graphicsLayer { scaleX = scale; scaleY = scale; this.alpha = alpha },
-        shape = CircleShape, containerColor = Color(0xFF542347), contentColor = Color(0xFFFFF5F0),
+        shape = CircleShape, containerColor = RoyalPurple, contentColor = Color(0xFFFAF8FF),
         interactionSource = interaction,
     ) {
         Icon(Icons.Default.Add, contentDescription = stringResource(R.string.warm_new_entry),

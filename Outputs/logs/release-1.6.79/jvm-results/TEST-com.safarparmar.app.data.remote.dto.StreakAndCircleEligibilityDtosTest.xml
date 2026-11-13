@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.safarparmar.app.data.remote.dto.StreakAndCircleEligibilityDtosTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-20T18:47:13.111Z" hostname="Shashanks-MacBook-Air.local" time="0.004">
-  <properties/>
-  <testcase name="parses Study Circle creation eligibility from shared backend response" classname="com.safarparmar.app.data.remote.dto.StreakAndCircleEligibilityDtosTest" time="0.002"/>
-  <testcase name="parses check-in restore availability and projected streak" classname="com.safarparmar.app.data.remote.dto.StreakAndCircleEligibilityDtosTest" time="0.002"/>
-  <system-out><![CDATA[]]></system-out>
-  <system-err><![CDATA[]]></system-err>
-</testsuite>

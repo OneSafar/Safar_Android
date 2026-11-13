@@ -77,8 +77,8 @@
     <string name="ekagra_tutorial_kavach_apps_body">जिन ऐप्स को रोकना है उनके स्विच चालू करें, फिर Save apps दबाएँ। लंबी सूची में खोज और चयन के बटन मदद करते हैं। ये केवल नमूना ऐप्स हैं।</string>
     <string name="ekagra_tutorial_kavach_active_title">सुरक्षा की स्थिति देखें</string>
     <string name="ekagra_tutorial_kavach_active_body">Ready का मतलब setup तैयार है। Active का मतलब सुरक्षा चल रही है। Always On session के बाहर भी सुरक्षा दे सकता है; unavailable हो तो setup जाँचें।</string>
-    <string name="ekagra_tutorial_youtube_title">YouTube Focus से पढ़ें</string>
-    <string name="ekagra_tutorial_youtube_body">यह shortcut YouTube Focus setup खोलता है। वहाँ permission guide देखकर पढ़ाई का content चुनें। अभ्यास में shortcut tutorial के अंदर रहता है।</string>
+    <string name="ekagra_tutorial_apps_to_block_title">ब्लॉक करने वाले ऐप चुनें</string>
+    <string name="ekagra_tutorial_apps_to_block_body">Apps to Block खोलकर वे ऐप चुनें जिन्हें फ़ोकस के दौरान कवच ब्लॉक करे। अभ्यास का यह बटन ट्यूटोरियल के अंदर रहता है।</string>
     <string name="ekagra_tutorial_music_title">फ़ोकस का संगीत चुनें</string>
     <string name="ekagra_tutorial_music_body">Music से audio library खोलें। Category देखकर track चुनें। सामान्य उपयोग में preview से audio बजता है; अभ्यास में आवाज़ नहीं बजेगी।</string>
     <string name="ekagra_tutorial_theme_title">पसंद का backdrop चुनें</string>
@@ -130,7 +130,7 @@
     <string name="ekagra_tutorial_kavach_ready_instruction">फ़ोकस से पहले Kavach चालू करें।</string>
     <string name="ekagra_tutorial_kavach_apps_instruction">ऐप्स चुनें, फिर Save apps दबाएँ।</string>
     <string name="ekagra_tutorial_kavach_active_instruction">देखें कि Kavach में Active दिख रहा है।</string>
-    <string name="ekagra_tutorial_youtube_instruction">पढ़ाई का setup करने के लिए YouTube Focus खोलें।</string>
+    <string name="ekagra_tutorial_apps_to_block_instruction">ध्यान भटकाने वाले ऐप चुनने के लिए Apps to Block दबाएँ।</string>
     <string name="ekagra_tutorial_music_instruction">Audio library से track चुनें।</string>
     <string name="ekagra_tutorial_theme_instruction">अपने timer का backdrop चुनें।</string>
     <string name="ekagra_tutorial_muted_instruction">आवाज़ बंद या चालू करने के लिए Audio चुनें।</string>

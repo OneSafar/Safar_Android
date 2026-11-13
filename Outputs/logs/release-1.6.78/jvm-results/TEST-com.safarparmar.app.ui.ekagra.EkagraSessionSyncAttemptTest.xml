@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.safarparmar.app.ui.ekagra.EkagraSessionSyncAttemptTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-20T08:02:35.596Z" hostname="Shashanks-MacBook-Air.local" time="0.002">
-  <properties/>
-  <testcase name="acknowledgementFailureReturnsRetryableErrorAndPreservesTheSameSessionForRetry" classname="com.safarparmar.app.ui.ekagra.EkagraSessionSyncAttemptTest" time="0.001"/>
-  <testcase name="cancellationDoesNotBecomeASaveFailureOrSuccess" classname="com.safarparmar.app.ui.ekagra.EkagraSessionSyncAttemptTest" time="0.001"/>
-  <testcase name="queueReadFailureRequiresWorkerRetryInsteadOfReportingADrainAsSuccessful" classname="com.safarparmar.app.ui.ekagra.EkagraSessionSyncAttemptTest" time="0.0"/>
-  <system-out><![CDATA[]]></system-out>
-  <system-err><![CDATA[]]></system-err>
-</testsuite>

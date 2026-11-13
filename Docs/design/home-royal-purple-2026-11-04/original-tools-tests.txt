@@ -1,0 +1,9 @@
+
+com.safarparmar.app.ui.home.RoyalPurpleHomeLayoutTest:......
+com.safarparmar.app.ui.home.HomeBackgroundCarouselTest:.
+
+Time: 28.672
+
+OK (7 tests)
+
+

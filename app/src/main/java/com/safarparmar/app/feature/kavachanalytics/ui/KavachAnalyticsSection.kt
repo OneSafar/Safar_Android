@@ -1547,7 +1547,7 @@ private fun EmptyMessage(title: String, body: String, isLight: Boolean) {
 }
 
 internal fun primaryText(isLight: Boolean) =
-    if (isLight) Color(0xFF39132E) else Color(0xFFFFF0F6)
+    if (isLight) Color(0xFF241544) else Color(0xFFFFF0F6)
 
 internal fun secondaryText(isLight: Boolean) =
     if (isLight) Color(0xFF75616F) else Color(0xFFCFBECB)

@@ -1,5 +1,7 @@
 package com.safarparmar.app.ui.nishtha
 
+import com.safarparmar.app.ui.theme.RoyalPurple
+
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ExperimentalSharedTransitionApi
@@ -291,5 +293,5 @@ private fun nishthaTabAccent(tab: NishthaTab, isDark: Boolean): Color = when (ta
     NishthaTab.JOURNAL -> if (isDark) Color(0xFF38BDF8) else Color(0xFF0284C7)
     NishthaTab.GOALS -> if (isDark) Color(0xFF34D399) else Color(0xFF059669)
     NishthaTab.STREAKS -> if (isDark) Color(0xFFFBBF24) else Color(0xFFD97706)
-    NishthaTab.ANALYTICS -> if (isDark) Color(0xFFC084FC) else Color(0xFF581C87)
+    NishthaTab.ANALYTICS -> if (isDark) Color(0xFFC084FC) else RoyalPurple
 }

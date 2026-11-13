@@ -1,5 +1,7 @@
 package com.safarparmar.app.ui.mehfil
 
+import com.safarparmar.app.ui.theme.RoyalPurple
+
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -343,7 +345,7 @@ private fun DmChatTopBar(
                 modifier = Modifier
                     .size(36.dp)
                     .clip(CircleShape)
-                    .background(if (isDarkChat) Color(0xFF3B0764) else Color(0xFF581C87))
+                    .background(if (isDarkChat) Color(0xFF3B0764) else RoyalPurple)
                     .clickable(onClick = onBack),
                 contentAlignment = Alignment.Center,
             ) {

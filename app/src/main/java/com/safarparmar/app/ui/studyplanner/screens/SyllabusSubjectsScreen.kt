@@ -70,8 +70,12 @@ import com.safarparmar.app.ui.studyplanner.logic.deleteImpact
 import com.safarparmar.app.ui.studyplanner.logic.findDuplicateSiblingName
 import com.safarparmar.app.ui.studyplanner.logic.daysUntil
 import com.safarparmar.app.ui.studyplanner.logic.NodeState
-import com.safarparmar.app.ui.studyplanner.logic.CourseMapNudgeKind
-import com.safarparmar.app.ui.studyplanner.logic.courseMapNudge
+import com.safarparmar.app.ui.studyplanner.logic.PlannerInsightsCalculator
+import com.safarparmar.app.ui.studyplanner.logic.syllabusReadiness
+import com.safarparmar.app.ui.studyplanner.logic.searchSyllabus
+import com.safarparmar.app.ui.studyplanner.logic.isLate
+import com.safarparmar.app.ui.studyplanner.logic.SyllabusReadinessStatus
+import com.safarparmar.app.ui.studyplanner.plan.PlanExamSettingsRow
 import com.safarparmar.app.ui.studyplanner.logic.progressState
 import com.safarparmar.app.ui.studyplanner.logic.rollup
 import com.safarparmar.app.ui.studyplanner.logic.todayKey
@@ -137,17 +141,18 @@ private fun SyllabusSubjectsScreenContent(
         // behind a just-added topic, which is what made a freshly added topic only show up
         // after leaving and reopening the sheet.
         var openTopicsChapterId by rememberSaveable { mutableStateOf<String?>(null) }
+        // Topic to scroll to and outline when the sheet opens from search or Today.
+        var focusTopicId by rememberSaveable { mutableStateOf<String?>(null) }
         var topicForDatePicker by remember { mutableStateOf<StudyTopic?>(null) }
-        var showChangePlan by rememberSaveable { mutableStateOf(false) }
         var showNewDatesConfirm by rememberSaveable { mutableStateOf(false) }
-        var showSaveForReuseConfirm by rememberSaveable { mutableStateOf(false) }
-        var showChangeHelp by rememberSaveable { mutableStateOf(false) }
         var showPlanSettings by rememberSaveable { mutableStateOf(false) }
-        var showFullPlanTitle by rememberSaveable { mutableStateOf(false) }
+        var showReschedule by rememberSaveable { mutableStateOf(false) }
+        // Which field Plan settings scrolls to when a readiness action opens it.
+        var settingsFocusExamDate by rememberSaveable { mutableStateOf(false) }
+        var settingsFocusDailyGoal by rememberSaveable { mutableStateOf(false) }
 
         BackHandler {
             when {
-                showFullPlanTitle -> showFullPlanTitle = false
                 activeSubjectId != null -> activeSubjectId = null
                 else -> onBack()
             }
@@ -160,9 +165,6 @@ private fun SyllabusSubjectsScreenContent(
         }
 
         val selectedPlan = state.selectedPlan
-        LaunchedEffect(selectedPlan?.title) {
-            showFullPlanTitle = false
-        }
 
         val rawSubjects = selectedPlan?.subjects.orEmpty()
         var localSubjects by remember(rawSubjects) { mutableStateOf(rawSubjects) }
@@ -272,25 +274,62 @@ private fun SyllabusSubjectsScreenContent(
         val totalTopics = localSubjects.sumOf { subject -> subject.chapters.sumOf { it.topics.size } }
         val totalChapters = localSubjects.sumOf { it.chapters.size }
         val planProgress = selectedPlan?.rollup()?.completionPercent ?: 0
-        val notStartedChapters = localSubjects.sumOf { subject ->
-            subject.chapters.count { it.progressState().state == NodeState.NOT_STARTED }
-        }
         val examDays = daysUntil(selectedPlan?.examDate)?.coerceIn(Int.MIN_VALUE.toLong(), Int.MAX_VALUE.toLong())?.toInt()
-        val courseMapNudge = remember(selectedPlan) { selectedPlan?.courseMapNudge() }
+        val doneTopics = localSubjects.sumOf { subject -> subject.chapters.sumOf { chapter -> chapter.topics.count { it.status.isStudied } } }
+        // Real-pace forecast, the same number the Progress tab's "Am I on track?" uses.
+        val velocityForecast = remember(selectedPlan, state.calendar, state.analytics) {
+            selectedPlan?.let { PlannerInsightsCalculator.compute(it, state.calendar, state.analytics).summary.velocityForecastCompletionDate }
+        }
+        val readiness = remember(selectedPlan, state.pendingRebuild, state.pendingRatingChapterIds, state.ratingRebuildPromptDismissed, velocityForecast) {
+            selectedPlan?.syllabusReadiness(
+                rebuildArmed = state.pendingRebuild != null,
+                ratingsChanged = state.pendingRatingChapterIds.isNotEmpty() && !state.ratingRebuildPromptDismissed,
+                velocityForecastDate = velocityForecast,
+            )
+        }
+        fun openPlanSettings(focusExamDate: Boolean = false, focusDailyGoal: Boolean = false) {
+            settingsFocusExamDate = focusExamDate
+            settingsFocusDailyGoal = focusDailyGoal
+            showPlanSettings = true
+        }
         val isTemplatePlan = !selectedPlan?.templateId.isNullOrBlank()
         val shouldShowFullImport = localSubjects.isEmpty() && !isTemplatePlan
 
         var syllabusQuery by rememberSaveable { mutableStateOf("") }
-        var organizeSyllabus by rememberSaveable { mutableStateOf(false) }
-        val filteredSubjects = remember(localSubjects, syllabusQuery) {
-            val query = syllabusQuery.trim()
-            if (query.isBlank()) localSubjects else localSubjects.filter { subject ->
-                subject.name.contains(query, ignoreCase = true) || subject.chapters.any { chapter ->
-                    chapter.name.contains(query, ignoreCase = true) || chapter.topics.any { it.name.contains(query, ignoreCase = true) }
-                }
+        // Study mode (default): progress actions only. Edit mode: add, rename,
+        // delete, reorder and chapter sizes. Shared by the list, subject screen
+        // and topics sheet.
+        var editMode by rememberSaveable { mutableStateOf(false) }
+        var orderChangedWhileEditing by rememberSaveable { mutableStateOf(false) }
+        var showOrderChangedPrompt by rememberSaveable { mutableStateOf(false) }
+        val isSearching = syllabusQuery.isNotBlank()
+        val searchResults = remember(localSubjects, syllabusQuery) { localSubjects.searchSyllabus(syllabusQuery) }
+        val filteredSubjects = if (isSearching) searchResults.subjects else localSubjects
+        fun openChapter(subjectId: String, chapterId: String, topicId: String? = null) {
+            activeSubjectId = subjectId
+            openTopicsChapterId = chapterId
+            focusTopicId = topicId
+        }
+        fun toggleEditMode() {
+            if (editMode) {
+                editMode = false
+                // A new order only reaches the calendar when dates are rebuilt.
+                val hasDates = selectedPlan?.subjects.orEmpty().any { s -> s.chapters.any { c -> c.topics.any { !it.plannedDate.isNullOrBlank() } } }
+                if (orderChangedWhileEditing && (hasDates || state.pendingRebuild != null)) showOrderChangedPrompt = true
+                orderChangedWhileEditing = false
+            } else {
+                syllabusQuery = ""
+                editMode = true
             }
         }
-        val canReorderSyllabus = !state.mutating && organizeSyllabus && syllabusQuery.isBlank()
+
+        // "Subject · Chapter" links from other tabs (Today) land here.
+        LaunchedEffect(state.pendingSyllabusChapter) {
+            val request = state.pendingSyllabusChapter ?: return@LaunchedEffect
+            syllabusQuery = ""
+            openChapter(request.subjectId, request.chapterId, request.topicId)
+            actions.clearPendingSyllabusChapter()
+        }
 
         val buildSchedule: () -> Unit = {
             val pending = state.pendingRebuild
@@ -301,9 +340,11 @@ private fun SyllabusSubjectsScreenContent(
                     priorityOrderMode = pending.priorityOrderMode,
                 )
             } else {
+                // Same study style as every other "new dates" entry point, rather
+                // than a hard-coded order that differs from Plan settings.
                 actions.autoDistribute(
                     lockExisting = false,
-                    strategy = "sequential",
+                    strategy = if (state.preferredStudyStrategy == "sequential") "sequential" else "interleaved",
                     preserveToday = true,
                 )
             }
@@ -325,6 +366,7 @@ private fun SyllabusSubjectsScreenContent(
         }
 
         fun saveSubjectOrder() {
+            orderChangedWhileEditing = true
             actions.reorderSyllabus(subjectIds = localSubjects.map { it.id })
         }
 
@@ -343,6 +385,7 @@ private fun SyllabusSubjectsScreenContent(
 
         fun saveChapterOrder(subjectId: String) {
             val subject = localSubjects.find { it.id == subjectId } ?: return
+            orderChangedWhileEditing = true
             actions.reorderSyllabus(chapterIdsBySubjectId = mapOf(subjectId to subject.chapters.map { it.id }))
         }
 
@@ -377,6 +420,7 @@ private fun SyllabusSubjectsScreenContent(
             val chapter = localSubjects.asSequence()
                 .flatMap { it.chapters.asSequence() }
                 .firstOrNull { it.id == chapterId } ?: return
+            orderChangedWhileEditing = true
             actions.reorderSyllabus(topicIdsByChapterId = mapOf(chapterId to chapter.topics.map { it.id }))
         }
 
@@ -407,7 +451,13 @@ private fun SyllabusSubjectsScreenContent(
                 topBar = {
                     @OptIn(ExperimentalMaterial3Api::class)
                     androidx.compose.material3.TopAppBar(
-                        actions = { if (!isWide) com.safarparmar.app.ui.tutorial.TitliGuideButton() },
+                        // In the planner tab the drawer's top bar already shows Titli.
+                        actions = {
+                            TextButton(onClick = { toggleEditMode() }, modifier = Modifier.heightIn(min = 48.dp)) {
+                                Text(stringResource(if (editMode) R.string.common_done else R.string.common_edit), fontWeight = FontWeight.SemiBold)
+                            }
+                            if (!isWide && showBottomBar) com.safarparmar.app.ui.tutorial.TitliGuideButton()
+                        },
                         title = { Text(subject.name, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
                         navigationIcon = {
                             if (showBackButton) {
@@ -433,6 +483,7 @@ private fun SyllabusSubjectsScreenContent(
                             completionPercent = subject.progressState().percent,
                             chapterCount = subject.chapters.size,
                             topicCount = subjectTopics,
+                            showAdd = editMode,
                             onAddChapter = {
                                 subjects.firstOrNull { it.id == subject.id }?.let {
                                     dialogState = SyllabusDialogState.AddChapter(it)
@@ -463,7 +514,7 @@ private fun SyllabusSubjectsScreenContent(
                                 onMarkDone = { actions.batchMarkTopicsDone(chapter.topics.map { it.id }) },
                                 onRate = { difficulty -> actions.rateChapter(subject.id, chapter.id, difficulty) },
                                 showDifficultyChips = state.selectedPlan?.weightedPlanning != false,
-                                canReorder = canReorderSyllabus,
+                                editMode = editMode,
                                 onMoveUp = { moveChapter(subject.id, chapter.id, -1) },
                                 onMoveDown = { moveChapter(subject.id, chapter.id, 1) },
                                 onDragEnd = { saveChapterOrder(subject.id) },
@@ -481,18 +532,30 @@ private fun SyllabusSubjectsScreenContent(
                     topics = openChapter.topics,
                     chapter = openChapter,
                     isDarkTheme = isDarkTheme,
-                    onDismiss = { openTopicsChapterId = null },
+                    onDismiss = {
+                        openTopicsChapterId = null
+                        focusTopicId = null
+                    },
+                    focusTopicId = focusTopicId,
                     onAddTopic = { name -> requestAddTopic(subject.id, openChapter.id, name) },
                     onTopicClick = {},
                     onRenameTopic = { topic -> dialogState = SyllabusDialogState.RenameTopic(topic) },
                     onDeleteTopic = { topic -> dialogState = SyllabusDialogState.DeleteTopic(topic) },
                     onAssignToday = { topic -> actions.updateTopic(topic.id, plannedDate = todayKey(), pinned = true) },
-                    canReorder = canReorderSyllabus,
+                    onAssignTomorrow = { topic ->
+                        val tomorrow = java.time.LocalDate.parse(todayKey()).plusDays(1).toString()
+                        actions.updateTopic(topic.id, plannedDate = tomorrow, pinned = true)
+                    },
+                    // Same Ekagra launch as Today's Focus button.
+                    onFocusTopic = { topic -> onNavigate(Routes.ekagraForTopic(topic.id, topic.name, planId)) },
+                    editMode = editMode,
+                    onToggleEdit = { toggleEditMode() },
                     onMoveTopicUp = { topic -> moveTopic(openChapter.id, topic.id, -1) },
                     onMoveTopicDown = { topic -> moveTopic(openChapter.id, topic.id, 1) },
                     onTopicDragEnd = { saveTopicOrder(openChapter.id) },
                     onChangeDate = { topic -> topicForDatePicker = topic },
                     onMarkDoneTopic = { topic -> actions.batchMarkTopicsDone(listOf(topic.id)) },
+                    onMarkNotDoneTopic = { topic -> actions.updateTopic(topic.id, status = TopicStatus.TODO) },
                     onToReviseTopic = { topic -> dialogState = SyllabusDialogState.ReviseTopic(topic) },
                 )
             }
@@ -506,13 +569,6 @@ private fun SyllabusSubjectsScreenContent(
                 contentWindowInsets = syllabusWindowInsets,
                 bottomBar = {
                     Column {
-                        if (showFullPlanTitle) {
-                            SyllabusFullPlanTitleCard(
-                                planTitle = selectedPlan?.title.orEmpty().ifBlank { "Study Plan" },
-                                onDismiss = { showFullPlanTitle = false },
-                                isDarkTheme = isDarkTheme,
-                            )
-                        }
                         if (showBottomBar && !useTopNavigation) {
                             PlannerBottomBar(
                                 selected = PlannerSection.SYLLABUS,
@@ -554,68 +610,69 @@ private fun SyllabusSubjectsScreenContent(
                                 verticalArrangement = Arrangement.spacedBy(0.dp),
                             ) {
                                 item {
-                                    SyllabusMagazineHeader(
-                                        showTitle = showBottomBar,
+                                    if (showBottomBar) {
+                                        // Standalone route: no planner chrome above, so name the screen.
+                                        Text(stringResource(R.string.planner_warm_syllabus), style = MaterialTheme.typography.headlineMedium,
+                                            color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.padding(bottom = 8.dp))
+                                    }
+                                    PlanExamSettingsRow(
                                         planTitle = selectedPlan?.title.orEmpty().ifBlank { "Study Plan" },
-                                        completionPercent = planProgress,
-                                        subjectCount = localSubjects.size,
-                                        chapterCount = totalChapters,
-                                        topicCount = totalTopics,
-                                        daysUntilExam = examDays,
-                                        notStartedChapters = notStartedChapters,
-                                        onExamDateClick = { showPlanSettings = true },
-                                        onPlanTitleClick = { showFullPlanTitle = !showFullPlanTitle },
+                                        onSettingsClick = { openPlanSettings() },
+                                        onSelectExam = if (showBottomBar) null else ({ onPlannerSectionSelect(PlannerSection.YOUR_EXAMS) }),
                                     )
-                                    Spacer(Modifier.height(14.dp))
-                                    SyllabusChangePlanBand(
-                                        enabled = !state.mutating,
-                                        onClick = { showChangePlan = true },
-                                    )
-                                    Spacer(Modifier.height(10.dp))
-                                    if (state.pendingRatingChapterIds.isNotEmpty() && !state.ratingRebuildPromptDismissed) {
-                                        SyllabusRatingRebuildBar(
-                                            hasExamDate = !selectedPlan?.examDate.isNullOrBlank(),
-                                            rebuilding = state.mutating,
-                                            onRebuild = actions::rebuildAfterRatingChanges,
-                                            onSetExamDate = { showPlanSettings = true },
-                                            onDismiss = actions::dismissRatingRebuildPrompt,
-                                        )
-                                        Spacer(Modifier.height(10.dp))
-                                    }
-                                    courseMapNudge?.let { nudge ->
-                                        PlanHairline()
-                                        SyllabusCourseMapNudge(
-                                            nudge = nudge,
-                                            onClick = {
-                                                if (nudge.kind == CourseMapNudgeKind.NEEDS_SCHEDULE) {
-                                                    showChangePlan = true
-                                                } else {
-                                                    val targetSubject = localSubjects.firstOrNull { it.id == nudge.subjectId }
-                                                    val targetChapter = targetSubject?.chapters?.firstOrNull { it.id == nudge.chapterId }
-                                                    if (targetSubject != null && targetChapter != null) {
-                                                        activeSubjectId = targetSubject.id
-                                                        openTopicsChapterId = targetChapter.id
+                                    Spacer(Modifier.height(12.dp))
+                                    // While searching, results matter more than status; the card
+                                    // would push them under the keyboard.
+                                    if (!isSearching) readiness?.let { status ->
+                                        SyllabusReadinessCard(
+                                            completionPercent = planProgress,
+                                            doneTopics = doneTopics,
+                                            totalTopics = totalTopics,
+                                            daysUntilExam = examDays,
+                                            status = status,
+                                            busy = state.mutating,
+                                            actions = SyllabusReadinessActions(
+                                                onCreateDates = { showNewDatesConfirm = true },
+                                                onSetExamDate = { openPlanSettings(focusExamDate = true) },
+                                                // Same scheduling screen as Today's "Not Assigned Topics" banner.
+                                                onGiveDates = { actions.openUnscheduledTopics() },
+                                                onUpdateDates = actions::rebuildAfterRatingChanges,
+                                                onDismissRatings = actions::dismissRatingRebuildPrompt,
+                                                onCatchUp = {
+                                                    if (status is SyllabusReadinessStatus.Late) {
+                                                        syllabusQuery = ""
+                                                        openChapter(status.subjectId, status.chapterId)
                                                     }
-                                                }
-                                            },
+                                                },
+                                                onStudyMore = { openPlanSettings(focusDailyGoal = true) },
+                                            ),
                                         )
                                     }
-                                    androidx.compose.material3.OutlinedTextField(value = syllabusQuery, onValueChange = { syllabusQuery = it },
-                                        modifier = Modifier.fillMaxWidth().padding(top = 12.dp), singleLine = true, shape = RoundedCornerShape(18.dp),
-                                        label = { Text(stringResource(R.string.planner_warm_search_topics)) })
-                                    androidx.compose.material3.TextButton(onClick = { organizeSyllabus = !organizeSyllabus }, enabled = !state.mutating && syllabusQuery.isBlank(), modifier = Modifier.fillMaxWidth()) {
-                                        Text(stringResource(if (organizeSyllabus) R.string.common_done else R.string.planner_warm_organize))
+                                    Row(Modifier.fillMaxWidth().padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                                        if (editMode) {
+                                            Text(stringResource(R.string.planner_editing_hint), style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+                                        } else {
+                                            androidx.compose.material3.OutlinedTextField(value = syllabusQuery, onValueChange = { syllabusQuery = it },
+                                                modifier = Modifier.weight(1f), singleLine = true, shape = RoundedCornerShape(18.dp),
+                                                label = { Text(stringResource(R.string.planner_warm_search_topics)) })
+                                        }
+                                        Spacer(Modifier.width(8.dp))
+                                        androidx.compose.material3.FilledTonalButton(onClick = { toggleEditMode() },
+                                            modifier = Modifier.heightIn(min = 48.dp), shape = RoundedCornerShape(16.dp)) {
+                                            Text(stringResource(if (editMode) R.string.common_done else R.string.common_edit))
+                                        }
                                     }
-                                    if (organizeSyllabus) Text(stringResource(R.string.planner_warm_reorder_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    SyllabusMagazineListHeader(
+                                    if (!isSearching) SyllabusMagazineListHeader(
                                         title = stringResource(R.string.planner_your_subjects),
                                         onAddSubject = { dialogState = SyllabusDialogState.AddSubject },
                                         addContentDescription = "Add subject",
+                                        showAdd = editMode,
                                         modifier = Modifier.padding(top = 14.dp, bottom = 6.dp),
                                     )
                                 }
 
-                                if (filteredSubjects.isEmpty() && localSubjects.isNotEmpty()) {
+                                if (isSearching && searchResults.isEmpty && localSubjects.isNotEmpty()) {
                                     item { Text(stringResource(R.string.planner_warm_no_matches), color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(vertical = 20.dp)) }
                                 }
                                 if (localSubjects.isEmpty() && !shouldShowFullImport) {
@@ -645,7 +702,7 @@ private fun SyllabusSubjectsScreenContent(
                                             onMarkDone = {
                                                 actions.batchMarkTopicsDone(subject.chapters.flatMap { it.topics }.map { it.id })
                                             },
-                                            canReorder = canReorderSyllabus,
+                                            editMode = editMode,
                                             onMoveUp = { moveSubject(subject.id, -1) },
                                             onMoveDown = { moveSubject(subject.id, 1) },
                                             onDragEnd = { saveSubjectOrder() },
@@ -658,6 +715,43 @@ private fun SyllabusSubjectsScreenContent(
                                                 } else Modifier
                                             ),
                                         )
+                                    }
+                                }
+                                if (isSearching) {
+                                    items(searchResults.chapters, key = { "chapter_hit_${it.chapter.id}" }) { hit ->
+                                        PlanHairline()
+                                        SyllabusSearchResultRow(
+                                            title = hit.chapter.name,
+                                            path = hit.subject.name,
+                                            done = false,
+                                            trailing = null,
+                                            trailingIsLate = false,
+                                            onClick = { openChapter(hit.subject.id, hit.chapter.id) },
+                                        )
+                                    }
+                                    if (searchResults.topics.isNotEmpty()) {
+                                        item(key = "topic_hits_heading") {
+                                            Text(stringResource(R.string.planner_search_topics_heading), style = MaterialTheme.typography.titleSmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 16.dp, bottom = 6.dp))
+                                        }
+                                    }
+                                    items(searchResults.topics, key = { "topic_hit_${it.topic?.id}" }) { hit ->
+                                        val topic = hit.topic ?: return@items
+                                        PlanHairline()
+                                        SyllabusSearchResultRow(
+                                            title = topic.name,
+                                            path = "${hit.subject.name} · ${hit.chapter.name}",
+                                            done = topic.status == TopicStatus.DONE,
+                                            trailing = syllabusTopicDateLabel(topic),
+                                            trailingIsLate = topic.isLate(),
+                                            onClick = { openChapter(hit.subject.id, hit.chapter.id, topic.id) },
+                                        )
+                                    }
+                                    if (searchResults.topicsTruncated) {
+                                        item(key = "topic_hits_more") {
+                                            Text(stringResource(R.string.planner_search_more, searchResults.topics.size), style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(vertical = 12.dp))
+                                        }
                                     }
                                 }
                             }
@@ -926,50 +1020,18 @@ private fun SyllabusSubjectsScreenContent(
             SyllabusDialogState.Closed -> {}
         }
 
-        if (showChangePlan) {
-            SyllabusChangePlanSheet(
-                canMakeDates = localSubjects.isNotEmpty() && !state.mutating,
-                isAlreadySaved = !selectedPlan?.savedSyllabusId.isNullOrBlank(),
-                onAddSubject = {
-                    showChangePlan = false
-                    dialogState = SyllabusDialogState.AddSubject
-                },
-                onChangeDetails = {
-                    showChangePlan = false
-                    showPlanSettings = true
-                },
-                onChangeOrderOrSize = {
-                    showChangePlan = false
-                    showChangeHelp = true
-                },
-                onMakeNewDates = {
-                    showChangePlan = false
-                    showNewDatesConfirm = true
-                },
-                onSaveForReuse = {
-                    showChangePlan = false
-                    showSaveForReuseConfirm = true
-                },
-                onDismiss = { showChangePlan = false },
-            )
-        }
-
-        if (showSaveForReuseConfirm) {
+        if (showOrderChangedPrompt) {
             PlannerDialog(
-                onDismissRequest = { showSaveForReuseConfirm = false },
-                title = if (selectedPlan?.savedSyllabusId.isNullOrBlank()) "Save this syllabus?" else "Update saved syllabus?",
-                text = {
-                    PlannerDialogText(
-                        "Only subjects, chapters, topics, and topic sizes are saved. Dates and progress stay with this plan."
-                    )
-                },
+                onDismissRequest = { showOrderChangedPrompt = false },
+                title = stringResource(R.string.planner_order_changed_title),
+                text = { PlannerDialogText(stringResource(R.string.planner_order_changed_body)) },
                 dismissButton = {
-                    PlannerDialogTextAction(stringResource(R.string.common_not_now)) { showSaveForReuseConfirm = false }
+                    PlannerDialogTextAction(stringResource(R.string.common_not_now)) { showOrderChangedPrompt = false }
                 },
                 confirmButton = {
-                    PlannerDialogAction(text = stringResource(R.string.planner_save_for_reuse)) {
-                        showSaveForReuseConfirm = false
-                        actions.saveCurrentSyllabusForReuse()
+                    PlannerDialogAction(text = stringResource(R.string.planner_ready_update_dates)) {
+                        showOrderChangedPrompt = false
+                        buildSchedule()
                     }
                 },
             )
@@ -996,156 +1058,40 @@ private fun SyllabusSubjectsScreenContent(
             )
         }
 
-        if (showChangeHelp) {
-            PlannerDialog(
-                onDismissRequest = { showChangeHelp = false },
-                title = stringResource(R.string.planner_change_order_size),
-                text = {
-                    PlannerDialogText(
-                        "To change order, press and hold a subject, chapter, or topic, then move it. " +
-                            "To change topic size, open a subject and choose Easy, Normal, or Tough for a chapter."
-                    )
-                },
-                confirmButton = {
-                    PlannerDialogAction(text = stringResource(R.string.common_got_it)) { showChangeHelp = false }
-                },
-            )
-        }
-
         if (showPlanSettings && selectedPlan != null) {
             PlanSettingsSheet(
                 plan = selectedPlan,
                 actions = actions,
                 onExport = null,
                 onReset = {},
-                onDismiss = { showPlanSettings = false },
+                onDismiss = {
+                    showPlanSettings = false
+                    settingsFocusExamDate = false
+                    settingsFocusDailyGoal = false
+                },
+                onExamDateChanged = { showReschedule = true },
+                focusDailyGoal = settingsFocusDailyGoal,
+                focusExamDate = settingsFocusExamDate,
+                preferredStrategy = state.preferredStudyStrategy,
             )
         }
-    }
-}
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun SyllabusChangePlanSheet(
-    canMakeDates: Boolean,
-    isAlreadySaved: Boolean,
-    onAddSubject: () -> Unit,
-    onChangeDetails: () -> Unit,
-    onChangeOrderOrSize: () -> Unit,
-    onMakeNewDates: () -> Unit,
-    onSaveForReuse: () -> Unit,
-    onDismiss: () -> Unit,
-) {
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        containerColor = com.safarparmar.app.ui.theme.SafarSemanticColors.plannerBackground(),
-        dragHandle = { BottomSheetDefaults.DragHandle(color = PlannerFlatColors.BorderSoft) },
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .wrapContentWidth(Alignment.CenterHorizontally)
-                .widthIn(max = 540.dp)
-                .navigationBarsPadding()
-                .padding(start = 20.dp, end = 20.dp, bottom = 14.dp),
-        ) {
-            Text(
-                text = stringResource(R.string.planner_what_change),
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = PlannerFlatColors.TextDark,
-            )
-            Spacer(Modifier.height(3.dp))
-            Text(
-                text = stringResource(R.string.planner_change_option_body),
-                fontSize = 12.sp,
-                color = PlannerFlatColors.TextMuted,
-            )
-            Spacer(Modifier.height(10.dp))
-            PlanHairline()
-            SyllabusChangePlanRow(
-                title = stringResource(R.string.planner_add_subject),
-                description = stringResource(R.string.planner_change_add_missing),
-                onClick = onAddSubject,
-            )
-            PlanHairline()
-            SyllabusChangePlanRow(
-                title = stringResource(R.string.planner_change_plan_details),
-                description = stringResource(R.string.planner_change_details_help),
-                onClick = onChangeDetails,
-            )
-            PlanHairline()
-            SyllabusChangePlanRow(
-                title = stringResource(R.string.planner_change_order_size),
-                description = stringResource(R.string.planner_change_order_help),
-                onClick = onChangeOrderOrSize,
-            )
-            PlanHairline()
-            SyllabusChangePlanRow(
-                title = if (isAlreadySaved) stringResource(R.string.planner_update_saved_syllabus) else stringResource(R.string.planner_save_syllabus_reuse),
-                description = stringResource(R.string.planner_save_reuse_help),
-                onClick = onSaveForReuse,
-            )
-            PlanHairline()
-            Surface(
-                shape = RoundedCornerShape(12.dp),
-                color = if (canMakeDates) PlannerFlatColors.PrimaryAccent.copy(alpha = 0.10f) else Color.Transparent,
-                border = if (canMakeDates) BorderStroke(1.dp, PlannerFlatColors.PrimaryAccent) else null,
-                modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
-            ) {
-                SyllabusChangePlanRow(
-                    title = stringResource(R.string.planner_make_new_dates),
-                    description = stringResource(R.string.planner_new_dates_help),
-                    enabled = canMakeDates,
-                    onClick = onMakeNewDates,
-                )
-            }
-            PlanHairline()
-            TextButton(
-                onClick = onDismiss,
-                modifier = Modifier.fillMaxWidth().height(42.dp),
-            ) {
-                Text(stringResource(R.string.common_not_now), fontWeight = FontWeight.SemiBold, fontSize = 13.5.sp, color = PlannerFlatColors.TextMuted)
-            }
-        }
-    }
-}
-
-@Composable
-private fun SyllabusChangePlanRow(
-    title: String,
-    description: String,
-    onClick: () -> Unit,
-    enabled: Boolean = true,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(enabled = enabled, onClick = onClick)
-            .padding(vertical = 7.dp, horizontal = 2.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                fontSize = 13.5.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = if (enabled) PlannerFlatColors.TextDark else PlannerFlatColors.TextMuted,
-            )
-            Spacer(Modifier.height(1.dp))
-            Text(
-                text = description,
-                fontSize = 11.sp,
-                color = PlannerFlatColors.TextMuted,
+        if (showReschedule) {
+            RescheduleFlowSheet(
+                subjects = rawSubjects,
+                onRebuildNow = { strategy, priority, orderMode ->
+                    actions.rescheduleAfterExamDateChange(strategy, prioritySubjectNames = priority, priorityOrderMode = orderMode)
+                    showReschedule = false
+                },
+                onReorderFirst = { strategy, priority, orderMode ->
+                    // Already on Syllabus: arm the rebuild and switch reordering on.
+                    actions.armRebuild(strategy, prioritySubjectNames = priority, priorityOrderMode = orderMode)
+                    syllabusQuery = ""
+                    editMode = true
+                    showReschedule = false
+                },
+                onDismiss = { showReschedule = false },
             )
         }
-        Spacer(Modifier.width(10.dp))
-        Icon(
-            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-            contentDescription = null,
-            tint = if (enabled) PlannerFlatColors.PrimaryAccent else PlannerFlatColors.ProgressTrack,
-            modifier = Modifier.size(18.dp),
-        )
     }
 }

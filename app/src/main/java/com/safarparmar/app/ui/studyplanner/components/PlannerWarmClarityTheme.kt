@@ -1,5 +1,10 @@
 package com.safarparmar.app.ui.studyplanner.components
 
+import com.safarparmar.app.ui.theme.RoyalPurple
+import com.safarparmar.app.ui.theme.RoyalPurpleDark
+import com.safarparmar.app.ui.theme.RoyalPurpleSoft
+import com.safarparmar.app.ui.theme.RoyalPurpleSoftDark
+
 import com.safarparmar.app.ui.theme.BgDark
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -24,7 +29,7 @@ internal fun plannerButtonForeground(background: Color): Color {
     fun contrast(foreground: Color): Float =
         (maxOf(foreground.luminance(), background.luminance()) + 0.05f) /
             (minOf(foreground.luminance(), background.luminance()) + 0.05f)
-    val plum = Color(0xFF39132E)
+    val plum = Color(0xFF241544)
     return when {
         contrast(plum) >= 4.5f -> plum
         contrast(Color.White) >= 4.5f -> Color.White
@@ -41,13 +46,13 @@ data class PlannerWarmColors(
 
 fun plannerWarmColors(dark: Boolean): PlannerWarmColors = if (dark) PlannerWarmColors(
     canvas = BgDark, card = Color(0xFF342735), ink = Color(0xFFFFF0F6),
-    muted = Color(0xFFCFBECB), action = Color(0xFFF0BEDC), onAction = Color(0xFF39132E),
-    peach = Color(0xFF684047), mint = Color(0xFF28574D), border = Color(0xFF624B60),
+    muted = Color(0xFFCFBECB), action = RoyalPurpleDark, onAction = Color(0xFF241544),
+    peach = RoyalPurpleSoftDark, mint = Color(0xFF28574D), border = Color(0xFF624B60),
     success = Color(0xFF85DFC0), attention = Color(0xFFFFCF87), error = Color(0xFFFFAAA6),
 ) else PlannerWarmColors(
-    canvas = Color(0xFFFFF5F0), card = Color(0xFFFFFDFC), ink = Color(0xFF39132E),
-    muted = Color(0xFF75616F), action = Color(0xFF542347), onAction = Color.White,
-    peach = Color(0xFFFFCBBE), mint = Color(0xFFC9EFE0), border = Color(0xFFE8D6DE),
+    canvas = Color(0xFFFAF8FF), card = Color(0xFFFFFDFC), ink = Color(0xFF241544),
+    muted = Color(0xFF75616F), action = RoyalPurple, onAction = Color.White,
+    peach = RoyalPurpleSoft, mint = Color(0xFFC9EFE0), border = Color(0xFFE8D6DE),
     success = Color(0xFF146A50), attention = Color(0xFF915400), error = Color(0xFFB52C43),
 )
 

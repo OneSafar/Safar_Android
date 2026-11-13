@@ -1,0 +1,11 @@
+{
+  "name": "habit-tracker-promo",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "npx --yes hyperframes@0.9.5 preview",
+    "check": "npx --yes hyperframes@0.9.5 check",
+    "render": "node render.mjs",
+    "publish": "npx --yes hyperframes@0.9.5 publish"
+  }
+}

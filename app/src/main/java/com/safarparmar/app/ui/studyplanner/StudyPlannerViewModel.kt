@@ -118,6 +118,8 @@ data class FinishDayUndoState(
     val undoToken: String,
 )
 
+data class SyllabusChapterRequest(val subjectId: String, val chapterId: String, val topicId: String? = null)
+
 data class StudyPlannerUiState(
     val plans: List<StudyPlan> = emptyList(),
     val templates: List<ExamTemplateSummary> = emptyList(),
@@ -163,6 +165,8 @@ data class StudyPlannerUiState(
      *  true, then clears it via [PlannerActions.clearPendingOpenMissedTopics]. */
     val pendingOpenMissedTopics: Boolean = false,
     val pendingOpenUnscheduledTopics: Boolean = false,
+    /** Set by "Subject · Chapter" links (e.g. on Today); the Syllabus tab opens it and clears it. */
+    val pendingSyllabusChapter: SyllabusChapterRequest? = null,
     val isImporting: Boolean = false,
     val importStatus: String? = null,
     val importError: String? = null,
@@ -284,6 +288,22 @@ class StudyPlannerViewModel @Inject constructor(
             viewModelScope.launch {
                 val strategy = dataStore.plannerPreferredStrategy(null).first()
                 _uiState.update { it.copy(preferredStudyStrategy = strategy) }
+            }
+        }
+
+        // One place notices a chapter reaching 100%, whichever path finished it
+        // (Today, Syllabus, Calendar, or Ekagra's "Did you finish this topic?").
+        viewModelScope.launch {
+            var previous: StudyPlan? = null
+            _uiState.map { it.selectedPlan }.distinctUntilChanged().collect { current ->
+                val finished = com.safarparmar.app.ui.studyplanner.logic.chapterFinishedBetween(previous, current)
+                previous = current
+                if (finished != null) {
+                    _uiState.update {
+                        it.copy(message = context.getString(com.safarparmar.app.R.string.planner_chapter_finished,
+                            finished.chapterName, finished.finishedChapters, finished.totalChapters))
+                    }
+                }
             }
         }
 
@@ -596,6 +616,16 @@ class StudyPlannerViewModel @Inject constructor(
 
     override fun clearPendingOpenUnscheduledTopics() {
         _uiState.update { it.copy(pendingOpenUnscheduledTopics = false) }
+    }
+
+    override fun openChapterInSyllabus(subjectId: String, chapterId: String, topicId: String?) {
+        _uiState.update {
+            it.copy(section = PlannerSection.SYLLABUS, pendingSyllabusChapter = SyllabusChapterRequest(subjectId, chapterId, topicId))
+        }
+    }
+
+    override fun clearPendingSyllabusChapter() {
+        _uiState.update { it.copy(pendingSyllabusChapter = null) }
     }
 
     override fun deletePlan(planId: String) {
@@ -2041,7 +2071,7 @@ class StudyPlannerViewModel @Inject constructor(
         mutateSelected(
             refreshCalendar = true,
             refreshAnalytics = true,
-            successMessage = "${topicIds.size} topics marked as done",
+            successMessage = if (topicIds.size == 1) "Topic marked as done" else "${topicIds.size} topics marked as done",
             undoLabel = "Mark done"
         ) { planId -> repo.batchUpdateTopics(planId, request) }
     }

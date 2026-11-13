@@ -1,5 +1,9 @@
 package com.safarparmar.app.feature.habits.ui
 
+import com.safarparmar.app.ui.theme.RoyalPurpleMid
+import com.safarparmar.app.ui.theme.RoyalPurple
+import com.safarparmar.app.ui.theme.RoyalPurpleSoft
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
@@ -57,9 +61,9 @@ import java.time.format.DateTimeFormatter
 import java.time.temporal.TemporalAdjusters
 import java.time.DayOfWeek
 
-internal val TimetableGreen = Color(0xFF542347)
-internal val SessionPastels = listOf(Color(0xFFC9EFE0), Color(0xFFFFCBBE), Color(0xFFEDE0F4), Color(0xFFFFF0F6), Color(0xFFEDE0F4))
-internal val SessionAccents = listOf(Color(0xFF174E40), Color(0xFF9A4E25), Color(0xFF542347), Color(0xFF793D67), Color(0xFF75616F))
+internal val TimetableGreen = RoyalPurple
+internal val SessionPastels = listOf(Color(0xFFC9EFE0), RoyalPurpleSoft, RoyalPurpleSoft, Color(0xFFFFF0F6), RoyalPurpleSoft)
+internal val SessionAccents = listOf(Color(0xFF174E40), Color(0xFF9A4E25), RoyalPurple, RoyalPurpleMid, Color(0xFF75616F))
 
 @Composable
 internal fun HabitTimetableContent(
@@ -71,12 +75,13 @@ internal fun HabitTimetableContent(
     onBack: () -> Unit = {},
     onMore: () -> Unit,
     snackbar: SnackbarHostState,
+    openTimetable: Boolean = false,
     timetableViewModel: TimetableViewModel = hiltViewModel()
 ) {
     val sessions by timetableViewModel.sessions.collectAsStateWithLifecycle()
     val owner by timetableViewModel.owner.collectAsStateWithLifecycle()
     // One main checklist; other tools open with a back button, never nested tab strips.
-    var section by rememberSaveable { mutableIntStateOf(0) }
+    var section by rememberSaveable { mutableIntStateOf(if (openTimetable) 1 else 0) }
     var showAllHabits by rememberSaveable { mutableStateOf(false) }
     var historyParent by rememberSaveable { mutableIntStateOf(0) }
     var habitPage by rememberSaveable { mutableIntStateOf(0) }
@@ -98,7 +103,8 @@ internal fun HabitTimetableContent(
         val existing = sessions.find { it.id == editorId }
         if (creating || existing != null) {
             TimetableSessionEditor(
-                initial = existing ?: TimetableSession(date = selectedDay),
+                initial = existing ?: suggestTimetableSession(day, sessions),
+                sessions = sessions,
                 isNew = creating,
                 subjects = sessions.map { it.subject }.distinct(),
                 onDismiss = { creating = false; editorId = null },
@@ -172,7 +178,7 @@ internal fun HabitTimetableContent(
                 } }
                 if (section == 0) {
                     item {
-                        Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(if (LocalHabitDarkTheme.current) HabitColors.Parchment else Color(0xFFEDE0F4)).padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(if (LocalHabitDarkTheme.current) HabitColors.Parchment else RoyalPurpleSoft).padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                             SproutArtwork(Modifier.size(72.dp), withSoil = true)
                             Column(Modifier.weight(1f).padding(start = 12.dp)) {
                                 Text("Stay on Track", fontWeight = FontWeight.Bold, fontSize = 21.sp, color = HabitColors.TextPrimary)
@@ -422,8 +428,8 @@ private fun ProgressSummary(state: HabitUiState, sessions: List<TimetableSession
             val study = sessions.filter { it.kind == SessionKind.STUDY }
             val other = sessions.filter { it.kind != SessionKind.STUDY }
             listOf(Triple("Study", "${study.count { it.isDone(day) }}/${study.size}", green),
-                Triple("Habits", "${state.todayHabits.count { it.completed }}/${state.todayHabits.size}", Color(0xFF793D67)),
-                Triple("Others", "${other.count { it.isDone(day) }}/${other.size}", Color(0xFF542347))).forEach { (label, count, color) ->
+                Triple("Habits", "${state.todayHabits.count { it.completed }}/${state.todayHabits.size}", RoyalPurpleMid),
+                Triple("Others", "${other.count { it.isDone(day) }}/${other.size}", RoyalPurple)).forEach { (label, count, color) ->
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(Modifier.size(8.dp).background(color, CircleShape)); Spacer(Modifier.width(8.dp))
                     Text(label, Modifier.weight(1f), fontSize = 13.sp, color = HabitColors.TextPrimary)
@@ -458,7 +464,7 @@ internal fun SessionRow(session: TimetableSession, day: LocalDate, timeline: Boo
             Text(session.kind.symbol, fontSize = 22.sp, modifier = Modifier.padding(12.dp))
             Column(Modifier.weight(1f).padding(vertical = 10.dp)) {
                 Text(session.title, color = HabitColors.TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                if (!timeline) Text("${sessionTime(session.startMinute)} – ${sessionTime(session.endMinute)}", color = HabitColors.TextSecondary, fontSize = 12.sp, modifier = Modifier.padding(top = 3.dp))
+                Text(sessionTimeRange(session), color = HabitColors.TextSecondary, fontSize = 12.sp, modifier = Modifier.padding(top = 3.dp))
             }
             if (onToggle != null) CompletionTarget(done, "${session.title}, ${if (done) "completed" else "mark complete"}", onToggle)
             else IconButton(onClick = onEdit, modifier = Modifier.habitPress(scaleDown = HabitMotion.ScaleIcon)) { Icon(Icons.Rounded.ChevronRight, "Edit ${session.title}", tint = HabitColors.TextSecondary) }

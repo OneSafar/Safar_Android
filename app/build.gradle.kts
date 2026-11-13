@@ -92,8 +92,8 @@ android {
         applicationId = "com.safarparmar.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 83
-        versionName = "1.6.83"
+        versionCode = 86
+        versionName = "1.6.86"
         val compactSummary = providers.gradleProperty("dashboardMonthlySummary").getOrElse("false")
         require(compactSummary in setOf("true", "false")) { "dashboardMonthlySummary must be true or false" }
         buildConfigField("boolean", "DASHBOARD_MONTHLY_SUMMARY_ENABLED", compactSummary)
@@ -243,6 +243,7 @@ dependencies {
 
     //animation
     implementation("androidx.compose.animation:animation")
+    implementation("com.airbnb.android:lottie-compose:6.4.1")
 
     //di
     implementation(libs.hilt.android)

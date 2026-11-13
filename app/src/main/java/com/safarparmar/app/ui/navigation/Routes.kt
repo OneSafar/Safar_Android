@@ -35,6 +35,7 @@ object Routes {
     /** Full route pattern for DM_CHAT that accepts optional deep-link args. */
     const val DM_CHAT_ROUTE = "mehfil/dm_chat?targetUserId={targetUserId}&targetUserName={targetUserName}&contextPreview={contextPreview}&autoRequest={autoRequest}"
     const val DHYAN  = "dhyan"
+    const val CALM_CENTRE = "calm_centre"
     const val COURSES = "dhyan_courses"
     const val APP_PICKER = "ekagra/app_picker"
     const val KAVACH_ABOUT = "kavach/about"
@@ -50,6 +51,7 @@ object Routes {
     const val ADMIN_NOTIFICATIONS = "admin/notifications"
     const val PREMIUM = "premium"
     const val HABIT_TRACKER = "habit_tracker"
+    const val TIMETABLE = "habit_timetable"
     const val HABIT_INSIGHTS = "habit_insights"
     const val SUPPORT = "support"
 

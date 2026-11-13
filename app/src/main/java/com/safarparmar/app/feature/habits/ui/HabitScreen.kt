@@ -36,6 +36,7 @@ fun HabitScreen(
     isDarkTheme: Boolean = false,
     onNavigate: (String) -> Unit = {},
     onToggleDarkTheme: () -> Unit = {},
+    openTimetable: Boolean = false,
     viewModel: HabitViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -103,6 +104,7 @@ fun HabitScreen(
                     onAddHabit = { if (!state.isLoading && !state.isMigrating) showAddHabit = true },
                     onEditHabit = { editingId = it.id },
                     onMore = { openDrawer() },
+                    openTimetable = openTimetable,
                     snackbar = snackbar
                 )
 

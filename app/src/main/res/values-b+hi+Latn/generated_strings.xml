@@ -1204,7 +1204,7 @@
     <string name="planner_name_already_used">yeh naam pehle se istemal hua hai</string>
     <string name="planner_save_for_reuse">dobara istemal ke liye save karein</string>
     <string name="planner_change_order_size">Order ya topic size badlein</string>
-    <string name="planner_change_option_body">ek option chunein. Save karne tak aapka plan nahi badalega.</string>
+    <string name="planner_change_option_body">Chunein ki aap kya badalna chahte hain.</string>
     <string name="planner_change_plan_details">Plan details badlein</string>
     <string name="common_move_up">upar karein</string>
     <string name="common_move_down">neeche karein</string>

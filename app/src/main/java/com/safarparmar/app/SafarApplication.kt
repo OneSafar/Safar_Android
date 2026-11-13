@@ -46,6 +46,17 @@ class SafarApplication : Application(), coil.ImageLoaderFactory {
             .components {
                 add(coil.map.Mapper<String, android.net.Uri> { data, _ ->
                     if (!data.startsWith("/")) return@Mapper null
+                    if (data.startsWith("/avatars/")) {
+                        val assetPath = data.removePrefix("/")
+                        val exists = try {
+                            assets.open(assetPath).use { true }
+                        } catch (_: Exception) {
+                            false
+                        }
+                        if (exists) {
+                            return@Mapper android.net.Uri.parse("file:///android_asset$data")
+                        }
+                    }
                     val base = com.safarparmar.app.BuildConfig.BASE_URL.trimEnd('/')
                     val origin = try {
                         val parsed = android.net.Uri.parse(base)

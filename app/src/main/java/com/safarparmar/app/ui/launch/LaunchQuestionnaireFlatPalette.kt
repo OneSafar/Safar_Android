@@ -1,5 +1,8 @@
 package com.safarparmar.app.ui.launch
 
+import com.safarparmar.app.ui.theme.RoyalPurple
+import com.safarparmar.app.ui.theme.RoyalPurpleDark
+
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
@@ -20,8 +23,8 @@ object LaunchFlatColors {
     private val isDark: Boolean
         @Composable get() = !isLight
 
-    val Bg @Composable get() = if (isDark) Color(0xFF211921) else Color(0xFFFFF5F0)
-    val Text @Composable get() = if (isDark) Color(0xFFFFF0F6) else Color(0xFF39132E)
+    val Bg @Composable get() = if (isDark) Color(0xFF211921) else Color(0xFFFAF8FF)
+    val Text @Composable get() = if (isDark) Color(0xFFFFF0F6) else Color(0xFF241544)
     /** Stronger than typical muted — must stay readable on cream and on glass. */
     val Muted @Composable get() = if (isDark) Color(0xFFCFBECB) else Color(0xFF75616F)
     val Hairline @Composable get() = if (isDark) Color(0xFF654D66) else Color(0xFFE8DEE5)
@@ -34,7 +37,7 @@ object LaunchFlatColors {
     val OnGlassMuted @Composable get() = if (isDark) Color(0xFFD1D1D6) else Color(0xFF3A3A3C)
 
     /** Primary Kavach / setup accent — violet */
-    val Primary @Composable get() = if (isDark) Color(0xFFF0BEDC) else Color(0xFF542347)
+    val Primary @Composable get() = if (isDark) RoyalPurpleDark else RoyalPurple
 
     val Beast @Composable get() = Primary
     val AlwaysOn @Composable get() = Primary

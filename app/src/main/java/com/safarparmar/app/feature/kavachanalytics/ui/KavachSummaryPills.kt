@@ -2,30 +2,15 @@ package com.safarparmar.app.feature.kavachanalytics.ui
 import com.composables.ui.components.HorizontalSeparator as HorizontalDivider
 
 import com.safarparmar.app.performance.decorativeFloat
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
-import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -40,8 +25,6 @@ import com.safarparmar.app.ui.components.popups.SafarDropdownMenu as DropdownMen
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -163,9 +146,9 @@ fun KavachSummaryPillsContent(
 ) {
     Row(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        // Left Box: Distracting (Red warning icon, 3x size)
+        // Two aligned summaries; the circle gets more room for its name.
         SummaryPill(
             label = "Distracting",
             value = if (distractingSeconds > 0) {
@@ -174,24 +157,17 @@ fun KavachSummaryPillsContent(
                 "0m"
             },
             icon = Icons.Outlined.WarningAmber,
-            accent = themeAccent,
-            iconColor = Color(0xFFEF4444),
-            ink = ink,
-            isDark = isDarkTheme,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.weight(.42f),
             onClick = onOpenAnalytics,
         )
 
-        // Right Box: Study Group Live Focus Box (Light Teal pulsating dot, 3x size)
+        // Circle selection has a separate, discoverable dropdown action.
         StudyGroupLivePill(
             myCircles = myCircles,
             selectedCircle = selectedCircle,
             onSelectCircle = onSelectCircle,
             onNavigate = onNavigate,
-            accent = themeAccent,
-            ink = ink,
-            isDark = isDarkTheme,
-            modifier = Modifier.weight(1f).tutorialTarget("ekagra.circles"),
+            modifier = Modifier.weight(.58f).tutorialTarget("ekagra.circles"),
         )
     }
 }
@@ -200,150 +176,45 @@ private fun SummaryPill(
     label: String,
     value: String,
     icon: ImageVector,
-    accent: Color,
-    iconColor: Color,
-    ink: com.safarparmar.app.ui.ekagra.EkagraInk?,
-    isDark: Boolean,
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val shape = RoundedCornerShape(14.dp)
-
-    val normalCardBg = if (isDark) {
-        Color(0xFF1E293B).copy(alpha = 0.55f)
-    } else {
-        Color.White.copy(alpha = 0.32f)
-    }
-    val pressedCardBg = if (isDark) {
-        Color(0xFF2B3A4F).copy(alpha = 0.70f)
-    } else {
-        Color.White.copy(alpha = 0.48f)
-    }
-
-    val cardColor by animateColorAsState(
-        targetValue = if (isPressed) pressedCardBg else normalCardBg,
-        animationSpec = spring(dampingRatio = 0.82f, stiffness = 600f),
-        label = "summaryChipColor",
-    )
-
-    val normalBorder = if (isDark) {
-        Color.White.copy(alpha = 0.16f)
-    } else {
-        Color.White.copy(alpha = 0.45f)
-    }
-    val pressedBorder = accent.copy(alpha = if (isDark) 0.50f else 0.40f)
-    val borderColor = if (isPressed) pressedBorder else normalBorder
-
-    val textColor = if (isDark) Color.White else Color(0xFF0F172A)
-    val secondaryColor = if (isDark) Color.White.copy(alpha = 0.75f) else Color(0xFF334155)
-
-    Box(
-        modifier = modifier
-            .height(62.dp)
-            .clip(shape)
-            .background(cardColor)
-            .border(1.dp, borderColor, shape)
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onClick,
-            ),
-        contentAlignment = Alignment.Center,
+    val scheme = MaterialTheme.colorScheme
+    val shape = RoundedCornerShape(16.dp)
+    com.composables.ui.components.Button(
+        onClick = onClick,
+        style = com.composables.ui.components.ButtonStyle.Ghost,
+        shape = shape,
+        contentColor = scheme.onSurface,
+        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
+        modifier = modifier.heightIn(min = 68.dp)
+            .background(scheme.surface, shape).border(1.dp, scheme.outlineVariant, shape),
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 10.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            // Prominent Warning Icon
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = iconColor,
-                modifier = Modifier.size(28.dp),
-            )
-            Spacer(Modifier.width(8.dp))
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.Center,
-            ) {
-                Text(
-                    text = label,
-                    fontSize = 10.5.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = secondaryColor,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                AnimatedContent(
-                    targetState = value,
-                    transitionSpec = {
-                        (fadeIn() + slideInVertically { it / 3 }) togetherWith
-                            (fadeOut() + slideOutVertically { -it / 3 })
-                    },
-                    label = "summaryChipValue",
-                ) { animatedValue ->
-                    Text(
-                        text = animatedValue,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = textColor,
-                        maxLines = 1,
-                    )
-                }
+        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            com.composables.ui.components.Text(label, color = scheme.onSurfaceVariant,
+                fontSize = 12.sp, fontWeight = FontWeight.Medium, maxLines = 1,
+                overflow = TextOverflow.Ellipsis)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                com.composables.ui.components.Icon(icon, contentDescription = null,
+                    tint = scheme.primary, modifier = Modifier.size(18.dp))
+                com.composables.ui.components.Text(value, color = scheme.onSurface,
+                    fontSize = 17.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
             }
         }
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun StudyGroupLivePill(
     myCircles: List<StudyCircleSummaryDto>,
     selectedCircle: StudyCircleSummaryDto?,
     onSelectCircle: (StudyCircleSummaryDto) -> Unit,
     onNavigate: (String) -> Unit,
-    accent: Color,
-    ink: com.safarparmar.app.ui.ekagra.EkagraInk?,
-    isDark: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
     var showDropdown by remember { mutableStateOf(false) }
-    val shape = RoundedCornerShape(14.dp)
-
-    val normalCardBg = if (isDark) {
-        Color(0xFF1E293B).copy(alpha = 0.55f)
-    } else {
-        Color.White.copy(alpha = 0.32f)
-    }
-    val pressedCardBg = if (isDark) {
-        Color(0xFF2B3A4F).copy(alpha = 0.70f)
-    } else {
-        Color.White.copy(alpha = 0.48f)
-    }
-
-    val cardColor by animateColorAsState(
-        targetValue = if (isPressed) pressedCardBg else normalCardBg,
-        animationSpec = spring(dampingRatio = 0.82f, stiffness = 600f),
-        label = "groupLiveCardColor",
-    )
-
-    val normalBorder = if (isDark) {
-        Color.White.copy(alpha = 0.16f)
-    } else {
-        Color.White.copy(alpha = 0.45f)
-    }
-    val pressedBorder = accent.copy(alpha = if (isDark) 0.50f else 0.40f)
-    val borderColor = if (isPressed) pressedBorder else normalBorder
-
-    val textColor = if (isDark) Color.White else Color(0xFF0F172A)
-    val secondaryColor = if (isDark) Color.White.copy(alpha = 0.75f) else Color(0xFF334155)
-
+    val scheme = MaterialTheme.colorScheme
+    val shape = RoundedCornerShape(16.dp)
     val activeCircle = selectedCircle ?: myCircles.firstOrNull()
     val groupName = activeCircle?.name ?: "Study Group"
     val liveCount = activeCircle?.focusingCount ?: 0
@@ -353,81 +224,41 @@ private fun StudyGroupLivePill(
         if (liveCount == 1) "1 Live" else "$liveCount Live"
     }
 
-    Box(
-        modifier = modifier
-            .height(62.dp)
-            .clip(shape)
-            .background(cardColor)
-            .border(1.dp, borderColor, shape)
-            .combinedClickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = {
-                    if (activeCircle != null) {
-                        onNavigate(Routes.STUDY_CIRCLE_DETAIL.replace("{circleId}", activeCircle.id))
-                    } else {
-                        onNavigate(Routes.STUDY_CIRCLES)
-                    }
-                },
-                onLongClick = {
-                    showDropdown = true
-                },
-            ),
-        contentAlignment = Alignment.Center,
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 10.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
+    Box(modifier) {
+        com.composables.ui.components.Button(
+            onClick = {
+                onNavigate(activeCircle?.let { Routes.STUDY_CIRCLE_DETAIL.replace("{circleId}", it.id) }
+                    ?: Routes.STUDY_CIRCLES)
+            },
+            style = com.composables.ui.components.ButtonStyle.Ghost,
+            shape = shape,
+            contentColor = scheme.onSurface,
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
+            modifier = Modifier.fillMaxWidth().heightIn(min = 68.dp)
+                .background(scheme.surface, shape).border(1.dp, scheme.outlineVariant, shape),
         ) {
-            // Light Teal Pulsating Live Dot
-            TealLivePulseDot(size = 14, modifier = Modifier.size(28.dp))
-            Spacer(Modifier.width(8.dp))
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.Center,
+            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                com.composables.ui.components.Text(groupName, color = scheme.onSurfaceVariant,
+                    fontSize = 12.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.fillMaxWidth().padding(end = if (myCircles.size > 1) 30.dp else 0.dp))
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // A small live indicator keeps the count as the visual focus.
+                    TealLivePulseDot(size = 8, modifier = Modifier.size(14.dp))
+                    com.composables.ui.components.Text(displayValue, color = scheme.onSurface,
+                        fontSize = 17.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                }
+            }
+        }
+        if (myCircles.size > 1) {
+            com.composables.ui.components.IconButton(
+                onClick = { showDropdown = true },
+                style = com.composables.ui.components.ButtonStyle.Ghost,
+                contentColor = scheme.onSurface,
+                modifier = Modifier.align(Alignment.TopEnd).size(48.dp),
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(
-                        text = groupName,
-                        fontSize = 10.5.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = secondaryColor,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f, fill = false),
-                    )
-                    if (myCircles.size > 1) {
-                        Spacer(Modifier.width(2.dp))
-                        Icon(
-                            imageVector = Icons.Default.ArrowDropDown,
-                            contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.kavach_select_group),
-                            tint = secondaryColor,
-                            modifier = Modifier.size(15.dp),
-                        )
-                    }
-                }
-
-                AnimatedContent(
-                    targetState = displayValue,
-                    transitionSpec = {
-                        (fadeIn() + slideInVertically { it / 3 }) togetherWith
-                            (fadeOut() + slideOutVertically { -it / 3 })
-                    },
-                    label = "groupLiveValue",
-                ) { animatedValue ->
-                    Text(
-                        text = animatedValue,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = textColor,
-                        maxLines = 1,
-                    )
-                }
+                com.composables.ui.components.Icon(Icons.Default.ArrowDropDown,
+                    contentDescription = androidx.compose.ui.res.stringResource(com.safarparmar.app.R.string.kavach_select_group),
+                    tint = scheme.onSurface, modifier = Modifier.size(20.dp))
             }
         }
 

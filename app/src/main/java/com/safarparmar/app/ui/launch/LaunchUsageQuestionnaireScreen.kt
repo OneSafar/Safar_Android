@@ -1,5 +1,8 @@
 package com.safarparmar.app.ui.launch
 
+import com.safarparmar.app.ui.theme.RoyalPurpleSoft
+import com.safarparmar.app.ui.theme.RoyalPurpleSoftDark
+
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -100,9 +103,9 @@ import com.safarparmar.app.ui.theme.isLightBackground
  */
 private fun glassBodyColor(isLight: Boolean, selected: Boolean, accent: Color): Color {
     return if (isLight) {
-        if (selected) Color(0xFFEDE0F4) else Color(0xFFFFFDFC)
+        if (selected) RoyalPurpleSoft else Color(0xFFFFFDFC)
     } else {
-        if (selected) Color(0xFF513551) else Color(0xFF342735)
+        if (selected) RoyalPurpleSoftDark else Color(0xFF342735)
     }
 }
 
@@ -567,7 +570,7 @@ private fun QuestionnaireBottomBar(
         Button(onClick = onContinue, enabled = canContinue, style = ButtonStyle.Ghost,
             modifier = Modifier.weight(1.4f).heightIn(min = 52.dp).background(
                 if (canContinue) LaunchFlatColors.Primary else LaunchFlatColors.Hairline, RoundedCornerShape(14.dp)),
-            contentColor = if (LaunchFlatColors.Primary.isLightBackground()) Color(0xFF39132E) else Color.White) {
+            contentColor = if (LaunchFlatColors.Primary.isLightBackground()) Color(0xFF241544) else Color.White) {
             Text(stringResource(if (page == 0) R.string.common_continue else R.string.launch_finish_setup), fontWeight = FontWeight.SemiBold)
         }
     }
@@ -581,7 +584,7 @@ private fun OnboardingChoice(title: String, subtitle: String, icon: ImageVector,
         modifier = modifier.fillMaxWidth().semantics { this.selected = selected; role = if (multi) Role.Checkbox else Role.RadioButton }.heightIn(min = 64.dp).launchGlassPanel(isLight, selected, LaunchFlatColors.Primary, RoundedCornerShape(16.dp))) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Icon(icon, contentDescription = null, tint = LaunchFlatColors.Primary,
-                modifier = Modifier.size(36.dp).background(if (isLight) Color(0xFFFFCBBE) else Color(0xFF684047), RoundedCornerShape(10.dp)).padding(8.dp))
+                modifier = Modifier.size(36.dp).background(if (isLight) RoyalPurpleSoft else RoyalPurpleSoftDark, RoundedCornerShape(10.dp)).padding(8.dp))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(title, color = LaunchFlatColors.Text, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
                 Text(subtitle, color = LaunchFlatColors.Muted, fontSize = 12.sp, lineHeight = 17.sp)

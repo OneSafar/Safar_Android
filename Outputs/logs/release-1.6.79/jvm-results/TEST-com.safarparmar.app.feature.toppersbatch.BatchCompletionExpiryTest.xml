@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.safarparmar.app.feature.toppersbatch.BatchCompletionExpiryTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-20T18:47:17.584Z" hostname="Shashanks-MacBook-Air.local" time="0.07">
-  <properties/>
-  <testcase name="bannerExpiresWithoutDismissingANewerCompletion" classname="com.safarparmar.app.feature.toppersbatch.BatchCompletionExpiryTest" time="0.069"/>
-  <system-out><![CDATA[]]></system-out>
-  <system-err><![CDATA[]]></system-err>
-</testsuite>

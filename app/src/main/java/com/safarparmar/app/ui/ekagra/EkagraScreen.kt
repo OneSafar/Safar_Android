@@ -120,7 +120,6 @@ fun EkagraScreen(
     initialView: String? = null,
     viewModel: EkagraViewModel = hiltViewModel(),
     focusShieldViewModel: com.safarparmar.app.ui.ekagra.focusshield.FocusShieldViewModel = hiltViewModel(),
-    youtubeViewModel: com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2ViewModel = hiltViewModel(),
 ) {
     val activeSession        by viewModel.activeSession.collectAsStateWithLifecycle()
     val ekagraAnalytics      by viewModel.ekagraAnalytics.collectAsStateWithLifecycle()
@@ -130,19 +129,8 @@ fun EkagraScreen(
     val localizedResources by rememberUpdatedState(LocalResources.current)
     val requestNotificationPermission = rememberNotificationPermissionRequester()
     val shieldState          by focusShieldViewModel.shieldState.collectAsStateWithLifecycle()
-    val youtubeState         by youtubeViewModel.state.collectAsStateWithLifecycle()
     val haptics              = LocalHapticFeedback.current
     val lifecycleOwner       = LocalLifecycleOwner.current
-
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                youtubeViewModel.refreshPermission()
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
-    }
 
     // fallback flows when timerService is null
     val fallbackSecondsLeft      = remember { MutableStateFlow(25 * 60) }
@@ -170,7 +158,6 @@ fun EkagraScreen(
     val ekagraScope              = rememberCoroutineScope()
     val selectedTab              = tabBackStack.currentTab
     var showKavachActiveSession  by remember { mutableStateOf(false) }
-    var showYoutubeShortcut by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(true) }
     var showThemeDialog          by remember { mutableStateOf(false) }
     var showEndSessionConfirmDialog by remember { mutableStateOf(false) }
     var showAudioLibraryPanel    by remember { mutableStateOf(false) }
@@ -183,6 +170,7 @@ fun EkagraScreen(
     // The mode the user wants to switch to while another session is active.
     // Non-null triggers the "switch mode?" confirmation dialog.
     var pendingModeSwitchConfirm by remember { mutableStateOf<TimerMode?>(null) }
+    var modeAfterSessionEnd by remember { mutableStateOf<TimerMode?>(null) }
     var topicStudySheetState     by remember { mutableStateOf<TopicStudySheetState>(TopicStudySheetState.ReadyToSave) }
     var pendingEndedSession      by remember { mutableStateOf<PendingEndedEkagraSession?>(null) }
     var titleInput               by remember { mutableStateOf("") }
@@ -237,6 +225,9 @@ fun EkagraScreen(
         mutableStateOf(musicPromptPrefs.getBoolean("skip_prompt", false))
     }
 
+    var launchContextHandled by remember(linkedGoalId, linkedTopicId, linkedPlanId) {
+        mutableStateOf(false)
+    }
     var associatedGoalId    by remember(linkedGoalId)    { mutableStateOf(linkedGoalId) }
     var associatedGoalTitle by remember(linkedGoalTitle) { mutableStateOf(linkedGoalTitle) }
     var associatedTopicId    by remember(linkedTopicId)    { mutableStateOf(linkedTopicId) }
@@ -269,6 +260,20 @@ fun EkagraScreen(
         }
     }
 
+    // Every fresh study start must attach the planner link before TimerService
+    // creates its durable session. This also covers the first-use duration prompt.
+    fun prepareStudySession() {
+        timerService?.prepareAutoSaveSession(
+            taskTitle = associatedGoalTitle ?: associatedTopicTitle ?: taskText.takeIf { it.isNotBlank() },
+            goalId = associatedGoalId,
+            goalTitle = associatedGoalTitle,
+            topicId = associatedTopicId,
+            planId = associatedPlanId,
+            topicTitle = associatedTopicTitle,
+            forceNew = true,
+        )
+    }
+
     fun startTimer(mode: TimerMode, minutes: Int) {
         if ((mode == TimerMode.FOCUS || mode == TimerMode.STOPWATCH) && !skipMusicPrompt && !isStartingFromMusicSelection) {
             pendingStartTimerArgs = Pair(mode, minutes)
@@ -287,14 +292,6 @@ fun EkagraScreen(
 
         val service = timerService
         if ((mode == TimerMode.FOCUS || mode == TimerMode.STOPWATCH) && timerMode != TimerMode.FOCUS && timerMode != TimerMode.STOPWATCH && timerMode != TimerMode.POMODORO && service?.switchToFocusFromBreak() == true) {
-            service.prepareAutoSaveSession(
-                taskTitle = associatedGoalTitle ?: associatedTopicTitle ?: taskText.takeIf { it.isNotBlank() },
-                goalId = associatedGoalId,
-                goalTitle = associatedGoalTitle,
-                topicId = associatedTopicId,
-                planId = associatedPlanId,
-                topicTitle = associatedTopicTitle,
-            )
             service.start()
             viewModel.syncActiveSession(
                 service.totalSeconds.value,
@@ -307,14 +304,6 @@ fun EkagraScreen(
         }
 
         if ((mode == TimerMode.FOCUS || mode == TimerMode.STOPWATCH) && (timerMode == TimerMode.FOCUS || timerMode == TimerMode.STOPWATCH || timerMode == TimerMode.POMODORO) && timerService?.isActive() == true) {
-            timerService.prepareAutoSaveSession(
-                taskTitle = associatedGoalTitle ?: associatedTopicTitle ?: taskText.takeIf { it.isNotBlank() },
-                goalId = associatedGoalId,
-                goalTitle = associatedGoalTitle,
-                topicId = associatedTopicId,
-                planId = associatedPlanId,
-                topicTitle = associatedTopicTitle,
-            )
             timerService.start()
             viewModel.syncActiveSession(
                 totalSeconds,
@@ -480,6 +469,41 @@ fun EkagraScreen(
 
     // ── Side-effects ────────────────────────────────────────────────────────────
 
+    LaunchedEffect(modeAfterSessionEnd, showTopicStudySheet, showOrganizeSheet, pendingEndedSession, timerService) {
+        val nextMode = modeAfterSessionEnd ?: return@LaunchedEffect
+        if (showTopicStudySheet || showOrganizeSheet || pendingEndedSession != null) return@LaunchedEffect
+        val service = timerService ?: return@LaunchedEffect
+        service.awaitSessionFinalization()
+        if (service.isActive()) {
+            // Ending a manual break first restores its suspended focus timer.
+            // Finalize that timer before replacing it with the requested mode.
+            service.endAndSave()
+            service.awaitSessionFinalization()
+        }
+        modeAfterSessionEnd = null
+        val minutes = when (nextMode) {
+            TimerMode.FOCUS, TimerMode.POMODORO -> focusMinutes
+            TimerMode.BREAK -> breakMinutes
+            TimerMode.STOPWATCH -> 0
+        }
+        service.setDuration(nextMode, minutes * 60, breakMinutes * 60)
+        selectedDisplayMode = nextMode
+        if (nextMode != TimerMode.BREAK) prepareStudySession()
+        service.start()
+        showLongSessionIntroIfNeeded(nextMode, minutes * 60)
+        if (nextMode != TimerMode.BREAK) {
+            viewModel.onSessionStarted(
+                taskText = taskText,
+                totalSeconds = if (nextMode == TimerMode.STOPWATCH) 0 else minutes * 60,
+                goalId = associatedGoalId,
+                goalTitle = associatedGoalTitle,
+                mode = nextMode.toApiMode(),
+                clientSessionId = service.currentSessionId(),
+            )
+        }
+    }
+
+
     val draftOwner by viewModel.draftOwner.collectAsStateWithLifecycle()
     LaunchedEffect(timerService, timerRunning, timerMode, totalSeconds, secondsLeft, draftOwner, activeSession?.id) {
         val service = timerService ?: return@LaunchedEffect
@@ -492,6 +516,34 @@ fun EkagraScreen(
                 associatedGoalTitle = draft.goalTitle
             }
             if (taskText.isBlank()) taskText = draft.sessionTitle.orEmpty()
+        }
+    }
+
+    LaunchedEffect(timerService, linkedTopicId, linkedPlanId, linkedGoalId, draftOwner, timerRunning) {
+        val service = timerService ?: return@LaunchedEffect
+        val draft = service.activeSessionDraft() ?: return@LaunchedEffect
+        if (!service.isActive() || draft.userId != draftOwner) return@LaunchedEffect
+        val topic = service.plannerTopicMetadata()
+        val requested = EkagraTaskContext(
+            goalId = linkedGoalId, goalTitle = linkedGoalTitle,
+            topicId = linkedTopicId, planId = linkedPlanId, topicTitle = linkedTopicTitle,
+        )
+        val running = EkagraTaskContext(
+            goalId = draft.goalId, goalTitle = draft.goalTitle,
+            topicId = topic?.topicId, planId = topic?.planId, topicTitle = topic?.topicTitle,
+            taskTitle = draft.sessionTitle,
+        )
+        val resolved = resolveEkagraTaskContext(requested, running)
+        associatedGoalId = resolved.goalId
+        associatedGoalTitle = resolved.goalTitle
+        associatedTopicId = resolved.topicId
+        associatedPlanId = resolved.planId
+        associatedTopicTitle = resolved.topicTitle
+        taskText = resolved.taskTitle ?: resolved.goalTitle ?: resolved.topicTitle.orEmpty()
+        val conflictingLaunch = !launchContextHandled && requested.hasLink && !requested.hasSameLink(running)
+        launchContextHandled = true
+        if (conflictingLaunch) {
+            snackbarHostState.showSnackbar(localizedResources.getString(R.string.ekagra_current_session_first))
         }
     }
 
@@ -592,7 +644,12 @@ fun EkagraScreen(
         savedSessionId = completed.clientSessionId
         savedSessionDuration = completed.actualDurationSeconds ?: completed.actualDurationMinutes * 60
         showPostSaveGoalLinking = completed.topicId == null
-        if (!showPostSaveGoalLinking) timerService?.acknowledgeCompletedSession(completed.clientSessionId)
+        if (!completed.topicId.isNullOrBlank() && !completed.planId.isNullOrBlank()) {
+            pendingEndedSession = completed.toEndedPlannerSession()
+            topicStudySheetState = TopicStudySheetState.SavedOnPhone
+            showTopicStudySheet = true
+            timerService?.acknowledgeCompletedSession(completed.clientSessionId)
+        }
         associatedGoalId = null; associatedGoalTitle = null
         associatedTopicId = null; associatedTopicTitle = null; associatedPlanId = null
         viewModel.loadEkagraAnalytics()
@@ -664,6 +721,20 @@ fun EkagraScreen(
         animationSpec = tween(durationMillis = 600, easing = FastOutSlowInEasing),
         label = "breakSaturation",
     )
+
+    val ekagraView = androidx.compose.ui.platform.LocalView.current
+    DisposableEffect(ekagraView) {
+        val window = (ekagraView.context as? android.app.Activity)?.window
+        val controller = window?.let { androidx.core.view.WindowCompat.getInsetsController(it, ekagraView) }
+        val previousStatus = controller?.isAppearanceLightStatusBars
+        val previousNavigation = controller?.isAppearanceLightNavigationBars
+        controller?.isAppearanceLightStatusBars = false
+        controller?.isAppearanceLightNavigationBars = false
+        onDispose {
+            previousStatus?.let { controller?.isAppearanceLightStatusBars = it }
+            previousNavigation?.let { controller?.isAppearanceLightNavigationBars = it }
+        }
+    }
 
     val themeColorScheme = remember(selectedTheme, isDarkTheme) { ekagraWarmColorScheme(selectedTheme, isDarkTheme) }
 
@@ -758,38 +829,10 @@ fun EkagraScreen(
                                 com.composables.ui.components.Button(style = com.composables.ui.components.ButtonStyle.Ghost,
                                     onClick = {
                                         pendingModeSwitchConfirm = null
-                                        // End the current session, then start the new mode.
+                                        // End opens a save sheet for planner tasks. Keep the
+                                        // current service intact until that choice is resolved.
+                                        modeAfterSessionEnd = modeSwitchTarget
                                         endCurrentSession()
-                                        // After endCurrentSession() the service is stopped.
-                                        // Configure and start the new mode.
-                                        val mins = when (modeSwitchTarget) {
-                                            TimerMode.FOCUS, TimerMode.POMODORO -> focusMinutes
-                                            TimerMode.BREAK -> breakMinutes
-                                            TimerMode.STOPWATCH -> 0
-                                        }
-                                        timerService?.setDuration(modeSwitchTarget, mins * 60, breakMinutes * 60)
-                                        selectedDisplayMode = modeSwitchTarget
-                                        if (modeSwitchTarget == TimerMode.FOCUS || modeSwitchTarget == TimerMode.STOPWATCH) {
-                                            timerService?.prepareAutoSaveSession(
-                                                taskTitle = associatedGoalTitle ?: associatedTopicTitle ?: taskText.takeIf { it.isNotBlank() },
-                                                goalId = associatedGoalId,
-                                                goalTitle = associatedGoalTitle,
-                                                topicId = associatedTopicId,
-                                                planId = associatedPlanId,
-                                                topicTitle = associatedTopicTitle,
-                                                forceNew = true,
-                                            )
-                                        }
-                                        timerService?.start()
-                                        showLongSessionIntroIfNeeded(modeSwitchTarget, mins * 60)
-                                        viewModel.onSessionStarted(
-                                            taskText = taskText,
-                                            totalSeconds = if (modeSwitchTarget == TimerMode.STOPWATCH) 0 else mins * 60,
-                                            goalId = if (modeSwitchTarget == TimerMode.FOCUS || modeSwitchTarget == TimerMode.STOPWATCH) associatedGoalId else null,
-                                            goalTitle = if (modeSwitchTarget == TimerMode.FOCUS || modeSwitchTarget == TimerMode.STOPWATCH) associatedGoalTitle else null,
-                                            mode = modeSwitchTarget.toApiMode(),
-                                            clientSessionId = timerService?.currentSessionId(),
-                                        )
                                     }
                                 ) {
                                     Text(stringResource(R.string.ekagra_yes_switch), fontWeight = FontWeight.Bold)
@@ -938,10 +981,15 @@ fun EkagraScreen(
                             @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
                             val topicSheetState = com.composables.ui.components.rememberBottomSheetState(initialDetent = com.composables.ui.components.BottomSheetDetent.FullyExpanded)
 
-                            fun closeTopicSheet() {
+                            fun closeTopicSheet(discard: Boolean = false) {
                                 showTopicStudySheet = false
                                 pendingEndedSession = null
-                                timerService?.reset()
+                                // A naturally completed session may already have started
+                                // a break. Only reset the session this sheet is ending.
+                                // Discard must end it without queueing the elapsed time.
+                                if (timerService?.currentSessionId() == pending.sessionId) {
+                                    if (discard) timerService.discard() else timerService.reset()
+                                }
                                 associatedTopicId = null
                                 associatedTopicTitle = null
                                 associatedPlanId = null
@@ -982,7 +1030,7 @@ fun EkagraScreen(
                                 },
                                 onDiscard = {
                                     viewModel.discardSession(pending.sessionId)
-                                    closeTopicSheet()
+                                    closeTopicSheet(discard = true)
                                 },
                             )
                         }
@@ -1009,8 +1057,11 @@ fun EkagraScreen(
                             }
                         }
 
-                        fun clearAssociations() {
-                            timerService?.reset(); associatedGoalId = null
+                        fun clearAssociations(discard: Boolean = false) {
+                            // Discard ends the timer without saving; every other
+                            // caller has already saved/linked the session.
+                            if (discard) timerService?.discard() else timerService?.reset()
+                            associatedGoalId = null
                             associatedGoalTitle = null; pendingEndedSession = null
                             selectedSessionTag = null
                             associatedTopicId = null; associatedTopicTitle = null; associatedPlanId = null
@@ -1138,7 +1189,7 @@ fun EkagraScreen(
                                 if (pending != null) {
                                     closeOrganizeSheet {
                                         viewModel.discardSession(pending.sessionId)
-                                        clearAssociations()
+                                        clearAssociations(discard = true)
                                     }
                                 }
                             },
@@ -1267,9 +1318,12 @@ fun EkagraScreen(
                                                 durationPromptActedOn = true
 
                                                 val wasInactive = timerService?.isActive() == false
-                                                if (wasInactive) requestNotificationPermission()
+                                                if (wasInactive) {
+                                                    requestNotificationPermission()
+                                                    if (timerMode != TimerMode.BREAK) prepareStudySession()
+                                                }
                                                 timerService?.togglePlayPause()
-                                                if (wasInactive && timerMode == TimerMode.FOCUS) {
+                                                if (wasInactive && timerMode != TimerMode.BREAK) {
                                                     viewModel.onSessionStarted(taskText, totalSeconds,
                                                         associatedGoalId, associatedGoalTitle, timerMode.toApiMode(), clientSessionId = timerService?.currentSessionId())
                                                 } else if (timerMode == TimerMode.FOCUS) {
@@ -1362,7 +1416,7 @@ fun EkagraScreen(
                         Modifier
                             .fillMaxSize()
                     ) {
-                        Box(Modifier.fillMaxSize().background(themeColorScheme.background))
+                        Box(Modifier.fillMaxSize().ekagraThemeBackground(LocalEkagraWarmPalette.current))
                         SafarDrawerScaffold(
                             title              = stringResource(R.string.module_ekagra),
                             subtitle           = stringResource(R.string.app_name),
@@ -1419,6 +1473,7 @@ fun EkagraScreen(
                                         progress           = if (isBrowsingOtherMode) 0f else progress,
                                         hasProgress        = !isBrowsingOtherMode && (if (timerMode == TimerMode.STOPWATCH) secondsLeft > 0 else secondsLeft < totalSeconds),
                                         mottoText          = displayedMottoText,
+                                        plannerTopicTitle = associatedTopicTitle,
                                         kavachActive       = shieldState.isProtectionActive && timerRunning && (timerMode == TimerMode.FOCUS || timerMode == TimerMode.POMODORO),
                                         kavachBlockedCount = blockedHitCount,
                                         controlsVisible    = true,
@@ -1470,18 +1525,7 @@ fun EkagraScreen(
 
                                             if (wasInactive) {
                                                 requestNotificationPermission()
-                                                if (timerMode == TimerMode.FOCUS || timerMode == TimerMode.POMODORO) {
-                                                    val initialTaskTitle = associatedGoalTitle ?: associatedTopicTitle ?: taskText.takeIf { it.isNotBlank() }
-                                                    timerService?.prepareAutoSaveSession(
-                                                        taskTitle = initialTaskTitle,
-                                                        goalId = associatedGoalId,
-                                                        goalTitle = associatedGoalTitle,
-                                                        topicId = associatedTopicId,
-                                                        planId = associatedPlanId,
-                                                        topicTitle = associatedTopicTitle,
-                                                        forceNew = true,
-                                                    )
-                                                }
+                                                if (timerMode != TimerMode.BREAK) prepareStudySession()
                                                 timerService?.togglePlayPause()
                                                 showLongSessionIntroIfNeeded(timerMode, totalSeconds)
                                                 if (timerMode == TimerMode.FOCUS || timerMode == TimerMode.STOPWATCH || timerMode == TimerMode.POMODORO) {
@@ -1525,11 +1569,6 @@ fun EkagraScreen(
                                         myCircles = myCircles,
                                         selectedStudyCircle = selectedStudyCircle,
                                         onSelectStudyCircle = viewModel::selectStudyCircle,
-                                        showYoutubeBanner = showYoutubeShortcut,
-                                        onDismissYoutubeFocus = { showYoutubeShortcut = false },
-                                        onEnableYoutubeFocus = {
-                                            onNavigate(Routes.focusShieldTab(1))
-                                        },
                                     )
 
                                     EkagraNavTab.DURATION -> DurationTab(

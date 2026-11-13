@@ -24,6 +24,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
@@ -132,6 +133,44 @@ internal fun HomeFeatureBanners(
             ) {
                 Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, "Next banner", tint = MaterialTheme.colorScheme.onSurface)
             }
+        }
+    }
+}
+
+@Composable
+internal fun V5HomeFeatureBanners(onNavigate: (String) -> Unit, modifier: Modifier = Modifier, autoRotate: Boolean = true) {
+    val pager = rememberPagerState(pageCount = { 3 })
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    LaunchedEffect(pager, lifecycle, autoRotate) {
+        if (autoRotate) lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            while (isActive) {
+                delay(5_000L)
+                pager.animateScrollToPage((pager.currentPage + 1) % pager.pageCount)
+            }
+        }
+    }
+    val descriptions = listOf(
+        stringResource(R.string.home_banner_youtube_focus_description),
+        stringResource(R.string.home_banner_habit_tracker_description),
+        stringResource(R.string.home_banner_timetable_description),
+    )
+    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        HorizontalPager(
+            state = pager,
+            userScrollEnabled = true,
+            pageSpacing = 12.dp,
+            modifier = Modifier.widthIn(max = 600.dp).fillMaxWidth().testTag("home-promo-carousel"),
+        ) { page ->
+            Image(
+                painter = painterResource(when (page) { 0 -> R.drawable.home_banner_youtube_focus; 1 -> R.drawable.home_banner_habit_tracker; else -> R.drawable.home_banner_timetable }),
+                contentDescription = descriptions[page],
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.fillMaxWidth().aspectRatio(3f)
+                    .clip(RoundedCornerShape(16.dp))
+                    .clickable(role = Role.Button) {
+                        onNavigate(when (page) { 0 -> Routes.YOUTUBE_STUDY_MODE_V2; 1 -> Routes.HABIT_TRACKER; else -> Routes.TIMETABLE })
+                    },
+            )
         }
     }
 }

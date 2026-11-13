@@ -160,7 +160,9 @@ internal fun DurationTab(
         )
 
         EkagraHairline(ink.hairline)
-        alarmAccessContent()
+        CompositionLocalProvider(LocalContentColor provides ink.primaryText) {
+            alarmAccessContent()
+        }
         Box(Modifier.tutorialTarget("ekagra.alerts")) {
         TimerAlertStyleRow(
             selectedStyle = timerAlertStyle,
@@ -480,9 +482,10 @@ internal fun SettingToggleRow(
 // ─── History tab ───────────────────────────────────────────────────────────────
 
 @Composable
-private fun EkagraAlarmAccessRow() {
+private fun EkagraAlarmAccessRow(ink: EkagraInk = rememberEkagraInk(onCanvas = false)) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val owner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    val scheme = MaterialTheme.colorScheme
     var allowed by remember { mutableStateOf(EkagraTimerAlarms.exactAllowed(context)) }
     DisposableEffect(owner) {
         val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
@@ -492,14 +495,44 @@ private fun EkagraAlarmAccessRow() {
         onDispose { owner.lifecycle.removeObserver(observer) }
     }
     Column(Modifier.fillMaxWidth().padding(vertical = 12.dp)) {
-        Text(stringResource(R.string.ekagra_alarm_access_title), style = MaterialTheme.typography.titleSmall)
-        Text(if (allowed) stringResource(R.string.ekagra_alarm_access_enabled)
+        Text(
+            stringResource(R.string.ekagra_alarm_access_title),
+            fontSize = 14.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = ink.primaryText,
+        )
+        Spacer(Modifier.height(4.dp))
+        Text(
+            if (allowed) stringResource(R.string.ekagra_alarm_access_enabled)
             else stringResource(R.string.ekagra_alarm_access_needed),
-            style = MaterialTheme.typography.bodySmall)
-        if (!allowed && android.os.Build.VERSION.SDK_INT >= 31) Button(style = com.composables.ui.components.ButtonStyle.Ghost, onClick = {
-            runCatching { context.startActivity(android.content.Intent(android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,
-                android.net.Uri.parse("package:${context.packageName}"))) }
-        }) { Text(stringResource(R.string.ekagra_allow_alarms)) }
+            fontSize = 12.sp,
+            color = ink.mutedText,
+        )
+        if (!allowed && android.os.Build.VERSION.SDK_INT >= 31) {
+            Spacer(Modifier.height(6.dp))
+            Button(
+                style = com.composables.ui.components.ButtonStyle.Ghost,
+                contentColor = scheme.primary,
+                contentPadding = PaddingValues(horizontal = 0.dp, vertical = 6.dp),
+                onClick = {
+                    runCatching {
+                        context.startActivity(
+                            android.content.Intent(
+                                android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,
+                                android.net.Uri.parse("package:${context.packageName}")
+                            )
+                        )
+                    }
+                }
+            ) {
+                Text(
+                    stringResource(R.string.ekagra_allow_alarms),
+                    color = scheme.primary,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 13.sp,
+                )
+            }
+        }
     }
 }
 

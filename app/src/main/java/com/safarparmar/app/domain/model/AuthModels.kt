@@ -31,3 +31,12 @@ data class ForgotPasswordResult(
     val resetToken: String?
 )
 
+@Immutable
+data class AvatarItem(
+    val id: String = "",
+    val name: String = "",
+    val category: String = "",
+    val webpUrl: String = "",
+    val svgUrl: String = "",
+)
+

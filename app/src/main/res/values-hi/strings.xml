@@ -234,6 +234,18 @@
     <string name="profile_save_content_description">प्रोफाइल सेव करें</string>
     <string name="profile_saved_success">प्रोफाइल सेव हो गई!</string>
     <string name="profile_photo_updated">प्रोफाइल फोटो अपडेट हो गई!</string>
+    <string name="avatar_picker_title">अपना अवतार चुनें</string>
+    <string name="avatar_picker_subtitle">70 खूबसूरत कैरेक्टर्स और मैस्कॉट्स में से चुनें</string>
+    <string name="avatar_picker_search_placeholder">नाम से अवतार खोजें…</string>
+    <string name="avatar_picker_category_all">सभी</string>
+    <string name="avatar_picker_category_characters">कैरेक्टर्स</string>
+    <string name="avatar_picker_category_animals">जानवर और मैस्कॉट</string>
+    <string name="avatar_picker_upload_custom">कस्टम फोटो लगाएं</string>
+    <string name="avatar_picker_apply">अवतार लगाएं</string>
+    <string name="avatar_picker_select_prompt">लगाने के लिए कोई अवतार चुनें</string>
+    <string name="avatar_picker_empty_title">कोई अवतार नहीं मिला</string>
+    <string name="avatar_picker_empty_desc">कोई दूसरा नाम या श्रेणी खोजकर देखें।</string>
+    <string name="avatar_picker_loading">अवतार लोड हो रहे हैं…</string>
 
     <!-- Nishtha tour overlay -->
     <string name="tour_ask_title">नमस्ते, मैं हूँ तितली</string>
@@ -1637,6 +1649,9 @@
     <string name="youtube_focus_shorts">Shorts</string>
     <string name="youtube_focus_channels_allowed">Allowed channels</string>
     <string name="youtube_focus_add_channel_title">Channel को ठीक वैसे जोड़ें जैसे YouTube दिखाता है</string>
+    <string name="youtube_focus_channel_handle_placeholder">@handle या channel link</string>
+    <string name="youtube_focus_channel_name_placeholder">Channel name (optional, जैसा videos के नीचे दिखता है)</string>
+    <string name="youtube_focus_add_channel_hint">सबसे अच्छे match के लिए दोनों भरें। सबसे आसान तरीका: जब कोई video block हो, “Productive में जोड़ें” दबाएँ, दोनों अपने-आप save हो जाते हैं। Shorts हर channel के लिए blocked रहते हैं।</string>
     <string name="youtube_focus_add_channel">Channel जोड़ें</string>
     <string name="youtube_focus_no_productive_channels">अभी कोई productive channel नहीं है</string>
     <string name="youtube_focus_exact_channel_help">इस phone पर YouTube जो exact name या @handle दिखाता है, वही जोड़ें।</string>
@@ -1916,7 +1931,7 @@
     <string name="planner_make_new_dates">नई study dates बनाएँ</string>
     <string name="planner_change_order_size">Order या topic size बदलें</string>
     <string name="planner_what_change">आप क्या बदलना चाहते हैं?</string>
-    <string name="planner_change_option_body">एक option चुनें। Save करने तक आपका plan नहीं बदलेगा।</string>
+    <string name="planner_change_option_body">चुनें कि आप क्या बदलना चाहते हैं।</string>
     <string name="planner_change_plan_details">Plan details बदलें</string>
     <string name="common_move_up">ऊपर करें</string>
     <string name="common_move_down">नीचे करें</string>

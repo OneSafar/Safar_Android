@@ -854,8 +854,8 @@ class TimerService : Service() {
     ) {
         if (!recoveryReady || closingSession || terminalCleanupRetry) return
         if (forceNew) terminalSave = null
-        val current = autoSaveMetadata
-        val shouldCreate = forceNew || current == null
+        val current = autoSaveMetadata.takeUnless { forceNew }
+        val shouldCreate = current == null
         autoSaveMetadata = AutoSaveMetadata(
             clientSessionId = if (shouldCreate) "local-${UUID.randomUUID()}" else current.clientSessionId,
             startedAt = if (shouldCreate) Instant.now().toString() else current.startedAt,
@@ -1404,11 +1404,20 @@ class TimerService : Service() {
         scheduleTimerAlarms()
     }
 
-    fun reset() {
+    fun reset() = closeSession(save = true)
+
+    /**
+     * Ends the session WITHOUT saving its study time — the student's "Discard".
+     * [reset] always queues the elapsed time as a "user-ended" save, which is
+     * exactly what Discard must not do.
+     */
+    fun discard() = closeSession(save = false)
+
+    private fun closeSession(save: Boolean) {
         if (destroyingService || !recoveryReady || closingSession) return
         if (_isRunning.value) reconcileElapsedTime()
         if (closingSession) return
-        saveCurrentProgress("user-ended")
+        if (save) saveCurrentProgress("user-ended") else discardCurrentProgress()
         closingSession = true
         cancelQuickUnlockResume()
         _isRunning.value = false
@@ -1457,6 +1466,11 @@ class TimerService : Service() {
 
     internal fun endAndSave() = reset()
 
+    /** Screen mode switches wait for the old journal commit and cleanup. */
+    internal suspend fun awaitSessionFinalization() {
+        endingJob?.join()
+    }
+
     private fun saveCurrentProgress(reason: String) {
         if (autoSaveMetadata == null || sessionSaveQueuedThisRun) return
         val progress = durableFocusProgress()
@@ -1470,6 +1484,14 @@ class TimerService : Service() {
             if (_targetPomodoroLoops.value > 0) TimerMode.POMODORO
             else if (_timerMode.value == TimerMode.STOPWATCH) TimerMode.STOPWATCH else TimerMode.FOCUS,
             endReason = reason)
+    }
+
+    /** Tombstones the journal row so no checkpoint or recovery uploads this session. */
+    private fun discardCurrentProgress() {
+        if (autoSaveMetadata == null || sessionSaveQueuedThisRun) return
+        val id = currentSessionId() ?: return
+        terminalSave = sessionOwnerId?.let { EkagraSessionJournal.get(this).discardSession(id, it) }
+        sessionSaveQueuedThisRun = true
     }
 
     private fun durableFocusProgress(): FocusProgressSnapshot {

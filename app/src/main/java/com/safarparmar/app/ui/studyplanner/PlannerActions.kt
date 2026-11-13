@@ -30,6 +30,9 @@ interface PlannerActions {
     fun clearPendingOpenMissedTopics()
     fun openUnscheduledTopics()
     fun clearPendingOpenUnscheduledTopics()
+    /** Jumps to the Syllabus tab with that chapter's topics open (and [topicId] in view). */
+    fun openChapterInSyllabus(subjectId: String, chapterId: String, topicId: String? = null)
+    fun clearPendingSyllabusChapter()
     /**
      * Handles an internal back-press.
      * Returns true  → the ViewModel consumed it (moved to previous section or closed the plan).

@@ -77,6 +77,18 @@
     <string name="profile_save_content_description">Profile save karein</string>
     <string name="profile_saved_success">Profile save ho gayi!</string>
     <string name="profile_photo_updated">Profile photo update ho gayi!</string>
+    <string name="avatar_picker_title">Apna Avatar Chunein</string>
+    <string name="avatar_picker_subtitle">70 sundar characters aur mascots me se chunein</string>
+    <string name="avatar_picker_search_placeholder">Naam se avatar search karein…</string>
+    <string name="avatar_picker_category_all">All</string>
+    <string name="avatar_picker_category_characters">Characters</string>
+    <string name="avatar_picker_category_animals">Animals &amp; Mascots</string>
+    <string name="avatar_picker_upload_custom">Upload Custom</string>
+    <string name="avatar_picker_apply">Apply Avatar</string>
+    <string name="avatar_picker_select_prompt">Select an avatar to apply</string>
+    <string name="avatar_picker_empty_title">Koi avatar nahi mila</string>
+    <string name="avatar_picker_empty_desc">Koi dusra naam ya category search karein.</string>
+    <string name="avatar_picker_loading">Avatars load ho rahe hain…</string>
 
     <string name="ekagra_tab_timer">Timer</string>
     <string name="ekagra_tab_break">Break</string>

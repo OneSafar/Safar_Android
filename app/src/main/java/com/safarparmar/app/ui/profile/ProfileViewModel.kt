@@ -10,6 +10,7 @@ import android.provider.OpenableColumns
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.safarparmar.app.data.local.SafarDataStore
+import com.safarparmar.app.data.repository.AvatarRepository
 import com.safarparmar.app.domain.repository.AuthRepository
 import com.safarparmar.app.util.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -33,6 +34,7 @@ private const val MAX_AVATAR_UPLOAD_BYTES = 5L * 1024L * 1024L
 class ProfileViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val dataStore: SafarDataStore,
+    private val avatarRepository: AvatarRepository,
     @ApplicationContext private val appContext: Context,
 ) : ViewModel() {
 
@@ -77,6 +79,14 @@ class ProfileViewModel @Inject constructor(
             is ProfileEvent.UpdateExamType    -> _uiState.update { it.copy(editExamType = event.exam) }
             is ProfileEvent.UpdateStage       -> _uiState.update { it.copy(editStage = event.stage) }
             is ProfileEvent.UpdateGender      -> _uiState.update { it.copy(editGender = event.gender) }
+            is ProfileEvent.ShowAvatarPicker  -> {
+                val current = _uiState.value.userAvatar
+                _uiState.update { it.copy(showAvatarPicker = true, selectedPresetAvatarUrl = current) }
+                loadAvatars()
+            }
+            is ProfileEvent.DismissAvatarPicker -> _uiState.update { it.copy(showAvatarPicker = false) }
+            is ProfileEvent.SelectPresetAvatar -> _uiState.update { it.copy(selectedPresetAvatarUrl = event.avatarUrl) }
+            is ProfileEvent.ApplySelectedAvatar -> applySelectedAvatar()
         }
     }
 
@@ -247,6 +257,60 @@ class ProfileViewModel @Inject constructor(
                 }
                 is Resource.Error -> {
                     _uiState.update { it.copy(isDeletingAccount = false, deleteAccountError = r.message) }
+                }
+                is Resource.Loading -> Unit
+            }
+        }
+    }
+
+    private fun loadAvatars() {
+        if (_uiState.value.avatarList.isNotEmpty()) return
+        viewModelScope.launch {
+            // Instant load from bundled assets for 0ms latency
+            val bundled = avatarRepository.getBundledAvatars()
+            if (bundled.isNotEmpty()) {
+                _uiState.update { it.copy(avatarList = bundled) }
+            }
+            _uiState.update { it.copy(isAvatarListLoading = bundled.isEmpty()) }
+            val fresh = avatarRepository.getAvatars()
+            if (fresh.isNotEmpty()) {
+                _uiState.update { it.copy(avatarList = fresh, isAvatarListLoading = false) }
+            } else {
+                _uiState.update { it.copy(isAvatarListLoading = false) }
+            }
+        }
+    }
+
+    private fun applySelectedAvatar() {
+        val selected = _uiState.value.selectedPresetAvatarUrl ?: return
+        if (_uiState.value.isApplyingAvatar) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isApplyingAvatar = true, error = null) }
+            val s = _uiState.value
+            when (val r = authRepository.updateProfile(
+                name = s.editName.ifBlank { s.userName }.ifBlank { null },
+                examType = s.editExamType.ifBlank { s.examType }.ifBlank { null },
+                preparationStage = s.editStage.ifBlank { s.preparationStage }.ifBlank { null },
+                gender = s.editGender.ifBlank { s.gender }.ifBlank { null },
+                avatar = selected,
+            )) {
+                is Resource.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            isApplyingAvatar = false,
+                            showAvatarPicker = false,
+                            userAvatar = r.data.avatar ?: selected,
+                            avatarUploadSuccess = true,
+                        )
+                    }
+                }
+                is Resource.Error -> {
+                    _uiState.update {
+                        it.copy(
+                            isApplyingAvatar = false,
+                            error = r.message.ifBlank { "Could not apply avatar" },
+                        )
+                    }
                 }
                 is Resource.Loading -> Unit
             }

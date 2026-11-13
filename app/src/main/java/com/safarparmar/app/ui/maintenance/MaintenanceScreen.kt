@@ -1,5 +1,7 @@
 package com.safarparmar.app.ui.maintenance
 
+import com.safarparmar.app.ui.theme.RoyalPurple
+
 import com.safarparmar.app.performance.decorativeFloat
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
@@ -257,7 +259,7 @@ fun MaintenanceScreen(
                         .height(52.dp),
                     shape = RoundedCornerShape(14.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isLight) Color(0xFF581C87) else Color(0xFF6D28D9),
+                        containerColor = if (isLight) RoyalPurple else Color(0xFF6D28D9),
                         contentColor = Color.White,
                     ),
                     elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp),

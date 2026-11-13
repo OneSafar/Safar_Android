@@ -1,5 +1,8 @@
 package com.safarparmar.app.ui.ekagra
 
+import com.safarparmar.app.ui.theme.RoyalPurpleDeep
+import com.safarparmar.app.ui.theme.RoyalPurpleMid
+import com.safarparmar.app.ui.theme.RoyalPurple
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.*
@@ -143,8 +146,8 @@ val visualThemes = listOf(
         gradientColors = listOf(Color(0xFF388B83), Color(0xFF092D30))),
     VisualTheme("Journal", "", Color(0xFF8A3F22),
         gradientColors = listOf(Color(0xFFBD632C), Color(0xFF462218))),
-    VisualTheme("Peace", "", Color(0xFF491438),
-        gradientColors = listOf(Color(0xFF873361), Color(0xFF310B29))),
+    VisualTheme("Peace", "", RoyalPurple,
+        gradientColors = listOf(RoyalPurpleMid, RoyalPurpleDeep)),
 )
 
 /** The themes actually offered in the picker. */

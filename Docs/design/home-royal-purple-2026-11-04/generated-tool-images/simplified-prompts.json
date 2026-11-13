@@ -1,0 +1,60 @@
+{
+  "method": "Built-in image_gen; eight separate image assets",
+  "reference": "/var/folders/gb/mxnrw5tn0cb7mn802k8twlv00000gn/T/codex-clipboard-0c09c200-d395-4d96-aa01-c8f2bfd54556.png",
+  "style": "Simple matte illustrated symbols, uniform light-purple circular backing baked into each PNG",
+  "palette": {
+    "foreground": "#512395",
+    "backing": "#EEE5FD"
+  },
+  "shared_prompt": "Generate one production PNG image asset for an Android Home tool.\nUse the attached eight-tools screenshot ONLY for the simple symbol's shape and restrained flat illustrated style. DO NOT copy the screenshot, labels, rectangular tiles, surrounding panel, or layout.\nSubject: SUBJECT.\nOne centered simple 2D illustrated symbol. Flat, clean, rounded, friendly, matte. Very subtle depth at most. NOT realistic, NOT a scene, NOT glossy 3D, NOT metallic, no people with facial details, no scenery, no decorative objects.\nColors: symbol is rich royal purple #512395. Its backing is ONE uniform solid pale-lavender #EEE5FD circular disc, identical across all eight assets. No other accent colors. The CIRCULAR BACKGROUND AND ITS PADDING MUST BE BAKED INTO THE GENERATED IMAGE.\nSquare canvas. Perfect circular disc fills the entire canvas diameter, touching top, bottom, left, right; transparent alpha only outside the circle. Symbol centered and contained within 54% of the disc diameter, leaving generous even circular padding all around. Match the screenshot's symbol-to-tile proportion, but use a circle instead of its rounded square.\nNo text, letters, words, numbers, captions, watermarks, UI chrome, gradient circle background, grain, texture, bevels, sparkles, cast shadow outside the circle, or stray pixels.\nReturn ONE symbol on ONE circle, not a contact sheet.",
+  "assets": [
+    {
+      "id": "ekagra",
+      "subject": "a symmetrical stylized LOTUS flower with five broad rounded petals, matching the Ekagra symbol in the reference",
+      "generated_path": "/Users/shashankkumar/.codex/generated_images/01a1a5b1-39cd-7c42-bcc4-8d4468ef888e/exec-30b99053-c86e-4834-966d-cbdaef5e94a1.png",
+      "output_path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/app/src/main/res/drawable-nodpi/home_royal_ekagra.png"
+    },
+    {
+      "id": "nishtha",
+      "subject": "an OPEN BOOK with two gently curved page halves and a simple cover outline, matching the Nishtha symbol",
+      "generated_path": null,
+      "output_path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/app/src/main/res/drawable-nodpi/home_royal_nishtha.png"
+    },
+    {
+      "id": "mehfil",
+      "subject": "a group of THREE PEOPLE, one larger centered head/body and two smaller side figures, matching the Mehfil symbol",
+      "generated_path": null,
+      "output_path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/app/src/main/res/drawable-nodpi/home_royal_mehfil.png"
+    },
+    {
+      "id": "planner",
+      "subject": "a small CALENDAR with two top binder tabs and four simple date marks, matching the Exam Planner symbol",
+      "generated_path": "/Users/shashankkumar/.codex/generated_images/01a1a5b1-39cd-7c42-bcc4-8d4468ef888e/exec-7849263d-b00f-4a8b-9ea6-00d019a0f79e.png",
+      "output_path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/app/src/main/res/drawable-nodpi/home_royal_planner.png"
+    },
+    {
+      "id": "dhyan",
+      "subject": "a simplified human figure MEDITATING cross-legged with arms out and fingertips joined, matching the Dhyan symbol",
+      "generated_path": "/Users/shashankkumar/.codex/generated_images/01a1a5b1-39cd-7c42-bcc4-8d4468ef888e/exec-30a287f2-fcdc-4951-bc7f-49662e4b2928.png",
+      "output_path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/app/src/main/res/drawable-nodpi/home_royal_dhyan.png"
+    },
+    {
+      "id": "circle",
+      "subject": "a STUDY GROUP: one central person and two smaller people beneath a curved connecting arch, matching the Study Circle symbol",
+      "generated_path": null,
+      "output_path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/app/src/main/res/drawable-nodpi/home_royal_circle.png"
+    },
+    {
+      "id": "kavach",
+      "subject": "an outlined SHIELD with a small central closed PADLOCK and keyhole, matching the KAVACH symbol",
+      "generated_path": "/Users/shashankkumar/.codex/generated_images/01a1a5b1-39cd-7c42-bcc4-8d4468ef888e/exec-44714eb7-99bc-4768-a0f9-fd833c59ca71.png",
+      "output_path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/app/src/main/res/drawable-nodpi/home_royal_kavach.png"
+    },
+    {
+      "id": "leaderboard",
+      "subject": "a TROPHY cup with two handles, a centered star cutout, short stem and base, matching the Leaderboard symbol",
+      "generated_path": null,
+      "output_path": "/Users/shashankkumar/Documents/SAFAR_PARENT/Safar_Android_v4/app/src/main/res/drawable-nodpi/home_royal_leaderboard.png"
+    }
+  ]
+}

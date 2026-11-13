@@ -1,5 +1,10 @@
 package com.safarparmar.app.ui.ekagra.focusshield
 
+import com.safarparmar.app.ui.theme.RoyalPurpleDark
+import com.safarparmar.app.ui.theme.RoyalPurple
+import com.safarparmar.app.ui.theme.RoyalPurpleSoft
+import com.safarparmar.app.ui.theme.RoyalPurpleSoftDark
+
 import com.safarparmar.app.ui.theme.BgDark
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -13,16 +18,16 @@ import com.safarparmar.app.ui.theme.SafarComposablesTheme
 @Composable
 fun KavachCommandTheme(content: @Composable () -> Unit) {
     val dark = KavachDesign.isDark
-    val plum = Color(0xFF542347)
+    val plum = RoyalPurple
     val canvas = if (dark) BgDark else Color(0xFFFFF5F0)
     val paper = if (dark) Color(0xFF342735) else Color(0xFFFFFDFC)
     val ink = if (dark) Color(0xFFFFF0F6) else Color(0xFF39132E)
     val muted = if (dark) Color(0xFFCFBECB) else Color(0xFF75616F)
-    val peach = if (dark) Color(0xFF684047) else Color(0xFFFFE3D8)
+    val peach = if (dark) RoyalPurpleSoftDark else RoyalPurpleSoft
     val line = if (dark) Color(0xFF654D66) else Color(0xFFE8DEE5)
-    val scheme = MaterialTheme.colorScheme.copy(primary = if (dark) Color(0xFFF0BEDC) else plum,
+    val scheme = MaterialTheme.colorScheme.copy(primary = if (dark) RoyalPurpleDark else plum,
         onPrimary = if (dark) plum else Color.White, primaryContainer = peach, onPrimaryContainer = ink,
-        secondary = if (dark) Color(0xFFF0BEDC) else plum, secondaryContainer = peach, onSecondaryContainer = ink,
+        secondary = if (dark) RoyalPurpleDark else plum, secondaryContainer = peach, onSecondaryContainer = ink,
         background = canvas, onBackground = ink, surface = paper, onSurface = ink,
         surfaceVariant = peach, onSurfaceVariant = muted, outline = line, outlineVariant = line,
         surfaceContainer = paper, surfaceContainerLow = paper, surfaceContainerHigh = peach,

@@ -1,5 +1,9 @@
 package com.safarparmar.app.feature.youtubestudyv2
 
+import com.safarparmar.app.ui.theme.RoyalPurple
+import com.safarparmar.app.ui.theme.RoyalPurpleDark
+import com.safarparmar.app.ui.theme.RoyalPurpleSoft
+
 import androidx.compose.ui.res.stringResource
 import com.safarparmar.app.R
 import androidx.compose.foundation.rememberScrollState
@@ -149,7 +153,7 @@ internal object YTCMColors {
 
     /** Primary CTA fill — matches App Shield / KavachDesign.Primary */
     fun ctaFill(isLight: Boolean) =
-        if (isLight) Color(0xFF581C87) else Color(0xFFC084FC)
+        if (isLight) RoyalPurple else Color(0xFFC084FC)
 
     /** Toggle track colors */
     fun toggleTrack(isLight: Boolean) =
@@ -185,7 +189,7 @@ fun YoutubeStudyV2Screen(
         onDispose { owner.lifecycle.removeObserver(observer) }
     }
 
-    val screenBg = if (isLight) Color(0xFFFFF5F0) else Color(0xFF131316)
+    val screenBg = if (isLight) Color(0xFFFAF8FF) else Color(0xFF131316)
     Scaffold(
         containerColor = screenBg,
         topBar = {
@@ -244,6 +248,7 @@ fun YoutubeStudyV2FeatureContent(
             }
         },
         onReferenceChanged = viewModel::setReference,
+        onChannelNameChanged = viewModel::setChannelName,
         onAddChannel = viewModel::resolveAndAllow,
         onSetClassification = viewModel::setClassification,
         onToggleAvailable = viewModel::toggleAvailable,
@@ -267,6 +272,7 @@ fun YoutubeStudyV2Content(
     onSetEnabled: (Boolean) -> Unit,
     onOpenAccessibility: () -> Unit,
     onReferenceChanged: (String) -> Unit,
+    onChannelNameChanged: (String) -> Unit,
     onAddChannel: () -> Unit,
     onSetClassification: (String, YoutubeChannelClassification) -> Unit,
     onToggleAvailable: () -> Unit,
@@ -315,6 +321,7 @@ fun YoutubeStudyV2Content(
                 },
                 onOpenAccessibility = handleOpenAccessibility,
                 onReferenceChanged = onReferenceChanged,
+                onChannelNameChanged = onChannelNameChanged,
                 onAddChannel = onAddChannel,
                 onSetClassification = onSetClassification,
                 onToggleAvailable = onToggleAvailable,
@@ -328,6 +335,7 @@ fun YoutubeStudyV2Content(
                 onAgree = handlePermissionRequest,
                 onNotNow = onNotNow,
                 onReferenceChanged = onReferenceChanged,
+                onChannelNameChanged = onChannelNameChanged,
                 onAddChannel = onAddChannel,
                 onSetAvailableClassification = onSetAvailableClassification,
                 onBackToStep1 = onBackToStep1,
@@ -392,6 +400,7 @@ private fun StudyModeSetup(
     onAgree: () -> Unit,
     onNotNow: () -> Unit,
     onReferenceChanged: (String) -> Unit,
+    onChannelNameChanged: (String) -> Unit,
     onAddChannel: () -> Unit,
     onSetAvailableClassification: (ResolvedYoutubeChannelDto, YoutubeChannelClassification) -> Unit,
     onBackToStep1: () -> Unit,
@@ -416,6 +425,7 @@ private fun StudyModeSetup(
                     state = state,
                     isLight = isLight,
                     onReferenceChanged = onReferenceChanged,
+                    onChannelNameChanged = onChannelNameChanged,
                     onAddChannel = onAddChannel,
                     onSetAvailableClassification = onSetAvailableClassification,
                     onBackToStep1 = onBackToStep1,
@@ -480,7 +490,7 @@ private fun PermissionStep(
                 color = if (isLight) Color(0xFF75616F) else Color(0xFFCFBECB))
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("YouTube Focus", modifier = Modifier.weight(1f, fill = false), fontSize = 28.sp,
-                    fontWeight = FontWeight.Bold, color = if (isLight) Color(0xFF39132E) else Color(0xFFFFF0F6))
+                    fontWeight = FontWeight.Bold, color = if (isLight) Color(0xFF241544) else Color(0xFFFFF0F6))
                 YoutubeFocusBetaBadge(isLight = isLight)
             }
             Text("Block distracting channels. Only productive channels will open.", fontSize = 15.sp,
@@ -489,7 +499,7 @@ private fun PermissionStep(
         }
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             listOf(
-                Triple(Icons.Default.Block, Color(0xFFFFCBBE), R.string.youtube_focus_benefit_block_channels),
+                Triple(Icons.Default.Block, RoyalPurpleSoft, R.string.youtube_focus_benefit_block_channels),
                 Triple(Icons.Default.SmartDisplay, Color(0xFFCDBBE9), R.string.youtube_focus_benefit_block_shorts),
                 Triple(Icons.Default.CheckCircle, Color(0xFFC9EFE0), R.string.youtube_focus_benefit_allow_productive),
             ).forEach { (icon, tile, label) ->
@@ -497,10 +507,10 @@ private fun PermissionStep(
                     Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                         Box(Modifier.size(48.dp).background(tile, RoundedCornerShape(16.dp)), contentAlignment = Alignment.Center) {
-                            Icon(icon, null, tint = Color(0xFF39132E), modifier = Modifier.size(26.dp))
+                            Icon(icon, null, tint = Color(0xFF241544), modifier = Modifier.size(26.dp))
                         }
                         Text(stringResource(label), fontSize = 15.sp, fontWeight = FontWeight.SemiBold,
-                            color = if (isLight) Color(0xFF39132E) else Color(0xFFFFF0F6))
+                            color = if (isLight) Color(0xFF241544) else Color(0xFFFFF0F6))
                     }
                 }
             }
@@ -577,12 +587,12 @@ private fun PermissionStep(
             verticalArrangement = Arrangement.spacedBy(12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            val buttonTextColor = if (isLight) Color.White else Color(0xFF39132E)
+            val buttonTextColor = if (isLight) Color.White else Color(0xFF241544)
             androidx.compose.material3.Button(onClick = onAgree,
                 modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
                 shape = RoundedCornerShape(26.dp),
                 colors = androidx.compose.material3.ButtonDefaults.buttonColors(
-                    containerColor = if (isLight) Color(0xFF542347) else Color(0xFFF0BEDC),
+                    containerColor = if (isLight) RoyalPurple else RoyalPurpleDark,
                     contentColor = buttonTextColor)) {
                 Text(
                     text = if (permissionConnected) "Select Productive Channels →" else "Turn On Permission & Continue",
@@ -606,6 +616,7 @@ private fun ChannelSelectionStep(
     state: YoutubeStudyV2UiState,
     isLight: Boolean,
     onReferenceChanged: (String) -> Unit,
+    onChannelNameChanged: (String) -> Unit,
     onAddChannel: () -> Unit,
     onSetAvailableClassification: (ResolvedYoutubeChannelDto, YoutubeChannelClassification) -> Unit,
     onBackToStep1: () -> Unit,
@@ -662,7 +673,7 @@ private fun ChannelSelectionStep(
         com.safarparmar.app.ui.components.SafarRichTextField(
             value = state.reference,
             onValueChange = onReferenceChanged,
-            placeholder = { Text(stringResource(R.string.youtube_focus_channel_placeholder), fontSize = 14.sp, color = secondaryText(isLight)) },
+            placeholder = { Text(stringResource(R.string.youtube_focus_channel_handle_placeholder), fontSize = 14.sp, color = secondaryText(isLight)) },
             leadingIcon = {
                 Icon(Icons.Default.Add, null, tint = secondaryText(isLight), modifier = Modifier.size(18.dp))
             },
@@ -674,6 +685,24 @@ private fun ChannelSelectionStep(
                 unfocusedBorderColor = secondaryText(isLight).copy(alpha = 0.25f),
                 focusedLabelColor = YTCMColors.accent(isLight),
             ),
+        )
+        com.safarparmar.app.ui.components.SafarRichTextField(
+            value = state.channelName,
+            onValueChange = onChannelNameChanged,
+            placeholder = { Text(stringResource(R.string.youtube_focus_channel_name_placeholder), fontSize = 14.sp, color = secondaryText(isLight)) },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(14.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = YTCMColors.accent(isLight),
+                unfocusedBorderColor = secondaryText(isLight).copy(alpha = 0.25f),
+                focusedLabelColor = YTCMColors.accent(isLight),
+            ),
+        )
+        Text(
+            stringResource(R.string.youtube_focus_add_channel_hint),
+            fontSize = 12.sp,
+            color = secondaryText(isLight),
         )
         if (state.reference.isNotBlank()) {
             CtaButton(
@@ -718,6 +747,7 @@ private fun StudyModeDashboard(
     onSetEnabled: (Boolean) -> Unit,
     onOpenAccessibility: () -> Unit,
     onReferenceChanged: (String) -> Unit,
+    onChannelNameChanged: (String) -> Unit,
     onAddChannel: () -> Unit,
     onSetClassification: (String, YoutubeChannelClassification) -> Unit,
     onToggleAvailable: () -> Unit,
@@ -760,11 +790,13 @@ private fun StudyModeDashboard(
         item {
             AddChannelCard(
                 reference = state.reference,
+                channelName = state.channelName,
                 resolving = state.resolving,
                 message = state.message,
                 isError = state.isError,
                 isLight = isLight,
                 onReferenceChanged = onReferenceChanged,
+                onChannelNameChanged = onChannelNameChanged,
                 onAddChannel = onAddChannel,
                 showEmptyState = false,
             )
@@ -1044,11 +1076,13 @@ private fun StatChip(
 @Composable
 private fun AddChannelCard(
     reference: String,
+    channelName: String,
     resolving: Boolean,
     message: String?,
     isError: Boolean,
     isLight: Boolean,
     onReferenceChanged: (String) -> Unit,
+    onChannelNameChanged: (String) -> Unit,
     onAddChannel: () -> Unit,
     showEmptyState: Boolean,
 ) {
@@ -1081,7 +1115,7 @@ private fun AddChannelCard(
                 onValueChange = onReferenceChanged,
                 placeholder = {
                     Text(
-                        "Channel name or @handle",
+                        stringResource(R.string.youtube_focus_channel_handle_placeholder),
                         fontSize = 13.5.sp,
                         color = secondaryText(isLight).copy(alpha = 0.7f),
                     )
@@ -1142,6 +1176,32 @@ private fun AddChannelCard(
                 }
             }
         }
+
+        com.safarparmar.app.ui.components.SafarRichTextField(
+            value = channelName,
+            onValueChange = onChannelNameChanged,
+            placeholder = {
+                Text(
+                    stringResource(R.string.youtube_focus_channel_name_placeholder),
+                    fontSize = 13.5.sp,
+                    color = secondaryText(isLight).copy(alpha = 0.7f),
+                )
+            },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = YTCMColors.accent(isLight),
+                unfocusedBorderColor = secondaryText(isLight).copy(alpha = 0.20f),
+                focusedContainerColor = if (isLight) YTCMColors.SubContainerLight else YTCMColors.SubContainerDark,
+                unfocusedContainerColor = if (isLight) YTCMColors.SubContainerLight else YTCMColors.SubContainerDark,
+            ),
+        )
+        Text(
+            stringResource(R.string.youtube_focus_add_channel_hint),
+            fontSize = 12.sp,
+            color = secondaryText(isLight),
+        )
 
         AnimatedVisibility(
             visible = message != null,
@@ -1993,7 +2053,7 @@ private fun PreviewStep1Light() {
             isLight = true,
             onAgree = {}, onNotNow = {},
             onSetEnabled = {}, onOpenAccessibility = {},
-            onReferenceChanged = {}, onAddChannel = {},
+            onReferenceChanged = {}, onChannelNameChanged = {}, onAddChannel = {},
             onSetClassification = { _, _ -> },
             onToggleAvailable = {},
             onSetAvailableClassification = { _, _ -> },

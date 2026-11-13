@@ -23,7 +23,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -76,7 +75,10 @@ internal fun TopicStudySaveSheet(
         theme = selectedTheme,
         isDarkTheme = isDarkTheme,
     )
-    val container = if (isDarkTheme) MaterialTheme.colorScheme.surface else Color.White
+    // Match the "Study finished" card (EkagraPaper uses colorScheme.surface) so the
+    // sheet reads as one Ekagra-themed surface instead of a white frame around a
+    // dark card.
+    val container = MaterialTheme.colorScheme.surface
     val accent = MaterialTheme.colorScheme.primary
     val canDismiss = state == TopicStudySheetState.Saved ||
         state == TopicStudySheetState.SavedOnPhone

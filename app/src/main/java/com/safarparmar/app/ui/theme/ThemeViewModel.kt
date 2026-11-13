@@ -24,7 +24,10 @@ class ThemeViewModel @Inject constructor(
         }
     }
 
+    internal var onBeforeThemeToggle: (() -> Unit)? = null
+
     fun toggleDarkTheme() {
+        onBeforeThemeToggle?.invoke()
         val newValue = !_isDarkTheme.value
         _isDarkTheme.value = newValue
         viewModelScope.launch { dataStore.setDarkTheme(newValue) }

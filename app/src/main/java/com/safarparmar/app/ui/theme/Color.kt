@@ -9,8 +9,8 @@ val BrandMidnightLight = Color(0xFF181B20)
 val BrandPlumDark      = Color(0xFF272C35)
 val BrandPurpleDeep    = Color(0xFF1E2229)
 
-val PrimaryDark        = Color(0xFF3B82F6)
-val PrimaryLight       = Color(0xFF0A56D9)
+val PrimaryDark        = RoyalPurpleDark
+val PrimaryLight       = RoyalPurple
 
 val BgDark             = Color(0xFF131316)
 val BgLight            = Color(0xFFF8F6F2)
@@ -128,7 +128,7 @@ val Indigo50  = Color(0xFFEEF2FF)
 
 val Violet950 = Color(0xFF2E1065)
 val Violet900 = Color(0xFF4C1D95)
-val Violet700 = Color(0xFF581C87)
+val Violet700 = RoyalPurple
 val Violet600 = Color(0xFF7C3AED)
 val Violet500 = Color(0xFF8B5CF6)
 val Violet400 = Color(0xFFA78BFA)
