@@ -69,6 +69,14 @@
     <string name="focus_shield_notification_listener_label">नोटिफिकेशन कवच</string>
     <string name="nav_live_classes">लाइव क्लासेस</string>
     <string name="nav_live_sessions">ध्यान लाइव</string>
+    <string name="nav_calm_centre">शांत केंद्र</string>
+    <string name="calm_centre_subtitle">माइंडफुल ब्रीदिंग, शांत आकाश और एम्बिएंट विजुअलाइजर्स</string>
+    <string name="nav_dhyan_calm_centre">ध्यान और शांत केंद्र</string>
+    <string name="dhyan_mindfulness_subtitle">माइंडफुलनेस, प्राणायाम और आंतरिक शांति</string>
+    <string name="dhyan_switch_to_calm_centre">शांत केंद्र पर जाएं</string>
+    <string name="dhyan_switch_to_breathing">प्राणायाम पर जाएं</string>
+    <string name="checkin_calm_recommendation_title">आपके लिए शांति का एक पल</string>
+    <string name="checkin_calm_recommendation_action">शांत केंद्र में 2 मिनट लें →</string>
     <string name="courses_live_sessions_description">लाइव क्लास में जुड़ें, आने वाले सेशन देखें और तय पढ़ाई पर वापस जाएं।</string>
     <string name="courses_live_sessions_open">खोलें →</string>
     <string name="nav_study_circle">स्टडी सर्कल</string>

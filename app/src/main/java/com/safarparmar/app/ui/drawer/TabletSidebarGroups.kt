@@ -12,7 +12,7 @@ internal data class TabletSidebarGroups(
 /** Keep the tablet sidebar in sync with the shared drawer's destinations. */
 internal fun tabletSidebarGroups(): TabletSidebarGroups {
     val study = drawerSections.first { it.id == DrawerSectionId.STUDY_PRODUCTIVITY }.items
-    val wellbeingRoutes = setOf(Routes.NISHTHA, Routes.DHYAN, Routes.LIVE_SESSIONS_ROOT)
+    val wellbeingRoutes = setOf(Routes.NISHTHA, Routes.DHYAN, Routes.CALM_CENTRE, Routes.LIVE_SESSIONS_ROOT)
     val wellbeingAndCommunity = drawerSections.first { it.id == DrawerSectionId.WELL_BEING_COMMUNITY }.items
     val pinnedRoutes = setOf(Routes.PROFILE, Routes.SETTINGS)
     return TabletSidebarGroups(

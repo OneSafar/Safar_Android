@@ -13,6 +13,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Air
+import androidx.compose.material.icons.filled.LiveTv
+import androidx.compose.material.icons.filled.School
+import androidx.compose.material.icons.filled.Spa
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import com.composables.ui.components.Text
 import androidx.compose.runtime.Composable
@@ -31,13 +38,17 @@ import com.safarparmar.app.ui.theme.isLightBackground
 
 enum class DhyanTab {
     DHYAN,
+    CALM_CENTRE,
     COURSES,
     LIVE,
 }
 
-/** Personal practice is a separate destination; the live centre owns live sessions and courses. */
+/** Personal practice contains Breathing and Calm Centre; live centre owns live sessions and courses. */
 internal fun dhyanTabsFor(entry: DhyanTab): List<DhyanTab> =
-    if (entry == DhyanTab.DHYAN) listOf(DhyanTab.DHYAN) else listOf(DhyanTab.LIVE, DhyanTab.COURSES)
+    when (entry) {
+        DhyanTab.DHYAN, DhyanTab.CALM_CENTRE -> listOf(DhyanTab.DHYAN, DhyanTab.CALM_CENTRE)
+        DhyanTab.LIVE, DhyanTab.COURSES -> listOf(DhyanTab.LIVE, DhyanTab.COURSES)
+    }
 
 @Composable
 fun DhyanTopNavigation(
@@ -101,14 +112,26 @@ private fun DhyanTabItem(
             .background(bgColor)
             .clickable(onClick = onClick)
             .heightIn(min = 48.dp)
-            .padding(horizontal = 12.dp, vertical = 7.dp),
+            .padding(horizontal = 14.dp, vertical = 7.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
+        Icon(
+            imageVector = when (tab) {
+                DhyanTab.DHYAN -> Icons.Default.Spa
+                DhyanTab.CALM_CENTRE -> Icons.Default.Air
+                DhyanTab.COURSES -> Icons.Default.School
+                DhyanTab.LIVE -> Icons.Default.LiveTv
+            },
+            contentDescription = null,
+            tint = textColor,
+            modifier = Modifier.size(16.dp),
+        )
         Text(
             text = stringResource(
                 when (tab) {
                     DhyanTab.DHYAN -> R.string.dhyan_deep_breaths
+                    DhyanTab.CALM_CENTRE -> R.string.nav_calm_centre
                     DhyanTab.COURSES -> R.string.dhyan_courses_label
                     DhyanTab.LIVE -> R.string.dhyan_live_sessions_label
                 }

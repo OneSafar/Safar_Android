@@ -127,8 +127,7 @@ val drawerSections = listOf(
         icon = Icons.Default.VolunteerActivism,
         items = listOf(
             DrawerItem(R.string.module_nishtha, Icons.Default.SelfImprovement, Routes.NISHTHA),
-            DrawerItem(R.string.module_dhyan, Icons.Default.Spa, Routes.DHYAN),
-            DrawerItem(R.string.nav_calm_centre, Icons.Default.Air, Routes.CALM_CENTRE),
+            DrawerItem(R.string.nav_dhyan_calm_centre, Icons.Default.Spa, Routes.DHYAN),
             DrawerItem(R.string.nav_live_sessions, Icons.Default.LiveTv, Routes.LIVE_SESSIONS_ROOT),
             DrawerItem(R.string.module_mehfil, Icons.Default.Groups, Routes.MEHFIL),
             DrawerItem(R.string.nav_study_circle, Icons.Default.GroupWork, Routes.STUDY_CIRCLES),
@@ -935,6 +934,8 @@ internal fun isDrawerItemSelected(item: DrawerItem, currentBase: String): Boolea
     return when {
         itemBase == Routes.COURSES ->
             currentBase == Routes.COURSES
+        itemBase == Routes.DHYAN ->
+            currentBase == Routes.DHYAN || currentBase == Routes.CALM_CENTRE || currentBase.startsWith("${Routes.DHYAN}/")
         itemBase == Routes.LIVE_SESSIONS_ROOT ->
             currentBase.startsWith("live/")
         else -> currentBase == itemBase || currentBase.startsWith("$itemBase/")

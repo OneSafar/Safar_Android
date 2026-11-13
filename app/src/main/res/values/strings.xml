@@ -71,6 +71,12 @@
     <string name="courses_live_sessions_open">Open →</string>
     <string name="nav_calm_centre">Calm Centre</string>
     <string name="calm_centre_subtitle">Mindful breathing, diurnal sky, &amp; ambient visualizers</string>
+    <string name="nav_dhyan_calm_centre">Dhyan &amp; Calm Centre</string>
+    <string name="dhyan_mindfulness_subtitle">Mindfulness, breathing &amp; emotional calm</string>
+    <string name="dhyan_switch_to_calm_centre">Switch to Calm Centre</string>
+    <string name="dhyan_switch_to_breathing">Switch to Breathing</string>
+    <string name="checkin_calm_recommendation_title">A Moment of Calm for You</string>
+    <string name="checkin_calm_recommendation_action">Take 2 mins in Calm Centre →</string>
     <string name="nav_study_circle">Study Circle</string>
     <string name="nav_leaderboard">Leaderboard</string>
     <string name="nav_admin_notifications">Admin Notifications</string>

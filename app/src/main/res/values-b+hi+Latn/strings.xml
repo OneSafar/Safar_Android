@@ -54,6 +54,14 @@
     <string name="nav_study_circle">Study Circle</string>
     <string name="nav_leaderboard">Leaderboard</string>
     <string name="nav_habit_tracker">Habit Tracker</string>
+    <string name="nav_calm_centre">Calm Centre</string>
+    <string name="calm_centre_subtitle">Mindful breathing, sky visualizers aur ambient sounds</string>
+    <string name="nav_dhyan_calm_centre">Dhyan &amp; Calm Centre</string>
+    <string name="dhyan_mindfulness_subtitle">Mindfulness, breathing aur emotional calm</string>
+    <string name="dhyan_switch_to_calm_centre">Calm Centre par jayein</string>
+    <string name="dhyan_switch_to_breathing">Breathing par jayein</string>
+    <string name="checkin_calm_recommendation_title">Aapke liye shaanti ka ek pal</string>
+    <string name="checkin_calm_recommendation_action">Calm Centre mein 2 mins lein →</string>
 
     <string name="home_greeting">Good morning</string>
     <string name="home_subtitle">Aaj aap kahan se shuru karna chahenge?</string>

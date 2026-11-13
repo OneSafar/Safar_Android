@@ -30,6 +30,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Air
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.History
@@ -202,7 +203,10 @@ fun SlimSlider(
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun CheckInScreen(viewModel: NishthaViewModel = hiltViewModel()) {
+fun CheckInScreen(
+    viewModel: NishthaViewModel = hiltViewModel(),
+    onNavigate: (String) -> Unit = {},
+) {
     androidx.compose.runtime.LaunchedEffect(viewModel) { viewModel.loadTab(com.safarparmar.app.ui.nishtha.NishthaTab.CHECK_IN) }
     val isLight = MaterialTheme.colorScheme.background.isLightBackground()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -210,10 +214,16 @@ fun CheckInScreen(viewModel: NishthaViewModel = hiltViewModel()) {
     com.safarparmar.app.ui.tutorial.ScreenPracticeEntry(com.safarparmar.app.ui.tutorial.TitliFeature.CHECK_IN,
         !isLight, eligible = !state.isLoadingMoods && !state.isCheckingIn && !draftBusy)
     CompositionLocalProvider(LocalPlannerIsDarkTheme provides !isLight) {
-        CheckInScreenContent(uiState = state, isLight = isLight,
+        CheckInScreenContent(
+            uiState = state,
+            isLight = isLight,
             onClearSuccess = { viewModel.onEvent(com.safarparmar.app.ui.nishtha.NishthaEvent.ClearCheckInSuccess) },
             onCreateMood = { mood, intensity, notes -> viewModel.createMood(mood, intensity, notes) },
-            onDraftChange = { draftBusy = it })
+            onDraftChange = { draftBusy = it },
+            onOpenCalmPractice = { practice ->
+                onNavigate(com.safarparmar.app.ui.navigation.Routes.calmCentreWithPractice(practice?.name))
+            },
+        )
     }
 }
 
@@ -223,6 +233,7 @@ internal fun CheckInScreenContent(
     uiState: NishthaUiState, isLight: Boolean,
     onClearSuccess: () -> Unit = {}, onCreateMood: (String, Int, String?) -> Unit = { _, _, _ -> },
     onDraftChange: (Boolean) -> Unit = {}, initialMoodIndex: Int? = null, initialHistory: Boolean = false,
+    onOpenCalmPractice: (com.safarparmar.app.ui.calmcentre.CalmPractice?) -> Unit = {},
 ) {
     val moodOptions = remember {
         listOf(
@@ -367,6 +378,21 @@ internal fun CheckInScreenContent(
                                         inactiveColor = c.line, stretchBrushToFullTrack = true)
                                     Text(stringResource(R.string.checkin_high), color = c.muted, fontSize = 12.sp)
                                 }
+
+                                val recommendedPractice = remember(selectedMood) {
+                                    when (selectedMood?.labelRes) {
+                                        R.string.mood_anxious -> com.safarparmar.app.ui.calmcentre.CalmPractice.GROUND
+                                        R.string.mood_sad -> com.safarparmar.app.ui.calmcentre.CalmPractice.KINDNESS
+                                        R.string.mood_tired -> com.safarparmar.app.ui.calmcentre.CalmPractice.REST
+                                        R.string.mood_angry -> com.safarparmar.app.ui.calmcentre.CalmPractice.BREATHE
+                                        else -> com.safarparmar.app.ui.calmcentre.CalmPractice.BREATHE
+                                    }
+                                }
+                                CheckInCalmCard(
+                                    practice = recommendedPractice,
+                                    isLight = isLight,
+                                    onClick = { onOpenCalmPractice(recommendedPractice) },
+                                )
                             }
                         }
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -433,6 +459,10 @@ internal fun CheckInScreenContent(
                             Box(Modifier.tutorialTarget("checkin.history")) { HistoryMoodRow(mood) }
                             if (index < uiState.moods.take(5).lastIndex) androidx.compose.material3.HorizontalDivider(color = c.line)
                         }
+                        CheckInCalmHistoryCard(
+                            isLight = isLight,
+                            onClick = { onOpenCalmPractice(null) },
+                        )
                     }
                 }
             }
@@ -811,6 +841,150 @@ private fun MoodChip(
                 letterSpacing = 0.2.sp,
                 color = subtitleColor,
                 maxLines = 1,
+            )
+        }
+    }
+}
+
+@Composable
+private fun CheckInCalmCard(
+    practice: com.safarparmar.app.ui.calmcentre.CalmPractice,
+    isLight: Boolean,
+    onClick: () -> Unit,
+) {
+    val bg = if (isLight) Color(0xFFFBF6FE) else Color(0xFF2C2235)
+    val border = if (isLight) Color(0xFFE9DCF5) else Color(0xFF4A3855)
+    val ink = if (isLight) Color(0xFF2E1738) else Color(0xFFF4ECF7)
+    val muted = if (isLight) Color(0xFF755E80) else Color(0xFFBCA9C2)
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(bg)
+            .border(1.dp, border, RoundedCornerShape(16.dp))
+            .clickable(onClick = onClick)
+            .padding(14.dp),
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(if (isLight) Color(0xFFEFE2FB) else Color(0xFF402E4E)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    androidx.compose.material3.Icon(
+                        imageVector = Icons.Default.Air,
+                        contentDescription = null,
+                        tint = com.safarparmar.app.ui.theme.RoyalPurple,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "MOMENT OF CALM",
+                        color = muted,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.2.sp,
+                    )
+                    Text(
+                        text = practice.title,
+                        color = ink,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+                Text(
+                    text = "2 mins",
+                    color = com.safarparmar.app.ui.theme.RoyalPurple,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
+            Text(
+                text = practice.description,
+                color = muted,
+                fontSize = 12.sp,
+                lineHeight = 16.sp,
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = stringResource(R.string.checkin_calm_recommendation_action),
+                    color = com.safarparmar.app.ui.theme.RoyalPurple,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun CheckInCalmHistoryCard(
+    isLight: Boolean,
+    onClick: () -> Unit,
+) {
+    val bg = if (isLight) Color(0xFFF9F5FD) else Color(0xFF261D2F)
+    val border = if (isLight) Color(0xFFECE3F5) else Color(0xFF3F304A)
+    val ink = if (isLight) Color(0xFF2E1738) else Color(0xFFF4ECF7)
+    val muted = if (isLight) Color(0xFF755E80) else Color(0xFFBCA9C2)
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(bg)
+            .border(1.dp, border, RoundedCornerShape(14.dp))
+            .clickable(onClick = onClick)
+            .padding(12.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(28.dp)
+                    .clip(CircleShape)
+                    .background(if (isLight) Color(0xFFEFE2FB) else Color(0xFF3A2848)),
+                contentAlignment = Alignment.Center,
+            ) {
+                androidx.compose.material3.Icon(
+                    imageVector = Icons.Default.Air,
+                    contentDescription = null,
+                    tint = com.safarparmar.app.ui.theme.RoyalPurple,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.nav_calm_centre),
+                    color = ink,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    text = "Take a 2-min pause to center your mind",
+                    color = muted,
+                    fontSize = 11.sp,
+                )
+            }
+            Text(
+                text = "Open →",
+                color = com.safarparmar.app.ui.theme.RoyalPurple,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
             )
         }
     }

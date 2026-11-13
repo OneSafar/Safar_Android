@@ -60,36 +60,19 @@ import com.safarparmar.app.ui.theme.SafarComposablesTheme
 fun CalmCentreScreen(
     currentRoute: String = Routes.CALM_CENTRE,
     isDarkTheme: Boolean = false,
+    initialPractice: String? = null,
     onNavigate: (String) -> Unit = {},
     onBack: () -> Unit = {},
     onToggleDarkTheme: () -> Unit = {},
 ) {
-    val colors = CalmColors.forTheme(isDarkTheme)
-    CompositionLocalProvider(
-        LocalSafarComposablesAccent provides colors.plum,
-        LocalPlannerIsDarkTheme provides isDarkTheme,
-    ) {
-        SafarComposablesTheme {
-            SafarDrawerScaffold(
-                title = "Calm Centre",
-                subtitle = "A little room for you",
-                currentRoute = currentRoute,
-                isDarkTheme = isDarkTheme,
-                onNavigate = onNavigate,
-                onToggleDarkTheme = onToggleDarkTheme,
-                containerColor = colors.background,
-                topBarContentColor = colors.ink,
-                topBarActions = {
-                    UiIconButton(onClick = onToggleDarkTheme, style = ButtonStyle.Ghost) {
-                        UiIcon(if (isDarkTheme) Icons.Default.LightMode else Icons.Default.DarkMode,
-                            contentDescription = "Toggle theme", tint = colors.ink, modifier = Modifier.size(22.dp))
-                    }
-                },
-            ) { padding ->
-                CalmCentreFlow(isDarkTheme, Modifier.fillMaxSize().padding(padding), onBack)
-            }
-        }
-    }
+    com.safarparmar.app.ui.dhyan.DhyanScreen(
+        initialTab = com.safarparmar.app.ui.dhyan.DhyanTab.CALM_CENTRE,
+        currentRoute = currentRoute,
+        isDarkTheme = isDarkTheme,
+        initialCalmPractice = initialPractice,
+        onNavigate = onNavigate,
+        onToggleDarkTheme = onToggleDarkTheme,
+    )
 }
 
 /** State lives above page transitions, so answers and elapsed time survive rotation and back. */
@@ -98,14 +81,15 @@ internal fun CalmCentreFlow(
     isDarkTheme: Boolean,
     modifier: Modifier = Modifier,
     onExit: () -> Unit = {},
+    initialPractice: CalmPractice? = null,
 ) {
     val colors = CalmColors.forTheme(isDarkTheme)
-    var page by rememberSaveable { mutableIntStateOf(0) }
+    var page by rememberSaveable { mutableIntStateOf(if (initialPractice != null) 3 else 0) }
     var mood by rememberSaveable { mutableStateOf<CalmMood?>(null) }
     var intention by rememberSaveable { mutableStateOf<CalmIntention?>(null) }
     var minutes by rememberSaveable { mutableIntStateOf(2) }
     var technique by rememberSaveable { mutableStateOf(CalmBreathTechnique.GENTLE) }
-    var practice by rememberSaveable { mutableStateOf(CalmPractice.BREATHE) }
+    var practice by rememberSaveable { mutableStateOf(initialPractice ?: CalmPractice.BREATHE) }
     val elapsed = rememberSaveable { mutableLongStateOf(0L) }
     var playing by rememberSaveable { mutableStateOf(false) }
     val motion = LocalMotionPolicy.current

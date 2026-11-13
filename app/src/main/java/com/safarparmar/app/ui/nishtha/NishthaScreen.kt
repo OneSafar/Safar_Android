@@ -252,7 +252,7 @@ fun NishthaScreen(
                             modifier = Modifier.fillMaxSize(),
                         ) { targetTab ->
                             when (targetTab) {
-                                NishthaTab.CHECK_IN -> CheckInScreen()
+                                NishthaTab.CHECK_IN -> CheckInScreen(onNavigate = onNavigate)
                                 NishthaTab.JOURNAL -> JournalScreen()
                                 NishthaTab.GOALS -> GoalsScreen(onNavigate = nishthaNavigate)
                                 NishthaTab.STREAKS -> StreaksScreen()

@@ -2,9 +2,11 @@
 package com.safarparmar.app.ui.dhyan
 
 import com.safarparmar.app.ui.theme.RoyalPurple
+import com.safarparmar.app.ui.theme.RoyalPurpleDark
 import com.safarparmar.app.ui.theme.RoyalPurpleSoft
 import com.composables.ui.components.ButtonStyle
 import com.composables.ui.components.IconButton as ComposablesIconButton
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 
 import android.media.MediaPlayer
 import android.net.Uri
@@ -520,10 +522,11 @@ fun DhyanScreen(
     isDarkTheme: Boolean = false,
     courseId: String = "",
     initialLiveView: String = "live",
+    initialCalmPractice: String? = null,
     onNavigate: (String) -> Unit = {},
     onToggleDarkTheme: () -> Unit = {},
 ) {
-    val isLiveCentre = initialTab != DhyanTab.DHYAN
+    val isLiveCentre = initialTab == DhyanTab.LIVE || initialTab == DhyanTab.COURSES
     var selectedTab by rememberSaveable { mutableStateOf(initialTab) }
 
     LaunchedEffect(initialTab) {
@@ -569,9 +572,13 @@ fun DhyanScreen(
     com.safarparmar.app.ui.theme.SafarComposablesTheme {
     Box(Modifier.fillMaxSize()) {
         SafarDrawerScaffold(
-            title = stringResource(if (isLiveCentre) R.string.nav_live_sessions else R.string.module_dhyan),
-            subtitle = null,
-            currentRoute      = if (isLiveCentre) Routes.LIVE_SESSIONS_ROOT else currentRoute,
+            title = stringResource(
+                if (isLiveCentre) R.string.nav_live_sessions
+                else if (selectedTab == DhyanTab.CALM_CENTRE) R.string.nav_calm_centre
+                else R.string.module_dhyan
+            ),
+            subtitle = if (!isLiveCentre) stringResource(R.string.dhyan_mindfulness_subtitle) else null,
+            currentRoute      = if (isLiveCentre) Routes.LIVE_SESSIONS_ROOT else if (selectedTab == DhyanTab.CALM_CENTRE) Routes.CALM_CENTRE else currentRoute,
             isDarkTheme       = isDarkTheme,
             onNavigate        = onNavigate,
             onToggleDarkTheme = onToggleDarkTheme,
@@ -612,10 +619,10 @@ fun DhyanScreen(
                         .padding(top = padding.calculateTopPadding())
                         .padding(bottom = padding.calculateBottomPadding()),
                 ) {
-                    // Top Navigation Capsule
-                    if (isLiveCentre) DhyanTopNavigation(
+                    // Top Navigation Capsule (shows Dhyan / Calm Centre in personal practice, Live / Courses in Live Centre)
+                    DhyanTopNavigation(
                         selectedTab = selectedTab,
-                        tabs = dhyanTabsFor(initialTab),
+                        tabs = dhyanTabsFor(selectedTab),
                         onTabSelected = { selectedTab = it },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -639,11 +646,22 @@ fun DhyanScreen(
                                     onActiveAudioSourceChange = { activeAudioSource = it },
                                     onBreatheWithMe   = { showTechniquesSheet = true },
                                     onOpenAudioLibrary = { showAudioLibraryPanel = true },
+                                    onOpenCalmCentre  = { selectedTab = DhyanTab.CALM_CENTRE },
                                     onViewTechniqueAnimation = { technique ->
                                         previewTechnique = technique ?: selectedTechnique ?: techniques.first()
                                     },
                                     onSessionComplete = { minutes -> dhyanVm.trackCompletedSession(minutes) },
                                     onSessionActiveChange = { sessionActive = it },
+                                )
+                            }
+                            DhyanTab.CALM_CENTRE -> {
+                                com.safarparmar.app.ui.calmcentre.CalmCentreFlow(
+                                    isDarkTheme = isDarkTheme,
+                                    modifier = Modifier.fillMaxSize(),
+                                    onExit = { selectedTab = DhyanTab.DHYAN },
+                                    initialPractice = initialCalmPractice?.let { name ->
+                                        runCatching { com.safarparmar.app.ui.calmcentre.CalmPractice.valueOf(name) }.getOrNull()
+                                    },
                                 )
                             }
                             DhyanTab.COURSES -> {
@@ -737,6 +755,96 @@ fun DhyanScreen(
 }
 
 @Composable
+internal fun DhyanCalmCentreCard(
+    isDarkTheme: Boolean,
+    onOpenCalmCentre: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val isLight = !isDarkTheme
+    val cardBg = if (isLight) Color(0xFFF6F0FD) else Color(0xFF2B2135)
+    val borderColor = if (isLight) RoyalPurple.copy(alpha = 0.16f) else Color(0xFF4A3855)
+    val ink = if (isLight) Color(0xFF281432) else Color(0xFFF3ECF7)
+    val muted = if (isLight) Color(0xFF6E5B75) else Color(0xFFB39EB8)
+
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = onOpenCalmCentre),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = cardBg),
+        border = BorderStroke(1.dp, borderColor),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(if (isLight) Color.White else Color(0xFF3D2C48)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Air,
+                    contentDescription = null,
+                    tint = RoyalPurple,
+                    modifier = Modifier.size(22.dp),
+                )
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Text(
+                        text = stringResource(R.string.nav_calm_centre),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = ink,
+                    )
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(if (isLight) RoyalPurpleSoft else Color(0xFF452B58))
+                            .padding(horizontal = 5.dp, vertical = 1.dp),
+                    ) {
+                        Text(
+                            text = "Exercises",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (isLight) RoyalPurpleDark else Color(0xFFE2C9FA),
+                        )
+                    }
+                }
+                Text(
+                    text = "Mindful breathing, grounding & self-kindness",
+                    fontSize = 11.sp,
+                    color = muted,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            ComposablesIconButton(
+                onClick = onOpenCalmCentre,
+                style = ButtonStyle.Ghost,
+                modifier = Modifier.size(34.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = stringResource(R.string.dhyan_switch_to_calm_centre),
+                    tint = RoyalPurple,
+                    modifier = Modifier.size(17.dp),
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun BreathingTab(
     isDarkTheme: Boolean,
     selectedTechnique: BreathingTechnique?,
@@ -746,6 +854,7 @@ private fun BreathingTab(
     onActiveAudioSourceChange: (DhyanAudioSource) -> Unit,
     onBreatheWithMe: () -> Unit,
     onOpenAudioLibrary: () -> Unit,
+    onOpenCalmCentre: () -> Unit = {},
     onViewTechniqueAnimation: (BreathingTechnique?) -> Unit = {},
     onSessionComplete: (Int) -> Unit,
     onSessionActiveChange: (Boolean) -> Unit,
@@ -894,6 +1003,18 @@ private fun BreathingTab(
             .padding(top = 2.dp, bottom = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
+        AnimatedVisibility(
+            visible = !isRunning,
+            enter = fadeIn(tween(250)) + expandVertically(),
+            exit = fadeOut(tween(200)) + shrinkVertically(),
+        ) {
+            DhyanCalmCentreCard(
+                isDarkTheme = isDarkTheme,
+                onOpenCalmCentre = onOpenCalmCentre,
+                modifier = Modifier.padding(bottom = 6.dp),
+            )
+        }
+
         // Hero cluster (orb + timer) — shares remaining height so lower controls stay compact.
         Column(
             modifier = Modifier

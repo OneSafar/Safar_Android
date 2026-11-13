@@ -738,11 +738,32 @@ fun SafarNavGraph(
             route = Routes.CALM_CENTRE,
             deepLinks = listOf(navDeepLink { uriPattern = "$DEEP_LINK_BASE/calm_centre" }),
         ) {
-            com.safarparmar.app.ui.calmcentre.CalmCentreScreen(
+            DhyanScreen(
+                initialTab = DhyanTab.CALM_CENTRE,
                 currentRoute = currentRoute,
                 isDarkTheme = isDarkTheme,
                 onNavigate = ::navigate,
-                onBack = ::safeBack,
+                onToggleDarkTheme = onToggleDarkTheme,
+            )
+        }
+
+        composable(
+            route = Routes.CALM_CENTRE_ROUTE,
+            arguments = listOf(
+                navArgument("practice") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+            ),
+        ) { backStackEntry ->
+            val practice = backStackEntry.arguments?.getString("practice")
+            DhyanScreen(
+                initialTab = DhyanTab.CALM_CENTRE,
+                currentRoute = currentRoute,
+                isDarkTheme = isDarkTheme,
+                initialCalmPractice = practice,
+                onNavigate = ::navigate,
                 onToggleDarkTheme = onToggleDarkTheme,
             )
         }

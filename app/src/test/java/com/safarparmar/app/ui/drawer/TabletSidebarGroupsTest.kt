@@ -17,7 +17,7 @@ class TabletSidebarGroupsTest {
         assertEquals(setOf(Routes.PROFILE, Routes.SETTINGS), groups.account.map { it.route }.toSet())
         assertTrue(groups.study.any { it.route == Routes.YOUTUBE_STUDY_MODE_V2 })
         assertTrue(groups.wellbeing.any { it.route == Routes.DHYAN })
-        assertTrue(groups.community.any { it.route == Routes.COURSES })
+        assertTrue(groups.community.any { it.route == Routes.MEHFIL })
         assertTrue(groups.community.any { it.route == Routes.ADMIN_NOTIFICATIONS && it.requiresAdmin })
         assertFalse(groups.community.any { it.route in setOf(Routes.PROFILE, Routes.SETTINGS) })
     }

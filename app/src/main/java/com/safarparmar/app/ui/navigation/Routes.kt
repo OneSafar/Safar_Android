@@ -36,6 +36,7 @@ object Routes {
     const val DM_CHAT_ROUTE = "mehfil/dm_chat?targetUserId={targetUserId}&targetUserName={targetUserName}&contextPreview={contextPreview}&autoRequest={autoRequest}"
     const val DHYAN  = "dhyan"
     const val CALM_CENTRE = "calm_centre"
+    const val CALM_CENTRE_ROUTE = "calm_centre?practice={practice}"
     const val COURSES = "dhyan_courses"
     const val APP_PICKER = "ekagra/app_picker"
     const val KAVACH_ABOUT = "kavach/about"
@@ -59,6 +60,11 @@ object Routes {
     const val ROUTE_SYLLABUS_SUBJECTS = "syllabus/subjects/{planId}"
 
     fun focusShieldTab(tab: Int = 0): String = "focus_shield?tab=$tab"
+
+    fun dhyanTab(tab: String = "DHYAN"): String = "$DHYAN?tab=$tab"
+
+    fun calmCentreWithPractice(practice: String? = null): String =
+        if (practice != null) "$CALM_CENTRE?practice=${encodeParam(practice)}" else CALM_CENTRE
 
     fun nishthaTab(tab: Int, section: String = "overview"): String =
         "nishtha?tab=$tab&section=${encodeParam(section)}"
