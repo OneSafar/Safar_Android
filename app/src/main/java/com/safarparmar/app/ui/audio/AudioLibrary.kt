@@ -57,6 +57,13 @@ object AudioLibrary {
         DEFAULT_DHYAN_TRACK,
         // ── SAFAR Originals ────────────────────────────────────────────────────────
         AudioTrack(
+            id = "safar-dhyan-session-music",
+            name = "Safar Dhyan session music",
+            url = "$BASE_URL/safar-dhyan-session-music-3c148d7e211f.mp3",
+            category = AudioCategory.ORIGINALS,
+            description = "A peaceful soundtrack for your Dhyan session"
+        ),
+        AudioTrack(
             id = "safar-original-bhairav-surya-stuti",
             name = "Raga Bhairav: Surya Stuti",
             url = "$BASE_URL/safar-original-bhairav-surya-stuti.mp3",

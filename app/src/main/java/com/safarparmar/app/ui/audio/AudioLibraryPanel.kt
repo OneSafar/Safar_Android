@@ -283,7 +283,17 @@ fun AudioLibraryContent(
                 val isSelected = track.id == selectedTrackId
                 val isPreviewing = track.id == previewingTrackId
 
-                Column(Modifier.fillMaxWidth()) {
+                val isDhyanSessionMusic = track.id == "safar-dhyan-session-music"
+                Column(
+                    Modifier.fillMaxWidth().then(
+                        if (isDhyanSessionMusic) Modifier
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Color(0xFFFFC107).copy(alpha = 0.10f))
+                            .border(1.dp, Color(0xFFD99B16).copy(alpha = 0.5f), RoundedCornerShape(16.dp))
+                            .shimmer()
+                        else Modifier
+                    )
+                ) {
                     com.composables.ui.components.Button(
                         onClick = { onTrackSelect(track); onDismiss() },
                         style = com.composables.ui.components.ButtonStyle.Ghost,
@@ -321,7 +331,7 @@ fun AudioLibraryContent(
                                 text = track.nameRes?.let { androidx.compose.ui.res.stringResource(it) } ?: track.name,
                                 fontSize = 14.sp,
                                 fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
-                                color = ink.primaryText,
+                                color = if (isDhyanSessionMusic) Color(0xFFD99B16) else ink.primaryText,
                             )
                             val desc = track.descriptionRes?.let { androidx.compose.ui.res.stringResource(it) } ?: track.description
                             if (desc != null) {
